@@ -926,6 +926,7 @@ class Layman:
         print(url)
         r = requests.get(url)
         print(r.content)
+
         if (r.status_code == 404):
             return False
         else:
@@ -964,6 +965,7 @@ class Layman:
         except:
             layer = it.text()##pro listWidget
         try:
+            layer = self.removeUnacceptableChars(layer)
             url = self.URI+'/rest/' +self.laymanUsername+'/layers/'+str(layer).lower().replace(" ","_")+'/thumbnail'    
             data = urlopen(url).read()
             pixmap = QPixmap(200, 200)
@@ -979,6 +981,7 @@ class Layman:
         except:
             layer = it.text()##pro listWidget
         try:
+            layer = self.removeUnacceptableChars(layer)
             url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layer).lower().replace(" ","_")+'/thumbnail'    
             data = urlopen(url).read()
             pixmap = QPixmap(170, 170)
@@ -1012,13 +1015,46 @@ class Layman:
         text = self.dlg.lineEdit_2.text()
         text = self.removeUnacceptableChars(text)
         print(text)
-        if (self.checkIfMapExist(text)):
+        ### map check
+        url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+str(text)+"/file"
+        print(url)
+        r = requests.get(url)
+        print(r.content)
+        res = r.json()
+        print(res)
+        ch = True
+        e = False
+        try:
+            if res['code'] == 2:
+                ch = False
+            else:
+                ch = True
+        except:
+            ch = True
+            e = True ## kdyz nevraci rescode tak je to v poradku
+
+        if not ch:
             self.dlg.pushButton_CreateComposition.setEnabled(False)
             self.dlg.label_info.show()
-            
-        else:
+            self.dlg.label_info.setText("Unacceptable char in title")
+        elif (not e):            
             self.dlg.pushButton_CreateComposition.setEnabled(True)
             self.dlg.label_info.hide()
+            
+        else:
+            self.dlg.pushButton_CreateComposition.setEnabled(False)
+            self.dlg.label_info.show()
+            self.dlg.label_info.setText("Composition name already exists!")
+        ##
+
+
+        #if (self.checkIfMapExist(text)):
+        #    self.dlg.pushButton_CreateComposition.setEnabled(False)
+        #    self.dlg.label_info.show()
+            
+        #else:
+        #    self.dlg.pushButton_CreateComposition.setEnabled(True)
+        #    self.dlg.label_info.hide()
     #----------------------------------------------------------
     def readLayerJson(self,layerName, service):
         if self.checkLayerOnLayman(layerName):
@@ -1566,6 +1602,7 @@ class Layman:
                     msgbox.setDefaultButton(QMessageBox.No)
                     reply = msgbox.exec()
                     if (reply == QMessageBox.Yes):
+                        
                         print("vrstva již existuje")
                         self.json_export(layer_name)
                         geoPath = self.getTempPath(layer_name)
@@ -1905,6 +1942,7 @@ class Layman:
             print("ne sld")
         layer_name = layer_name.lower()
         layer_name = layer_name.replace(" ", "_")
+        layer_name = self.removeUnacceptableChars(layer_name)
         url = self.URI+'/rest/'+self.laymanUsername+"/layers/" + layer_name
         print(url)
         r = requests.patch(url, files=files, data = data, headers = self.authHeader, verify=False)
@@ -2207,7 +2245,7 @@ class Layman:
         arr = []
         for piece in self.read_in_chunks(f):
             arr.append(piece)
-        ##layer_name = layer_name.lower()
+        layer_name = self.removeUnacceptableChars(layer_name)
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer_name.lower().replace(" ", "_")+'/chunk'     
         resumableFilename = layer_name+'.geojson'
         layman_original_parameter = "file"  
