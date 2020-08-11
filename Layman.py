@@ -135,11 +135,12 @@ class Layman:
         self.dlgGetLayers= GetLayersDialog()
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
+        
         locale_path = os.path.join(
             self.plugin_dir,
             'i18n',
             'Layman_{}.qm'.format(locale))
-
+        self.locale = locale
         if os.path.exists(locale_path):
             self.translator = QTranslator()
             self.translator.load(locale_path)
@@ -418,7 +419,7 @@ class Layman:
         result = self.dlg.exec_()
 
 
-    def run_ImportMapDialog(self):
+    def run_ImportMapDialog(self):        
         self.dlg = ImportMapDialog()
         self.dlg.label_import.hide()
         #self.dlg.listWidget_listLayers2.hide()
@@ -468,7 +469,10 @@ class Layman:
         try:
             data = r.json()
         except:
-            QMessageBox.information(None, "Error", "Connection with server failed!.")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Error", "Připojení k serveru selhalo!")
+            else:
+                QMessageBox.information(None, "Error", "Connection with server failed!")
         for row in range(0, len(data)):          
             self.dlg.comboBox_raster.addItem(data[row]['name'])
 
@@ -557,12 +561,15 @@ class Layman:
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         result = self.dlg.exec_()
     def run_login(self):
+        print(self.locale)
         self.dlg = ConnectionManagerDialog()
         self.dlg.show()    
         self.dlg.pushButton_Connect.setEnabled(False) 
         path = self.plugin_dir + os.sep + "server_list.txt"
         servers = self.csvToArray(path)
+        self.dlg.label_APIKey_2.setToolTip("Username is important only with first login")
         print(servers)
+        
         for i in range (0,len(servers)):
             print(servers[i][0])
             self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
@@ -600,8 +607,14 @@ class Layman:
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl())
         self.dlg.pushButton_Continue.clicked.connect(lambda: self.getToken())
-        self.dlg.pushButton_Continue.setEnabled(False)       
-        
+        self.dlg.pushButton_Continue.setEnabled(False)    
+        registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
+        self.dlg.comboBox_server.currentTextChanged.connect(self.setReg)
+        self.dlg.label_sign.setOpenExternalLinks(True)
+        if self.locale == "cs":
+            self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
+        else:
+            self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
         self.dlg.pushButton_Connect.setStyleSheet("#pushButton_Connect {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Connect:hover{background: #66ab27 ;}")
         self.dlg.pushButton_Continue.setStyleSheet("#pushButton_Continue {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Continue:hover{background: #66ab27 ;} #pushButton_Continue:disabled{background: #64818b ;}")
@@ -759,6 +772,13 @@ class Layman:
             for row in reader: # each row is a list
                 results.append(row)
         return results
+    def setReg(self, str):
+        registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
+        if self.locale == "cs":
+            self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
+        else:
+            self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
+        
     def logout(self):
         self.disableEnvironment()
         self.textbox.setText("Layman")
@@ -767,6 +787,10 @@ class Layman:
         print(r.content)
         self.dlg.close()
         self.textbox.setText("Layman")
+        ## flush variables
+        self.loadedInMemory = False
+        self.compositeList = []
+        self.compositeListOld = []
        # self.flaskThread.join()
        # self.thread1.join() ## ukončujeme vlákno, které se stará o refresh tokenů OAUTH
     def disableEnvironment(self):
@@ -891,7 +915,10 @@ class Layman:
 
     def layerDelete(self, name):
         if (self.checkLayersInComopsitions(name) == True):
-            msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "This layers is included in other compositions. It will be delete from every composition.")
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Tuto vrstvu obsahujou některé kompozice. Bude smazána ze všech kompozic.")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "This layers is included in other compositions. It will be delete from every composition.")
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
@@ -939,10 +966,16 @@ class Layman:
         compositeLength = len(self.compositeList[x]['layers'])
         self.mapsChanged.add(x)
         if (pos + order < 0):
-            QMessageBox.information(None, "Error", "Layer is already on the top level!")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Error", "Vrstva je již na vrcholu kompozice!")
+            else:
+                QMessageBox.information(None, "Error", "Layer is already on the top level!")
             
         elif( pos + order == compositeLength):
-            QMessageBox.information(None, "Error", "Layer is already on the bottom level!")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Error", "Vrstva je již na spodu kompozice!")
+            else:
+                QMessageBox.information(None, "Error", "Layer is already on the bottom level!")
 
         else:
             for lay in self.compositeList[x]['layers']:
@@ -1076,19 +1109,28 @@ class Layman:
                 print("loading WFS")
                 self.loadWfs(wfsUrl, layerName, layerNameTitle) 
         else:
-            QMessageBox.information(None, "Layman", "Something went wrong with this layer: "+layerName)
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Something went wrong with this layer: "+layerName)
+            else:
+                QMessageBox.information(None, "Layman", "Nelze nahrát vrstva: "+layerName)
     def loadAllComposites(self):
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'
         print(url)
         try:
             r = requests.get(url = url)
         except:
-            QMessageBox.information(None, "Error", "Connection with server failed!.")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Error", "Připojení k serveru selhalo!.")
+            else:
+                QMessageBox.information(None, "Error", "Connection with server failed!.")
         try:
             data = r.json()  
             print(data)
         except:
-            QMessageBox.information(None, "Error", "Connection with server failed!.")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Error", "Připojení k serveru selhalo!.")
+            else:
+                QMessageBox.information(None, "Error", "Connection with server failed!.")
             return
         for i in data:
             print(i['name'])
@@ -1097,7 +1139,10 @@ class Layman:
             try:
                 map = r.json()
             except:
-                QMessageBox.information(None, "Error", "Connection with server failed!.")
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Error", "Připojení k serveru selhalo!.")
+                else:
+                    QMessageBox.information(None, "Error", "Connection with server failed!.")
             self.compositeList.append (map)
         self.loadedInMemory = True
 
@@ -1137,7 +1182,10 @@ class Layman:
         url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name    
         response = requests.delete(url, headers = self.authHeader)
         print(response)
-        QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+        if self.locale == "cs":
+            QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+        else:
+            QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
        # self.refreshMapList()            
         self.refreshListWidgetMaps() ## pro treewidget
         
@@ -1148,7 +1196,10 @@ class Layman:
         response = requests.delete(url, headers = self.authHeader)
         print(response)
         print(response.content)
-        QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+        if self.locale == "cs":
+            QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+        else:
+            QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
         del (self.compositeList[x])        
         self.refreshCompositeList()## pro import map form
         self.dlg.listWidget_listLayers.clear()
@@ -1160,12 +1211,17 @@ class Layman:
         try:
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name    
             response = requests.delete(url, headers = self.authHeader)
-            QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-            
+            if self.locale == "cs":
+                QMessageBox.information(None, "Message", "Kompozice byla úspěšně smazána.")
+            else:
+                QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
             
       
         except:
-            QMessageBox.information(None, "Warning", "Deleting composition failed.")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Warning", "Deleting composition failed.")
+            else:
+                QMessageBox.information(None, "Warning", "Mazání kompozice selhalo.")
         #self.refreshItems()
         self.deleteMapFromCanvas(x)
         self.dlg.listWidget_listLayers.clear()
@@ -1311,7 +1367,10 @@ class Layman:
         if (len(layers) > 0):
             self.json_export()    
         else:
-            QMessageBox.information(None, "Message", "You must load layer first!")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Message", "Není načtena vrstva!")
+            else:
+                QMessageBox.information(None, "Message", "You must load layer first!")
     def getEmptyComposite(self, compositeName, compositeTitle):        
         compositeEPSG  = "epsg:4326"        
         if (self.dlg.lineEdit_3.text() == "" or self.dlg.lineEdit_4.text() == "" or self.dlg.lineEdit_5.text() == "" or self.dlg.lineEdit_6.text() == ""):
@@ -1373,7 +1432,10 @@ class Layman:
         path = iface.activeLayer().dataProvider().dataSourceUri()
         path = path.split("|")[0].replace("'","")
         if (layer == None):
-            QMessageBox.information(None, "Message", "You must load layer first!")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Message", "Není načtena vrstva!")
+            else:
+                QMessageBox.information(None, "Message", "You must load layer first!")
         else:
            # defaultDir = QDir().home()
             defaultDir = os.path.dirname(path)
@@ -1424,7 +1486,10 @@ class Layman:
                 result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(layer, tempFile, "utf-8", crs, ogr_driver_name)
                 print(result2)
                 if(result2[0] == 2):
-                    QMessageBox.information(None, "Layman", "It is not possible overwrite this file. File is already open in other process.")  
+                    if self.locale == "cs":
+                        QMessageBox.information(None, "Layman", "Soubor není možné přepsat. Je již otevřený jiným procesem.")  
+                    else:
+                        QMessageBox.information(None, "Layman", "It is not possible overwrite this file. File is already open in other process.")  
                     return
                 if os.path.basename(layer_name.replace(".geojson", "")) != '':
                     QgsProject.instance().removeMapLayer(layer.id())
@@ -1576,14 +1641,20 @@ class Layman:
         
 
         if (re.match('[0-9]{1}', layer_name)): ## nesmí být nesmysl v názvu na prvním místě
-            QMessageBox.information(None, "Layman", "Number in first character is not allowed.")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Není povoleno číslo v prvním znaku.")
+            else:
+                QMessageBox.information(None, "Layman", "Number in first character is not allowed.")
             nameCheck = False
         
         print(layer_name)
 
 
         if not self.checkWgsExtent(layers[0]):
-            QMessageBox.information(None, "Layman", "Extent of layer is out of WGS 84 range. (EPSG: 4326)")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Prostorový rozsah vrstvy je mimo rozsah WGS 84. (EPSG: 4326)")
+            else:
+                QMessageBox.information(None, "Layman", "Extent of layer is out of WGS 84 range. (EPSG: 4326)")
             validExtent = False
 
         if (nameCheck and validExtent):
@@ -1596,7 +1667,10 @@ class Layman:
                 if (self.checkExistingLayer(layer_name)):
                     
                     print("vrstva již existuje")
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Layer "+layer_name+" already exists in server. Do you want overwrite it´s geometry?")
+                    if self.locale == "cs":
+                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Vrstva "+layer_name+" již na serveru existuje. Chcete přepsat její geometrii?")
+                    else:
+                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Layer "+layer_name+" already exists in server. Do you want overwrite it´s geometry?")
                     msgbox.addButton(QMessageBox.Yes)
                     msgbox.addButton(QMessageBox.No)
                     msgbox.setDefaultButton(QMessageBox.No)
@@ -1641,10 +1715,15 @@ class Layman:
                             else:
                                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was not imported."), Qgis.Warning, duration=3)
                     else:
-                   
-                        QMessageBox.information(None, "Layman", "Use EPSG:4326")
+                        if self.locale == "cs":
+                            QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
+                        else:
+                            QMessageBox.information(None, "Layman", "Use EPSG:4326")
             else:
-                QMessageBox.information(None, "Layman", "Layer "+layer_name+" does not have attributes!")
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Layman", "Vrstva "+layer_name+" nemá atributy!")
+                else:
+                    QMessageBox.information(None, "Layman", "Layer "+layer_name+" does not have attributes!")
 
     def addExistingLayerToComposite(self, name):
         x = self.dlg.listWidget.currentRow()
@@ -1661,9 +1740,16 @@ class Layman:
                 self.importMap(x, 'add', 1)
                 self.refreshLayerList()
             else:
-                QMessageBox.information(None, "Message", "Composition already include layer "+name+"!")
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Message", "Kompozice již obsahuje vrstvu "+name+"!")
+                else:
+                    QMessageBox.information(None, "Message", "Composition already include layer "+name+"!")
         else:
-            QMessageBox.information(None, "Layman", "Something went wrong with this layer: "+name)
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Nelze načíst vrstvu: "+name)
+            else:
+                QMessageBox.information(None, "Layman", "Something went wrong with this layer: "+name)
+
 
     def addExistingMapToMemory(self, name):
         response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/maps/'+str(name), verify=False)
@@ -1687,7 +1773,10 @@ class Layman:
             url = r['metadata']['record_url']
             webbrowser.open(url, new=2) ## redirect na micku pro více info
         except:
-            QMessageBox.information(None, "Layman", "Link is unavailable.")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Odkaz není k dispozici.")
+            else:
+                QMessageBox.information(None, "Layman", "Link is unavailable.")
     def checkLayerOnLayman(self, layer_name):
         url = self.URI+'/rest/'+self.laymanUsername+"/layers/"+layer_name
         r = requests.get(url = url, verify=False)
@@ -1713,7 +1802,10 @@ class Layman:
         try:
             step = self.getProgressBarStep(len(layers))
         except:
-            QMessageBox.information(None, "Layman", "No layer selected!")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Není vybrána žádná vrstva!")
+            else:
+                QMessageBox.information(None, "Layman", "No layer selected!")
         
         for i in range (0, len(layers)):
             print(type(layers[i]))           
@@ -1843,8 +1935,11 @@ class Layman:
         mapCode = req.status_code ## test jestli vrstva na serveru existuje. Pokud ne = error 404
         if (mapCode == 404 or operation == "mod" or operation == "del"):
         #if(True):
-            if (operation == "add"):                
-                msgbox = QMessageBox(QMessageBox.Question, "Import Map", "Chcete přidat do kompozice "+str(successful)+" vrstev?") 
+            if (operation == "add"):    
+                if self.locale == "cs":
+                    msgbox = QMessageBox(QMessageBox.Question, "Import Map", "Chcete přidat do kompozice "+str(successful)+" vrstev?") 
+                else:
+                    msgbox = QMessageBox(QMessageBox.Question, "Import Map", "Do you want add into composition "+str(successful)+" layers?") 
             if (operation == "mod"): 
                 
                 
@@ -1862,7 +1957,10 @@ class Layman:
                 #self.dlg.show()
                 return
             if (operation == "del"):
-                msgbox = QMessageBox(QMessageBox.Question, "Import Map", "Chcete smazat vybranou vrstvu?")
+                if self.locale == "cs":
+                    msgbox = QMessageBox(QMessageBox.Question, "Import Map", "Chcete smazat vybranou vrstvu?")
+                else:
+                    msgbox = QMessageBox(QMessageBox.Question, "Import Map", "Do you want delete selected layer?")
           
             try: # jedná se o mod pokud je except
                 msgbox.addButton(QMessageBox.Yes)
@@ -1911,7 +2009,10 @@ class Layman:
     def createComposite(self, name, title):
       #  if (name == "" or title == ""):
         if (title == ""):
-            QMessageBox.information(None, "Message", "Není vyplněn titulek!")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Message", "Není vyplněn titulek!")
+            else:
+                QMessageBox.information(None, "Message", "Title is not filled!")
         else:
             name = self.removeUnacceptableChars(title)
             data = self.getEmptyComposite(name,title)
@@ -1960,7 +2061,10 @@ class Layman:
     def sendLayer(self):       
         layer = self.getActiveLayer()      
         if (layer == None):
-            QMessageBox.information(None, "Message", "Neexistuje žádná vrstva k uložení")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Message", "Neexistuje žádná vrstva k uložení")
+            else:
+                QMessageBox.information(None, "Message", "No layer to save!")
         else:
             self.json_export()
             self.postRequest()
@@ -2122,7 +2226,10 @@ class Layman:
                    # repairUrl = repairUrl.replace("ows","wfs")
                     self.loadWfs(repairUrl, layerName,layerNameTitle, groupName)
             else:
-                QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
+                else:
+                    QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
     def getLayerTitle(self, layerName):
         layerName = self.removeUnacceptableChars(layerName)
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName
@@ -2383,7 +2490,10 @@ class Layman:
             print(res['expires_in'])
             print(res['refresh_token'])
         except:
-            QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Message", "Autorizace nebyla úspěšná! Prosím zkuste to znovu.")
+            else:
+                QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
             return
         self.access_token = res['access_token']
         self.refresh_token = res['refresh_token']
@@ -2431,7 +2541,7 @@ class Layman:
         self.laymanUsername = login
         user = {'username':login}  
         #user = {'username':'vrobel_hanz'}  
-        #user =  self.Agrimail        
+        #user =  self.Agrimail                
         print("authheader: "+ str(self.authHeader))
         r = requests.patch(url = userEndpoint, data = user, headers = self.authHeader)
         res = r.text
@@ -2450,10 +2560,13 @@ class Layman:
                 print("username is: " + self.laymanUsername )
                 self.textbox.setOpenExternalLinks(True)
                 url = self.liferayServer.replace('https:\\','').replace('.cz','').replace('http:\\','').replace('www.','').replace('.com','')
-                self.textbox.setText('<a href="'+self.liferayServer+'">' + url + '</a>')
+                self.textbox.setText('<a href="'+self.liferayServer+"/home"'">' + url + '</a>')
            if res['code'] == 32:
                 self.disableEnvironment()
-                QMessageBox.information(None, "Error", "Oauth2 authorization was not successfull!") 
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Error", "Oauth2 autorizace nebyla úspěšná!") 
+                else:
+                    QMessageBox.information(None, "Error", "Oauth2 authorization was not successfull!") 
                 self.textbox.setText("Layman")
                 return
             #self.laymanUsername = res['username']
@@ -2500,7 +2613,10 @@ class Layman:
                     
                     webbrowser.open(url, new=2)
                 else:
-                    QMessageBox.information(None, "Error", "Flask server is probably not running correctly!")  
+                    if self.locale == "cs":
+                        QMessageBox.information(None, "Error", "Flask server pravděpodobně neběží!")  
+                    else:
+                        QMessageBox.information(None, "Error", "Flask server is probably not running correctly!")  
 
         except:
             print ("##### flask server is starting #####")   
@@ -2511,7 +2627,10 @@ class Layman:
                 print("flask is running correctly")                 
                 webbrowser.open(url, new=2)
             else:
-                QMessageBox.information(None, "Error", "Flask server is probably not running correctly!")       
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Error", "Flask server pravděpodobně neběží!") 
+                else:
+                    QMessageBox.information(None, "Error", "Flask server is probably not running correctly!") 
         
         
 
