@@ -1395,7 +1395,10 @@ class Layman:
         options = QFileDialog.Options()
         dialog = QFileDialog()
         dialog.setStyleSheet("QPushButton {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} QPushButton:hover{background: #66ab27 ;}QPushButton:disabled{background: #64818b ;}");
-        fileName = dialog.getOpenFileName(None,"Load file", "","GeoJson Files (*.geojson);;Json Files (*.json)", options=options)
+        if self.locale == "cs":
+            fileName = dialog.getOpenFileName(None,"Načíst soubor", "","GeoJson Files (*.geojson);;Json Files (*.json)", options=options)
+        else:
+            fileName = dialog.getOpenFileName(None,"Load file", "","GeoJson Files (*.geojson);;Json Files (*.json)", options=options)
         print ("načítám json ze souboru:" + fileName[0])
         self.loadJsonLayer(fileName[0])
     def modifyMap(self, x):        
@@ -1447,7 +1450,10 @@ class Layman:
             dialog.setDirectory(defaultDir)
             print(dialog.directory().path())
            # layer_name = dialog.getSaveFileName(None, "Save file", QDir().homePath() +os.sep+ str(layer.name()) + ".geojson", "*.geojson")        
-            layer_name = dialog.getSaveFileName(None, "Save file", defaultDir +os.sep+ str(layer.name()) + ".geojson", "*.geojson")   
+            if self.locale == "cs":
+                layer_name = dialog.getSaveFileName(None, "Uložit soubor", defaultDir +os.sep+ str(layer.name()) + ".geojson", "*.geojson")   
+            else:
+                layer_name = dialog.getSaveFileName(None, "Save file", defaultDir +os.sep+ str(layer.name()) + ".geojson", "*.geojson")   
             
             self.json_export_local(layer_name[0], layer)
 

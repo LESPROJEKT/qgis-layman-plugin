@@ -107,7 +107,7 @@
     <message>
         <location filename="../dlg_editMap.ui" line="292"/>
         <source>Extent of canvas:</source>
-        <translation>Prostorový rozsah plátna:</translation>
+        <translation type="unfinished">Prostorový rozsah dat:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="279"/>
@@ -142,7 +142,7 @@
     <message>
         <location filename="../dlg_createComposite.ui" line="288"/>
         <source>Canvas extent</source>
-        <translation>Rozsah z plátna</translation>
+        <translation type="unfinished">Rozsah dat</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="35"/>
@@ -242,7 +242,7 @@
     <message>
         <location filename="../dlg_importMap.ui" line="284"/>
         <source>Down</source>
-        <translation></translation>
+        <translation type="unfinished">Dolů</translation>
     </message>
     <message>
         <location filename="../dlg_importMap.ui" line="297"/>
