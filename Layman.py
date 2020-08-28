@@ -149,6 +149,10 @@ class Layman:
         self.watcherState = QFileSystemWatcher()
         self.watcherState.addPath(path)
         self.watcherState.fileChanged.connect(self.notifySuccess)
+        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
+        self.watcher = QFileSystemWatcher()
+        self.watcher.addPath(path)
+        self.watcher.fileChanged.connect(self.authOptained)
      #   global dlgGetLayers 
         self.dlgGetLayers= GetLayersDialog()
         # initialize locale
@@ -2937,10 +2941,10 @@ class Layman:
         #self.URI = self.dlg.lineEdit_serverLayman.text()
         self.getCodeChallenge(self.getCodeVerifier()) ##generování kódů
        # self.client_id = self.dlg.lineEdit_AgriID.text()
-        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
-        self.watcher = QFileSystemWatcher()
-        self.watcher.addPath(path)
-        self.watcher.fileChanged.connect(self.authOptained)
+        #path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
+        #self.watcher = QFileSystemWatcher()
+        #self.watcher.addPath(path)
+        #self.watcher.fileChanged.connect(self.authOptained)
       
         
             #################       
