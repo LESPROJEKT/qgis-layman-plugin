@@ -130,6 +130,38 @@
     <string>Load map (WFS)</string>
    </property>
   </widget>
+  <widget class="QLabel" name="label_loading">
+   <property name="geometry">
+    <rect>
+     <x>514</x>
+     <y>380</y>
+     <width>141</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Loading data</string>
+   </property>
+  </widget>
+  <widget class="QProgressBar" name="progressBar_loader">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>464</x>
+     <y>397</y>
+     <width>191</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="maximum">
+    <number>0</number>
+   </property>
+   <property name="value">
+    <number>0</number>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
