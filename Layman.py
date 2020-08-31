@@ -149,10 +149,14 @@ class Layman:
         self.watcherState = QFileSystemWatcher()
         self.watcherState.addPath(path)
         self.watcherState.fileChanged.connect(self.notifySuccess)
-        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
-        self.watcher = QFileSystemWatcher()
-        self.watcher.addPath(path)
-        self.watcher.fileChanged.connect(self.authOptained)
+        #path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
+        #self.watcher = QFileSystemWatcher()
+        #self.watcher.addPath(path)
+        #self.watcher.fileChanged.connect(self.authOptained)
+        if os.path.isfile(path):
+            self.authFileTime = os.stat(path).st_mtime
+        else:
+            self.authFileTime = 0
      #   global dlgGetLayers 
         self.dlgGetLayers= GetLayersDialog()
         # initialize locale
@@ -2930,7 +2934,19 @@ class Layman:
         #  "Authorization": "Bearer "+ self.access_token, 
         #  "AuthorizationIssUrl" : 'https://www.'+self.liferayServer+'/o/oauth2/authorize'
         #} 
-
+    def checkAuthChange(self):
+        i = 0
+        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
+        print("thread is running")
+        while(i < 500):
+            if self.authFileTime == os.stat(path).st_mtime:
+                pass
+            else:
+                self.authFileTime = os.stat(path).st_mtime
+                self.authOptained()
+                print("obtained code")
+            i = i +1
+            time.sleep(1)
 
     def openAuthLiferayUrl(self):
         self.disableEnvironment()
@@ -2948,7 +2964,11 @@ class Layman:
       
         
             #################       
-     
+        #path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
+        #self.watcher2 = QFileSystemWatcher()
+        #self.watcher2.addPath(path)
+        #self.watcher2.fileChanged.connect(self.authOptained)
+        threading.Thread(target=lambda: self.checkAuthChange()).start() 
         url = self.liferayServer+'/o/oauth2/authorize?response_type=code&client_id='+self.client_id+'&redirect_uri=http%3A%2F%2Flocalhost:3000%2Fclient%2Fauthn%2Foauth2-liferay%2Fcallback&code_challenge='+self.code_challenge ##n4bQgYhMfWWaL-qgxVrQFaO_TxsrC4Is0V1sFbDwCgg'  
         try:
             r = requests.get("http://127.0.0.1:3000") 
@@ -3057,7 +3077,7 @@ class Layman:
 #import tempfile
 #import os            
 
-class StartFlaskDaemon(Flask):    
+class StartFlaskDaemon(threading.Thread):    
     def run(self):
         from subprocess import Popen, PIPE
         import platform
