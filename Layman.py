@@ -149,12 +149,15 @@ class Layman:
         self.watcherState = QFileSystemWatcher()
         self.watcherState.addPath(path)
         self.watcherState.fileChanged.connect(self.notifySuccess)
-        #path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
+        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
         #self.watcher = QFileSystemWatcher()
         #self.watcher.addPath(path)
         #self.watcher.fileChanged.connect(self.authOptained)
         if os.path.isfile(path):
-            self.authFileTime = os.stat(path).st_mtime
+
+            self.authFileTime =os.path.getmtime(path)
+        #print(self.authFileTime)
+        #print(os.path.getmtime(path))
         else:
             self.authFileTime = 0
      #   global dlgGetLayers 
@@ -2938,11 +2941,13 @@ class Layman:
         i = 0
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
         print("thread is running")
+        print(self.authFileTime)
+        print(os.path.getmtime(path))
         while(i < 500):
-            if self.authFileTime == os.stat(path).st_mtime:
+            if self.authFileTime == os.path.getmtime(path):
                 pass
             else:
-                self.authFileTime = os.stat(path).st_mtime
+                self.authFileTime = os.path.getmtime(path)
                 self.authOptained()
                 print("obtained code")
             i = i +1
