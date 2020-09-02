@@ -34,3 +34,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     #
     from .Layman import Layman
     return Layman(iface)
+
+

@@ -11,7 +11,6 @@
     <message>
         <location filename="../dlg_addLayer.ui" line="47"/>
         <source>Load WMS</source>
-        <translatorcomment>Načti WMS</translatorcomment>
         <translation>Načíst WMS</translation>
     </message>
     <message>
@@ -216,8 +215,8 @@
     </message>
     <message>
         <location filename="../dlg_importMap.ui" line="156"/>
-        <source>Importing layer:</source>
-        <translation>Importování vrstvy:</translation>
+        <source>Processing data:</source>
+        <translation type="unfinished">Probíhá nahrávání:</translation>
     </message>
     <message>
         <location filename="../dlg_importMap.ui" line="241"/>
@@ -319,56 +318,61 @@
         <source>Logout</source>
         <translation>Odhlásit se</translation>
     </message>
+    <message>
+        <location filename="../dlg_addMap.ui" line="143"/>
+        <source>Loading data</source>
+        <translation type="unfinished">Načítání dat</translation>
+    </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="1253"/>
+        <location filename="../Layman.py" line="1502"/>
         <source>&amp;Layman</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="243"/>
+        <location filename="../Layman.py" line="273"/>
         <source>Current Row Number</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="249"/>
+        <location filename="../Layman.py" line="279"/>
         <source>Login</source>
         <translation>Přihlášení</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="258"/>
+        <location filename="../Layman.py" line="288"/>
         <source>Save as to JSON and SLD</source>
         <translation>Uložit jako JSON se symbologií</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="267"/>
+        <location filename="../Layman.py" line="297"/>
         <source>Load from JSON</source>
         <translation>Načíst z JSON</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="276"/>
+        <location filename="../Layman.py" line="306"/>
         <source>Export layer to server</source>
         <translation>Exportovat vrstvu na server</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="283"/>
+        <location filename="../Layman.py" line="313"/>
         <source>Load layer from server</source>
         <translation>Načíst vrstvu ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="290"/>
+        <location filename="../Layman.py" line="320"/>
         <source>Manage maps</source>
         <translation>Správce mapových kompozic</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="297"/>
+        <location filename="../Layman.py" line="327"/>
         <source>Load map from server</source>
         <translation>načíst mapovou komopozici ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="319"/>
+        <location filename="../Layman.py" line="349"/>
         <source>User info</source>
         <translation>Uživatelské info</translation>
     </message>
