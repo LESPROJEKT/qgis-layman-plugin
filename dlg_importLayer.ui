@@ -80,7 +80,7 @@
     </rect>
    </property>
    <property name="selectionMode">
-    <enum>QAbstractItemView::ContiguousSelection</enum>
+    <enum>QAbstractItemView::ExtendedSelection</enum>
    </property>
    <property name="selectionBehavior">
     <enum>QAbstractItemView::SelectRows</enum>

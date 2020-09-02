@@ -56,6 +56,9 @@
      <height>341</height>
     </rect>
    </property>
+   <property name="selectionMode">
+    <enum>QAbstractItemView::SingleSelection</enum>
+   </property>
    <column>
     <property name="text">
      <string>Layers on Layman</string>

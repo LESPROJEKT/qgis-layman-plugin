@@ -785,7 +785,7 @@ class Layman:
         self.dlg.treeWidget.itemClicked.connect(self.showThumbnail)  
         self.dlg.treeWidget.itemClicked.connect(self.enableDeleteButton) 
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        self.dlg.setWindowModality(Qt.ApplicationModal)
+        #self.dlg.setWindowModality(Qt.ApplicationModal)
 
         self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
@@ -1050,6 +1050,7 @@ class Layman:
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
             reply = msgbox.exec()
+            name = self.removeUnacceptableChars(name).lower()
             if (reply == QMessageBox.Yes):
                 url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name    
                 response = requests.delete(url, headers = self.authHeader)
@@ -1062,6 +1063,7 @@ class Layman:
                     pass
                 
         else:    
+            name = self.removeUnacceptableChars(name).lower()
             url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name    
             response = requests.delete(url, headers = self.authHeader)
             print(response.content)
@@ -1071,6 +1073,8 @@ class Layman:
         self.dlg.treeWidget.clear()
         url = self.URI+'/rest/'+self.laymanUsername+'/layers'
         r = requests.get(url = url)
+        print("delete refresh")
+        print(r.content)
         data = r.json()
         for row in range(0, len(data)):            
             item = QTreeWidgetItem([data[row]['name']])
