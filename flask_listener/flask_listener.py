@@ -17,6 +17,7 @@ def writeCode(value):
     f = open(path, "w")
     f.write(value)
     f.close()
+    f.flush()
 
 @app.route('/')
 def hello():

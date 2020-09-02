@@ -3,7 +3,7 @@
  <class>DialogBase</class>
  <widget class="QDialog" name="DialogBase">
   <property name="windowModality">
-   <enum>Qt::NonModal</enum>
+   <enum>Qt::ApplicationModal</enum>
   </property>
   <property name="enabled">
    <bool>true</bool>
@@ -153,7 +153,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Processing data:</string>
+     <string>Importing layer:</string>
     </property>
    </widget>
    <widget class="QProgressBar" name="progressBar">
@@ -416,38 +416,6 @@
      <string>Load Map (WFS)</string>
     </property>
    </widget>
-  </widget>
-  <widget class="QProgressBar" name="progressBar_loader">
-   <property name="enabled">
-    <bool>true</bool>
-   </property>
-   <property name="geometry">
-    <rect>
-     <x>147</x>
-     <y>650</y>
-     <width>191</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="maximum">
-    <number>0</number>
-   </property>
-   <property name="value">
-    <number>0</number>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_loading">
-   <property name="geometry">
-    <rect>
-     <x>67</x>
-     <y>653</y>
-     <width>141</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Loading data</string>
-   </property>
   </widget>
  </widget>
  <customwidgets>
