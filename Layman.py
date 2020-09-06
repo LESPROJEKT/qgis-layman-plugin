@@ -141,15 +141,17 @@ class Layman:
         self.laymanServer = None
         self.mapsChanged = set()
         self.importedLayer = None
+        self.batchLength = 0
         self.version = "1.0.0"
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
-        
+        self.processingList = []
         self.writeState(0)
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt" 
         self.watcherState = QFileSystemWatcher()
         self.watcherState.addPath(path)
-        self.watcherState.fileChanged.connect(self.notifySuccess)
+        #self.watcherState.fileChanged.connect(self.notifySuccess)
+        self.watcherState.fileChanged.connect(self.processingWorker)        
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
         #self.watcher = QFileSystemWatcher()
         #self.watcher.addPath(path)
@@ -597,14 +599,14 @@ class Layman:
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
         r = requests.get(url = url)
         data = r.json()
-        print("data")
-        print(data)
+        #print("data")
+        #print(data)
         for row in range(0, len(data)):            
             self.dlg.comboBox_loadMap.addItem(data[row]['name'])
         ##self.dlg.refresh()
         #self.dlg.listWidget.update()
         #self.refreshLayerList()
-        time.sleep(1)
+        time.sleep(2)
         self.dlg.label_loading.hide() 
         self.dlg.progressBar_loader.hide() 
         self.importMapEnvironmnet(True)
@@ -650,10 +652,12 @@ class Layman:
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
 
         self.dlg.show()
-      
+        self.dlg.rejected.connect(lambda: self.setBatchLengthZero()) 
         
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         result = self.dlg.exec_()
+    def setBatchLengthZero(self):
+        self.batchLength = 0
     def run_login(self):
         print(self.locale)
         self.dlg = ConnectionManagerDialog()
@@ -1788,8 +1792,13 @@ class Layman:
             return True
 
 
-    def callPostRequest(self, layers):
-        
+    def callPostRequest(self, layers):    
+       # self.processingList = []        
+        self.batchLength = self.batchLength + len(layers)
+        if self.locale == "cs":
+            self.dlg.label_progress.setText("Úspěšně exportováno 0 / " + str(len(layers)) )
+        else:
+            self.dlg.label_progress.setText("Sucessfully exported 0 / " + str(len(layers)) )
         for item in layers:
             print (item.text(0))
             
@@ -1797,7 +1806,7 @@ class Layman:
                 
 
             self.postRequest(item.text(0))
-   
+        #self.dlg.label_progress.setText("")
     def setCurrentLayer(name):
         layers = QgsProject.instance().mapLayersByName(name) 
         if(len(layers) >1):
@@ -1836,7 +1845,7 @@ class Layman:
     
         destLayer.dataProvider().addFeatures(feats)
         return destLayer
-    def patchThread(self, layer_name, data, progress):
+    def patchThread(self, layer_name, data,q, progress):
         self.json_export(layer_name)
         geoPath = self.getTempPath(layer_name)
         #try:
@@ -1850,9 +1859,12 @@ class Layman:
             self.dlg.label_import.hide()
             time.sleep(1)
             self.importedLayer = layer_name
+            self.processingList[q][2] = 1
             self.writeState(1)
+            
             #iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
-    def postThread(self, layer_name,data, progress):
+
+    def postThread(self, layer_name,data, q,progress):
         self.json_export(layer_name)
         sldPath = self.getTempPath(layer_name).replace("geojson", "sld")
         geoPath = self.getTempPath(layer_name)
@@ -1874,7 +1886,9 @@ class Layman:
             self.dlg.label_import.hide()
             time.sleep(1)
             self.importedLayer = layer_name
+            self.processingList[q][2] = 1
             self.writeState(1)
+            
             #QMessageBox.information(None, "Message", "Layer exported sucessfully.")
     def postRequest(self, layer_name):     
         nameCheck = True
@@ -1928,7 +1942,8 @@ class Layman:
                     if (reply == QMessageBox.Yes):
                         self.dlg.progressBar.show() 
                         self.dlg.label_import.show()
-                        threading.Thread(target=lambda: self.patchThread(layer_name,data, True)).start()
+                        q = self.setProcessingItem(layer_name)
+                        threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
                         print("vrstva již existuje")
                         
                     else:
@@ -1941,7 +1956,8 @@ class Layman:
                       #  print (layer_name)
                         self.dlg.progressBar.show() 
                         self.dlg.label_import.show()
-                        threading.Thread(target=lambda: self.postThread(layer_name,data, True)).start()    
+                        q = self.setProcessingItem(layer_name)
+                        threading.Thread(target=lambda: self.postThread(layer_name,data, q,True)).start()    
                     #        if response.status_code == 200:
                     #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
                     #        else:
@@ -1956,6 +1972,10 @@ class Layman:
                     QMessageBox.information(None, "Layman", "Vrstva "+layer_name+" nemá atributy!")
                 else:
                     QMessageBox.information(None, "Layman", "Layer "+layer_name+" does not have attributes!")
+    def setProcessingItem(self, layer_name):
+        queue = len(self.processingList)
+        self.processingList.append([queue, layer_name, 0])
+        return queue
     def postRequest2(self, layer_name):     
         nameCheck = True
         validExtent = True
@@ -2058,6 +2078,24 @@ class Layman:
                 QMessageBox.information(None, "Layman", "Nelze načíst vrstvu: "+name)
             else:
                 QMessageBox.information(None, "Layman", "Something went wrong with this layer: "+name)
+    def processingWorker(self): ## self.processingList[i][2] hodnoty 0 v procesu, 1 importováno, 2 vypsaná notifikace
+        done = 0
+        for i in range (0, len(self.processingList)):
+            if self.processingList[i][2] == 1:
+                if self.locale == "cs":
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva "+self.processingList[i][1]+" byla úspěšně importována"), Qgis.Success, duration=3)
+                else:
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer "+self.processingList[i][1]+" was imported sucessfully"), Qgis.Success, duration=3)
+                self.processingList[i][2] == 2
+          
+                done = done + 1
+        try:
+            if self.locale == "cs":
+                self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(done) + " / " + str(self.batchLength) )
+            else:
+                self.dlg.label_progress.setText("Sucessfully exported: " +  str(done) + " / " + str(self.batchLength) )
+        except:
+            pass
     def addExistingLayerToCompositeThread(self, name, x):
         
         response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(name), verify=False)
