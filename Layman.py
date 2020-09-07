@@ -719,6 +719,7 @@ class Layman:
         self.dlg.pushButton_Continue.setStyleSheet("#pushButton_Continue {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Continue:hover{background: #66ab27 ;} #pushButton_Continue:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         result = self.dlg.exec_()
+        self.dlg.rejected.connect(lambda: self.loginReject())
     def run_AddMapDialog(self):        
         self.dlg = AddMapDialog()
         
@@ -813,7 +814,7 @@ class Layman:
         for row in range(0, len(data)):            
             item = QTreeWidgetItem([self.getLayerTitle(data[row]['name'])])
             self.dlg.treeWidget.addTopLevelItem(item)
-        time.sleep(1)
+        time.sleep(2)
         self.dlg.progressBar_loader.hide() 
         self.dlg.label_loading.hide() 
     def disableExport(self):
@@ -905,7 +906,11 @@ class Layman:
             self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
         else:
             self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
-        
+    def loginReject(self):
+        if self.dlg.pushButton_Continue.isEnabled():
+            self.getToken()
+        else:
+            self.dlg.close()
     def logout(self):
         self.disableEnvironment()
         self.textbox.setText("Layman")
@@ -1067,12 +1072,27 @@ class Layman:
                     pass
                 
         else:    
-            name = self.removeUnacceptableChars(name).lower()
-            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name    
-            response = requests.delete(url, headers = self.authHeader)
-            print(response.content)
-            print(response)
-            self.addLayerRefresh()
+            name = self.removeUnacceptableChars(name).lower()   
+            threading.Thread(target=lambda: self.layerDeleteThread(name)).start()
+            self.dlg.progressBar_loader.show() 
+            
+            #name = self.removeUnacceptableChars(name).lower()
+            #url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name    
+            #response = requests.delete(url, headers = self.authHeader)
+            #print(response.content)
+            #print(response)
+            #self.addLayerRefresh()
+    def layerDeleteThread(self, name):       
+        url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name    
+        response = requests.delete(url, headers = self.authHeader)
+        print(response.content)
+        #print(response)
+        self.addLayerRefresh()
+        time.sleep(2)
+        
+        self.dlg.label_thumbnail.setText(' ')
+        if not (self.threadLayers.is_alive()):
+            self.dlg.progressBar_loader.hide() 
     def addLayerRefresh(self):
         self.dlg.treeWidget.clear()
         url = self.URI+'/rest/'+self.laymanUsername+'/layers'
@@ -2256,10 +2276,15 @@ class Layman:
                     done = False
         if (done and QgsProject.instance().mapLayersByName(name)):    ## kompozice může mít načtené vrstvy, které nejsou v canvasu
             self.deleteLayerFromCanvas(name)   
-        time.sleep(1)
+        time.sleep(2)
         self.dlg.progressBar.hide() 
         self.dlg.label_import.hide()
         self.importMapEnvironmnet(True)
+        try:
+            self.dlg.label_thumbnail.setText(' ')
+        except:
+            pass
+        
     def importCleanComposite(self,x):
         tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
         with open(tempFile, 'w') as outfile:  
