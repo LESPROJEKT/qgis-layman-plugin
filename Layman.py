@@ -142,6 +142,7 @@ class Layman:
         self.mapsChanged = set()
         self.importedLayer = None
         self.batchLength = 0
+        self.done = 0
         self.version = "1.0.0"
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
@@ -399,7 +400,7 @@ class Layman:
     def run_DeleteLayerFromMap(self):
         self.dlg = DeleteLayerFromMapDialog()
         self.dlg.pushButton.clicked.connect(lambda: self.deteteLayerFromComposite(self.dlg.listWidget.currentRow(),self.compositeList[self.dlg.listWidget.currentRow()]['layers'][self.dlg.listWidget_listLayers2.currentRow()]['params']['LAYERS']))
-        #self.dlg.pushButton.clicked.connect(lambda: print(self.dlg.listWidget_2.currentRow()))
+        
        
         layers = QgsProject.instance().mapLayers().values()
         
@@ -465,9 +466,11 @@ class Layman:
         self.dlg.pushButton_up.clicked.connect(lambda: self.reorderLayers(self.dlg.listWidget_listLayers.currentRow(), 1, self.dlg.listWidget.currentRow()))
         self.dlg.pushButton_down.clicked.connect(lambda: self.reorderLayers(self.dlg.listWidget_listLayers.currentRow(), -1, self.dlg.listWidget.currentRow()))
         self.dlg.pushButton_saveOrder.clicked.connect(lambda: self.saveReorder(self.dlg.listWidget.currentRow()))
-
+        #if not self.loadedInMemory:
         self.threadComposites = threading.Thread(target=self.loadCompositesThread)
         self.threadComposites.start()
+        #else:
+        #    self.loadCompositesThread()
         
         
         self.dlg.pushButton_addMap.clicked.connect(lambda: self.showAddMapDialog())
@@ -544,7 +547,7 @@ class Layman:
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.dlg.pushButton_saveOrder.setStyleSheet("#pushButton_saveOrder {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_saveOrder:hover{background: #66ab27 ;}#pushButton_saveOrder:disabled{background: #64818b ;}")
         
-
+        
 
         result = self.dlg.exec_()
     def importMapEnvironmnet(self,enabled):
@@ -577,7 +580,9 @@ class Layman:
             self.dlg.pushButton_addRaster.setEnabled(False)
     def loadCompositesThread(self):
         if not self.loadedInMemory:
-            self.loadAllComposites()
+            self.loadAllComposites()        
+            
+            
         layers = QgsProject.instance().mapLayers().values()     
         for i in range (0, len(self.compositeList)):
             #print(self.compositeList[i])
@@ -591,9 +596,11 @@ class Layman:
             data = r.json()
         except:
             if self.locale == "cs":
-                QMessageBox.information(None, "Error", "Připojení k serveru selhalo!")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)
+                #QMessageBox.information(None, "Error", "Připojení k serveru selhalo!")
             else:
-                QMessageBox.information(None, "Error", "Connection with server failed!")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
+                #QMessageBox.information(None, "Error", "Connection with server failed!")
         for row in range(0, len(data)):          
             self.dlg.comboBox_raster.addItem(data[row]['name'])
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
@@ -607,9 +614,12 @@ class Layman:
         #self.dlg.listWidget.update()
         #self.refreshLayerList()
         time.sleep(2)
-        self.dlg.label_loading.hide() 
-        self.dlg.progressBar_loader.hide() 
-        self.importMapEnvironmnet(True)
+        try:
+            self.dlg.label_loading.hide() 
+            self.dlg.progressBar_loader.hide() 
+            self.importMapEnvironmnet(True)
+        except:
+            pass
        # self.dlg.setEnabled(True)
     def run_DeleteMapDialog(self):
         self.dlg = DeleteMapDialog()
@@ -652,7 +662,7 @@ class Layman:
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
 
         self.dlg.show()
-        self.dlg.rejected.connect(lambda: self.setBatchLengthZero()) 
+        #self.dlg.rejected.connect(lambda: self.setBatchLengthZero()) 
         
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         result = self.dlg.exec_()
@@ -805,8 +815,8 @@ class Layman:
         result = self.dlg.exec_()
 
     def loadLayersThread(self):
-        if not self.loadedInMemory:
-            self.loadAllComposites()
+        #if not self.loadedInMemory:
+        #    self.loadAllComposites()
         url = self.URI+'/rest/'+self.laymanUsername+'/layers'
         r = requests.get(url = url)
         print(r.content)
@@ -869,9 +879,10 @@ class Layman:
 
     def saveReorder(self):
         for x in self.mapsChanged:
+            print(str(self.mapsChanged) + " mapsChanged" )
             print(x)
             print(self.compositeList[x]['layers'])
-            self.importMap(x, 'mod')
+            self.importMap(x, 'mov')
         print("changes saved to server")
         #self.dlg.pushButton_saveOrder.setEnabled(False)
     def checkUsername(self, name):
@@ -970,12 +981,18 @@ class Layman:
             
             self.dlg.listWidget_listLayers2.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
     def deleteLayerThrowCompositions(self, name):
+        name = self.removeUnacceptableChars(name).lower()
         for x in range (0,len(self.compositeList)):
            
             for i in range (0,len(self.compositeList[x]['layers'])): 
-                if (name == self.compositeList[x]['layers'][i]['params']['LAYERS']):
+                #if (name == self.compositeList[x]['layers'][i]['params']['LAYERS']):
+                #    inComposite = True
+                #    print(self.compositeList[x]['layers'][i]['params']['LAYERS'])
+                #    self.deteteLayerFromComposite(x, i, name)
+                 if (name == self.compositeList[x]['layers'][i]['title']):
                     inComposite = True
-                    print(self.compositeList[x]['layers'][i]['params']['LAYERS'])
+                    print("inComposite")
+                    print(self.compositeList[x]['name'])
                     self.deteteLayerFromComposite(x, i, name)
     def checkLayersInComopsitions(self, name):
         inComposite = False
@@ -999,7 +1016,7 @@ class Layman:
 
     def refreshLayerList(self):
         self.dlg.listWidget_listLayers.clear()
-        for i in reversed(range (0,len(self.compositeList[self.dlg.listWidget.currentRow()]['layers']))):
+        for i in (range (0,len(self.compositeList[self.dlg.listWidget.currentRow()]['layers']))):
             self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
             print(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
 
@@ -1302,17 +1319,17 @@ class Layman:
             r = requests.get(url = url)
         except:
             if self.locale == "cs":
-                QMessageBox.information(None, "Error", "Připojení k serveru selhalo!.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)               
             else:
-                QMessageBox.information(None, "Error", "Connection with server failed!.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
         try:
             data = r.json()  
             print(data)
         except:
             if self.locale == "cs":
-                QMessageBox.information(None, "Error", "Připojení k serveru selhalo!.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)               
             else:
-                QMessageBox.information(None, "Error", "Connection with server failed!.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
             return
         for i in data:
             print(i['name'])
@@ -1322,10 +1339,36 @@ class Layman:
                 map = r.json()
             except:
                 if self.locale == "cs":
-                    QMessageBox.information(None, "Error", "Připojení k serveru selhalo!.")
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)              
                 else:
-                    QMessageBox.information(None, "Error", "Connection with server failed!.")
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
             self.compositeList.append (map)
+        self.loadedInMemory = True
+    def loadAllCompositesWithThreadCheck(self):
+        self.loadFailed = False
+        url = self.URI+'/rest/' + self.laymanUsername + '/maps'
+        print(url)
+        try:
+            r = requests.get(url = url)
+        except:
+            self.loadFailed = True
+        try:
+            data = r.json()  
+            print(data)
+        except:
+            self.loadFailed = True
+            return
+        for i in data:
+            print(i['name'])
+            url = self.URI+'/rest/' + self.laymanUsername + '/maps/'+i['name']+'/file'  
+            r = requests.get(url = url)
+            try:
+                map = r.json()
+                self.compositeList.append (map)
+                
+            except:
+                self.loadFailed = True
+            
         self.loadedInMemory = True
     #def ttt(self):
     #    bar = QProgressBar()
@@ -1405,10 +1448,20 @@ class Layman:
         url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name    
         response = requests.delete(url, headers = self.authHeader)
         print(response)
-        if self.locale == "cs":
-            QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+        if (response.status_code == 200):
+            if self.locale == "cs":
+            #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
+            else:
+            #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
         else:
-            QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+            if self.locale == "cs":
+            #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně smazána."), Qgis.Warning, duration=3)
+            else:
+            #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning, duration=3)
        # self.refreshMapList()            
         self.refreshListWidgetMaps() ## pro treewidget
         
@@ -1419,10 +1472,20 @@ class Layman:
         response = requests.delete(url, headers = self.authHeader)
         print(response)
         print(response.content)
-        if self.locale == "cs":
-            QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+        if (response.status_code == 200):
+            if self.locale == "cs":
+            #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
+            else:
+            #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
         else:
-            QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+            if self.locale == "cs":
+            #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně smazána."), Qgis.Warning, duration=3)
+            else:
+            #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning, duration=3)
         del (self.compositeList[x])        
         self.refreshCompositeList()## pro import map form
         self.dlg.listWidget_listLayers.clear()
@@ -1814,11 +1877,18 @@ class Layman:
 
     def callPostRequest(self, layers):    
        # self.processingList = []        
-        self.batchLength = self.batchLength + len(layers)
-        if self.locale == "cs":
-            self.dlg.label_progress.setText("Úspěšně exportováno 0 / " + str(len(layers)) )
+        if self.batchLength == 0:
+            self.batchLength = self.batchLength + len(layers)
+            if self.locale == "cs":
+                self.dlg.label_progress.setText("úspěšně exportováno: 0 / " + str(len(layers)) )
+            else:
+                self.dlg.label_progress.setText("Sucessfully exported 0 / " + str(len(layers)) )
         else:
-            self.dlg.label_progress.setText("Sucessfully exported 0 / " + str(len(layers)) )
+            self.batchLength = self.batchLength + len(layers)
+            if self.locale == "cs":
+                self.dlg.label_progress.setText("úspěšně exportováno: "+str(self.done)+" / " + str(self.batchLength) )
+            else:
+                self.dlg.label_progress.setText("Sucessfully exported "+str(self.done)+" / " + str(self.batchLength) )
         for item in layers:
             print (item.text(0))
             
@@ -1967,7 +2037,7 @@ class Layman:
                         print("vrstva již existuje")
                         
                     else:
-                        pass
+                        self.batchLength = self.batchLength - 1 
                 else:
             
                     self.layerName = layer_name
@@ -2078,7 +2148,8 @@ class Layman:
 
     def addExistingLayerToComposite(self, name):
         #self.dlg.label_loading.show() 
-        #self.dlg.progressBar_loader.show() 
+        #self.dlg.progressBar_loader.show()         
+        name = self.removeUnacceptableChars(name).lower()
         self.dlg.pushButton_addRaster.setEnabled(False)
         x = self.dlg.listWidget.currentRow()
         if self.checkLayerOnLayman(name):
@@ -2100,6 +2171,7 @@ class Layman:
                 QMessageBox.information(None, "Layman", "Something went wrong with this layer: "+name)
     def processingWorker(self): ## self.processingList[i][2] hodnoty 0 v procesu, 1 importováno, 2 vypsaná notifikace
         done = 0
+        
         for i in range (0, len(self.processingList)):
             if self.processingList[i][2] == 1:
                 if self.locale == "cs":
@@ -2109,29 +2181,35 @@ class Layman:
                 self.processingList[i][2] == 2
           
                 done = done + 1
+        if self.done == done:
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva "+self.processingList[i][1]+" nebyla úspěšně importována"), Qgis.Warning, duration=3)
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer "+self.processingList[i][1]+" was noét imported sucessfully"), Qgis.Warning, duration=3)
+        self.done = done
         try:
             if self.locale == "cs":
-                self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(done) + " / " + str(self.batchLength) )
+                self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.done) + " / " + str(self.batchLength) )
             else:
-                self.dlg.label_progress.setText("Sucessfully exported: " +  str(done) + " / " + str(self.batchLength) )
+                self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.done) + " / " + str(self.batchLength) )
         except:
             pass
-    def addExistingLayerToCompositeThread(self, name, x):
-        
+    def addExistingLayerToCompositeThread(self, title, x):
+        name = self.removeUnacceptableChars(title).lower()
         response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(name), verify=False)
         res = self.fromByteToJson(response.content)
         print(res)
         wmsUrl = res['wms']['url']
         
         self.existLayer = False
-        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(name),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(name),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(res['title']),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
         self.importMap(x, 'add', 1)
         self.refreshLayerList()
            
         #self.dlg.label_loading.hide() 
         
         #self.dlg.progressBar_loader.hide()
-        time.sleep(1)
+        time.sleep(2)
         self.dlg.progressBar.hide() 
         self.dlg.label_import.hide()
     def addExistingMapToMemory(self, name):
@@ -2196,49 +2274,49 @@ class Layman:
             print (self.isLayerInComposite(x))
             print (layers[i].name() in self.isLayerInComposite(x))
             inComposite = layers[i].name() in self.isLayerInComposite(x)
-            layerName = self.removeUnacceptableChars(layers[i].name())
+            layerName = self.removeUnacceptableChars(layers[i].name()).lower()
             if (self.checkExistingLayer(layers[i].name()) and inComposite):
                 j = self.getLayerInCompositePosition(x)
                 print("j je: " + str(j))
                 
             
              
-                self.postRequest2(layers[i].name())
+                self.postRequest(layers[i].name())
                 layerName = self.removeUnacceptableChars(layers[i].name())
-                wmsStatus = 'PENDING'
-                j = 0
-                while ((wmsStatus == 'PENDING') and (j < 10)):
-                    print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
-                    response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
-                    res = self.fromByteToJson(response.content)
-                    try:
-                        wmsStatus = res['wms']['status']
-                    except:
-                        wmsStatus = "done"
-                    time.sleep(1)
-                    j = j + 1
+                #wmsStatus = 'PENDING'
+                #j = 0
+                #while ((wmsStatus == 'PENDING') and (j < 10)):
+                #    print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
+                #    response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
+                #    res = self.fromByteToJson(response.content)
+                #    try:
+                #        wmsStatus = res['wms']['status']
+                #    except:
+                #        wmsStatus = "done"
+                #    time.sleep(1)
+                #    j = j + 1
             
 
              
 
               
             else:
-                self.postRequest2(layers[i].name())
-                wmsStatus = 'PENDING'
-                j = 0
-                while ((wmsStatus == 'PENDING') and (j < 10)):
-                    print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
-                    response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
-                    res = self.fromByteToJson(response.content)
-                    try:
-                        wmsStatus = res['wms']['status']
-                    except:
-                        wmsStatus = "done"
-                    time.sleep(1)
-                    j = j + 1
+                self.postRequest(layers[i].name())
+                #wmsStatus = 'PENDING'
+                #j = 0
+                #while ((wmsStatus == 'PENDING') and (j < 10)):
+                #    print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
+                #    response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
+                #    res = self.fromByteToJson(response.content)
+                #    try:
+                #        wmsStatus = res['wms']['status']
+                #    except:
+                #        wmsStatus = "done"
+                #    time.sleep(1)
+                #    j = j + 1
             
 
-                print(res)
+                #print(res)
                 try:
                     wmsUrl = res['wms']['url']
                 except:
@@ -2272,14 +2350,18 @@ class Layman:
         done = True
         if (len(self.compositeList[x]['layers']) != 0 and len(self.compositeList[x]['layers']) != None):
             for i in range (0, len(self.compositeList[x]['layers'])):
-                if (self.compositeList[x]['layers'][i]['params']['LAYERS'] == name):
+                #if (self.compositeList[x]['layers'][i]['params']['LAYERS'] == name):
+                if (self.compositeList[x]['layers'][i]['title'] == name):
                     done = False
         if (done and QgsProject.instance().mapLayersByName(name)):    ## kompozice může mít načtené vrstvy, které nejsou v canvasu
             self.deleteLayerFromCanvas(name)   
         time.sleep(2)
-        self.dlg.progressBar.hide() 
-        self.dlg.label_import.hide()
-        self.importMapEnvironmnet(True)
+        try:
+            self.dlg.progressBar.hide() 
+            self.dlg.label_import.hide()
+            self.importMapEnvironmnet(True)
+        except:
+            pass # pro formulár kde neni progressbar
         try:
             self.dlg.label_thumbnail.setText(' ')
         except:
@@ -2296,6 +2378,20 @@ class Layman:
         print(self.URI+'/rest/'+self.laymanUsername+'/maps/')   
         print(self.authHeader)
         response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.authHeader)
+        if (response.status_code == 200):
+            if self.locale == "cs":
+            #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně vytvořena."), Qgis.Success, duration=3)
+            else:
+            #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully created."), Qgis.Success, duration=3)
+        else:
+            if self.locale == "cs":
+            #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně vytvořena."), Qgis.Warning, duration=3)
+            else:
+            #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully created."), Qgis.Warning, duration=3)
         print(response.content)
 
 
@@ -2334,7 +2430,7 @@ class Layman:
         data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract']} 
         req = requests.get(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'])
         mapCode = req.status_code ## test jestli vrstva na serveru existuje. Pokud ne = error 404
-        if (mapCode == 404 or operation == "mod" or operation == "del"):
+        if (mapCode == 404 or operation == "mod" or operation == "del" or operation == "mov"):
         #if(True):
             if (operation == "add"):    
                 if self.locale == "cs":
@@ -2355,8 +2451,36 @@ class Layman:
                 print(response.content)
                 print("deleted")
                 response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.authHeader)
+                if (response.status_code == 200):
+                    if self.locale == "cs":                
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně změněna."), Qgis.Success, duration=3)
+                    else:              
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully modified."), Qgis.Success, duration=3)
+                else:
+                    if self.locale == "cs":             
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně změněna."), Qgis.Warning, duration=3)
+                    else:          
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully modified."), Qgis.Warning, duration=3)
                 if (self.dlg.windowTitle() != "Manage Maps"):
                     self.dlg.show()
+                return
+
+            if (operation == "mov"): 
+                
+                
+                #self.dlg.close()
+                #try:
+                #    self.afterCloseEditMapDialog()
+                #except: 
+                #    pass
+                print("mov")
+                print(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'])       
+              
+                response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'],headers = self.authHeader)
+                print(response.content)
+                print("deleted")
+                response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.authHeader)
+                print(response.content)
                 return
             if (operation == "delLay"): 
                 
@@ -2366,7 +2490,7 @@ class Layman:
                 print(response.content)
                 print("deleted")
                 response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.authHeader)
-             
+                             
                 return
             if (operation == "del"):
                 if self.locale == "cs":
@@ -2574,12 +2698,18 @@ class Layman:
         return j
 
     def isRasterLayerInComposite(self, x, name):
+        name = self.removeUnacceptableChars(name).lower()
+        print("in composite")
+        print(name)
         req = requests.get (self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name']+'/file')
         data = req.json()
+        print(data)
         existingLayers = []
-        for i in range (0, len(data['layers'])):
-            if (data['layers'][i]['params']['LAYERS'] ==  name ):
-                existingLayers.append(data['layers'][i]['params']['LAYERS'])
+        for i in reversed(range (0, len(data['layers']))):
+            #if (data['layers'][i]['params']['LAYERS'] ==  name ):
+            #    existingLayers.append(data['layers'][i]['params']['LAYERS'])
+             if (data['layers'][i]['title'] ==  name ):
+                existingLayers.append(data['layers'][i]['title'])
         return existingLayers
     
     def addComposite(self, data, service, groupName = ''):      
@@ -2899,6 +3029,7 @@ class Layman:
 
     def getToken(self):
         self.saveIni()       
+        threading.Thread(target=self.loadAllCompositesWithThreadCheck()) ## načteme kompozice do pole ve vláknu
         #tokenEndpoint = "https://www."+self.liferayServer+"/o/oauth2/token"
         tokenEndpoint = self.liferayServer+"/o/oauth2/token"
         # data to be sent to api 
@@ -2936,7 +3067,7 @@ class Layman:
             json.dump(data, outfile)
         
         self.registerUserIfNotExists()
-        self.startThread()
+        self.startThread()        
         self.dlg.close()
         
         
@@ -3158,10 +3289,7 @@ class Layman:
             # TODO: fix to allow choice of dock location
             self.iface.addDockWidget(Qt.TopDockWidgetArea, self.dockwidget)
             self.dockwidget.show()
-#from flask import Flask, request, jsonify
-#import json
-#import tempfile
-#import os            
+       
 
 class StartFlaskDaemon(threading.Thread):    
     def run(self):
@@ -3189,31 +3317,4 @@ class StartFlaskDaemon(threading.Thread):
         print (stdout, stderr)
         
     
-   # app = None
-   ### app = Flask(__name__)
-   # def __init__(self, name):
-   #     self.app = Flask(name)
-   # def run(self):
-   #     self.app.run(host='0.0.0.0', port=6000)
-   # def writeCode(self,value):
-   #     path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt"    
-   #     f = open(path, "w")
-   #     f.write(value)
-   #     f.close()
-
-   # @app.route('/')
-   # def hello(self):
-   #     return "Flask server"
-
-
-   # @app.route("/client/authn/oauth2-liferay/callback", methods=['POST', 'GET', 'HEAD', 'OPTIONS'])
-   # def form_to_json(self):
-   #     data = request.form.to_dict(flat=False)
-   #     code = request.args.get('code')
-   #     self.writeCode(code)
-   #     return "Authorization code obtained. You can now switch back to QGIS and continue."
-
-
-
-    #if __name__ == '__main__':
-    #    app.run(host='0.0.0.0', port=6000)
+   
