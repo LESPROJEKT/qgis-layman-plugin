@@ -3,7 +3,7 @@
  <class>DialogBase</class>
  <widget class="QDialog" name="DialogBase">
   <property name="windowModality">
-   <enum>Qt::NonModal</enum>
+   <enum>Qt::ApplicationModal</enum>
   </property>
   <property name="enabled">
    <bool>true</bool>
@@ -322,6 +322,9 @@
       <width>361</width>
       <height>311</height>
      </rect>
+    </property>
+    <property name="selectionMode">
+     <enum>QAbstractItemView::SingleSelection</enum>
     </property>
    </widget>
    <widget class="QLabel" name="label">

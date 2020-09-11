@@ -31,7 +31,7 @@ import threading
 
 from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt, QFileSystemWatcher, QRegExp,QDir
 from PyQt5.QtGui import QIcon, QPixmap, QRegExpValidator, QDoubleValidator
-from PyQt5.QtWidgets import QAction, QTreeWidget, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem
+from PyQt5.QtWidgets import QAction, QTreeWidget, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem, QAbstractItemView
 # Initialize Qt resources from file resources.py
 from .resources import *
 import re
@@ -491,7 +491,7 @@ class Layman:
         self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_down.setEnabled(True))
         self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_up.setEnabled(True))
         self.dlg.rejected.connect(lambda: self.saveReorder())
-       
+        
        # self.dlg.setEnabled(False)
         #
         self.dlg.pushButton_addRaster.setEnabled(False)
@@ -579,6 +579,7 @@ class Layman:
             self.addR = self.dlg.pushButton_addRaster.isEnabled()
             self.dlg.pushButton_addRaster.setEnabled(False)
     def loadCompositesThread(self):
+        self.dlg.listWidget.setSelectionMode(QAbstractItemView.NoSelection)
         if not self.loadedInMemory:
             self.loadAllComposites()        
             
@@ -617,6 +618,7 @@ class Layman:
         try:
             self.dlg.label_loading.hide() 
             self.dlg.progressBar_loader.hide() 
+            self.dlg.listWidget.setSelectionMode(QAbstractItemView.SingleSelection)
             self.importMapEnvironmnet(True)
         except:
             pass
@@ -2962,7 +2964,7 @@ class Layman:
                 data = {'grant_type':'refresh_token',
                         'refresh_token': self.refresh_token,
                         'client_id': self.client_id,   ##'id-3462f94b-875c-9185-4ced-b69841f24b3', 
-                        'redirect_uri':'http://localhost:3000/client/authn/oauth2-liferay/callback', 
+                        'redirect_uri':'http://localhost:3857/client/authn/oauth2-liferay/callback', 
                         'code_verifier':self.code_verifier  ##'test'
                         } 
                 
@@ -2999,6 +3001,7 @@ class Layman:
      #   self.menu_DeleteMapDialog.setEnabled(True)
     #    self.menu_CreateCompositeDialog.setEnabled(True)
         self.menu_UserInfoDialog.setEnabled(True)
+        
         #self.textbox.setText("Layman: Logged user")
 
     def getCodeVerifier(self):
@@ -3035,7 +3038,7 @@ class Layman:
         # data to be sent to api 
         data = {'grant_type':'authorization_code', 
                 'client_id': self.client_id, 
-                'redirect_uri':'http://localhost:3000/client/authn/oauth2-liferay/callback', 
+                'redirect_uri':'http://localhost:3857/client/authn/oauth2-liferay/callback', 
                 'code_verifier': self.code_verifier, 
                 'code': self.getAuthCode()} 
   
@@ -3067,8 +3070,10 @@ class Layman:
             json.dump(data, outfile)
         
         self.registerUserIfNotExists()
-        self.startThread()        
+        self.startThread()      
+        
         self.dlg.close()
+        
         
         
     def setAuthHeader(self):
@@ -3186,9 +3191,9 @@ class Layman:
         #self.watcher2.addPath(path)
         #self.watcher2.fileChanged.connect(self.authOptained)
         threading.Thread(target=lambda: self.checkAuthChange()).start() 
-        url = self.liferayServer+'/o/oauth2/authorize?response_type=code&client_id='+self.client_id+'&redirect_uri=http%3A%2F%2Flocalhost:3000%2Fclient%2Fauthn%2Foauth2-liferay%2Fcallback&code_challenge='+self.code_challenge ##n4bQgYhMfWWaL-qgxVrQFaO_TxsrC4Is0V1sFbDwCgg'  
+        url = self.liferayServer+'/o/oauth2/authorize?response_type=code&client_id='+self.client_id+'&redirect_uri=http%3A%2F%2Flocalhost:3857%2Fclient%2Fauthn%2Foauth2-liferay%2Fcallback&code_challenge='+self.code_challenge ##n4bQgYhMfWWaL-qgxVrQFaO_TxsrC4Is0V1sFbDwCgg'  
         try:
-            r = requests.get("http://127.0.0.1:3000") 
+            r = requests.get("http://127.0.0.1:3857") 
             print(r.content)
             if (r.content == b'Flask server'):
                 print("flask already running")
