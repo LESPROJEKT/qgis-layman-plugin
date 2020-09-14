@@ -2383,17 +2383,17 @@ class Layman:
         if (response.status_code == 200):
             if self.locale == "cs":
             #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně vytvořena."), Qgis.Success, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " byla úspešně vytvořena."), Qgis.Success, duration=3)
             else:
             #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully created."), Qgis.Success, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was sucessfully created."), Qgis.Success, duration=3)
         else:
             if self.locale == "cs":
             #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně vytvořena."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " nebyla úspešně vytvořena."), Qgis.Warning, duration=3)
             else:
             #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully created."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully created."), Qgis.Warning, duration=3)
         print(response.content)
 
 
