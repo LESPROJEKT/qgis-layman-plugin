@@ -187,7 +187,7 @@ class Layman:
         # TODO: We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(u'Layman')
         self.toolbar.setObjectName(u'Layman')
-
+        QgsApplication.messageLog().messageReceived.connect(self.write_log_message)
         #print "** INITIALIZING Atlas"
 
         self.pluginIsActive = False
@@ -579,11 +579,10 @@ class Layman:
             self.addR = self.dlg.pushButton_addRaster.isEnabled()
             self.dlg.pushButton_addRaster.setEnabled(False)
     def loadCompositesThread(self):
-        self.dlg.listWidget.setSelectionMode(QAbstractItemView.NoSelection)
+        #self.dlg.listWidget.setSelectionMode(QAbstractItemView.NoSelection)
         if not self.loadedInMemory:
-            self.loadAllComposites()        
-            
-            
+            self.loadAllCompositesT()        
+                        
         layers = QgsProject.instance().mapLayers().values()     
         for i in range (0, len(self.compositeList)):
             #print(self.compositeList[i])
@@ -596,12 +595,7 @@ class Layman:
         try:
             data = r.json()
         except:
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)
-                #QMessageBox.information(None, "Error", "Připojení k serveru selhalo!")
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
-                #QMessageBox.information(None, "Error", "Connection with server failed!")
+            QgsMessageLog.logMessage("errConnection")
         for row in range(0, len(data)):          
             self.dlg.comboBox_raster.addItem(data[row]['name'])
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
@@ -615,14 +609,15 @@ class Layman:
         #self.dlg.listWidget.update()
         #self.refreshLayerList()
         time.sleep(2)
-        try:
-            self.dlg.label_loading.hide() 
-            self.dlg.progressBar_loader.hide() 
-            self.dlg.listWidget.setSelectionMode(QAbstractItemView.SingleSelection)
-            self.importMapEnvironmnet(True)
-        except:
-            pass
-       # self.dlg.setEnabled(True)
+        QgsMessageLog.logMessage("successLoadComp")
+       # try:
+       #     self.dlg.label_loading.hide() 
+       #     self.dlg.progressBar_loader.hide() 
+       #     #self.dlg.listWidget.setSelectionMode(QAbstractItemView.SingleSelection)
+       #     self.importMapEnvironmnet(True)
+       # except:
+       #     pass
+       ## self.dlg.setEnabled(True)
     def run_DeleteMapDialog(self):
         self.dlg = DeleteMapDialog()
         self.refreshListWidgetMaps()
@@ -1314,6 +1309,19 @@ class Layman:
                 QMessageBox.information(None, "Layman", "Something went wrong with this layer: "+layerName)
             else:
                 QMessageBox.information(None, "Layman", "Nelze nahrát vrstva: "+layerName)
+    def write_log_message(self,message, tag, level):
+        print(message)
+        if message == "errConnection":
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)               
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
+        if message == "successLoadComp":
+            self.dlg.label_loading.hide() 
+            self.dlg.progressBar_loader.hide() 
+            #self.dlg.listWidget.setSelectionMode(QAbstractItemView.SingleSelection)
+            self.importMapEnvironmnet(True)
+            
     def loadAllComposites(self):
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'
         print(url)
@@ -1346,19 +1354,17 @@ class Layman:
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
             self.compositeList.append (map)
         self.loadedInMemory = True
-    def loadAllCompositesWithThreadCheck(self):
-        self.loadFailed = False
+    def loadAllCompositesT(self):
+        ##QgsMessageLog.logMessage("test")
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'
-        print(url)
-        try:
-            r = requests.get(url = url)
-        except:
-            self.loadFailed = True
+        print(url)        
+        r = requests.get(url = url)        
         try:
             data = r.json()  
-            print(data)
+            
         except:
-            self.loadFailed = True
+            QgsMessageLog.logMessage("errConnection")
+            QgsMessageLog.logMessage(url)
             return
         for i in data:
             print(i['name'])
@@ -1366,17 +1372,13 @@ class Layman:
             r = requests.get(url = url)
             try:
                 map = r.json()
-                self.compositeList.append (map)
-                
             except:
-                self.loadFailed = True
-            
+                QgsMessageLog.logMessage("errConnection")
+                QgsMessageLog.logMessage(map)
+                return
+            self.compositeList.append (map)
         self.loadedInMemory = True
-    #def ttt(self):
-    #    bar = QProgressBar()
-    #    bar.setRange(0,0)
-    #    bar.show()
-        #iface.mainWindow().statusBar().addWidget(bar)
+    
     def readMapJson(self,name, service):
         #self.dlg.progressBar_loader.show() 
         #self.dlg.label_loading.show()
@@ -3031,8 +3033,8 @@ class Layman:
         return ret
 
     def getToken(self):
-        self.saveIni()       
-        threading.Thread(target=self.loadAllCompositesWithThreadCheck()) ## načteme kompozice do pole ve vláknu
+        self.saveIni()      
+        
         #tokenEndpoint = "https://www."+self.liferayServer+"/o/oauth2/token"
         tokenEndpoint = self.liferayServer+"/o/oauth2/token"
         # data to be sent to api 
@@ -3149,11 +3151,8 @@ class Layman:
             print("creating new user: " + res['username'])
             self.laymanUsername =  res['username']
             self.textbox.setText("Connected to: " + self.liferayServer.replace("https:\\","").replace(".cz","").replace("http:\\","").replace("www.","").replace(".com",""))
-        #API_ENDPOINT = "http://layman.lesprojekt.cz/rest/current-user"
-        #headers ={
-        #  "Authorization": "Bearer "+ self.access_token, 
-        #  "AuthorizationIssUrl" : 'https://www.'+self.liferayServer+'/o/oauth2/authorize'
-        #} 
+        threading.Thread(target=self.loadAllCompositesT()) ## načteme kompozice do pole ve vláknu
+      
     def checkAuthChange(self):
         i = 0
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
