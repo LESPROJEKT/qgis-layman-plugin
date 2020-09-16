@@ -144,6 +144,7 @@ class Layman:
         self.batchLength = 0
         self.done = 0
         self.version = "1.0.0"
+        self.initFiles()
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
         self.processingList = []
@@ -415,7 +416,14 @@ class Layman:
         self.dlg.show()
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         result = self.dlg.exec_()
-
+    def initFiles(self):
+        tempFileFolder = tempfile.gettempdir() + os.sep + "atlas"
+        if not os.path.exists(tempFileFolder):
+            os.makedirs(tempFileFolder)
+        if os.path.exists(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt") == False:
+            open(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt", "w").close
+        if os.path.exists(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt") == False:
+            open(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt", "w").close
     def run_CreateCompositeDialog(self, fromImport = False):
         self.dlg = CreateCompositeDialog()
         self.dlg.label_info.hide()
@@ -2889,7 +2897,7 @@ class Layman:
     def writeState(self,value):
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt" 
         if os.path.exists(path) == False:
-            open(file_path, "w").close
+            open(path, "w").close
         file = open(path, 'w+')
         file.write(str(value))
         file.close()
