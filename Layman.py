@@ -145,6 +145,7 @@ class Layman:
         self.done = 0
         self.version = "1.0.0"
         self.initFiles()
+        self.firstStart = True
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
         self.processingList = []
@@ -2219,10 +2220,14 @@ class Layman:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer was not imported sucessfully"), Qgis.Warning, duration=3)
         self.done = done
         try:
-            if self.locale == "cs":
-                self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.done) + " / " + str(self.batchLength) )
+            if not self.firstStart:
+
+                if self.locale == "cs":
+                    self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.done) + " / " + str(self.batchLength) )
+                else:
+                    self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.done) + " / " + str(self.batchLength) )
             else:
-                self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.done) + " / " + str(self.batchLength) )
+                self.firstStart = False
         except:
             pass
     def addExistingLayerToCompositeThread(self, title, x):
