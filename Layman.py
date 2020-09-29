@@ -2210,8 +2210,8 @@ class Layman:
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva "+self.processingList[i][1]+" byla úspěšně importována"), Qgis.Success, duration=3)
                 else:
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer "+self.processingList[i][1]+" was imported sucessfully"), Qgis.Success, duration=3)
-                self.processingList[i][2] == 2
-          
+                self.processingList[i][2] = 2
+                print(self.processingList)
                 done = done + 1
         if self.done == done:
             if self.locale == "cs":
@@ -2769,11 +2769,13 @@ class Layman:
             print(res)
             
             if service == 'WMS':         
-                UrlWms = res['wms']['url']
+                #UrlWms = res['wms']['url']
+                UrlWms = data['layers'][x]['url']
                 self.loadWms(UrlWms, layerName,layerNameTitle, format,epsg, groupName)
 
             if service == 'WFS': 
-                UrlWfs = res['wfs']['url']
+                #UrlWfs = res['wfs']['url']
+                UrlWms = data['layers'][x]['url']
                 self.loadWfs(UrlWfs, layerName,layerNameTitle, groupName)
     def loadService(self, data, service, groupName = ''):     
         
@@ -2792,10 +2794,12 @@ class Layman:
             if self.checkLayerOnLayman(layerName):
                 if service == 'WMS':         
                     print("zzzzzzz" +layerName)
+                    repairUrl = data['layers'][x]['url']
                     self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
 
                 if service == 'WFS': 
                    # repairUrl = repairUrl.replace("ows","wfs")
+                    repairUrl = data['layers'][x]['url']
                     self.loadWfs(repairUrl, layerName,layerNameTitle, groupName)
             else:
                 if self.locale == "cs":
@@ -2820,6 +2824,7 @@ class Layman:
         layerName = self.removeUnacceptableChars(layerName)
         print(layerName)
         epsg = "EPSG:4326"
+        url = url.replace("%2F", "/").replace("%3A",":")
         urlWithParams = 'contextualWMSLegend=0&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url
         print(urlWithParams)
         print("test")
@@ -2842,9 +2847,12 @@ class Layman:
         layerName = self.removeUnacceptableChars(layerName)
         epsg = 'EPSG:4326'        
         uri = self.URI+"/geoserver/"+self.laymanUsername+"/ows?srsname="+epsg+"&typename="+self.laymanUsername+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
-        
+        url = url.replace("%2F", "/").replace("%3A",":")
+        r = url.split("/")
+        acc = (r[len(r)-2])
         print(uri)        
-        uri = url + "?srsname="+epsg+"&typename="+self.laymanUsername+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
+      #  uri = url + "?srsname="+epsg+"&typename="+self.laymanUsername+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
+        uri = url + "?srsname="+epsg+"&typename="+acc+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
         print(uri)
         vlayer = QgsVectorLayer(uri, layerNameTitle, "WFS")
         print(vlayer.isValid())  
