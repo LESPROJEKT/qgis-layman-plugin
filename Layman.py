@@ -2213,7 +2213,7 @@ class Layman:
                 self.processingList[i][2] = 2
                 print(self.processingList)
                 done = done + 1
-        if self.done == done:
+        if self.done == done and not self.firstStart:
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva nebyla úspěšně importována"), Qgis.Warning, duration=3)
             else:
@@ -3023,8 +3023,11 @@ class Layman:
 
     
     def authOptained (self):        
-        self.dlg.pushButton_Continue.setEnabled(True)
-        self.dlg.pushButton_Connect.setEnabled(False) 
+        try:
+            self.dlg.pushButton_Continue.setEnabled(True)
+            self.dlg.pushButton_Connect.setEnabled(False) 
+        except:
+            pass
 
         self.menu_Connection.setEnabled(True)
         self.menu_saveLocalFile.setEnabled(False)
