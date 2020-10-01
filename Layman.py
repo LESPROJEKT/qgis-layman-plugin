@@ -493,7 +493,7 @@ class Layman:
         self.dlg.pushButton_deleteLayers.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'minus.png'))
         self.dlg.pushButton_deleteMap.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'minus.png'))
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
-        self.dlg.listWidget.itemClicked.connect(self.refreshLayerList)
+        self.dlg.listWidget.itemClicked.connect(self.refreshLayerListReversed)
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_deleteMap.setEnabled(True))
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_editMeta.setEnabled(True))
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_addRaster.setEnabled(True))
@@ -562,14 +562,18 @@ class Layman:
     def importMapEnvironmnet(self,enabled):
         time.sleep(1)
         if enabled:
-            self.dlg.pushButton_addMap.setEnabled(self.add)
+            
             self.dlg.pushButton_deleteMap.setEnabled(self.deleteM)
             self.dlg.pushButton_editMeta.setEnabled(self.editM)
             self.dlg.pushButton_up.setEnabled(self.up)
             self.dlg.pushButton_down.setEnabled(self.down)
             self.dlg.pushButton_deleteLayers.setEnabled(self.deleteL)
             self.dlg.pushButton.setEnabled(self.post)
-            self.dlg.pushButton_addRaster.setEnabled(self.addR)
+            try:
+                self.dlg.pushButton_addMap.setEnabled(self.add)
+                self.dlg.pushButton_addRaster.setEnabled(self.addR)
+            except:
+                pass
         else:
             self.add = self.dlg.pushButton_addMap.isEnabled()
             self.dlg.pushButton_addMap.setEnabled(False)
@@ -1031,6 +1035,11 @@ class Layman:
         for i in range (0,len(self.compositeList[self.dlg.listWidget.currentRow()]['layers'])):
             self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
             print(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
+    def refreshLayerListReversed(self):
+        self.dlg.listWidget_listLayers.clear()
+        for i in range (len(self.compositeList[self.dlg.listWidget.currentRow()]['layers'])-1,-1,-1):
+            self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
+            print(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
 
     def refreshListWidgetMaps(self):
         self.dlg.treeWidget.clear()
@@ -1111,18 +1120,21 @@ class Layman:
        # print(response.content)
         #print(response)
         self.addLayerRefresh()
-        time.sleep(2)
         QgsMessageLog.logMessage("delLay")
         
     def addLayerRefresh(self):
         self.dlg.treeWidget.clear()
         url = self.URI+'/rest/'+self.laymanUsername+'/layers'
         r = requests.get(url = url)
-        print("delete refresh")
-        print(r.content)
+       # print("delete refresh")
+       # print(r.content)
         data = r.json()
-        for row in range(0, len(data)):            
-            item = QTreeWidgetItem([data[row]['name']])
+        for row in range(0, len(data)):     
+            #print(data) 
+            #item = QTreeWidgetItem([data[row]['name']])
+          #  item = QTreeWidgetItem([data[row]['title']])
+           # self.dlg.treeWidget.addTopLevelItem(item)
+            item = QTreeWidgetItem([self.getLayerTitle(data[row]['name'])])
             self.dlg.treeWidget.addTopLevelItem(item)
     def checkIfMapExist(self, name):
         url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+str(name)+"/file"
@@ -1156,6 +1168,8 @@ class Layman:
         else:
             for lay in self.compositeList[x]['layers']:
                 #print (lay)
+                print(pos)
+                print(i)
                 if i == pos:
 
                     pom = self.compositeList[x]['layers'][i]
@@ -1332,9 +1346,9 @@ class Layman:
             self.dlg.label_loading.hide() 
         if message == "readJson":
             if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Something went wrong with this layer: "+layerName)
+                QMessageBox.information(None, "Layman", "Something went wrong with this layer: ")
             else:
-                QMessageBox.information(None, "Layman", "Nelze nahrát vrstva: "+layerName)
+                QMessageBox.information(None, "Layman", "Nelze nahrát vrstva: ")
         if message == "authOptained":
             self.authOptained()
         if message == "refreshComposite":
@@ -1355,6 +1369,42 @@ class Layman:
             self.dlg.label_thumbnail.setText(' ')
             if not (self.threadLayers.is_alive()):
                 self.dlg.progressBar_loader.hide()
+            #self.loadLayersThread()
+            
+                
+        if message[0:8] == "imports_":
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" byla úspěšně nahrána "), Qgis.Success, duration=3)
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was successfully imported"), Qgis.Success, duration=3)
+            done = 0
+        
+            for i in range (0, len(self.processingList)):
+                if self.processingList[i][2] == 1:                    
+                    self.processingList[i][2] = 2
+                    print(self.processingList)
+                    done = done + 1
+            if self.locale == "cs":
+                self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+            else:
+                self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+        if message[0:8] == "importn_":
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána "), Qgis.Warning, duration=3)
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not imported successfully"), Qgis.Warning, duration=3)
+            done = 0
+        
+            for i in range (0, len(self.processingList)):
+                if self.processingList[i][2] == 1:
+                   
+                    self.processingList[i][2] = 2
+                    print(self.processingList)
+                    done = done + 1
+            if self.locale == "cs":
+                self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+            else:
+                self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
         if message == "addRaster ":
             self.dlg.progressBar.hide() 
             self.dlg.label_import.hide()
@@ -1912,18 +1962,20 @@ class Layman:
 
     def callPostRequest(self, layers):    
        # self.processingList = []        
-        if self.batchLength == 0:
-            self.batchLength = self.batchLength + len(layers)
-            if self.locale == "cs":
-                self.dlg.label_progress.setText("úspěšně exportováno: 0 / " + str(len(layers)) )
-            else:
-                self.dlg.label_progress.setText("Sucessfully exported 0 / " + str(len(layers)) )
+        #if self.batchLength == 0:
+        #    self.batchLength = self.batchLength + len(layers)
+        self.uploaded = 0
+        self.batchLength = len(layers)
+        if self.locale == "cs":
+            self.dlg.label_progress.setText("úspěšně exportováno: 0 / " + str(len(layers)) )
         else:
-            self.batchLength = self.batchLength + len(layers)
-            if self.locale == "cs":
-                self.dlg.label_progress.setText("úspěšně exportováno: "+str(self.done)+" / " + str(self.batchLength) )
-            else:
-                self.dlg.label_progress.setText("Sucessfully exported "+str(self.done)+" / " + str(self.batchLength) )
+            self.dlg.label_progress.setText("Sucessfully exported 0 / " + str(len(layers)) )
+        #else:
+        #    self.batchLength = self.batchLength + len(layers)
+        #    if self.locale == "cs":
+        #        self.dlg.label_progress.setText("úspěšně exportováno: "+str(self.done)+" / " + str(self.batchLength) )
+        #    else:
+        #        self.dlg.label_progress.setText("Sucessfully exported "+str(self.done)+" / " + str(self.batchLength) )
         for item in layers:
             print (item.text(0))
             
@@ -1983,7 +2035,15 @@ class Layman:
             QgsMessageLog.logMessage("export")
             self.importedLayer = layer_name
             self.processingList[q][2] = 1
-            self.writeState(1)
+            response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name))
+            
+            if (response.status_code == 200):
+                self.uploaded = self.uploaded + 1
+                QgsMessageLog.logMessage("imports_"+layer_name)
+                
+            else:
+                QgsMessageLog.logMessage("importn_"+layer_name)
+           ## self.writeState(1)
            
             
             #iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
@@ -2006,10 +2066,18 @@ class Layman:
             #print(response.status_code)
         time.sleep(1.5)
         if progress:
+
             QgsMessageLog.logMessage("export")
+            response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name))
+         
+            if (response.status_code == 200):
+                self.uploaded = self.uploaded + 1
+                QgsMessageLog.logMessage("imports_"+layer_name)
+            else:
+                QgsMessageLog.logMessage("importn_"+layer_name)
             self.importedLayer = layer_name
             self.processingList[q][2] = 1
-            self.writeState(1)
+            #self.writeState(1)
             
             #QMessageBox.information(None, "Message", "Layer exported sucessfully.")
     def postRequest(self, layer_name):     
@@ -2204,32 +2272,32 @@ class Layman:
     def processingWorker(self): ## self.processingList[i][2] hodnoty 0 v procesu, 1 importováno, 2 vypsaná notifikace
         done = 0
         
-        for i in range (0, len(self.processingList)):
-            if self.processingList[i][2] == 1:
-                if self.locale == "cs":
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva "+self.processingList[i][1]+" byla úspěšně importována"), Qgis.Success, duration=3)
-                else:
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer "+self.processingList[i][1]+" was imported sucessfully"), Qgis.Success, duration=3)
-                self.processingList[i][2] = 2
-                print(self.processingList)
-                done = done + 1
-        if self.done == done and not self.firstStart:
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva nebyla úspěšně importována"), Qgis.Warning, duration=3)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer was not imported sucessfully"), Qgis.Warning, duration=3)
-        self.done = done
-        try:
-            if not self.firstStart:
+        #for i in range (0, len(self.processingList)):
+        #    if self.processingList[i][2] == 1:
+        #        if self.locale == "cs":
+        #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva "+self.processingList[i][1]+" byla úspěšně importována"), Qgis.Success, duration=3)
+        #        else:
+        #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer "+self.processingList[i][1]+" was imported sucessfully"), Qgis.Success, duration=3)
+        #        self.processingList[i][2] = 2
+        #        print(self.processingList)
+        #        done = done + 1
+        #if self.done == done and not self.firstStart:
+        #    if self.locale == "cs":
+        #        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva nebyla úspěšně importována"), Qgis.Warning, duration=3)
+        #    else:
+        #        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer was not imported sucessfully"), Qgis.Warning, duration=3)
+        #self.done = done
+        #try:
+        #    if not self.firstStart:
 
-                if self.locale == "cs":
-                    self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.done) + " / " + str(self.batchLength) )
-                else:
-                    self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.done) + " / " + str(self.batchLength) )
-            else:
-                self.firstStart = False
-        except:
-            pass
+        #        if self.locale == "cs":
+        #            self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.done) + " / " + str(self.batchLength) )
+        #        else:
+        #            self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.done) + " / " + str(self.batchLength) )
+        #    else:
+        #        self.firstStart = False
+        #except:
+        #    pass
     def addExistingLayerToCompositeThread(self, title, x):
         name = self.removeUnacceptableChars(title).lower()
         response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(name), verify=False)
@@ -2811,8 +2879,9 @@ class Layman:
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName
         r = requests.get(url = url)
         data = r.json()
-        print(data)
+       # print(data)
         title = data['title']
+        print(title)
         return title
         
     def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = ''):      
