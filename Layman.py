@@ -31,7 +31,7 @@ import threading
 
 from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt, QFileSystemWatcher, QRegExp,QDir
 from PyQt5.QtGui import QIcon, QPixmap, QRegExpValidator, QDoubleValidator
-from PyQt5.QtWidgets import QAction, QTreeWidget, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem, QAbstractItemView
+from PyQt5.QtWidgets import QAction, QTreeWidget,QTreeWidgetItemIterator, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem, QAbstractItemView
 # Initialize Qt resources from file resources.py
 from .resources import *
 import re
@@ -1119,8 +1119,25 @@ class Layman:
         response = requests.delete(url, headers = self.authHeader)
        # print(response.content)
         #print(response)
-        self.addLayerRefresh()
+       # self.addLayerRefresh()
+        self.deleteItemFromTreeWidget(name)
         QgsMessageLog.logMessage("delLay")
+    def deleteItemFromTreeWidget(self,name):
+        iterator= QTreeWidgetItemIterator(self.dlg.treeWidget);
+        items = []
+        while iterator.value():
+            item = iterator.value()
+            iterator+=1
+            print(item.text(0))
+            if (item.text(0) == name):
+                print("vyhodit")
+            else:
+                items.append(item.text(0))
+        self.dlg.treeWidget.clear()
+        for i in items:
+            item = QTreeWidgetItem([i])
+            self.dlg.treeWidget.addTopLevelItem(item)
+       
         
     def addLayerRefresh(self):
         self.dlg.treeWidget.clear()
@@ -1342,8 +1359,11 @@ class Layman:
 
         if message == "layersLoaded":
             #time.sleep(2)
-            self.dlg.progressBar_loader.hide() 
-            self.dlg.label_loading.hide() 
+            try:
+                self.dlg.progressBar_loader.hide() 
+                self.dlg.label_loading.hide() 
+            except:
+                pass
         if message == "readJson":
             if self.locale == "cs":
                 QMessageBox.information(None, "Layman", "Something went wrong with this layer: ")
@@ -1357,8 +1377,11 @@ class Layman:
             except:
                 pass
         if message == "loadMaps":
-            self.dlg.progressBar_loader.hide() 
-            self.dlg.label_loading.hide() 
+            try:
+                self.dlg.progressBar_loader.hide() 
+                self.dlg.label_loading.hide()
+            except:
+                print("chyba")
 
         if message == "export":
             self.dlg.progressBar.hide() 
@@ -1368,7 +1391,10 @@ class Layman:
         if message == "delLay":
             self.dlg.label_thumbnail.setText(' ')
             if not (self.threadLayers.is_alive()):
-                self.dlg.progressBar_loader.hide()
+                try:
+                    self.dlg.progressBar_loader.hide()
+                except:
+                    pass
             #self.loadLayersThread()
             
                 
