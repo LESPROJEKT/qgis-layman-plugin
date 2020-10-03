@@ -1082,38 +1082,47 @@ class Layman:
         self.compositeList[x]['title'] =  self.dlg.lineEdit_title.text() 
 
     def layerDelete(self, name):
-        if (self.checkLayersInComopsitions(name) == True):
-            if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Tuto vrstvu obsahujou některé kompozice. Bude smazána ze všech kompozic.")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "This layers is included in other compositions. It will be delete from every composition.")
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            reply = msgbox.exec()
-            name = self.removeUnacceptableChars(name).lower()
-            if (reply == QMessageBox.Yes):
-                url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name    
-                response = requests.delete(url, headers = self.authHeader)
-                print(response.content)
-                print(response)
-                self.addLayerRefresh()
-                try:
-                    self.deleteLayerThrowCompositions(name)
-                except:
-                    pass
+        if self.locale == "cs":
+            msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Chcete opravdu smazat vrstvu "+str(name)+"?")
+        else:
+            msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Do you want delete layer "+str(name)+"?")
+        msgbox.addButton(QMessageBox.Yes)
+        msgbox.addButton(QMessageBox.No)
+        msgbox.setDefaultButton(QMessageBox.No)
+        reply = msgbox.exec()
+        if (reply == QMessageBox.Yes):
+            if (self.checkLayersInComopsitions(name) == True):
+                if self.locale == "cs":
+                    msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Tuto vrstvu obsahujou některé kompozice. Bude smazána ze všech kompozic.")
+                else:
+                    msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "This layers is included in other compositions. It will be delete from every composition.")
+                msgbox.addButton(QMessageBox.Yes)
+                msgbox.addButton(QMessageBox.No)
+                msgbox.setDefaultButton(QMessageBox.No)
+                reply = msgbox.exec()
+                name = self.removeUnacceptableChars(name).lower()
+                if (reply == QMessageBox.Yes):
+                    url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name    
+                    response = requests.delete(url, headers = self.authHeader)
+                    print(response.content)
+                    print(response)
+                    self.addLayerRefresh()
+                    try:
+                        self.deleteLayerThrowCompositions(name)
+                    except:
+                        pass
                 
-        else:    
-            name = self.removeUnacceptableChars(name).lower()   
-            threading.Thread(target=lambda: self.layerDeleteThread(name)).start()
-            self.dlg.progressBar_loader.show() 
+            else:    
+                name = self.removeUnacceptableChars(name).lower()   
+                threading.Thread(target=lambda: self.layerDeleteThread(name)).start()
+                self.dlg.progressBar_loader.show() 
             
-            #name = self.removeUnacceptableChars(name).lower()
-            #url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name    
-            #response = requests.delete(url, headers = self.authHeader)
-            #print(response.content)
-            #print(response)
-            #self.addLayerRefresh()
+                #name = self.removeUnacceptableChars(name).lower()
+                #url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name    
+                #response = requests.delete(url, headers = self.authHeader)
+                #print(response.content)
+                #print(response)
+                #self.addLayerRefresh()
     def layerDeleteThread(self, name):       
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name    
         response = requests.delete(url, headers = self.authHeader)
@@ -1590,29 +1599,38 @@ class Layman:
         self.refreshListWidgetMaps() ## pro treewidget
         
       
-    def deleteMap(self,name, x):      
-        name = self.removeUnacceptableChars(name)
-        url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name    
-        response = requests.delete(url, headers = self.authHeader)
-        print(response)
-        print(response.content)
-        if (response.status_code == 200):
-            if self.locale == "cs":
-            #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
-            else:
-            #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
+    def deleteMap(self,name, x):   
+        if self.locale == "cs":
+            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Chcete opravdu smazat kompozici "+name+"?")
         else:
-            if self.locale == "cs":
-            #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně smazána."), Qgis.Warning, duration=3)
+            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Do you want really delete composition "+name+"?")
+        msgbox.addButton(QMessageBox.Yes)
+        msgbox.addButton(QMessageBox.No)
+        msgbox.setDefaultButton(QMessageBox.No)
+        reply = msgbox.exec()
+        if (reply == QMessageBox.Yes):
+            name = self.removeUnacceptableChars(name)
+            url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name    
+            response = requests.delete(url, headers = self.authHeader)
+            print(response)
+            print(response.content)
+            if (response.status_code == 200):
+                if self.locale == "cs":
+                #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
+                else:
+                #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
             else:
-            #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning, duration=3)
-        del (self.compositeList[x])        
-        self.refreshCompositeList()## pro import map form
-        self.dlg.listWidget_listLayers.clear()
+                if self.locale == "cs":
+                #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně smazána."), Qgis.Warning, duration=3)
+                else:
+                #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning, duration=3)
+            del (self.compositeList[x])        
+            self.refreshCompositeList()## pro import map form
+            self.dlg.listWidget_listLayers.clear()
       
         
         
