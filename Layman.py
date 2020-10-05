@@ -1001,9 +1001,11 @@ class Layman:
                 #    self.deteteLayerFromComposite(x, i, name)
                  if (name == self.compositeList[x]['layers'][i]['title']):
                     inComposite = True
-                    print("inComposite")
-                    print(self.compositeList[x]['name'])
-                    self.deteteLayerFromComposite(x, i, name)
+                    #print("inComposite")
+                    #print(self.compositeList[x]['name'])
+                    #self.deteteLayerFromComposite(x, i, name)
+                    
+                    threading.Thread(target=lambda: self.deteteLayerFromCompositeThread(x, i, name)).start()
     def checkLayersInComopsitions(self, name):
         inComposite = False
         for x in range (0,len(self.compositeList)):
@@ -1102,11 +1104,14 @@ class Layman:
                 reply = msgbox.exec()
                 name = self.removeUnacceptableChars(name).lower()
                 if (reply == QMessageBox.Yes):
-                    url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name    
-                    response = requests.delete(url, headers = self.authHeader)
-                    print(response.content)
-                    print(response)
-                    self.addLayerRefresh()
+                    #url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name    
+                    #response = requests.delete(url, headers = self.authHeader)
+                    #print(response.content)
+                    #print(response)
+                    #self.addLayerRefresh()
+                    name = self.removeUnacceptableChars(name).lower()   
+                    threading.Thread(target=lambda: self.layerDeleteThread(name)).start()
+                    self.dlg.progressBar_loader.show() 
                     try:
                         self.deleteLayerThrowCompositions(name)
                     except:
