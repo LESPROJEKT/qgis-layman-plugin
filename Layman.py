@@ -1203,20 +1203,44 @@ class Layman:
                 QMessageBox.information(None, "Error", "Layer is already on the bottom level!")
 
         else:
+            #for lay in self.compositeList[x]['layers']:
+            #    #print (lay)
+            #    print(pos)
+            #    print(i)
+            #    if i == len(self.compositeList[x]['layers'])-1 - pos:
+
+            #        pom = self.compositeList[x]['layers'][i]
+            #        self.compositeList[x]['layers'][i] = self.compositeList[x]['layers'][i + order]
+            #        self.compositeList[x]['layers'][i + order] = pom     
+
+            #    i = i + 1
+
             for lay in self.compositeList[x]['layers']:
                 #print (lay)
                 print(pos)
                 print(i)
-                if i == pos:
+                z = len(self.compositeList[x]['layers'])-1 - pos
+                if i == z:
 
-                    pom = self.compositeList[x]['layers'][i]
-                    self.compositeList[x]['layers'][i] = self.compositeList[x]['layers'][i + order]
-                    self.compositeList[x]['layers'][i + order] = pom     
+                    pom = self.compositeList[x]['layers'][z]
+                    self.compositeList[x]['layers'][z] = self.compositeList[x]['layers'][z - order]
+                    self.compositeList[x]['layers'][z - order] = pom     
 
                 i = i + 1
+            #for i in len(self.compositeList[x]['layers'])-1,-1,-1:
+            #    #print (lay)
+            #    print(pos)
+            #    print(i)
+            #    if i == len(self.compositeList[x]['layers'])-1 - pos:
+
+            #        pom = self.compositeList[x]['layers'][i]
+            #        self.compositeList[x]['layers'][i] = self.compositeList[x]['layers'][i + order]
+            #        self.compositeList[x]['layers'][i + order] = pom     
+
+              #  i = i + 1
             print(self.compositeList[x]['layers'])
             
-            self.refreshLayerListNonReversed()
+            self.refreshLayerListReversed()
             self.dlg.listWidget_listLayers.setCurrentRow(pos + order)
 
     def showThumbnail(self, it):
