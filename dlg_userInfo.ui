@@ -83,8 +83,8 @@
   <widget class="QPushButton" name="pushButton_logout">
    <property name="geometry">
     <rect>
-     <x>42</x>
-     <y>140</y>
+     <x>37</x>
+     <y>169</y>
      <width>131</width>
      <height>28</height>
     </rect>
@@ -112,6 +112,32 @@
      <x>200</x>
      <y>23</y>
      <width>181</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_4">
+   <property name="geometry">
+    <rect>
+     <x>40</x>
+     <y>137</y>
+     <width>111</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Plugin version:</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_version">
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>137</y>
+     <width>191</width>
      <height>16</height>
     </rect>
    </property>

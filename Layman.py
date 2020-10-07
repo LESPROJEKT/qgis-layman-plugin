@@ -372,7 +372,7 @@ class Layman:
         self.dlg.label_server.setText(self.liferayServer)
         self.dlg.label_agrihub.setText(res['claims']['email'])
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-
+        self.dlg.label_version.setText(self.getVersion())
     def run_EditMap(self, x):
         self.dlg = EditMapDialog()      
         self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
@@ -895,6 +895,11 @@ class Layman:
             self.importMap(x, 'mov')
         print("changes saved to server")
         #self.dlg.pushButton_saveOrder.setEnabled(False)
+    def getVersion(self):
+        config = configparser.ConfigParser()
+        config.read(os.path.join(self.plugin_dir ,'metadata.txt'))
+        version = config.get('general', 'version')
+        return(version)
     def checkUsername(self, name):
         n = name.split("@")
         if(len(n[0]) > 0):
@@ -1137,13 +1142,14 @@ class Layman:
         self.deleteItemFromTreeWidget(name)
         QgsMessageLog.logMessage("delLay")
     def deleteItemFromTreeWidget(self,name):
+        print(name)
         iterator= QTreeWidgetItemIterator(self.dlg.treeWidget);
         items = []
         while iterator.value():
             item = iterator.value()
             iterator+=1
-            print(item.text(0))
-            if (item.text(0) == name):
+            #print(item.text(0))
+            if (self.removeUnacceptableChars(item.text(0)) == self.removeUnacceptableChars(name)):
                 print("vyhodit")
             else:
                 items.append(item.text(0))
@@ -2150,7 +2156,7 @@ class Layman:
                 QMessageBox.information(None, "Layman", "Number in first character is not allowed.")
             nameCheck = False
         
-        print(layer_name)
+        #print(layer_name)
 
 
         if not self.checkWgsExtent(layers[0]):
