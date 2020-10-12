@@ -1344,29 +1344,7 @@ class Layman:
         #self.threadAddMap = threading.Thread(target=lambda: self.readLayerJsonThread(layerName,service))
         #self.threadAddMap.start()
         self.readLayerJsonThread(layerName,service)
-        #if self.checkLayerOnLayman(layerName):
-        #    layerNameTitle =layerName
-        #    layerName = self.removeUnacceptableChars(layerName)
-        #    url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName  
-        #    print (url)
-        #    r = requests.get(url = url)
-        #    data = r.json()
-        #    if (service == "WMS"):
-        #        print("loading WMS")
-        #        print (data['wms']['url'])
-        #        wmsUrl = data['wms']['url']
-        #        format = 'png'
-        #        epsg = 'EPSG:4326' 
-        #        self.loadWms(wmsUrl, layerName,layerNameTitle, format, epsg) 
-        #    if (service == "WFS"):
-        #        wfsUrl = data['wfs']['url']
-        #        print("loading WFS")
-        #        self.loadWfs(wfsUrl, layerName, layerNameTitle) 
-        #else:
-        #    if self.locale == "cs":
-        #        QMessageBox.information(None, "Layman", "Something went wrong with this layer: "+layerName)
-        #    else:
-        #        QMessageBox.information(None, "Layman", "Nelze nahrát vrstva: "+layerName)
+    
     def readLayerJsonThread(self, layerName,service):
         if self.checkLayerOnLayman(layerName):
             layerNameTitle =layerName
@@ -1376,8 +1354,8 @@ class Layman:
             r = requests.get(url = url)
             data = r.json()
             if (service == "WMS"):
-                print("loading WMS")
-                print (data['wms']['url'])
+                #print("loading WMS")
+                #print (data['wms']['url'])
                 wmsUrl = data['wms']['url']
                 format = 'png'
                 epsg = 'EPSG:4326' 
@@ -1396,10 +1374,13 @@ class Layman:
             else:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
         if message == "successLoadComp":
-            self.dlg.label_loading.hide() 
-            self.dlg.progressBar_loader.hide() 
-            #self.dlg.listWidget.setSelectionMode(QAbstractItemView.SingleSelection)
-            self.importMapEnvironmnet(True)
+            try:
+                self.dlg.label_loading.hide() 
+                self.dlg.progressBar_loader.hide() 
+                #self.dlg.listWidget.setSelectionMode(QAbstractItemView.SingleSelection)
+                self.importMapEnvironmnet(True)
+            except:
+                pass
 
         if message == "layersLoaded":
             #time.sleep(2)
@@ -1428,9 +1409,12 @@ class Layman:
                 print("chyba")
 
         if message == "export":
-            self.dlg.progressBar.hide() 
-            self.dlg.label_import.hide()
-            time.sleep(1)
+            try:
+                self.dlg.progressBar.hide() 
+                self.dlg.label_import.hide()
+            except:
+                pass
+          
             
         if message == "delLay":
             self.dlg.label_thumbnail.setText(' ')
@@ -1476,10 +1460,11 @@ class Layman:
             else:
                 self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
         if message == "addRaster ":
-            self.dlg.progressBar.hide() 
-            self.dlg.label_import.hide()
-
-
+            try:
+                self.dlg.progressBar.hide() 
+                self.dlg.label_import.hide()
+            except:
+                pass
             try:
                 self.dlg.progressBar.hide() 
                 self.dlg.label_import.hide()
@@ -2900,20 +2885,20 @@ class Layman:
             #abstract = data['data']['layers'][x]['params']['ABSTRACT']
             wmsName = data['layers'][x]['params']['LAYERS']
             
-            print("groupName " +groupName)
-            print("groupName " +layerName)
+            #print("groupName " +groupName)
+            #print("groupName " +layerName)
             
-            print("groupName " +format)
-            print("groupName " +epsg)
+            #print("groupName " +format)
+            #print("groupName " +epsg)
             layerNameTitle = self.getLayerTitle(layerName)
-            print("groupName " +layerNameTitle)
+            #print("groupName " +layerNameTitle)
 
             url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName  
-            print (url)
+            #print (url)
             r = requests.get(url = url)
             res = r.json()
             
-            print(res)
+            #print(res)
             
             if service == 'WMS':         
                 #UrlWms = res['wms']['url']
@@ -2940,7 +2925,7 @@ class Layman:
             layerNameTitle = data['layers'][x]['title']
             if self.checkLayerOnLayman(layerName):
                 if service == 'WMS':         
-                    print("zzzzzzz" +layerName)
+                   # print("zzzzzzz" +layerName)
                     repairUrl = data['layers'][x]['url']
                     self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
 
@@ -2964,10 +2949,10 @@ class Layman:
         return title
         
     def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = ''):      
-        print("debug")
-        print(groupName)
-        print(layerNameTitle)
-        print(layerName)
+        #print("debug")
+        #print(groupName)
+        #print(layerNameTitle)
+        #print(layerName)
         
         layerName = self.removeUnacceptableChars(layerName)
         print(layerName)
