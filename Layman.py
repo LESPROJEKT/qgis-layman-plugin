@@ -1356,12 +1356,20 @@ class Layman:
             if (service == "WMS"):
                 #print("loading WMS")
                 #print (data['wms']['url'])
-                wmsUrl = data['wms']['url']
+                try:
+                    wmsUrl = data['wms']['url']
+                except:
+                    QgsMessageLog.logMessage("wrongLoaded")
+                    return
                 format = 'png'
                 epsg = 'EPSG:4326' 
                 self.loadWms(wmsUrl, layerName,layerNameTitle, format, epsg) 
             if (service == "WFS"):
-                wfsUrl = data['wfs']['url']
+                try:
+                    wfsUrl = data['wfs']['url']
+                except:
+                    QgsMessageLog.logMessage("wrongLoaded")
+                    return
                 print("loading WFS")
                 self.loadWfs(wfsUrl, layerName, layerNameTitle) 
         else:
@@ -1475,7 +1483,11 @@ class Layman:
                 self.dlg.label_thumbnail.setText(' ')
             except:
                 pass
-            
+        if message == "wrongLoaded": 
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Připojení se serverem selhalo!"), Qgis.Warning, duration=3)
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Connection with server failed!"), Qgis.Warning, duration=3)
     def loadAllComposites(self):
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'
         print(url)

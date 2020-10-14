@@ -10,11 +10,11 @@
 name=Layman
 qgisMinimumVersion=3.0
 description=Layman
-version=1.14
+version=1.15
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
-about=Export json to Atlas server
+about=Connector to Layman server
 
 tracker=http://bugs
 repository=http://repo
