@@ -1418,8 +1418,18 @@ class Layman:
 
         if message == "export":
             try:
-                self.dlg.progressBar.hide() 
-                self.dlg.label_import.hide()
+                threadsB = set()
+                for thread in threading.enumerate(): 
+                    threadsB.add(thread.name)
+                   # print(thread.name)
+                #print(self.ThreadsA)
+                #print(threadsB)
+                #print(self.ThreadsA == threadsB)
+                if(self.ThreadsA == threadsB):
+                    self.dlg.progressBar.hide() 
+                    self.dlg.label_import.hide()
+                
+
             except:
                 pass
           
@@ -2040,6 +2050,9 @@ class Layman:
        # self.processingList = []        
         #if self.batchLength == 0:
         #    self.batchLength = self.batchLength + len(layers)
+        self.ThreadsA = set()
+        for thread in threading.enumerate(): 
+            self.ThreadsA.add(thread.name)
         self.uploaded = 0
         self.batchLength = len(layers)
         if self.locale == "cs":
@@ -2106,9 +2119,9 @@ class Layman:
             self.postInChunks(layer_name, "patch")                          
         else:
             self.patchLayer(layer_name, data)
-        time.sleep(1)
+        #time.sleep(1)
         if progress:
-            QgsMessageLog.logMessage("export")
+            
             self.importedLayer = layer_name
             self.processingList[q][2] = 1
             response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name))
@@ -2120,7 +2133,7 @@ class Layman:
             else:
                 QgsMessageLog.logMessage("importn_"+layer_name)
            ## self.writeState(1)
-           
+            QgsMessageLog.logMessage("export")
             
             #iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
 
@@ -2140,10 +2153,10 @@ class Layman:
             response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.authHeader)
             #print(response.content)
             #print(response.status_code)
-        time.sleep(1.5)
+        #time.sleep(1.5)
         if progress:
 
-            QgsMessageLog.logMessage("export")
+           # QgsMessageLog.logMessage("export")
             response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name))
          
             if (response.status_code == 200):
@@ -2154,6 +2167,7 @@ class Layman:
             self.importedLayer = layer_name
             self.processingList[q][2] = 1
             #self.writeState(1)
+            QgsMessageLog.logMessage("export")
             
             #QMessageBox.information(None, "Message", "Layer exported sucessfully.")
     def postRequest(self, layer_name):     
