@@ -2969,7 +2969,7 @@ class Layman:
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName
         r = requests.get(url = url)
         data = r.json()
-       # print(data)
+        print(data)
         title = data['title']
         print(title)
         return title
@@ -2996,11 +2996,16 @@ class Layman:
             print("ignoreExtents works only with qgis 3.10 and higher")
             pass # pro qgis 3.10 a vys
             
-          
-        if (groupName != ''):
-            self.addWmsToGroup(groupName,rlayer)
-        else:          
-            QgsProject.instance().addMapLayer(rlayer)
+        if (rlayer.isValid()):  
+            if (groupName != ''):
+                self.addWmsToGroup(groupName,rlayer)
+            else:          
+                QgsProject.instance().addMapLayer(rlayer)
+        else:
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Nelze přidat vrstu "+layerNameTitle+ " jako WMS.")
+            else:
+                QMessageBox.information(None, "Layman", "Unable to load layer "+layerNameTitle+ " as WMS.")
 
     def loadWfs(self, url, layerName,layerNameTitle, groupName = ''):
         layerName = self.removeUnacceptableChars(layerName)
@@ -3015,10 +3020,18 @@ class Layman:
         print(uri)
         vlayer = QgsVectorLayer(uri, layerNameTitle, "WFS")
         print(vlayer.isValid())  
-        if (groupName != ''):
-            self.addWmsToGroup(groupName,vlayer)
-        else:            
-            QgsProject.instance().addMapLayer(vlayer)
+        if (vlayer.isValid()):
+            if (groupName != ''):
+                self.addWmsToGroup(groupName,vlayer)
+            else:            
+                QgsProject.instance().addMapLayer(vlayer)
+        else:
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Nelze přidat vrstu "+layerNameTitle+ " jako WFS.")
+            else:
+                QMessageBox.information(None, "Layman", "Unable to load layer "+layerNameTitle+ " as WFS.")
+            
+
     def addWmsToGroup(self, groupName, layer):
         root = QgsProject.instance().layerTreeRoot()
         group = root.findGroup(groupName)
