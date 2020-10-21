@@ -1435,7 +1435,10 @@ class Layman:
           
             
         if message == "delLay":
-            self.dlg.label_thumbnail.setText(' ')
+            try:
+                self.dlg.label_thumbnail.setText(' ')
+            except:
+                pass
             if not (self.threadLayers.is_alive()):
                 try:
                     self.dlg.progressBar_loader.hide()
@@ -1456,10 +1459,13 @@ class Layman:
                     self.processingList[i][2] = 2
                     print(self.processingList)
                     done = done + 1
-            if self.locale == "cs":
-                self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
-            else:
-                self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+            try:
+                if self.locale == "cs":
+                    self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+                else:
+                    self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+            except:
+                pass
         if message[0:8] == "importn_":
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána "), Qgis.Warning, duration=3)
@@ -1473,10 +1479,13 @@ class Layman:
                     self.processingList[i][2] = 2
                     print(self.processingList)
                     done = done + 1
-            if self.locale == "cs":
-                self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
-            else:
-                self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+            try:
+                if self.locale == "cs":
+                    self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+                else:
+                    self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+            except:
+                pass
         if message == "addRaster ":
             try:
                 self.dlg.progressBar.hide() 
