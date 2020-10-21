@@ -3003,9 +3003,9 @@ class Layman:
                 QgsProject.instance().addMapLayer(rlayer)
         else:
             if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Nelze přidat vrstu "+layerNameTitle+ " jako WMS.")
+                QMessageBox.information(None, "Layman", "WFS není pro vrstu "+layerNameTitle+ " k dispozici.")
             else:
-                QMessageBox.information(None, "Layman", "Unable to load layer "+layerNameTitle+ " as WMS.")
+                QMessageBox.information(None, "Layman", "WFS for layer "+layerNameTitle+ " is not available.")
 
     def loadWfs(self, url, layerName,layerNameTitle, groupName = ''):
         layerName = self.removeUnacceptableChars(layerName)
@@ -3027,9 +3027,9 @@ class Layman:
                 QgsProject.instance().addMapLayer(vlayer)
         else:
             if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Nelze přidat vrstu "+layerNameTitle+ " jako WFS.")
+                QMessageBox.information(None, "Layman", "WFS není pro vrstu "+layerNameTitle+ " k dispozici.")
             else:
-                QMessageBox.information(None, "Layman", "Unable to load layer "+layerNameTitle+ " as WFS.")
+                QMessageBox.information(None, "Layman", "WFS for layer "+layerNameTitle+ " is not available.")
             
 
     def addWmsToGroup(self, groupName, layer):
