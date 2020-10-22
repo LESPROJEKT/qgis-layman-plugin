@@ -469,6 +469,8 @@ class Layman:
         self.dlg.pushButton_deleteMap.setEnabled(False)
         self.dlg.pushButton_editMeta.setEnabled(False)
         self.dlg.pushButton_addRaster.setEnabled(False)
+        self.dlg.pushButton_up.setEnabled(False)
+        self.dlg.pushButton_down.setEnabled(False)
         self.dlg.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.VectorLayer)
         self.dlg.pushButton.clicked.connect(lambda: self.addLayerToComposite(self.dlg.listWidget.currentRow()))   
         self.dlg.pushButton_deleteMap.clicked.connect(lambda: self.deleteMap(self.dlg.listWidget.currentItem().text(),self.dlg.listWidget.currentRow()))
@@ -498,6 +500,8 @@ class Layman:
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_deleteMap.setEnabled(True))
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_editMeta.setEnabled(True))
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_addRaster.setEnabled(True))
+        self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_up.setEnabled(True))
+        self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_down.setEnabled(True))
         self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_down.setEnabled(True))
         self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_up.setEnabled(True))
         self.dlg.rejected.connect(lambda: self.saveReorder())
@@ -2414,7 +2418,7 @@ class Layman:
         self.existLayer = False
         self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(name),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(res['title']),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
         self.importMap(x, 'add', 1)
-        self.refreshLayerList()
+        self.refreshLayerListReversed()
            
         #self.dlg.label_loading.hide() 
         
@@ -2550,10 +2554,12 @@ class Layman:
         self.dlg.progressBar.show() 
         self.dlg.label_import.show()
     def deteteLayerFromCompositeThread(self, x, position, name):
-        previousLayers = self.compositeList[x]['layers']         
-        self.compositeList[x]['layers'] = []  
+        previousLayers = self.compositeList[x]['layers']       #zaloha  
+        self.compositeList[x]['layers'] = []            #vymazat vsechny vrstvy
         for i in range (0,len(previousLayers)):
-            if (i != position):              
+            print(len(previousLayers) - (position+1))
+            print(i)
+            if (i != len(previousLayers) - (position+1)):      ## kompozice je obracena oproti HSlayers proto odecist        
                self.compositeList[x]['layers'].append(previousLayers[i])        
        # self.importMap(x, "del")
         self.importMap(x, "delLay")
@@ -2714,8 +2720,8 @@ class Layman:
                # self.dlg.progressBar.hide() 
                # self.refreshItems()## refresh formuláře
                 if (operation != "mod"):
-                    self.refreshLayerList()
-                
+                   # self.refreshLayerList() bylo
+                    self.refreshLayerListReversed()
             else:
                 if (operation == "add"):
                     self.dlg.progressBar.setValue(0)                
@@ -2725,7 +2731,7 @@ class Layman:
             files = {'file': (jsonPath, open(jsonPath, 'rb')),} 
             response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'], data = data, files=files, headers = self.authHeader, verify=False)
             try:
-                self.refreshLayerList()
+                self.refreshLayerListReversed()
             except:
                 ## nacházíme se v jiném formuláři, není co refreshovat
                 pass
