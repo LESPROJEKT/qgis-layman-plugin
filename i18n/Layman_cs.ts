@@ -101,12 +101,12 @@
     <message>
         <location filename="../dlg_editMap.ui" line="132"/>
         <source>Title:</source>
-        <translation>Titulek:</translation>
+        <translation>Název:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="292"/>
         <source>Extent of canvas:</source>
-        <translation type="unfinished">Prostorový rozsah dat:</translation>
+        <translation>Prostorový rozsah dat:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="279"/>
@@ -141,7 +141,7 @@
     <message>
         <location filename="../dlg_createComposite.ui" line="288"/>
         <source>Canvas extent</source>
-        <translation type="unfinished">Rozsah dat</translation>
+        <translation>Rozsah dat</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="35"/>
@@ -216,7 +216,7 @@
     <message>
         <location filename="../dlg_importMap.ui" line="156"/>
         <source>Processing data:</source>
-        <translation type="unfinished">Probíhá nahrávání:</translation>
+        <translation>Probíhá nahrávání:</translation>
     </message>
     <message>
         <location filename="../dlg_importMap.ui" line="241"/>
@@ -241,7 +241,7 @@
     <message>
         <location filename="../dlg_importMap.ui" line="284"/>
         <source>Down</source>
-        <translation type="unfinished">Dolů</translation>
+        <translation>Dolů</translation>
     </message>
     <message>
         <location filename="../dlg_importMap.ui" line="297"/>
@@ -321,7 +321,7 @@
     <message>
         <location filename="../dlg_addMap.ui" line="143"/>
         <source>Loading data</source>
-        <translation type="unfinished">Načítání dat</translation>
+        <translation>Načítání dat</translation>
     </message>
 </context>
 <context>

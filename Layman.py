@@ -427,6 +427,7 @@ class Layman:
             open(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt", "w").close
     def run_CreateCompositeDialog(self, fromImport = False):
         self.dlg = CreateCompositeDialog()
+        
         self.dlg.label_info.hide()
         self.dlg.label_2.hide()
         self.dlg.lineEdit.hide()
@@ -1320,7 +1321,10 @@ class Layman:
         if not ch:
             self.dlg.pushButton_CreateComposition.setEnabled(False)
             self.dlg.label_info.show()
-            self.dlg.label_info.setText("Unacceptable char in title")
+            if self.locale == "cs":
+                self.dlg.label_info.setText("Nepřípustný znak v názvu!")
+            else:
+                self.dlg.label_info.setText("Unacceptable char in title!")
         elif (not e):            
             self.dlg.pushButton_CreateComposition.setEnabled(True)
             self.dlg.label_info.hide()
@@ -1328,9 +1332,12 @@ class Layman:
         else:
             self.dlg.pushButton_CreateComposition.setEnabled(False)
             self.dlg.label_info.show()
-            self.dlg.label_info.setText("Composition name already exists!")
+            if self.locale == "cs":
+                self.dlg.label_info.setText("Kompozice s tímto jménem již existuje!")
+            else:
+                self.dlg.label_info.setText("Composition name already exists!")
         ##
-
+        self.dlg.label_info.setStyleSheet("color: red;")
 
         #if (self.checkIfMapExist(text)):
         #    self.dlg.pushButton_CreateComposition.setEnabled(False)
