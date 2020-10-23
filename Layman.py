@@ -465,6 +465,11 @@ class Layman:
     def run_ImportMapDialog(self):        
         self.dlg = ImportMapDialog()
         self.dlg.label_import.hide()
+        self.dlg.label_5.hide()
+        if self.locale == "cs":
+            self.dlg.label_thumbnail.setText('          Náhled vrstvy')
+        else:
+            self.dlg.label_thumbnail.setText('          Layer preview')
         #self.dlg.listWidget_listLayers2.hide()
         self.dlg.pushButton_deleteMap.setEnabled(False)
         self.dlg.pushButton_editMeta.setEnabled(False)
@@ -1497,18 +1502,23 @@ class Layman:
                     self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
             except:
                 pass
-        if message == "addRaster ":
+        if message == "addRaster":
             try:
                 self.dlg.progressBar.hide() 
                 self.dlg.label_import.hide()
+                
             except:
                 pass
-            try:
+            
+            try:    
+                self.dlg.pushButton_addRaster.setEnabled(True)
+                self.importMapEnvironmnet(True)
+                
                 self.dlg.progressBar.hide() 
                 self.dlg.label_import.hide()
-                self.importMapEnvironmnet(True)
             except:
                 pass # pro formulár kde neni progressbar
+            
             try:
                 self.dlg.label_thumbnail.setText(' ')
             except:
