@@ -3364,7 +3364,7 @@ class Layman:
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "tokens.json"        
         with open(path, 'w') as outfile:
             json.dump(data, outfile)
-        self.dlg.progressBar.show()
+        #self.dlg.progressBar.show()
         self.registerUserIfNotExists()        
         self.startThread()   
         #self.loadAllCompositesT()
@@ -3446,7 +3446,9 @@ class Layman:
 
             print("creating new user: " + res['username'])
             self.laymanUsername =  res['username']
-            self.textbox.setText("Connected to: " + self.liferayServer.replace("https:\\","").replace(".cz","").replace("http:\\","").replace("www.","").replace(".com",""))
+            url = self.liferayServer.replace('https:\\','')
+            self.textbox.setText('<a href="'+self.liferayServer+"/home"'">' + url + '</a>')
+            ##self.textbox.setText("Connected to: " + self.liferayServer.replace("https:\\","").replace(".cz","").replace("http:\\","").replace("www.","").replace(".com",""))
         
       
     def checkAuthChange(self):
