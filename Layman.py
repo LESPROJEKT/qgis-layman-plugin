@@ -476,6 +476,7 @@ class Layman:
         self.dlg.pushButton_addRaster.setEnabled(False)
         self.dlg.pushButton_up.setEnabled(False)
         self.dlg.pushButton_down.setEnabled(False)
+        self.dlg.pushButton_deleteLayers.setEnabled(False)
         self.dlg.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.VectorLayer)
         self.dlg.pushButton.clicked.connect(lambda: self.addLayerToComposite(self.dlg.listWidget.currentRow()))   
         self.dlg.pushButton_deleteMap.clicked.connect(lambda: self.deleteMap(self.dlg.listWidget.currentItem().text(),self.dlg.listWidget.currentRow()))
@@ -509,6 +510,9 @@ class Layman:
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_down.setEnabled(True))
         self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_down.setEnabled(True))
         self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_up.setEnabled(True))
+        self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_deleteLayers.setEnabled(True))
+        self.dlg.listWidget.itemClicked.connect(lambda: self.setListLayer())
+
         self.dlg.rejected.connect(lambda: self.saveReorder())
         
        # self.dlg.setEnabled(False)
@@ -689,10 +693,12 @@ class Layman:
     def setBatchLengthZero(self):
         self.batchLength = 0
     def run_login(self):
+        
         print(self.locale)
         self.dlg = ConnectionManagerDialog()
       
         self.dlg.show()    
+        self.dlg.progressBar.hide()
         self.dlg.pushButton_Connect.setEnabled(False) 
         path = self.plugin_dir + os.sep + "server_list.txt"
         servers = self.csvToArray(path)
@@ -919,7 +925,17 @@ class Layman:
         else:
             self.dlg.pushButton_Connect.setEnabled(False) 
 
-        
+    def setListLayer(self):
+        count = self.dlg.listWidget_listLayers.count()
+        if count == 0:
+            self.dlg.pushButton_deleteLayers.setEnabled(False)
+            self.dlg.pushButton_up.setEnabled(False)
+            self.dlg.pushButton_down.setEnabled(False)
+        else:
+            self.dlg.listWidget_listLayers.setCurrentRow(0)
+            self.dlg.pushButton_deleteLayers.setEnabled(True)
+            self.dlg.pushButton_up.setEnabled(True)
+            self.dlg.pushButton_down.setEnabled(True)
     def checkLoadedMap(self, name):
        ## print(self.compositeList)
         loaded = False
@@ -996,10 +1012,10 @@ class Layman:
         except:
             self.dlg.pushButton.setEnabled(True) ## addMap nemá combobox nastavujeme funkční tlačítko
 
-        try:
-            self.dlg.pushButton_deleteLayers.setEnabled(True) # pro formulář importMap
-        except:
-            pass
+        #try:
+        #    self.dlg.pushButton_deleteLayers.setEnabled(True) # pro formulář importMap
+        #except:
+        #    pass
     def listCompositeLayers(self, it):    
          self.dlg.listWidget_listLayers2.clear()    
          for i in range (0,len(self.compositeList[self.dlg.listWidget.currentRow()]['layers'])):    
@@ -1057,7 +1073,12 @@ class Layman:
         for i in range (len(self.compositeList[self.dlg.listWidget.currentRow()]['layers'])-1,-1,-1):
             self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
             print(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
-
+        try:
+            self.dlg.listWidget_listLayers.setCurrentRow(0)
+        except:
+            self.dlg.pushButton_deleteLayers.setEnabled(False)
+            self.dlg.pushButton_up.setEnabled(False)
+            self.dlg.pushButton_down.setEnabled(False)
     def refreshListWidgetMaps(self):
         self.dlg.treeWidget.clear()
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
@@ -1405,7 +1426,14 @@ class Layman:
                 self.importMapEnvironmnet(True)
             except:
                 pass
-
+        if message == "compositionLoaded":
+            try:
+                self.menu_ImportMapDialog.setEnabled(True) 
+            except:
+                if self.locale == "cs":
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice nebyly nahrány!"), Qgis.Warning, duration=3)               
+                else:
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Compositions was not loaded!"), Qgis.Warning, duration=3)
         if message == "layersLoaded":
             #time.sleep(2)
             try:
@@ -1420,6 +1448,11 @@ class Layman:
                 QMessageBox.information(None, "Layman", "Nelze nahrát vrstva: ")
         if message == "authOptained":
             self.authOptained()
+            self.getToken()
+            try:
+                self.dlg.progressBar.hide() 
+            except:
+                pass
         if message == "refreshComposite":
             try:
                 self.refreshCompositeList()        ## pouze pro import Form     
@@ -1461,7 +1494,7 @@ class Layman:
                 except:
                     pass
             #self.loadLayersThread()
-            
+                       
                 
         if message[0:8] == "imports_":
             if self.locale == "cs":
@@ -1584,6 +1617,7 @@ class Layman:
                 return
             self.compositeList.append (map)
         self.loadedInMemory = True
+        QgsMessageLog.logMessage("compositionLoaded")
     
     def readMapJson(self,name, service):
         #self.dlg.progressBar_loader.show() 
@@ -2740,19 +2774,38 @@ class Layman:
             print(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'])       
             files = {'file': (jsonPath, open(jsonPath, 'rb')),} 
             response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'], data = data, files=files, headers = self.authHeader, verify=False)
+            
+            try: ## některé formuláře nemají progress bar
+                self.dlg.progressBar.hide() 
+                self.dlg.label_import.hide() 
+                self.importMapEnvironmnet(True)
+                pass
+            except:
+                pass
+            try:
+                row = self.dlg.listWidget_listLayers.currentRow()
+                print("nastavindex")
+                print(row)
+            except:
+              
+                pass
             try:
                 self.refreshLayerListReversed()
             except:
                 ## nacházíme se v jiném formuláři, není co refreshovat
                 pass
+            try:                
+                time.sleep(1)
+                
+                self.dlg.listWidget_listLayers.setCurrentRow(row)
+                if (self.dlg.listWidget_listLayers.currentRow() == -1):                    
+                    self.dlg.pushButton_deleteLayers.setEnabled(False)
+                    self.dlg.pushButton_up.setEnabled(False)
+                    self.dlg.pushButton_down.setEnabled(False)
+            except:
+                print("spadlo") 
           
-        try: ## některé formuláře nemají progress bar
-            self.dlg.progressBar.hide() 
-            self.dlg.label_import.hide() 
-            self.importMapEnvironmnet(True)
-            pass
-        except:
-            pass
+        
     def deleteLayer(self, layerName):
         url = self.URI+'/rest/'+self.laymanUsername+"/layers/" + layerName
         r = requests.delete(url)
@@ -3240,7 +3293,7 @@ class Layman:
         self.menu_AddLayerDialog.setEnabled(True) 
         self.menu_AddMapDialog.setEnabled(True)       
         self.menu_ImportLayerDialog.setEnabled(True)
-        self.menu_ImportMapDialog.setEnabled(True)       
+        self.menu_ImportMapDialog.setEnabled(False)       
      #   self.menu_DeleteMapDialog.setEnabled(True)
     #    self.menu_CreateCompositeDialog.setEnabled(True)
         self.menu_UserInfoDialog.setEnabled(True)
@@ -3311,9 +3364,11 @@ class Layman:
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "tokens.json"        
         with open(path, 'w') as outfile:
             json.dump(data, outfile)
-        
-        self.registerUserIfNotExists()
-        self.startThread()      
+        self.dlg.progressBar.show()
+        self.registerUserIfNotExists()        
+        self.startThread()   
+        #self.loadAllCompositesT()
+        threading.Thread(target=self.loadAllCompositesT).start() ## načteme kompozice do pole ve vláknu       
         
         self.dlg.close()
         
@@ -3392,7 +3447,7 @@ class Layman:
             print("creating new user: " + res['username'])
             self.laymanUsername =  res['username']
             self.textbox.setText("Connected to: " + self.liferayServer.replace("https:\\","").replace(".cz","").replace("http:\\","").replace("www.","").replace(".com",""))
-        threading.Thread(target=self.loadAllCompositesT()).start() ## načteme kompozice do pole ve vláknu
+        
       
     def checkAuthChange(self):
         i = 0
@@ -3407,9 +3462,10 @@ class Layman:
                 self.authFileTime = os.path.getmtime(path)
                 QgsMessageLog.logMessage("authOptained")
                 #self.authOptained()
+                i = i + 500
                 #print("obtained code")
             i = i +1
-            time.sleep(1)
+            time.sleep(0.5)
 
     def openAuthLiferayUrl(self):
         self.disableEnvironment()
