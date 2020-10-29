@@ -2213,7 +2213,10 @@ class Layman:
             else:
                 files = {'file': (geoPath, open(geoPath, 'rb')),} 
 
-            print(files)
+            #print(files)
+            #print(self.URI+'/rest/'+self.laymanUsername+'/layer')
+            #print(self.authHeader)
+
             response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.authHeader)
             #print(response.content)
             #print(response.status_code)
@@ -2469,6 +2472,13 @@ class Layman:
         #self.dlg.progressBar_loader.hide()
         time.sleep(1)
         QgsMessageLog.logMessage("addRaster")
+    def getSLD(layer_name):
+        response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style')
+        #response = requests.get('https://layman.lesprojekt.cz/rest/lay3/layers/' + layer_name+ '/style') test
+        tempfile = tempfile.gettempdir() + os.sep + "atlas" + os.sep +self.removeUnacceptableChars(layer_name)+ ".sld"
+        with open(tempfile, 'wb') as f:
+            f.write(response.content)
+        return response.status_code
         
     def addExistingMapToMemory(self, name):
         response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/maps/'+str(name), verify=False)
@@ -2917,6 +2927,7 @@ class Layman:
         input = input.replace("ď","d")
         input = input.replace("ě","e")
         input = input.replace("ť","t")
+        input = input.replace("-","_")
         input = re.sub(r'[?|$|.|!]',r'',input)
         
        # iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Diacritics in name of layer was replaced."), Qgis.Success, duration=3)
