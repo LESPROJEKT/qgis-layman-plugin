@@ -1,4 +1,4 @@
-https://www.agrihub.cz,http://layman.lesprojekt.cz,id-3462f94b-875c-9185-4ced-b69841f24b3
+https://www.agrihub.cz,https://layman.lesprojekt.cz,id-3462f94b-875c-9185-4ced-b69841f24b3
 https://hub.lesprojekt.cz,https://hub.lesprojekt.cz,id-1bdbb56b-af73-af0f-2448-2e17a399837
 https://www.smartafrihub.com,https://www.smartafrihub.com,id-1bdbb56b-af73-af0f-2448-2e17a399837
 https://hub.polirural.eu,https://polirural-layman.lesprojekt.cz,id-d11ed4fe-9399-e7b5-02b1-be139b2da6

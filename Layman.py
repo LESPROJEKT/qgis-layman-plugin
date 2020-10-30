@@ -2215,7 +2215,7 @@ class Layman:
 
             #print(files)
             #print(self.URI+'/rest/'+self.laymanUsername+'/layer')
-            #print(self.authHeader)
+           # print(self.authHeader)
 
             response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.authHeader)
             #print(response.content)
