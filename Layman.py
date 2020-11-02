@@ -1042,9 +1042,12 @@ class Layman:
         for x in range (0,len(self.compositeList)):
            
             for i in range (0,len(self.compositeList[x]['layers'])): 
-                if (name == self.compositeList[x]['layers'][i]['params']['LAYERS']):
-                    inComposite = True
-                    print(self.compositeList[x]['layers'][i]['params']['LAYERS'])
+                try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+                    if (name == self.compositeList[x]['layers'][i]['params']['LAYERS']):
+                        inComposite = True
+                        print(self.compositeList[x]['layers'][i]['params']['LAYERS'])
+                except:
+                    pass
         return inComposite
 
 
@@ -2472,12 +2475,14 @@ class Layman:
         #self.dlg.progressBar_loader.hide()
         time.sleep(1)
         QgsMessageLog.logMessage("addRaster")
-    def getSLD(layer_name):
+    def getSLD(self, layer_name):
         response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style')
         #response = requests.get('https://layman.lesprojekt.cz/rest/lay3/layers/' + layer_name+ '/style') test
-        tempfile = tempfile.gettempdir() + os.sep + "atlas" + os.sep +self.removeUnacceptableChars(layer_name)+ ".sld"
-        with open(tempfile, 'wb') as f:
+        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name)+ ".sld"
+        with open(tempf, 'wb') as f:
             f.write(response.content)
+        #print(response.status_code)
+        #print("sld")
         return response.status_code
         
     def addExistingMapToMemory(self, name):
@@ -3121,6 +3126,13 @@ class Layman:
                 self.addWmsToGroup(groupName,vlayer)
             else:            
                 QgsProject.instance().addMapLayer(vlayer)
+            ## zde bude SLD kod
+            code = self.getSLD(layerName)
+            if (code == 200):
+                tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+               # print(vlayer.loadSldStyle(tempf))
+                vlayer.triggerRepaint()
+
         else:
             if self.locale == "cs":
                 QMessageBox.information(None, "Layman", "WFS není pro vrstu "+layerNameTitle+ " k dispozici.")
