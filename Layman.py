@@ -518,6 +518,7 @@ class Layman:
        # self.dlg.setEnabled(False)
         #
         self.dlg.pushButton_addRaster.setEnabled(False)
+        self.dlg.pushButton_addWMS.setEnabled(False)
         self.add = self.dlg.pushButton_addMap.isEnabled()
         self.deleteM = self.dlg.pushButton_deleteMap.isEnabled()
         self.editM = self.dlg.pushButton_editMeta.isEnabled()
@@ -530,9 +531,9 @@ class Layman:
        
         self.dlg.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog(self.dlg.listWidget.currentRow()))
      ###########nacitam vrstvy z laymana do comboboxu
-        
-
-        self.dlg.pushButton_addRaster.clicked.connect(lambda: self.addExistingLayerToComposite(self.dlg.comboBox_raster.currentText()))
+        self.loadExternalWMS()
+        self.dlg.pushButton_addWMS.clicked.connect(lambda: self.addExternalWMSToComposite(self.dlg.comboBox_wms.currentText()))
+        self.dlg.pushButton_addRaster.clicked.connect(lambda: self.addExistingLayerToComposite(self.dlg.comboBox_raster.currentText(), "raster"))
         #### nahrát mapy ze serveru do comboboxu
         self.dlg.comboBox_raster.currentIndexChanged.connect(lambda: self.dlg.pushButton_addRaster.setEnabled(True))
       
@@ -566,6 +567,7 @@ class Layman:
         self.dlg.pushButton_addMap.setStyleSheet("#pushButton_addMap {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addMap:hover{background: #66ab27 ;}#pushButton_addMap:disabled{background: #64818b ;}")
         self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
         self.dlg.pushButton_loadMapWFS.setStyleSheet("#pushButton_loadMapWFS {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_loadMapWFS:hover{background: #66ab27 ;}#pushButton_loadMapWFS:disabled{background: #64818b ;}")
+        self.dlg.pushButton_addWMS.setStyleSheet("#pushButton_addWMS {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addWMS:hover{background: #66ab27 ;}#pushButton_addWMS:disabled{background: #64818b ;}")
         self.dlg.pushButton_loadMap.setStyleSheet("#pushButton_loadMap {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_loadMap:hover{background: #66ab27 ;}#pushButton_loadMap:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.dlg.pushButton_saveOrder.setStyleSheet("#pushButton_saveOrder {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_saveOrder:hover{background: #66ab27 ;}#pushButton_saveOrder:disabled{background: #64818b ;}")
@@ -605,6 +607,18 @@ class Layman:
             self.dlg.pushButton.setEnabled(False)
             self.addR = self.dlg.pushButton_addRaster.isEnabled()
             self.dlg.pushButton_addRaster.setEnabled(False)
+
+    def loadExternalWMS(self):
+        layers = QgsProject.instance().mapLayers().values()
+        for layer in layers:
+            layerType = layer.type()    
+            if layerType == QgsMapLayer.RasterLayer:
+                if(str(layer)[-5:-2] == "wms"):
+                    self.dlg.comboBox_wms.addItem(layer.name())
+                    self.dlg.pushButton_addWMS.setEnabled(True)
+                   # print(layer.name())
+
+
     def loadCompositesThread(self):
         #self.dlg.listWidget.setSelectionMode(QAbstractItemView.NoSelection)
         if not self.loadedInMemory:
@@ -852,7 +866,58 @@ class Layman:
             self.dlg.treeWidget.addTopLevelItem(item)
         QgsMessageLog.logMessage("layersLoaded")
         
-
+    def addExternalWMSToComposite(self, name):
+        #layer = QgsProject.instance().mapLayersByName(name)[0]
+        #params = layer.dataProvider().dataSourceUri().split("&")
+        #layers = list()
+        #for p in params:
+        #    #print(p)
+        #    param = p.split("=")                
+        #    if(str(param[0]) == "crs"):
+        #        crs = (param[1])
+        #    if(str(param[0]) == "format"):
+        #        format = (param[1])   
+        #        print(format)
+        #    if(str(param[0]) == "url"):
+        #        url = (param[1])   
+        #        print(url) 
+        #    if(str(param[0]) == "layers"):
+        #        layers.append(param[1])   
+        #     #   print(layers)    
+        #json = self.prepareLayerSchema(crs, format,url, layers)
+        self.addExistingLayerToComposite(name, "wms")
+    def prepareLayerSchema(self, crs, format,url, layers):
+        if (len(layers) == 1):
+            layers = str(layers).replace("[", "").replace("]", "")
+        else:
+            layers = str(layers)
+        #print(layers)
+        json = '''"layers": [
+        {
+          "className": "HSLayers.Layer.WMS",
+          "dimensions": {},
+          "legends": [
+            ""
+          ],
+          "maxResolution": null,
+          "metadata": {},
+          "minResolution": 0,
+          "opacity": 1,
+          "params": {
+            "FORMAT": "'''+format+'''",
+            "FROMCRS": "'''+crs+'''",
+            "INFO_FORMAT": "application/vnd.ogc.gml",
+            "LAYERS": "'''+layers+'''",
+            "VERSION": "1.3.0"
+          },
+          "ratio": 1.5,
+          "singleTile": true,
+          "title": "okresy",
+          "url": "'''+url+'''",
+          "visibility": true,
+          "wmsMaxScale": 0
+        }'''
+        return json   
     def disableExport(self):
         #print(self.dlg.treeWidget.currentItem())
         print(self.dlg.treeWidget.selectedItems())
@@ -1074,7 +1139,8 @@ class Layman:
     def refreshLayerListReversed(self):
         self.dlg.listWidget_listLayers.clear()
         for i in range (len(self.compositeList[self.dlg.listWidget.currentRow()]['layers'])-1,-1,-1):
-            self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
+            #self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
+            self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['title'])
             print(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
         try:
             self.dlg.listWidget_listLayers.setCurrentRow(0)
@@ -2194,7 +2260,10 @@ class Layman:
             response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name))
             
             if (response.status_code == 200):
-                self.uploaded = self.uploaded + 1
+                try:
+                    self.uploaded = self.uploaded + 1
+                except:
+                    pass
                 QgsMessageLog.logMessage("imports_"+layer_name)
                 
             else:
@@ -2230,7 +2299,10 @@ class Layman:
             response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name))
          
             if (response.status_code == 200):
-                self.uploaded = self.uploaded + 1
+                try:
+                    self.uploaded = self.uploaded + 1
+                except:
+                    pass
                 QgsMessageLog.logMessage("imports_"+layer_name)
             else:
                 QgsMessageLog.logMessage("importn_"+layer_name)
@@ -2406,17 +2478,22 @@ class Layman:
                 else:
                     QMessageBox.information(None, "Layman", "Layer "+layer_name+" does not have attributes!")
 
-    def addExistingLayerToComposite(self, name):
+    def addExistingLayerToComposite(self, name, type):
         #self.dlg.label_loading.show() 
-        #self.dlg.progressBar_loader.show()         
+        #self.dlg.progressBar_loader.show()
+        nameInList = name         
         name = self.removeUnacceptableChars(name).lower()
         self.dlg.pushButton_addRaster.setEnabled(False)
         x = self.dlg.listWidget.currentRow()
         if self.checkLayerOnLayman(name):
             inComposite = name in self.isRasterLayerInComposite(x, name)
             if not(inComposite):
-                self.threadAddRaster = threading.Thread(target=lambda: self.addExistingLayerToCompositeThread(name,x))
-                self.threadAddRaster.start()
+                if (type == "raster"):
+                    self.threadAddRaster = threading.Thread(target=lambda: self.addExistingLayerToCompositeThread(name,x))
+                    self.threadAddRaster.start()
+                if (type == "wms"):
+                    threading.Thread(target=lambda: self.addExistingWMSLayerToCompositeThread(name, nameInList,x)).start()
+                    
                 self.dlg.progressBar.show() 
                 self.dlg.label_import.show()
             else:
@@ -2475,6 +2552,47 @@ class Layman:
         #self.dlg.progressBar_loader.hide()
         time.sleep(1)
         QgsMessageLog.logMessage("addRaster")
+    def addExistingWMSLayerToCompositeThread(self, title,nameInList, x):
+        print("nameInList"+ nameInList)
+        name = self.removeUnacceptableChars(title).lower()
+        #response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(name), verify=False)
+        #res = self.fromByteToJson(response.content)
+        #print(res)
+       # wmsUrl = res['wms']['url']
+        layer = QgsProject.instance().mapLayersByName(nameInList)[0]
+        params = layer.dataProvider().dataSourceUri().split("&")
+        layers = list()
+        for p in params:
+            #print(p)
+            param = p.split("=")                
+            if(str(param[0]) == "crs"):
+                crs = (param[1])
+            if(str(param[0]) == "format"):
+                format = (param[1])   
+                print(format)
+            if(str(param[0]) == "url"):
+                url = (param[1])   
+                print(url) 
+            if(str(param[0]) == "layers"):
+                layers.append(param[1])   
+             #   print(layers) 
+                #   
+                #      
+        if (len(layers) == 1):
+            layers = str(layers).replace("[", "").replace("]", "").replace("'", "")
+        else:
+            layers = str(layers).replace("'", "")
+       # json = self.prepareLayerSchema(crs, format,url, layers)
+        self.existLayer = False
+        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"FROMCRS":crs,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+        self.importMap(x, 'add', 1)
+        self.refreshLayerListReversed()
+           
+        #self.dlg.label_loading.hide() 
+        
+        #self.dlg.progressBar_loader.hide()
+        time.sleep(1)
+        QgsMessageLog.logMessage("addRaster")
     def getSLD(self, layer_name):
         response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style')
         #response = requests.get('https://layman.lesprojekt.cz/rest/lay3/layers/' + layer_name+ '/style') test
@@ -2513,8 +2631,9 @@ class Layman:
                 QMessageBox.information(None, "Layman", "Link is unavailable.")
     def checkLayerOnLayman(self, layer_name):
         url = self.URI+'/rest/'+self.laymanUsername+"/layers/"+layer_name
+        print(url)
         r = requests.get(url = url, verify=False)
-        #print(r.content)
+        #print(r.content)        
         data = r.json()
         try:
             if data['wms']['status'] == 'NOT_AVAILABLE' or data['wms']['status'] == 'PENDING':
@@ -2575,18 +2694,25 @@ class Layman:
               
             else:
                 self.postRequest(layers[i].name())
-                #wmsStatus = 'PENDING'
-                #j = 0
-                #while ((wmsStatus == 'PENDING') and (j < 10)):
-                #    print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
-                #    response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
-                #    res = self.fromByteToJson(response.content)
-                #    try:
-                #        wmsStatus = res['wms']['status']
-                #    except:
-                #        wmsStatus = "done"
-                #    time.sleep(1)
-                #    j = j + 1
+                wmsStatus = 'PENDING'
+                j = 0
+                while ((wmsStatus == 'PENDING') and (j < 10)):
+                    print("waiting")
+                    print(wmsStatus)
+                    print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
+                    #response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
+                    response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
+                    res = self.fromByteToJson(response.content)
+                 
+                    print(res)
+                    try:
+                        #wmsStatus = res['wms']['status']
+                        wmsStatus = res['wms']['url']
+                    except:
+                        #wmsStatus = "done"
+                        wmsStatus = "PENDING"
+                    time.sleep(1)
+                    j = j + 1
             
 
                 #print(res)
@@ -2594,7 +2720,8 @@ class Layman:
                     wmsUrl = res['wms']['url']
                 except:
                     wmsUrl = self.URI+'/geoserver/'+layerName+'/ows'
-                self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layerName),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layers[i].name()),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+                #self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layerName),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layers[i].name()),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+                self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
                 successful = successful + 1
                 #self.dlg.progressBar.setValue(self.dlg.progressBar.value()+step)
                 self.dlg.progressBar.show() 
@@ -2933,6 +3060,7 @@ class Layman:
         input = input.replace("ě","e")
         input = input.replace("ť","t")
         input = input.replace("-","_")
+        input = input.replace("/","_")
         input = re.sub(r'[?|$|.|!]',r'',input)
         
        # iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Diacritics in name of layer was replaced."), Qgis.Success, duration=3)
@@ -2959,8 +3087,10 @@ class Layman:
         existingLayers = []
         for i in range (0, len(data['layers'])):
             for j in range (0, len(layers)):
-                if (data['layers'][i]['params']['LAYERS'] in layers[j].name() ):
-                    existingLayers.append(data['layers'][i]['params']['LAYERS'])
+                if (data['layers'][i]['title'] in layers[j].name() ):
+                    existingLayers.append(data['layers'][i]['title'])
+                #if (data['layers'][i]['params']['LAYERS'] in layers[j].name() ):
+                 #   existingLayers.append(data['layers'][i]['params']['LAYERS'])
 
         return existingLayers
     def getLayerInCompositePosition(self, x):      
@@ -3074,7 +3204,27 @@ class Layman:
         title = data['title']
         print(title)
         return title
-        
+    def parseWMSlayers(self, layerString):
+        ### ocekavany string je ve formatu pole napr [vrstva1,vrstva2,...]
+        if (layerString[0] == "[" and layerString[-1:] == "]"):    
+            s = layerString.replace("[","").replace("]","").split(",")
+            res = ""
+            for i in range(0, len(s)):
+              #  print(s[i])
+                if (i == 0):
+                    res = res+ s[i].replace(" ", "") + "&layers="
+                elif (i == len(s)-1):
+                    res = res+ s[i].replace(" ", "")
+                else:
+                    res = res+ s[i].replace(" ", "") + "&layers="
+
+
+            for i in range(0, len(s)-1):
+                res = res + "&styles"
+            return res.replace("_","")
+        else:
+            return layerString
+
     def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = ''):      
         #print("debug")
         #print(groupName)
@@ -3083,6 +3233,7 @@ class Layman:
         
         layerName = self.removeUnacceptableChars(layerName)
         print(layerName)
+        layerName = self.parseWMSlayers(layerName)
         epsg = "EPSG:4326"
         url = url.replace("%2F", "/").replace("%3A",":")
         urlWithParams = 'contextualWMSLegend=0&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url
@@ -3104,9 +3255,9 @@ class Layman:
                 QgsProject.instance().addMapLayer(rlayer)
         else:
             if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "WFS není pro vrstu "+layerNameTitle+ " k dispozici.")
+                QMessageBox.information(None, "Layman", "WMS není pro vrstu "+layerNameTitle+ " k dispozici.")
             else:
-                QMessageBox.information(None, "Layman", "WFS for layer "+layerNameTitle+ " is not available.")
+                QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
 
     def loadWfs(self, url, layerName,layerNameTitle, groupName = ''):
         layerName = self.removeUnacceptableChars(layerName)
