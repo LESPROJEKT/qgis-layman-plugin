@@ -614,9 +614,10 @@ class Layman:
             layerType = layer.type()    
             if layerType == QgsMapLayer.RasterLayer:
                 if(str(layer)[-5:-2] == "wms"):
-                    self.dlg.comboBox_wms.addItem(layer.name())
-                    self.dlg.pushButton_addWMS.setEnabled(True)
-                   # print(layer.name())
+                    if not (self.isXYZ(layer.name())):
+                        self.dlg.comboBox_wms.addItem(layer.name())
+                        self.dlg.pushButton_addWMS.setEnabled(True)
+                       # print(layer.name())
 
 
     def loadCompositesThread(self):
@@ -2552,6 +2553,17 @@ class Layman:
         #self.dlg.progressBar_loader.hide()
         time.sleep(1)
         QgsMessageLog.logMessage("addRaster")
+    def isXYZ(self, name):
+        layer = QgsProject.instance().mapLayersByName(name)[0]
+        params = layer.dataProvider().dataSourceUri().split("&")
+        layers = list()
+        for p in params:
+            #param = p.split("=")  
+            print(p)
+            if(str(p) == "type=xyz"):
+                return True
+
+        return False
     def addExistingWMSLayerToCompositeThread(self, title,nameInList, x):
         print("nameInList"+ nameInList)
         name = self.removeUnacceptableChars(title).lower()
@@ -2563,7 +2575,7 @@ class Layman:
         params = layer.dataProvider().dataSourceUri().split("&")
         layers = list()
         for p in params:
-            #print(p)
+            print(p)
             param = p.split("=")                
             if(str(param[0]) == "crs"):
                 crs = (param[1])
