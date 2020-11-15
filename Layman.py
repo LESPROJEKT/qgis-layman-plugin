@@ -614,9 +614,9 @@ class Layman:
             layerType = layer.type()    
             if layerType == QgsMapLayer.RasterLayer:
                 if(str(layer)[-5:-2] == "wms"):
-                    if not (self.isXYZ(layer.name())):
-                        self.dlg.comboBox_wms.addItem(layer.name())
-                        self.dlg.pushButton_addWMS.setEnabled(True)
+                   # if not (self.isXYZ(layer.name())):
+                    self.dlg.comboBox_wms.addItem(layer.name())
+                    self.dlg.pushButton_addWMS.setEnabled(True)
                        # print(layer.name())
 
 
@@ -1674,6 +1674,7 @@ class Layman:
         except:
             QgsMessageLog.logMessage("errConnection")
             QgsMessageLog.logMessage(url)
+            self.disableEnvironment()
             return
         for i in data:
             print(i['name'])
@@ -1684,6 +1685,7 @@ class Layman:
             except:
                 QgsMessageLog.logMessage("errConnection")
                 QgsMessageLog.logMessage(map)
+                self.disableEnvironment()
                 return
             self.compositeList.append (map)
         self.loadedInMemory = True
@@ -2573,36 +2575,48 @@ class Layman:
        # wmsUrl = res['wms']['url']
         layer = QgsProject.instance().mapLayersByName(nameInList)[0]
         params = layer.dataProvider().dataSourceUri().split("&")
-        layers = list()
-        for p in params:
-            print(p)
-            param = p.split("=")                
-            if(str(param[0]) == "crs"):
-                crs = (param[1])
-            if(str(param[0]) == "format"):
-                format = (param[1])   
-                print(format)
-            if(str(param[0]) == "url"):
-                url = (param[1])   
-                print(url) 
-            if(str(param[0]) == "layers"):
-                layers.append(param[1])   
-             #   print(layers) 
-                #   
-                #      
-        if (len(layers) == 1):
-            layers = str(layers).replace("[", "").replace("]", "").replace("'", "")
-        else:
-            layers = str(layers).replace("'", "")
-       # json = self.prepareLayerSchema(crs, format,url, layers)
-        self.existLayer = False
-        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"FROMCRS":crs,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
-        self.importMap(x, 'add', 1)
-        self.refreshLayerListReversed()
+        if not (self.isXYZ(layer.name())):
+            params = layer.dataProvider().dataSourceUri().split("&")
+            layers = list()
+            for p in params:
+                print(p)
+                param = p.split("=")                
+                if(str(param[0]) == "crs"):
+                    crs = (param[1])
+                if(str(param[0]) == "format"):
+                    format = (param[1])   
+                    print(format)
+                if(str(param[0]) == "url"):
+                    url = (param[1])   
+                    print(url) 
+                if(str(param[0]) == "layers"):
+                    layers.append(param[1])   
+                 #   print(layers) 
+                    #   
+                    #      
+            if (len(layers) == 1):
+                layers = str(layers).replace("[", "").replace("]", "").replace("'", "")
+            else:
+                layers = str(layers).replace("'", "")
+           # json = self.prepareLayerSchema(crs, format,url, layers)
+            self.existLayer = False
+            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"FROMCRS":crs,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+            self.importMap(x, 'add', 1)
+            self.refreshLayerListReversed()
            
-        #self.dlg.label_loading.hide() 
+            #self.dlg.label_loading.hide() 
         
-        #self.dlg.progressBar_loader.hide()
+            #self.dlg.progressBar_loader.hide()
+        else:
+            for p in params:
+                param = p.split("=")  
+                print(p)
+                if(param[0] == "url"):
+                    url = param[1] 
+            crs = layer.crs().authid()    
+            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"XYZ","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","FROMCRS":crs,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})    
+            self.importMap(x, 'add', 1)
+            self.refreshLayerListReversed()
         time.sleep(1)
         QgsMessageLog.logMessage("addRaster")
     def getSLD(self, layer_name):
@@ -2646,8 +2660,9 @@ class Layman:
         print(url)
         r = requests.get(url = url, verify=False)
         #print(r.content)        
-        data = r.json()
         try:
+            data = r.json()
+        
             if data['wms']['status'] == 'NOT_AVAILABLE' or data['wms']['status'] == 'PENDING':
                 return False
             else:
@@ -3153,7 +3168,7 @@ class Layman:
             epsg = 'EPSG:4326' 
             #abstract = data['data']['layers'][x]['params']['ABSTRACT']
             wmsName = data['layers'][x]['params']['LAYERS']
-            
+            className = data['layers'][x]['className']
             #print("groupName " +groupName)
             #print("groupName " +layerName)
             
@@ -3172,7 +3187,10 @@ class Layman:
             if service == 'WMS':         
                 #UrlWms = res['wms']['url']
                 UrlWms = data['layers'][x]['url']
-                self.loadWms(UrlWms, layerName,layerNameTitle, format,epsg, groupName)
+                if className == 'XYZ':
+                    self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName)
+                else:
+                    self.loadWms(UrlWms, layerName,layerNameTitle, format,epsg, groupName)
 
             if service == 'WFS': 
                 #UrlWfs = res['wfs']['url']
@@ -3189,6 +3207,7 @@ class Layman:
             format = data['layers'][x]['params']['FORMAT']
            #  epsg = str(data['groups']['projection']).upper()
             epsg = 'EPSG:4326' 
+            className = data['layers'][x]['className']
             #abstract = data['data']['layers'][x]['params']['ABSTRACT']
             wmsName = data['layers'][x]['params']['LAYERS']  
             layerNameTitle = data['layers'][x]['title']
@@ -3196,8 +3215,11 @@ class Layman:
                 if service == 'WMS':         
                    # print("zzzzzzz" +layerName)
                     repairUrl = data['layers'][x]['url']
-                    self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
-
+                    #self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
+                    if className == 'XYZ':
+                        self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName)
+                    else:
+                        self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
                 if service == 'WFS': 
                    # repairUrl = repairUrl.replace("ows","wfs")
                     repairUrl = data['layers'][x]['url']
@@ -3253,6 +3275,38 @@ class Layman:
         print("test")
         print(layerNameTitle)
         rlayer = QgsRasterLayer(urlWithParams, layerNameTitle, 'wms')
+        try:
+            print("extents")
+            print(rlayer.ignoreExtents())
+        except:
+            print("ignoreExtents works only with qgis 3.10 and higher")
+            pass # pro qgis 3.10 a vys
+            
+        if (rlayer.isValid()):  
+            if (groupName != ''):
+                self.addWmsToGroup(groupName,rlayer)
+            else:          
+                QgsProject.instance().addMapLayer(rlayer)
+        else:
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "WMS není pro vrstu "+layerNameTitle+ " k dispozici.")
+            else:
+                QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
+    def loadXYZ(self, url, layerName,layerNameTitle, format, epsg, groupName = ''):      
+        #print("debug")
+        #print(groupName)
+        #print(layerNameTitle)
+        #print(layerName)
+        
+        layerName = self.removeUnacceptableChars(layerName)
+        print("XYZ")
+        
+        epsg = "EPSG:4326"
+        url = url.replace("%2F", "/").replace("%3A",":")    
+       
+    
+      
+        rlayer = QgsRasterLayer("type=xyz&url="+url, layerNameTitle, "wms") 
         try:
             print("extents")
             print(rlayer.ignoreExtents())
