@@ -135,7 +135,7 @@ class Layman:
         self.authHeader = None
         self.code_verifier = None
         self.code_challenge = None
-        self.Agrimail = None
+        self.Agrimail = ""
         self.loadedInMemory = False
         self.liferayServer = None
         self.laymanServer = None
@@ -616,8 +616,11 @@ class Layman:
                 if(str(layer)[-5:-2] == "wms"):
                    # if not (self.isXYZ(layer.name())):
                     self.dlg.comboBox_wms.addItem(layer.name())
-                    self.dlg.pushButton_addWMS.setEnabled(True)
+                    #self.dlg.pushButton_addWMS.setEnabled(True)
+                    self.WMSenable = True
                        # print(layer.name())
+                else:
+                    self.WMSenable = False
 
 
     def loadCompositesThread(self):
@@ -640,6 +643,7 @@ class Layman:
             QgsMessageLog.logMessage("errConnection")
         for row in range(0, len(data)):          
             self.dlg.comboBox_raster.addItem(data[row]['name'])
+            self.dlg.comboBox_raster.setCurrentIndex(0)
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
         r = requests.get(url = url)
         data = r.json()
@@ -967,7 +971,12 @@ class Layman:
         self.dlg.pushButton_mapWFS.setEnabled(True)
         self.dlg.pushButton_deleteLayers.setEnabled(True)
         self.dlg.pushButton_editMeta.setEnabled(True)
-        self.dlg.pushButton_addRaster.setEnabled(True)       
+        self.dlg.pushButton_addRaster.setEnabled(True)   
+        try:
+            if (self.WMSenable):
+                self.dlg.pushButton_addWMS.setEnabled(True)
+        except:
+            pass
 
     def saveReorder(self):
         for x in self.mapsChanged:
@@ -1069,6 +1078,11 @@ class Layman:
 
 
     def enableButton(self, item):
+        try:
+            if (self.WMSenable):
+                self.dlg.pushButton_addWMS.setEnabled(True)
+        except:
+            pass
         try: ## addMap nemá combobox
             if (self.dlg.mMapLayerComboBox.count() > 0):
                 self.dlg.pushButton.setEnabled(True) 
