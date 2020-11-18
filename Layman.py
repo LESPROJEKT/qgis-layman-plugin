@@ -863,12 +863,20 @@ class Layman:
         #if not self.loadedInMemory:
         #    self.loadAllComposites()
         url = self.URI+'/rest/'+self.laymanUsername+'/layers'
-        r = requests.get(url = url)
-        #print(r.content)
+        r = requests.get(url = url)    
         data = r.json()
-        for row in range(0, len(data)):            
-            item = QTreeWidgetItem([self.getLayerTitle(data[row]['name'])])
-            self.dlg.treeWidget.addTopLevelItem(item)
+        
+        for row in range(0, len(data)): 
+           
+            
+            try:
+                item = QTreeWidgetItem([data[row]['title']])               
+                self.dlg.treeWidget.addTopLevelItem(item)                 
+                
+            except:
+               
+                item = QTreeWidgetItem([self.getLayerTitle(data[row]['name'])])
+                self.dlg.treeWidget.addTopLevelItem(item)
         QgsMessageLog.logMessage("layersLoaded")
         
     def addExternalWMSToComposite(self, name):
