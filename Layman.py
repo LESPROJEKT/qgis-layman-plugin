@@ -642,7 +642,8 @@ class Layman:
         except:
             QgsMessageLog.logMessage("errConnection")
         for row in range(0, len(data)):          
-            self.dlg.comboBox_raster.addItem(data[row]['name'])
+            #self.dlg.comboBox_raster.addItem(data[row]['name'])
+            self.dlg.comboBox_raster.addItem(data[row]['title'])
             self.dlg.comboBox_raster.setCurrentIndex(0)
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
         r = requests.get(url = url)
@@ -2514,7 +2515,7 @@ class Layman:
             inComposite = name in self.isRasterLayerInComposite(x, name)
             if not(inComposite):
                 if (type == "raster"):
-                    self.threadAddRaster = threading.Thread(target=lambda: self.addExistingLayerToCompositeThread(name,x))
+                    self.threadAddRaster = threading.Thread(target=lambda: self.addExistingLayerToCompositeThread(nameInList,x))
                     self.threadAddRaster.start()
                 if (type == "wms"):
                     threading.Thread(target=lambda: self.addExistingWMSLayerToCompositeThread(name, nameInList,x)).start()
@@ -2568,7 +2569,7 @@ class Layman:
         wmsUrl = res['wms']['url']
         
         self.existLayer = False
-        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(name),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(res['title']),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
         self.importMap(x, 'add', 1)
         self.refreshLayerListReversed()
            
