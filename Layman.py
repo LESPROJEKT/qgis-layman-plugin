@@ -3347,7 +3347,7 @@ class Layman:
                 QMessageBox.information(None, "Layman", "WMS není pro vrstu "+layerNameTitle+ " k dispozici.")
             else:
                 QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
-
+    
     def loadWfs(self, url, layerName,layerNameTitle, groupName = ''):
         layerName = self.removeUnacceptableChars(layerName)
         epsg = 'EPSG:4326'        
@@ -3360,18 +3360,96 @@ class Layman:
         uri = url + "?srsname="+epsg+"&typename="+acc+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
         print(uri)
         vlayer = QgsVectorLayer(uri, layerNameTitle, "WFS")
-        print(vlayer.isValid())  
+        print(vlayer.isValid()) 
+        
         if (vlayer.isValid()):
-            if (groupName != ''):
-                self.addWmsToGroup(groupName,vlayer)
-            else:            
-                QgsProject.instance().addMapLayer(vlayer)
-            ## zde bude SLD kod
-            code = self.getSLD(layerName)
-            if (code == 200):
-                tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
-               # print(vlayer.loadSldStyle(tempf))
-                vlayer.triggerRepaint()
+            if (self.getTypesOfGeom(vlayer) < 2):
+           # if (True):    
+                if (groupName != ''):
+                    self.addWmsToGroup(groupName,vlayer)
+                else:            
+                    QgsProject.instance().addMapLayer(vlayer)
+                ## zde bude SLD kod
+                code = self.getSLD(layerName)
+                if (code == 200):
+                    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                   # print(vlayer.loadSldStyle(tempf))
+                    vlayer.triggerRepaint()
+            else:
+                pointFeats = list()
+                polyFeats = list()
+                lineFeats = list()  
+                feats = vlayer.getFeatures()
+                #print(len(feats))
+    
+                pol = 0
+                line = 0
+                point = 0
+                for feat in feats:
+                    print(type(feat))
+                    print(feat.geometry().type())
+                    if (feat.geometry().type() == 0):
+                        pointFeats.append(feat)
+                        point = 1          
+         
+                    if (feat.geometry().type() == 2):
+                        polyFeats.append(feat)        
+                        pol = 1
+                    if (feat.geometry().type() == 1):
+                        lineFeats.append(feat) 
+                        line =  1       
+                if (point == 1):
+                    vl = QgsVectorLayer("Point", layerName, "memory")    
+                    pr = vl.dataProvider()        
+                    pr.addFeatures(pointFeats)
+                    vl.updateFields()
+                    vl.updateExtents()         
+                    vl.commitChanges()        
+                    if (groupName != ''):
+                        self.addWmsToGroup(groupName,vl, True)
+                    else:            
+                        QgsProject.instance().addMapLayer(vl)
+                        ## zde bude SLD kod
+                        code = self.getSLD(layerName)
+                        if (code == 200):
+                            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                           # print(vlayer.loadSldStyle(tempf))
+                            vlayer.triggerRepaint()   
+                if (line == 1):
+                    vl = QgsVectorLayer("LineString", layerName, "memory")    
+                    pr = vl.dataProvider()        
+                    pr.addFeatures(lineFeats)
+                    vl.updateFields()
+                    vl.updateExtents()         
+                    vl.commitChanges()        
+                    if (groupName != ''):
+                        self.addWmsToGroup(groupName,vl, True)
+                    else:            
+                        QgsProject.instance().addMapLayer(vl)
+                        ## zde bude SLD kod
+                        code = self.getSLD(layerName)
+                        if (code == 200):
+                            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                           # print(vlayer.loadSldStyle(tempf))
+                            vlayer.triggerRepaint()    
+                if (pol == 1):
+                    vl = QgsVectorLayer("Polygon", layerName, "memory")    
+                    pr = vl.dataProvider()        
+                    pr.addFeatures(polyFeats)
+                    vl.updateExtents()         
+                    vl.updateFields()
+                    vl.commitChanges()        
+                    if (groupName != ''):
+                        self.addWmsToGroup(groupName,vl, True)
+                    else:            
+                        QgsProject.instance().addMapLayer(vl)
+                        ## zde bude SLD kod
+                        code = self.getSLD(layerName)
+                        if (code == 200):
+                            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                           # print(vlayer.loadSldStyle(tempf))
+                            vlayer.triggerRepaint()        
+
 
         else:
             if self.locale == "cs":
@@ -3379,13 +3457,41 @@ class Layman:
             else:
                 QMessageBox.information(None, "Layman", "WFS for layer "+layerNameTitle+ " is not available.")
             
-
-    def addWmsToGroup(self, groupName, layer):
+    def getTypesOfGeom(self, vlayer):
+        feats = vlayer.getFeatures()
+        
+        typesL = 0
+        typesP = 0
+        typesPol = 0
+        for feat in feats:
+            if (typesL == 0):
+                if (feat.geometry().type() == 0):       
+                    typesL = 1
+            if (typesP == 0):
+                if (feat.geometry().type() == 2):             
+                    typesP = 1
+            if (typesPol == 0):
+                if (feat.geometry().type() == 1):        
+                    typesPol = 1
+            if typesL+typesP+typesPol > 2:
+                return typesL+typesP+typesPol
+        return typesL+typesP+typesPol
+    def addWmsToGroup(self, groupName, layer, subgroup = False):
         root = QgsProject.instance().layerTreeRoot()
         group = root.findGroup(groupName)
-        
+        if subgroup and group:
+            group = group.findGroup(layer.name())
+            #if not(sub):
+            #    group.addGroup(layer.name()) 
+            #    group = group.findGroup(layer.name())
         if not(group):
             group = root.addGroup(groupName)  
+            if subgroup:
+                sub = group.findGroup(layer.name())
+                if not(sub):
+                    group.addGroup(layer.name()) 
+                    group = group.findGroup(layer.name())
+                        
             #group = self.reorderToTop(groupName)
         time.sleep(1)
         QgsProject.instance().addMapLayer(layer,False)
