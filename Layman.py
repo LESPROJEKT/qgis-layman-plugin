@@ -38,6 +38,7 @@ import re
 #from .flaskServer import *
 from multiprocessing import Process
 from pathlib import Path 
+import processing
 # Import the code for the DockWidget
 from builtins import str
 from builtins import range
@@ -1172,6 +1173,11 @@ class Layman:
             self.dlg.pushButton_deleteLayers.setEnabled(False)
             self.dlg.pushButton_up.setEnabled(False)
             self.dlg.pushButton_down.setEnabled(False)
+    def transformLayer(self, layer):
+        path = tempFile = tempfile.gettempdir() + os.sep + layer.name()
+        parameter = {'INPUT': layer, 'TARGET_CRS': 'EPSG:4326', 'OUTPUT': path}
+        processing.run('qgis:reprojectlayer', parameter)
+        return path
     def refreshListWidgetMaps(self):
         self.dlg.treeWidget.clear()
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
@@ -2169,7 +2175,11 @@ class Layman:
             layerCrs = layer.crs().authid()
             crs = QgsCoordinateReferenceSystem(layerCrs)# původně bylo
             layer_filename = filePath 
-            result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(layer, layer_filename, "utf-8", crs, ogr_driver_name) # export jsonu do souboru
+            ## transform test
+            parameter = {'INPUT': layer, 'TARGET_CRS': 'EPSG:4326', 'OUTPUT': layer_filename}
+            processing.run('qgis:reprojectlayer', parameter)
+            ## transforma test
+          #  result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(layer, layer_filename, "utf-8", crs, ogr_driver_name) # export jsonu do souboru
 
             sld_filename = filePath.replace("geojson", "sld").lower()            
             result3 = False
@@ -2301,6 +2311,9 @@ class Layman:
 
     def postThread(self, layer_name,data, q,progress):
         self.json_export(layer_name)
+        #### transform test
+        #path = self.transformLayer(layer_name)
+        ######
         sldPath = self.getTempPath(layer_name).replace("geojson", "sld")
         geoPath = self.getTempPath(layer_name)
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
@@ -2362,7 +2375,8 @@ class Layman:
         #print(layer_name)
 
 
-        if not self.checkWgsExtent(layers[0]):
+        #if not self.checkWgsExtent(layers[0]):
+        if False:
             if self.locale == "cs":
                 QMessageBox.information(None, "Layman", "Prostorový rozsah vrstvy je mimo rozsah WGS 84. (EPSG: 4326)")
             else:
