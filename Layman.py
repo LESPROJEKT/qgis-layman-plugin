@@ -466,6 +466,8 @@ class Layman:
     def run_ImportMapDialog(self):        
         self.dlg = ImportMapDialog()
         self.dlg.label_import.hide()
+        self.dlg.radioButton_wms.setChecked(True)
+        self.dlg.radioButton_wfs.setChecked(False)
         self.dlg.label_5.hide()
         if self.locale == "cs":
             self.dlg.label_thumbnail.setText('          Náhled vrstvy')
@@ -478,7 +480,7 @@ class Layman:
         self.dlg.pushButton_up.setEnabled(False)
         self.dlg.pushButton_down.setEnabled(False)
         self.dlg.pushButton_deleteLayers.setEnabled(False)
-        self.dlg.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.VectorLayer)
+       # self.dlg.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.VectorLayer)
         self.dlg.pushButton.clicked.connect(lambda: self.addLayerToComposite(self.dlg.listWidget.currentRow()))   
         self.dlg.pushButton_deleteMap.clicked.connect(lambda: self.deleteMap(self.dlg.listWidget.currentItem().text(),self.dlg.listWidget.currentRow()))
        # self.dlg.pushButton_deleteMap.clicked.connect(lambda: self.deleteMapFromCanvas(self.dlg.listWidget.currentRow())) 
@@ -490,12 +492,15 @@ class Layman:
         self.threadComposites.start()
         #else:
         #    self.loadCompositesThread()
-        
-        
+        self.checkServiceAvailability()
+        self.dlg.mMapLayerComboBox.currentIndexChanged.connect(lambda: self.checkServiceAvailability())
         self.dlg.pushButton_addMap.clicked.connect(lambda: self.showAddMapDialog())
         
         self.dlg.progressBar.hide()   
-        self.dlg.pushButton_saveOrder.hide()   
+        self.dlg.pushButton_saveOrder.hide()
+        self.dlg.label_6.hide()
+        self.dlg.comboBox_wms.hide()
+        self.dlg.pushButton_addWMS.hide()
         self.dlg.pushButton.setEnabled(False)
         self.dlg.pushButton.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'plus.png'))
         self.dlg.pushButton_addMap.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'plus.png'))
@@ -784,6 +789,9 @@ class Layman:
         
         self.dlg.pushButton.setEnabled(False)
         self.dlg.pushButton_mapWFS.setEnabled(False)
+        self.dlg.pushButton_mapWFS.setEnabled(True)
+        self.dlg.pushButton.hide()
+        self.dlg.pushButton_mapWFS.hide()
         self.dlg.label_info.hide()
      
         self.dlg.treeWidget.itemClicked.connect(self.showThumbnailMap)
@@ -793,10 +801,11 @@ class Layman:
 
         self.dlg.pushButton.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WMS'))
         self.dlg.pushButton_mapWFS.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WFS'))
+        self.dlg.pushButton_map.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WFS'))
         
 
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-
+        self.dlg.pushButton_map.setStyleSheet("#pushButton_map {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_map:hover{background: #66ab27 ;}#pushButton_map:disabled{background: #64818b ;}")
         self.dlg.pushButton_mapWFS.setStyleSheet("#pushButton_mapWFS {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_mapWFS:hover{background: #66ab27 ;}#pushButton_mapWFS:disabled{background: #64818b ;}")
         self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
@@ -872,8 +881,13 @@ class Layman:
            
             
             try:
-                item = QTreeWidgetItem([data[row]['title']])               
-                self.dlg.treeWidget.addTopLevelItem(item)                 
+
+                item = QTreeWidgetItem([data[row]['title']])    
+                print
+                title = data[row]['title']
+                if title == None or title == "" or title == "null":
+                    item = QTreeWidgetItem([data[row]['name']])       
+                self.dlg.treeWidget.addTopLevelItem(item)               
                 
             except:
                
@@ -979,6 +993,7 @@ class Layman:
         
         self.dlg.pushButton.setEnabled(True)
         self.dlg.pushButton_mapWFS.setEnabled(True)
+       # self.dlg.pushButton_map.setEnabled(True)
         self.dlg.pushButton_deleteLayers.setEnabled(True)
         self.dlg.pushButton_editMeta.setEnabled(True)
         self.dlg.pushButton_addRaster.setEnabled(True)   
@@ -1095,8 +1110,9 @@ class Layman:
             pass
         try: ## addMap nemá combobox
             if (self.dlg.mMapLayerComboBox.count() > 0):
-                self.dlg.pushButton.setEnabled(True) 
-                self.dlg.pushButton_mapWFS.setEnabled(True)
+                #self.dlg.pushButton.setEnabled(True) 
+                #self.dlg.pushButton_mapWFS.setEnabled(True)
+                self.dlg.pushButton_map.setEnabled(True)
             else:
                 self.dlg.pushButton.setEnabled(False)
         except:
@@ -1166,7 +1182,7 @@ class Layman:
         for i in range (len(self.compositeList[self.dlg.listWidget.currentRow()]['layers'])-1,-1,-1):
             #self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
             self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['title'])
-            print(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
+            #print(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
         try:
             self.dlg.listWidget_listLayers.setCurrentRow(0)
         except:
@@ -1726,35 +1742,7 @@ class Layman:
     
         
         self.readMapJsonThread(name,service)
-        #bar.hide()
-      #  nameWithDiacritics = name        
-      #  name = self.removeUnacceptableChars(name)
-      #  print(name)
-        
-      #  print("readMapJson " + name)
-      #  if not self.checkLoadedMap(name): ## je nactena mapa?
-      ##  if True:
-      #      print("debug in readMapJson - true")
-      #      print(name)
-      #      print(self.checkLoadedMap(name))
-      #      url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name   +'/file'     
-      #      r = requests.get(url = url)
-      #      data = r.json()   
-      #      print(data)
-        
-      #      self.addComposite(data,service, name)
-      #      try:
-      #          self.refreshCompositeList()        ## pouze pro import Form     
-      #      except:
-      #          pass
-      #  else:
-      #      print("debug in readMapJson - false")
-      #      url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name   +'/file'     
-      #      r = requests.get(url = url)
-      #      data = r.json()
-      #      self.loadService(data,service, name)
-
-        #    QMessageBox.information(None, "Message", "This map is already loaded in memory. Loading only layers to canvas")
+ 
     
     def readMapJsonThread(self,name, service):
         nameWithDiacritics = name        
@@ -1781,7 +1769,7 @@ class Layman:
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name   +'/file'     
             r = requests.get(url = url)
             data = r.json()
-            self.loadService(data,service, name)
+            self.loadService2(data,service, name)
         
     def deleteMapFromServer(self,name):        
         
@@ -2154,7 +2142,7 @@ class Layman:
 
     def json_export(self, layer_name):     
 
-        filePath = self.getTempPath(layer_name.lower())  
+        filePath = self.getTempPath(self.removeUnacceptableChars(layer_name).lower())  
         ogr_driver_name = "GeoJSON"     
         project = QgsProject.instance()
         fileNames = []      
@@ -2314,8 +2302,8 @@ class Layman:
         #### transform test
         #path = self.transformLayer(layer_name)
         ######
-        sldPath = self.getTempPath(layer_name).replace("geojson", "sld")
-        geoPath = self.getTempPath(layer_name)
+        sldPath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+        geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
             self.postInChunks(layer_name, "post")
         else:
@@ -2583,7 +2571,11 @@ class Layman:
         wmsUrl = res['wms']['url']
         
         self.existLayer = False
-        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+        #self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+        if (self.dlg.radioButton_wms.isChecked()):
+            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+        if (self.dlg.radioButton_wfs.isChecked()):
+            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1 ,"protocol":{"format": "hs.format.WFS","LAYERS": str(name),"url": wmsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
         self.importMap(x, 'add', 1)
         self.refreshLayerListReversed()
            
@@ -2638,6 +2630,7 @@ class Layman:
            # json = self.prepareLayerSchema(crs, format,url, layers)
             self.existLayer = False
             self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"FROMCRS":crs,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+           
             self.importMap(x, 'add', 1)
             self.refreshLayerListReversed()
            
@@ -2652,6 +2645,7 @@ class Layman:
                     url = param[1] 
             crs = layer.crs().authid()    
             self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"XYZ","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","FROMCRS":crs,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})    
+           
             self.importMap(x, 'add', 1)
             self.refreshLayerListReversed()
         time.sleep(1)
@@ -2707,92 +2701,102 @@ class Layman:
         except:
             return True # validní vrstva nemá status
 
-
+    def checkServiceAvailability(self):
+        if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsRasterLayer)):
+            self.dlg.radioButton_wfs.setEnabled(False)
+        else:
+            self.dlg.radioButton_wfs.setEnabled(True)
     def addLayerToComposite(self,x):
-        self.dlg.pushButton.setEnabled(False)
-        self.compositeListOld = copy.deepcopy(self.compositeList) ## list pred upravou pro vraceni zmen
-        #layers = self.getSelectedLayers() #odkomentovat pro zapnuti nacitani vrstev z listwidgetu
-        layers = []
-        layers.append(self.dlg.mMapLayerComboBox.currentLayer())
-        successful = 0
-        print (len(layers))
-        #try:
-        #    step = self.getProgressBarStep(len(layers))
-        #except:
-        #    if self.locale == "cs":
-        #        QMessageBox.information(None, "Layman", "Není vybrána žádná vrstva!")
-        #    else:
-        #        QMessageBox.information(None, "Layman", "No layer selected!")
+        if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsRasterLayer)):
+            self.addExternalWMSToComposite(self.dlg.comboBox_wms.currentText())
+        if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsVectorLayer)):
+            self.dlg.pushButton.setEnabled(False)
+            self.compositeListOld = copy.deepcopy(self.compositeList) ## list pred upravou pro vraceni zmen
+            #layers = self.getSelectedLayers() #odkomentovat pro zapnuti nacitani vrstev z listwidgetu
+            layers = []
+            layers.append(self.dlg.mMapLayerComboBox.currentLayer())
+            successful = 0
+            print (len(layers))
+            #try:
+            #    step = self.getProgressBarStep(len(layers))
+            #except:
+            #    if self.locale == "cs":
+            #        QMessageBox.information(None, "Layman", "Není vybrána žádná vrstva!")
+            #    else:
+            #        QMessageBox.information(None, "Layman", "No layer selected!")
         
-        for i in range (0, len(layers)):
-            print(type(layers[i]))           
+            for i in range (0, len(layers)):
+                print(type(layers[i]))           
             
-            print (self.isLayerInComposite(x))
-            print (layers[i].name() in self.isLayerInComposite(x))
-            inComposite = layers[i].name() in self.isLayerInComposite(x)
-            layerName = self.removeUnacceptableChars(layers[i].name()).lower()
-            if (self.checkExistingLayer(layers[i].name()) and inComposite):
-                j = self.getLayerInCompositePosition(x)
-                print("j je: " + str(j))
+                print (self.isLayerInComposite(x))
+                print (layers[i].name() in self.isLayerInComposite(x))
+                inComposite = layers[i].name() in self.isLayerInComposite(x)
+                layerName = self.removeUnacceptableChars(layers[i].name()).lower()
+                if (self.checkExistingLayer(layers[i].name()) and inComposite):
+                    j = self.getLayerInCompositePosition(x)
+                    print("j je: " + str(j))
                 
             
              
-                self.postRequest(layers[i].name())
-                layerName = self.removeUnacceptableChars(layers[i].name())
-                #wmsStatus = 'PENDING'
-                #j = 0
-                #while ((wmsStatus == 'PENDING') and (j < 10)):
-                #    print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
-                #    response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
-                #    res = self.fromByteToJson(response.content)
-                #    try:
-                #        wmsStatus = res['wms']['status']
-                #    except:
-                #        wmsStatus = "done"
-                #    time.sleep(1)
-                #    j = j + 1
+                    self.postRequest(layers[i].name())
+                    layerName = self.removeUnacceptableChars(layers[i].name())
+                    #wmsStatus = 'PENDING'
+                    #j = 0
+                    #while ((wmsStatus == 'PENDING') and (j < 10)):
+                    #    print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
+                    #    response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
+                    #    res = self.fromByteToJson(response.content)
+                    #    try:
+                    #        wmsStatus = res['wms']['status']
+                    #    except:
+                    #        wmsStatus = "done"
+                    #    time.sleep(1)
+                    #    j = j + 1
             
 
              
 
               
-            else:
-                self.postRequest(layers[i].name())
-                wmsStatus = 'PENDING'
-                j = 0
-                while ((wmsStatus == 'PENDING') and (j < 10)):
-                    print("waiting")
-                    print(wmsStatus)
-                    print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
-                    #response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
-                    response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
-                    res = self.fromByteToJson(response.content)
+                else:
+                    self.postRequest(layers[i].name())
+                    wmsStatus = 'PENDING'
+                    j = 0
+                    while ((wmsStatus == 'PENDING') and (j < 10)):
+                        print("waiting")
+                        print(wmsStatus)
+                        print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
+                        #response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
+                        response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
+                        res = self.fromByteToJson(response.content)
                  
-                    print(res)
-                    try:
-                        #wmsStatus = res['wms']['status']
-                        wmsStatus = res['wms']['url']
-                    except:
-                        #wmsStatus = "done"
-                        wmsStatus = "PENDING"
-                    time.sleep(1)
-                    j = j + 1
+                        print(res)
+                        try:
+                            #wmsStatus = res['wms']['status']
+                            wmsStatus = res['wms']['url']
+                        except:
+                            #wmsStatus = "done"
+                            wmsStatus = "PENDING"
+                        time.sleep(1)
+                        j = j + 1
             
 
-                #print(res)
-                try:
-                    wmsUrl = res['wms']['url']
-                except:
-                    wmsUrl = self.URI+'/geoserver/'+layerName+'/ows'
-                #self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layerName),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layers[i].name()),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
-                self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
-                successful = successful + 1
-                #self.dlg.progressBar.setValue(self.dlg.progressBar.value()+step)
-                self.dlg.progressBar.show() 
-                self.dlg.label_import.show()
-                self.importMapEnvironmnet(False)
-                threading.Thread(target=lambda: self.importMap(x, "add", successful) ).start()
-                #self.importMap(x, "add", successful) 
+                    #print(res)
+                    try:
+                        wmsUrl = res['wms']['url']
+                    except:
+                        wmsUrl = self.URI+'/geoserver/'+layerName+'/ows'
+                    #self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layerName),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layers[i].name()),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+                    if (self.dlg.radioButton_wms.isChecked()):
+                        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+                    if (self.dlg.radioButton_wfs.isChecked()):
+                        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1 ,"protocol":{"format": "hs.format.WFS","LAYERS": str(layerName),"url": wmsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+                    successful = successful + 1
+                    #self.dlg.progressBar.setValue(self.dlg.progressBar.value()+step)
+                    self.dlg.progressBar.show() 
+                    self.dlg.label_import.show()
+                    self.importMapEnvironmnet(False)
+                    threading.Thread(target=lambda: self.importMap(x, "add", successful) ).start()
+                    #self.importMap(x, "add", successful) 
     def getProgressBarStep(self, count):
         return (100/count)
 
@@ -3124,6 +3128,8 @@ class Layman:
         input = input.replace("ě","e")
         input = input.replace("ť","t")
         input = input.replace("-","_")
+        input = input.replace(".","_")
+        input = input.replace(":","")
         input = input.replace("/","_")
         input = re.sub(r'[?|$|.|!]',r'',input)
         
@@ -3260,6 +3266,51 @@ class Layman:
                 if service == 'WFS': 
                    # repairUrl = repairUrl.replace("ows","wfs")
                     repairUrl = data['layers'][x]['url']
+                    self.loadWfs(repairUrl, layerName,layerNameTitle, groupName)
+            else:
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
+                else:
+                    QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
+    def loadService2(self, data, service, groupName = ''):   
+        for x in range(len(data['layers'])- 1, -1, -1):       ## descending order
+            className = data['layers'][x]['className']          
+            try:
+                layerName = data['layers'][x]['params']['LAYERS']
+            except:
+                layerName = data['layers'][x]['protocol']['LAYERS']
+            if self.checkLayerOnLayman(layerName):
+                print(className)
+                if className == 'HSLayers.Layer.WMS':        
+                    repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
+                    layerName = data['layers'][x]['params']['LAYERS']
+                    format = data['layers'][x]['params']['FORMAT']           
+                    epsg = 'EPSG:4326'             
+                    wmsName = data['layers'][x]['params']['LAYERS']  
+                    layerNameTitle = data['layers'][x]['title']
+                    repairUrl = data['layers'][x]['url']
+                    #self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
+                    self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
+                if className == 'XYZ':
+                    repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
+                    layerName = data['layers'][x]['params']['LAYERS']
+                    format = data['layers'][x]['params']['FORMAT']           
+                    epsg = 'EPSG:4326'             
+                    wmsName = data['layers'][x]['params']['LAYERS']  
+                    layerNameTitle = data['layers'][x]['title']
+                    repairUrl = data['layers'][x]['url']
+                    self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName)
+                
+                    
+                if className == 'OpenLayers.Layer.Vector': 
+                   # repairUrl = repairUrl.replace("ows","wfs")
+                    #repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
+                    layerName = data['layers'][x]['protocol']['LAYERS']
+                    format = data['layers'][x]['protocol']['FORMAT']           
+                    epsg = 'EPSG:4326'            
+                
+                    layerNameTitle = data['layers'][x]['title']                    
+                    repairUrl = data['layers'][x]['protocol']['url']
                     self.loadWfs(repairUrl, layerName,layerNameTitle, groupName)
             else:
                 if self.locale == "cs":
@@ -3535,11 +3586,12 @@ class Layman:
         return ret
 
     def registerLayer(self, name):
-        sldPath = self.getTempPath(name).replace("geojson", "sld").lower()
-        geoPath = self.getTempPath(name).lower()
+        
 
         url = self.URI + "/rest/"+self.laymanUsername+"/layers"
-        name = self.removeUnacceptableChars(name)                             
+        name = self.removeUnacceptableChars(name)  
+        sldPath = self.getTempPath(name).replace("geojson", "sld").lower()
+        geoPath = self.getTempPath(name).lower()
         files = {'sld': (sldPath, open(sldPath, 'rb')),} # nahrávám sld
         payload = {        
             'file': name.lower()+".geojson",
@@ -3581,7 +3633,7 @@ class Layman:
         
         if not (os.path.exists(filePath)):
             os.mkdir(filePath)
-        file = self.getTempPath(layer_name) 
+        file = self.getTempPath(self.removeUnacceptableChars(layer_name)) 
         f = open(file, 'rb')
         arr = []
         for piece in self.read_in_chunks(f):

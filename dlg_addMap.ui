@@ -37,7 +37,7 @@
   <widget class="QPushButton" name="pushButton">
    <property name="geometry">
     <rect>
-     <x>460</x>
+     <x>760</x>
      <y>300</y>
      <width>201</width>
      <height>27</height>
@@ -120,7 +120,7 @@
   <widget class="QPushButton" name="pushButton_mapWFS">
    <property name="geometry">
     <rect>
-     <x>460</x>
+     <x>760</x>
      <y>340</y>
      <width>201</width>
      <height>27</height>
@@ -134,7 +134,7 @@
    <property name="geometry">
     <rect>
      <x>514</x>
-     <y>380</y>
+     <y>340</y>
      <width>141</width>
      <height>16</height>
     </rect>
@@ -150,7 +150,7 @@
    <property name="geometry">
     <rect>
      <x>464</x>
-     <y>397</y>
+     <y>357</y>
      <width>191</width>
      <height>23</height>
     </rect>
@@ -160,6 +160,19 @@
    </property>
    <property name="value">
     <number>0</number>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_map">
+   <property name="geometry">
+    <rect>
+     <x>460</x>
+     <y>290</y>
+     <width>201</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Load composition</string>
    </property>
   </widget>
  </widget>

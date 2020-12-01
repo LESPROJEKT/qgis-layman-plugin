@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.1" language="cs_CZ" sourcelanguage="en">
+<!DOCTYPE TS><TS version="2.0" language="cs_CZ" sourcelanguage="en">
 <context>
     <name>DialogBase</name>
     <message>
@@ -14,7 +13,7 @@
         <translation>Načíst WMS</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="61"/>
+        <location filename="../dlg_addLayer.ui" line="64"/>
         <source>Layers on Layman</source>
         <translation>Vrstvy v Laymanu</translation>
     </message>
@@ -29,17 +28,17 @@
         <translation>Náhled:</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="117"/>
+        <location filename="../dlg_addLayer.ui" line="120"/>
         <source>More info</source>
         <translation>Více info</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="130"/>
+        <location filename="../dlg_addLayer.ui" line="133"/>
         <source>Load WFS</source>
         <translation>Načíst WFS</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="143"/>
+        <location filename="../dlg_addLayer.ui" line="146"/>
         <source>Delete layer</source>
         <translation>Smazat vrstvu</translation>
     </message>
@@ -219,14 +218,14 @@
         <translation>Probíhá nahrávání:</translation>
     </message>
     <message>
-        <location filename="../dlg_importMap.ui" line="241"/>
+        <location filename="../dlg_importMap.ui" line="324"/>
         <source> Add Layer</source>
         <translation>Přidat vrstvu</translation>
     </message>
     <message>
         <location filename="../dlg_importMap.ui" line="218"/>
         <source>Loaded vector layer from canvas:</source>
-        <translation>Vektorové vrstvy v QGIS:</translation>
+        <translation type="obsolete">Vektorové vrstvy v QGIS:</translation>
     </message>
     <message>
         <location filename="../dlg_importMap.ui" line="258"/>
@@ -249,37 +248,37 @@
         <translation>Uložit pořadí</translation>
     </message>
     <message>
-        <location filename="../dlg_importMap.ui" line="315"/>
+        <location filename="../dlg_importMap.ui" line="381"/>
         <source>Map compositions</source>
         <translation>Mapové kompozice:</translation>
     </message>
     <message>
-        <location filename="../dlg_importMap.ui" line="337"/>
+        <location filename="../dlg_importMap.ui" line="406"/>
         <source>Existing map compositions:</source>
         <translation>Existující mapové kompozice:</translation>
     </message>
     <message>
-        <location filename="../dlg_importMap.ui" line="350"/>
+        <location filename="../dlg_importMap.ui" line="419"/>
         <source> Delete Map</source>
         <translation>Smazat mapu</translation>
     </message>
     <message>
-        <location filename="../dlg_importMap.ui" line="367"/>
+        <location filename="../dlg_importMap.ui" line="436"/>
         <source> Add Map</source>
         <translation>Přidat Mapu</translation>
     </message>
     <message>
-        <location filename="../dlg_importMap.ui" line="380"/>
+        <location filename="../dlg_importMap.ui" line="449"/>
         <source>  Edit metada</source>
         <translation>Upravit metadata</translation>
     </message>
     <message>
-        <location filename="../dlg_importMap.ui" line="393"/>
+        <location filename="../dlg_importMap.ui" line="462"/>
         <source>Load Map (WMS)</source>
         <translation>Načíst kompozici (WMS)</translation>
     </message>
     <message>
-        <location filename="../dlg_importMap.ui" line="416"/>
+        <location filename="../dlg_importMap.ui" line="485"/>
         <source>Load Map (WFS)</source>
         <translation>Načíst kompozici (WFS)</translation>
     </message>
@@ -323,56 +322,91 @@
         <source>Loading data</source>
         <translation>Načítání dat</translation>
     </message>
+    <message>
+        <location filename="../dlg_importMap.ui" line="241"/>
+        <source> Add to composite</source>
+        <translation>Přidat do kompozice</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importMap.ui" line="218"/>
+        <source>QGIS map list</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dlg_importMap.ui" line="341"/>
+        <source>WMS:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dlg_importMap.ui" line="354"/>
+        <source>WMS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dlg_importMap.ui" line="367"/>
+        <source>WFS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dlg_addMap.ui" line="175"/>
+        <source>Load composition</source>
+        <translation>Načíst kompozici</translation>
+    </message>
+    <message>
+        <location filename="../dlg_userInfo.ui" line="132"/>
+        <source>Plugin version:</source>
+        <translation>Verze pluginu</translation>
+    </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="1502"/>
+        <location filename="../Layman.py" line="1931"/>
         <source>&amp;Layman</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="273"/>
+        <location filename="../Layman.py" line="280"/>
         <source>Current Row Number</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="279"/>
+        <location filename="../Layman.py" line="286"/>
         <source>Login</source>
         <translation>Přihlášení</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="288"/>
+        <location filename="../Layman.py" line="295"/>
         <source>Save as to JSON and SLD</source>
         <translation>Uložit jako JSON se symbologií</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="297"/>
+        <location filename="../Layman.py" line="304"/>
         <source>Load from JSON</source>
         <translation>Načíst z JSON</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="306"/>
+        <location filename="../Layman.py" line="313"/>
         <source>Export layer to server</source>
         <translation>Exportovat vrstvu na server</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="313"/>
+        <location filename="../Layman.py" line="320"/>
         <source>Load layer from server</source>
         <translation>Načíst vrstvu ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="320"/>
+        <location filename="../Layman.py" line="327"/>
         <source>Manage maps</source>
         <translation>Správce mapových kompozic</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="327"/>
+        <location filename="../Layman.py" line="334"/>
         <source>Load map from server</source>
         <translation>načíst mapovou komopozici ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="349"/>
+        <location filename="../Layman.py" line="356"/>
         <source>User info</source>
         <translation>Uživatelské info</translation>
     </message>

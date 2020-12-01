@@ -193,12 +193,12 @@
      <rect>
       <x>390</x>
       <y>96</y>
-      <width>161</width>
+      <width>231</width>
       <height>27</height>
      </rect>
     </property>
     <property name="text">
-     <string> Add Layer</string>
+     <string> Add to composite</string>
     </property>
     <property name="icon">
      <iconset>
@@ -215,7 +215,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Loaded vector layer from canvas:</string>
+     <string>QGIS map list</string>
     </property>
    </widget>
    <widget class="QComboBox" name="comboBox_raster">
@@ -233,12 +233,12 @@
      <rect>
       <x>390</x>
       <y>220</y>
-      <width>161</width>
+      <width>231</width>
       <height>27</height>
      </rect>
     </property>
     <property name="text">
-     <string> Add Layer</string>
+     <string> Add to composite</string>
     </property>
     <property name="icon">
      <iconset>
@@ -304,7 +304,7 @@
    <widget class="QComboBox" name="comboBox_wms">
     <property name="geometry">
      <rect>
-      <x>390</x>
+      <x>630</x>
       <y>290</y>
       <width>231</width>
       <height>22</height>
@@ -314,7 +314,7 @@
    <widget class="QPushButton" name="pushButton_addWMS">
     <property name="geometry">
      <rect>
-      <x>390</x>
+      <x>630</x>
       <y>330</y>
       <width>161</width>
       <height>27</height>
@@ -331,7 +331,7 @@
    <widget class="QLabel" name="label_6">
     <property name="geometry">
      <rect>
-      <x>390</x>
+      <x>630</x>
       <y>267</y>
       <width>201</width>
       <height>16</height>
@@ -339,6 +339,32 @@
     </property>
     <property name="text">
      <string>WMS:</string>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="radioButton_wms">
+    <property name="geometry">
+     <rect>
+      <x>426</x>
+      <y>270</y>
+      <width>95</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>WMS</string>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="radioButton_wfs">
+    <property name="geometry">
+     <rect>
+      <x>526</x>
+      <y>270</y>
+      <width>95</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>WFS</string>
     </property>
    </widget>
   </widget>
