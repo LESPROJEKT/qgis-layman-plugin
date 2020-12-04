@@ -2702,10 +2702,13 @@ class Layman:
             return True # validní vrstva nemá status
 
     def checkServiceAvailability(self):
-        if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsRasterLayer)):
-            self.dlg.radioButton_wfs.setEnabled(False)
-        else:
-            self.dlg.radioButton_wfs.setEnabled(True)
+        try:
+            if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsRasterLayer)):
+                self.dlg.radioButton_wfs.setEnabled(False)
+            else:
+                self.dlg.radioButton_wfs.setEnabled(True)
+        except:
+            pass
     def addLayerToComposite(self,x):
         if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsRasterLayer)):
             self.addExternalWMSToComposite(self.dlg.comboBox_wms.currentText())
