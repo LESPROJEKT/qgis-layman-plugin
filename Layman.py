@@ -1994,25 +1994,46 @@ class Layman:
                 QMessageBox.information(None, "Message", "Není načtena vrstva!")
             else:
                 QMessageBox.information(None, "Message", "You must load layer first!")
+    def tranformExtent(self, ext):
+        src = QgsProject.instance().crs()
+        dest = QgsCoordinateReferenceSystem(4326)
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        transfomedExtent = tform.transform(ext)
+        return transfomedExtent
+
+
     def getEmptyComposite(self, compositeName, compositeTitle):        
         compositeEPSG  = "epsg:4326"        
         if (self.dlg.lineEdit_3.text() == "" or self.dlg.lineEdit_4.text() == "" or self.dlg.lineEdit_5.text() == "" or self.dlg.lineEdit_6.text() == ""):
            ext = iface.mapCanvas().extent() 
+           ext = (self.tranformExtent(ext))
            xmin = ext.xMinimum()
            xmax = ext.xMaximum()
            ymin = ext.yMinimum()
            ymax = ext.yMaximum()
+           print(ymax)
         else:   
            xmin = self.dlg.lineEdit_3.text()
            xmax = self.dlg.lineEdit_4.text()
            ymin = self.dlg.lineEdit_5.text()
-           ymax = self.dlg.lineEdit_6.text() 
-        
-            
+           ymax = self.dlg.lineEdit_6.text()  
+           src = QgsProject.instance().crs()
+           dest = QgsCoordinateReferenceSystem(4326)
+           tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+           print(xmax,ymax)
+           print(xmin,ymin)
+           max = tform.transform(QgsPointXY(float(xmax),float(ymax)))
+           min = tform.transform(QgsPointXY(float(xmin),float(ymin)))
+           xmin = min.x()
+           xmax = max.x()
+           ymin = min.y()
+           ymax = max.y()
+        center = tform.transform(QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()))
         abstract = self.dlg.lineEdit_7.text()        
-        comp = {"abstract":abstract,"center":[1672068,6568819],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(xmin),str(ymin),str(xmax),str(ymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
+        comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(xmin),str(ymin),str(xmax),str(ymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
+        print(comp)
         self.dlg.close()
-        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + compositeName + " byla úspešně vytvořena."), Qgis.Success, duration=3)
+       ## iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + compositeName + " byla úspešně vytvořena."), Qgis.Success, duration=3)
         return comp
     def loadLocalFile(self):
         options = QFileDialog.Options()
@@ -2035,12 +2056,25 @@ class Layman:
         self.compositeList[x]['name'] = name
         self.compositeList[x]['abstract'] = self.dlg.lineEdit_abstract.text()
         self.compositeList[x]['title'] = self.dlg.lineEdit_title.text()
+        src = QgsProject.instance().crs()
+        dest = QgsCoordinateReferenceSystem(4326)
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        #transformace extentu
+        #max = tform.transform(QgsPointXY(float(self.dlg.lineEdit_xmax.text()),float(self.dlg.lineEdit_ymax.text())))
+        #min = tform.transform(QgsPointXY(float(self.dlg.lineEdit_xmin.text()),float(self.dlg.lineEdit_ymin.text())))
+
         self.compositeList[x]['extent'][0] = self.dlg.lineEdit_xmin.text()
         self.compositeList[x]['extent'][2] = self.dlg.lineEdit_xmax.text()
         self.compositeList[x]['extent'][1] = self.dlg.lineEdit_ymin.text()
         self.compositeList[x]['extent'][3] = self.dlg.lineEdit_ymax.text()
-        print(self.compositeList[x]['extent'])
-        
+       # self.compositeList[x]['extent'][0] = str(min.x())
+       # self.compositeList[x]['extent'][2] = str(max.x())
+       # self.compositeList[x]['extent'][1] = str(min.y())
+       # self.compositeList[x]['extent'][3] = str(max.y())
+       # print(self.compositeList[x]['extent'])
+        center = tform.transform(QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()))
+        self.compositeList[x]['center'][0] = center.x()
+        self.compositeList[x]['center'][1] = center.y()
         print(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'])       
         oldName = self.dlg.lineEdit_name.text()
         response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+oldName,headers = self.authHeader)
@@ -2915,6 +2949,7 @@ class Layman:
                 #print(response.content)
                 #print("deleted")
                 response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.authHeader)
+                print(response.content)
                 if (response.status_code == 200):
                     if self.locale == "cs":                
                         iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " byla úspešně změněna."), Qgis.Success, duration=3)
