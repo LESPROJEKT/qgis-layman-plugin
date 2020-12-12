@@ -143,12 +143,16 @@ class Layman:
         self.mapsChanged = set()
         self.importedLayer = None
         self.batchLength = 0
+        self.focusedLayer = None
         self.done = 0
+        self.millis = 0
         self.version = "1.0.0"
         self.initFiles()
         self.firstStart = True
+        self.mixedLayers = list()
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
+       # self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.getActiveLayer())
         self.processingList = []
         self.writeState(0)
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt" 
@@ -191,6 +195,7 @@ class Layman:
         self.toolbar = self.iface.addToolBar(u'Layman')
         self.toolbar.setObjectName(u'Layman')
         QgsApplication.messageLog().messageReceived.connect(self.write_log_message)
+        
         #print "** INITIALIZING Atlas"
 
         self.pluginIsActive = False
@@ -418,6 +423,11 @@ class Layman:
         self.dlg.show()
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         result = self.dlg.exec_()
+    def getActiveLayer(self):
+        layer = iface.activeLayer()
+        self.layerOldName = layer.name()
+        QMessageBox.information(None, "Layman", self.layerOldName )
+        self.focusedLayer = layer
     def initFiles(self):
         tempFileFolder = tempfile.gettempdir() + os.sep + "atlas"
         if not os.path.exists(tempFileFolder):
@@ -696,15 +706,24 @@ class Layman:
         self.dlg.treeWidget.itemSelectionChanged.connect(lambda: self.disableExport())
         self.dlg.treeWidget.setCurrentItem(self.dlg.treeWidget.topLevelItem(0),0)
         layers = QgsProject.instance().mapLayers().values()
-        
+        mix = list()
         for layer in layers:           
             if (layer.type() == QgsMapLayer.VectorLayer):
                 layerType = 'vector layer'
             else:
-                layerType = 'raster layer'
-            item = QTreeWidgetItem([layer.name(), layerType])    
+                layerType = 'raster layer'            
+            item = QTreeWidgetItem([layer.name(), layerType]) 
+            print(layer.name())
+            print(self.mixedLayers)
+            print(mix)
             if (layerType == 'vector layer'):
-                self.dlg.treeWidget.addTopLevelItem(item)
+                if (layer.name() in self.mixedLayers and layer.name() in mix):
+                    pass
+                elif (layer.name() in self.mixedLayers and layer.name() not in mix):
+                    self.dlg.treeWidget.addTopLevelItem(item)
+                    mix.append(layer.name())
+                else:
+                    self.dlg.treeWidget.addTopLevelItem(item)
         self.dlg.setWindowModality(Qt.ApplicationModal)
 
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
@@ -1246,9 +1265,9 @@ class Layman:
         if (reply == QMessageBox.Yes):
             if (self.checkLayersInComopsitions(name) == True):
                 if self.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Tuto vrstvu obsahujou některé kompozice. Bude smazána ze všech kompozic.")
+                    msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Tato vrstva je obsažena v některých mapových kompozicích. Pokud budete pokračovat, bude smazána také z těchto kompozic.")
                 else:
-                    msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "This layers is included in other compositions. It will be delete from every composition.")
+                    msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "This layers is included in other compositions. It will be deleted from every composition.")
                 msgbox.addButton(QMessageBox.Yes)
                 msgbox.addButton(QMessageBox.No)
                 msgbox.setDefaultButton(QMessageBox.No)
@@ -2206,8 +2225,38 @@ class Layman:
             sld_filename = filePath.replace("geojson", "sld").lower()            
             result3 = False
             layer.saveSldStyle(sld_filename)
+    def json_exportMix(self, layer):    
+    
+        filePath = self.getTempPath(self.removeUnacceptableChars(layer.name() + str(layer.geometryType())).lower())  
+        ogr_driver_name = "GeoJSON"     
+        project = QgsProject.instance()
+        fileNames = []              
+        
+        layerType = layer.type()
+        if layerType == QgsMapLayer.VectorLayer:
+
+            renderer = layer.renderer()
+            hasIcon = False
+            if isinstance(renderer, QgsSingleSymbolRenderer):
+
+                self.copySymbols(renderer.symbol(), tempfile.gettempdir(), fileNames)
+                hasIcon = True
 
 
+            #layerCrs = qgis.utils.iface.activeLayer().crs().authid()
+            layerCrs = layer.crs().authid()
+            crs = QgsCoordinateReferenceSystem(layerCrs)# původně bylo
+            layer_filename = filePath 
+            ## transform test
+            parameter = {'INPUT': layer, 'TARGET_CRS': 'EPSG:4326', 'OUTPUT': layer_filename}
+            processing.run('qgis:reprojectlayer', parameter)
+            ## transforma test
+          #  result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(layer, layer_filename, "utf-8", crs, ogr_driver_name) # export jsonu do souboru
+
+            sld_filename = filePath.replace("geojson", "sld").lower()            
+            result3 = False
+            layer.saveSldStyle(sld_filename)
+        return layer_filename
     def checkValidAttributes(self, layer_name):
         layers = QgsProject.instance().mapLayersByName(layer_name)
         if len(layers) > 1:
@@ -2236,7 +2285,38 @@ class Layman:
         else:
             return True
 
+    def mergeGeojsons(self, paths, output):
+        feats = list()
+        top = """
+        {
+        "type": "FeatureCollection",
+        "name": "jan_vrobelmix",
+        "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+        "features": ["""
+        bottom = """]
+        }
+        """
+        for path in paths:
+            with open(path) as json_file:
+                data = json.load(json_file)
+                for p in data['features']:
+                    #print(p)
+                    feats.append(p)
+        #with open('linie.geojson') as json_file:
+        #    data = json.load(json_file)
+        #    for p in data['features']:
+        #        #print(p)
+        #        feats.append(p)
+        #with open('polygon.geojson') as json_file:
+        #    data = json.load(json_file)
+        #    for p in data['features']:
+        #       # print(p)
+        #        feats.append(p)        
+        print(top + str(feats)[1:-1] + bottom) 
 
+        text_file = open(output, "w")
+        text_file.write((top + str(feats)[1:-1] + bottom).replace("'", "\""))
+        text_file.close()
     def callPostRequest(self, layers):    
        # self.processingList = []        
         #if self.batchLength == 0:
@@ -2303,7 +2383,17 @@ class Layman:
         destLayer.dataProvider().addFeatures(feats)
         return destLayer
     def patchThread(self, layer_name, data,q, progress):
-        self.json_export(layer_name)
+        if layer_name in self.mixedLayers:
+            layers = QgsProject.instance().mapLayersByName(layer_name)  
+            paths = list()
+            for layer in layers:
+                print(paths.append(self.json_exportMix(layer)))
+            self.mergeGeojsons(paths, self.getTempPath(self.removeUnacceptableChars(layer.name())))
+
+        else:
+            self.json_export(layer_name)
+        #self.json_export(layer_name)     
+           
         geoPath = self.getTempPath(layer_name)
         #try:
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
@@ -2332,7 +2422,15 @@ class Layman:
             #iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
 
     def postThread(self, layer_name,data, q,progress):
-        self.json_export(layer_name)
+        if layer_name in self.mixedLayers:
+            layers = QgsProject.instance().mapLayersByName(layer_name)  
+            paths = list()
+            for layer in layers:
+                paths.append(self.json_exportMix(layer))
+            self.mergeGeojsons(paths, self.getTempPath(self.removeUnacceptableChars(layer.name())))
+
+        else:
+            self.json_export(layer_name)
         #### transform test
         #path = self.transformLayer(layer_name)
         ######
@@ -3084,7 +3182,7 @@ class Layman:
 
     def patchLayer(self, layer_name, data):
         #print("patch layer")
-        self.json_export(layer_name)
+       # self.json_export(layer_name)
         self.layerName = layer_name.lower()
         
         sldPath = self.getTempPath(self.layerName).replace("geojson", "sld")
@@ -3478,7 +3576,8 @@ class Layman:
                     tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
                    # print(vlayer.loadSldStyle(tempf))
                     vlayer.triggerRepaint()
-            else:
+            else: ### cast pro slozenou geometrii
+                self.mixedLayers.append(layerName)
                 pointFeats = list()
                 polyFeats = list()
                 lineFeats = list()  
@@ -3508,50 +3607,57 @@ class Layman:
                     vl.updateFields()
                     vl.updateExtents()         
                     vl.commitChanges()        
+                    vl.nameChanged.connect(self.forbidRename)
                     if (groupName != ''):
                         self.addWmsToGroup(groupName,vl, True)
-                    else:            
-                        QgsProject.instance().addMapLayer(vl)
-                        ## zde bude SLD kod
-                        code = self.getSLD(layerName)
-                        if (code == 200):
-                            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
-                           # print(vlayer.loadSldStyle(tempf))
-                            vlayer.triggerRepaint()   
+                        
+                    else:      
+                        self.addLayerToGroup(layerName,vl)
+                        #QgsProject.instance().addMapLayer(vl)
+                        ### zde bude SLD kod
+                        #code = self.getSLD(layerName)
+                        #if (code == 200):
+                        #    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                        #   # print(vlayer.loadSldStyle(tempf))
+                        #    vlayer.triggerRepaint()   
                 if (line == 1):
                     vl = QgsVectorLayer("LineString", layerName, "memory")    
                     pr = vl.dataProvider()        
                     pr.addFeatures(lineFeats)
                     vl.updateFields()
                     vl.updateExtents()         
-                    vl.commitChanges()        
+                    vl.commitChanges()    
+                    vl.nameChanged.connect(self.forbidRename)
                     if (groupName != ''):
                         self.addWmsToGroup(groupName,vl, True)
-                    else:            
-                        QgsProject.instance().addMapLayer(vl)
-                        ## zde bude SLD kod
-                        code = self.getSLD(layerName)
-                        if (code == 200):
-                            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
-                           # print(vlayer.loadSldStyle(tempf))
-                            vlayer.triggerRepaint()    
+                    else:      
+                        self.addLayerToGroup(layerName,vl)
+                        #QgsProject.instance().addMapLayer(vl)
+                        ### zde bude SLD kod
+                        #code = self.getSLD(layerName)
+                        #if (code == 200):
+                        #    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                        #   # print(vlayer.loadSldStyle(tempf))
+                        #    vlayer.triggerRepaint()    
                 if (pol == 1):
                     vl = QgsVectorLayer("Polygon", layerName, "memory")    
                     pr = vl.dataProvider()        
                     pr.addFeatures(polyFeats)
                     vl.updateExtents()         
                     vl.updateFields()
-                    vl.commitChanges()        
+                    vl.commitChanges()    
+                    vl.nameChanged.connect(self.forbidRename)
                     if (groupName != ''):
                         self.addWmsToGroup(groupName,vl, True)
-                    else:            
-                        QgsProject.instance().addMapLayer(vl)
-                        ## zde bude SLD kod
-                        code = self.getSLD(layerName)
-                        if (code == 200):
-                            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
-                           # print(vlayer.loadSldStyle(tempf))
-                            vlayer.triggerRepaint()        
+                    else:      
+                        self.addLayerToGroup(layerName,vl)
+                        #QgsProject.instance().addMapLayer(vl)
+                        ### zde bude SLD kod
+                        #code = self.getSLD(layerName)
+                        #if (code == 200):
+                        #    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                        #   # print(vlayer.loadSldStyle(tempf))
+                        #    vlayer.triggerRepaint()        
 
 
         else:
@@ -3559,7 +3665,18 @@ class Layman:
                 QMessageBox.information(None, "Layman", "WFS není pro vrstu "+layerNameTitle+ " k dispozici.")
             else:
                 QMessageBox.information(None, "Layman", "WFS for layer "+layerNameTitle+ " is not available.")
-            
+    def forbidRename(self):
+        if ((int(round(time.time() * 1000)) - self.millis)  > 3000):
+            self.millis = int(round(time.time() * 1000))
+        
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Vrstva s kombinovanou geometií nemůže být přejmenována.")
+            else:
+                QMessageBox.information(None, "Layman", "Layer with mixed geometry can´t be renamed.")
+            self.focusedLayer.setName(self.layerOldName)
+      
+
+        
     def getTypesOfGeom(self, vlayer):
         feats = vlayer.getFeatures()
         
@@ -3598,7 +3715,17 @@ class Layman:
             #group = self.reorderToTop(groupName)
         time.sleep(1)
         QgsProject.instance().addMapLayer(layer,False)
-        group.insertChildNode(1000,QgsLayerTreeLayer(layer))         
+        group.insertChildNode(1000,QgsLayerTreeLayer(layer))        
+    def addLayerToGroup(self, groupName, layer):
+        root = QgsProject.instance().layerTreeRoot()
+        group = root.findGroup(groupName) 
+        if not(group):
+            group = root.addGroup(groupName) 
+                                   
+            #group = self.reorderToTop(groupName)
+        time.sleep(1)
+        QgsProject.instance().addMapLayer(layer,False)
+        group.insertChildNode(1000,QgsLayerTreeLayer(layer))                
     def reorderToTop(self, name):
         root = QgsProject.instance().layerTreeRoot()
         for ch in root.children():
@@ -4034,7 +4161,9 @@ class Layman:
         else:
             self.menu_saveLocalFile.setEnabled(False)
 
-    
+        layer = iface.activeLayer()
+        self.layerOldName = layer.name()        
+        self.focusedLayer = layer
         
         
      
