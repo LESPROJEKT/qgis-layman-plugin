@@ -2207,11 +2207,8 @@ class Layman:
             renderer = layer.renderer()
             hasIcon = False
             if isinstance(renderer, QgsSingleSymbolRenderer):
-
                 self.copySymbols(renderer.symbol(), tempfile.gettempdir(), fileNames)
                 hasIcon = True
-
-
             #layerCrs = qgis.utils.iface.activeLayer().crs().authid()
             layerCrs = layer.crs().authid()
             crs = QgsCoordinateReferenceSystem(layerCrs)# původně bylo
@@ -2383,6 +2380,10 @@ class Layman:
         destLayer.dataProvider().addFeatures(feats)
         return destLayer
     def patchThread(self, layer_name, data,q, progress):
+        #print("layername: " + layer_name)
+        #print(self.removeUnacceptableChars(layer_name))
+        #print(self.mixedLayers)
+        
         if layer_name in self.mixedLayers:
             layers = QgsProject.instance().mapLayersByName(layer_name)  
             paths = list()
@@ -2394,7 +2395,7 @@ class Layman:
             self.json_export(layer_name)
         #self.json_export(layer_name)     
            
-        geoPath = self.getTempPath(layer_name)
+        geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
         #try:
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
             self.postInChunks(layer_name, "patch")                          
@@ -3266,10 +3267,16 @@ class Layman:
         input = input.replace("-","_")
         input = input.replace(".","_")
         input = input.replace(":","")
-        input = input.replace("/","_")
+        input = input.replace("/","_")        
+        input = input.replace("___","_")
+        input = input.replace("__","_")
         input = re.sub(r'[?|$|.|!]',r'',input)
+
+        if input[len(input) - 1] == "_":
+            input = input[:-1]
         
        # iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Diacritics in name of layer was replaced."), Qgis.Success, duration=3)
+        print("name after remove: " + input)
         return input
     def removeUnacceptableChars2(self, input):
         input = input.encode('utf-8')
@@ -3787,27 +3794,32 @@ class Layman:
     
     def postInChunks(self, layer_name, reqType):
         print(reqType)
+        print("xxx" + layer_name)
         if (reqType == "patch"):
-            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer_name.lower().replace(" ", "_")
+            #url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer_name.lower().replace(" ", "_")
+            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars(layer_name)
             r = requests.delete(url,headers = self.authHeader)
            # print(r.content)
         
         self.registerLayer(layer_name)
-        layer_name = str(layer_name).lower() 
+        layer_name = self.removeUnacceptableChars(layer_name)
         filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) ## chunky se ukládají do adresáře v tempu
         
         if not (os.path.exists(filePath)):
             os.mkdir(filePath)
-        file = self.getTempPath(self.removeUnacceptableChars(layer_name)) 
+        file = self.getTempPath(layer_name) 
         f = open(file, 'rb')
         arr = []
         for piece in self.read_in_chunks(f):
             arr.append(piece)
-        layer_name = self.removeUnacceptableChars(layer_name)
-        url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer_name.lower().replace(" ", "_")+'/chunk'     
+       # layer_name = self.removeUnacceptableChars(layer_name)
+
+        url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer_name+'/chunk'     
+        print(url)
         resumableFilename = layer_name+'.geojson'
         layman_original_parameter = "file"  
         resumableTotalChunks = len(arr)
+        print ("resumable" + resumableFilename)
         try:
             for i in range (1, len(arr)+1):  ##chunky jsou počítané od 1 proto +1  
                 print("chunk" + str(i))
@@ -3828,6 +3840,7 @@ class Layman:
                 response = requests.post(url, files = files, data=payload, headers = self.authHeader)
 
                 print(response.content)
+                print(layer_name)
             #iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
         except:
             pass
