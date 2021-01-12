@@ -404,15 +404,12 @@ class Layman:
         self.dlg = SetPermissionDialog() 
         self.dlg.show()
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        self.dlg.pushButton_addRead.clicked.connect(lambda: self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText()))
-        self.dlg.pushButton_addWrite.clicked.connect(lambda: self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText()))
-       # self.dlg.pushButton_removeRead.clicked.connect(lambda: print(self.dlg.listWidget_read.selectedItems()[0]))
-        self.dlg.pushButton_removeRead.clicked.connect(lambda: self.dlg.listWidget_read.removeItemWidget(self.dlg.listWidget_read.takeItem(self.dlg.listWidget_read.currentRow())))
-        self.dlg.pushButton_removeWrite.clicked.connect(lambda: self.dlg.listWidget_write.removeItemWidget(self.dlg.listWidget_write.takeItem(self.dlg.listWidget_write.currentRow())))
-        
+       
         uri = self.URI + "/rest/users"
         usersDict = dict()
-        usersDict['EVERYONE'] = 'EVERYONE' 
+        usersDict['EVERYONE'] = 'EVERYONE'
+        usersDictReversed = dict()
+        usersDictReversed['EVERYONE'] = 'EVERYONE'
         r= requests.get(uri)
         res = self.fromByteToJson(r.content)
         userCount = len(res)
@@ -422,6 +419,7 @@ class Layman:
             print(res[i]['name'])
             print(res[i]['username'])
             usersDict[res[i]['name']] = res[i]['username'] 
+            usersDictReversed[res[i]['username']] = res[i]['name'] 
             self.dlg.comboBox_users.addItem(res[i]['name'])
         ##nabit listView
         layerName = self.removeUnacceptableChars(layerName)
@@ -435,10 +433,16 @@ class Layman:
         lenRead = len(res['access_rights']['read'])
         lenWrite = len(res['access_rights']['write'])
         for i in range (0, lenRead):
-            self.dlg.listWidget_read.addItem(res['access_rights']['read'][i])
+            self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
         for i in range (0, lenWrite):
-            self.dlg.listWidget_write.addItem(res['access_rights']['write'][i])
+            self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
         self.dlg.pushButton_save.clicked.connect(lambda: self.updateLayerPermissions(layerName, usersDict))
+        self.dlg.pushButton_addRead.clicked.connect(lambda: self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText()))
+        self.dlg.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
+       # self.dlg.pushButton_removeRead.clicked.connect(lambda: print(self.dlg.listWidget_read.selectedItems()[0]))
+        self.dlg.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
+        self.dlg.pushButton_removeWrite.clicked.connect(lambda: self.dlg.listWidget_write.removeItemWidget(self.dlg.listWidget_write.takeItem(self.dlg.listWidget_write.currentRow())))
+        
         self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog()) 
         
     def run_EditMap(self, x):
@@ -1006,16 +1010,37 @@ class Layman:
         #     #   print(layers)    
         #json = self.prepareLayerSchema(crs, format,url, layers)
         self.addExistingLayerToComposite(name, "wms")
+    def listToString(self, s):     
+       
+        str1 = "," 
+        return (str1.join(s)) 
     def updateLayerPermissions(self,layerName, userDict):
+        #print(userDict)
         itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
         itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
-        read = {'read': ['lay3'],   'write': ['lay3', 'EVERYONE']}
-        data = {'access_rights':  read}
+        userNamesRead = list()
+        for pom in itemsTextListRead:
+            userNamesRead.append(userDict[pom])
+        userNamesWrite = list()
+        for pom in itemsTextListWrite:
+            userNamesWrite.append(userDict[pom])
+        data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}
+        #data = {'access_rights':  read}
         print(self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName)
         print(data)
         print(self.getAuthHeader(self.authCfg))
         response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName, data = data,  headers = self.getAuthHeader(self.authCfg))
         print(response.content)
+        if (response.status_code == 200):
+            if self.locale == "cs":                
+                QMessageBox.information(None, "Uloženo", "Práva byly úspěšně uloženy.")
+            else:
+                QMessageBox.information(None, "Saved", "Permissions was saved successfully.")
+        else:
+            if self.locale == "cs":
+                QMessageBox.information(None, "Chyba", "Práva k vrstvě nebyly uloženy!")               
+            else:
+                QMessageBox.information(None, "Error", "Permissions was not saved!")                 
     def prepareLayerSchema(self, crs, format,url, layers):
         if (len(layers) == 1):
             layers = str(layers).replace("[", "").replace("]", "")
@@ -2152,7 +2177,25 @@ class Layman:
         self.dlg.lineEdit_5.setText(str(ext.yMinimum()))
         self.dlg.lineEdit_6.setText(str(ext.yMaximum()))
 
-
+    def setWritePermissionList(self):
+        itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
+        if (self.dlg.comboBox_users.currentText() in itemsTextListRead):
+            self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText())
+        else:
+            self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText())
+            self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText())
+    def removeWritePermissionList(self):
+        self.deleteItem(self.dlg.listWidget_read.currentItem().text())
+        self.dlg.listWidget_read.removeItemWidget(self.dlg.listWidget_read.takeItem(self.dlg.listWidget_read.currentRow()))
+        #self.dlg.listWidget_write.removeItemWidget(self.dlg.listWidget_write.takeItem(self.dlg.listWidget_write.currentRow()))
+        
+    def deleteItem(self, itemName):
+        print(itemName)
+        items_list = self.dlg.listWidget_write.findItems(itemName,QtCore.Qt.MatchExactly)
+        print(items_list)
+        for item in items_list:
+            r = self.dlg.listWidget_write.row(item)
+            self.dlg.listWidget_write.takeItem(r)    
     def loadJsonLayer(self, fileName):    
         name = (os.path.splitext(os.path.basename(fileName))[0])
         vlayer = QgsVectorLayer(fileName, name,"ogr")
@@ -3743,17 +3786,17 @@ class Layman:
     
     def loadWfs(self, url, layerName,layerNameTitle, groupName = ''):
         layerName = self.removeUnacceptableChars(layerName)
-        epsg = 'EPSG:4326'        
+        epsg = 'EPSG:3857'        
         uri = self.URI+"/geoserver/"+self.laymanUsername+"/ows?srsname="+epsg+"&typename="+self.laymanUsername+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
-        url = url.replace("%2F", "/").replace("%3A",":")
+        url = url.replace("%2F", "/").replace("%3A",":").replace("/client","")
         r = url.split("/")
         acc = (r[len(r)-2])
         print(uri)        
       #  uri = url + "?srsname="+epsg+"&typename="+self.laymanUsername+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
         uri = url + "?srsname="+epsg+"&typename="+acc+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
         print(uri)
+        print(self.authCfg)
         quri = QgsDataSourceUri()        
-        quri.setParam("authcfg", self.authCfg)
         quri.setParam("srsname", epsg)
         quri.setParam("typename", acc+":"+layerName)
         quri.setParam("restrictToRequestBBOX", "1")
@@ -3761,9 +3804,12 @@ class Layman:
         quri.setParam("version", "auto")
         quri.setParam("request", "GetFeature")
         quri.setParam("service", "WFS")
+        quri.setParam("authcfg", self.authCfg)
         quri.setParam("url", url)
         print(quri.uri())
-        vlayer = QgsVectorLayer(quri.uri(), layerNameTitle, "WFS")
+        print(quri)
+        print(self.URI+"/geoserver/"+self.laymanUsername+"/wfs?" + str(quri.encodedUri(), "utf-8"))
+        vlayer = QgsVectorLayer(url+"?" + str(quri.encodedUri(), "utf-8"), layerNameTitle, "WFS")
         print(vlayer.isValid()) 
         
         if (vlayer.isValid()):
