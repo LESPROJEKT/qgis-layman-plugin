@@ -110,8 +110,8 @@
   <widget class="QPushButton" name="pushButton_layerRedirect">
    <property name="geometry">
     <rect>
-     <x>450</x>
-     <y>280</y>
+     <x>570</x>
+     <y>260</y>
      <width>141</width>
      <height>27</height>
     </rect>
@@ -137,7 +137,7 @@
    <property name="geometry">
     <rect>
      <x>450</x>
-     <y>320</y>
+     <y>327</y>
      <width>141</width>
      <height>28</height>
     </rect>
@@ -149,8 +149,8 @@
   <widget class="QLabel" name="label_loading">
    <property name="geometry">
     <rect>
-     <x>480</x>
-     <y>260</y>
+     <x>416</x>
+     <y>264</y>
      <width>141</width>
      <height>16</height>
     </rect>
@@ -165,8 +165,8 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>427</x>
-     <y>287</y>
+     <x>420</x>
+     <y>260</y>
      <width>191</width>
      <height>23</height>
     </rect>
@@ -176,6 +176,19 @@
    </property>
    <property name="value">
     <number>0</number>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_setPermissions">
+   <property name="geometry">
+    <rect>
+     <x>450</x>
+     <y>294</y>
+     <width>141</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Set permissions</string>
    </property>
   </widget>
  </widget>

@@ -8,7 +8,7 @@
                              -------------------
         begin                : 2019-03-19
         git sha              : $Format:%H$
-        copyright            : (C) 2019 by Ondřej Tomančák, Jan Vrobel
+        copyright            : (C) 2019 by Jan Vrobel
         email                : vrobel.jan@seznam.cz
  ***************************************************************************/
 
