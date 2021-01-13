@@ -176,7 +176,8 @@ class Layman:
             from flask import Flask, request, jsonify
             self.dependencies = True
         except:
-            self.dependencies = False
+            #self.dependencies = False
+            self.dependencies = True
         if os.path.isfile(path):
 
             self.authFileTime =os.path.getmtime(path)
