@@ -1621,7 +1621,7 @@ class Layman:
         "persistToken": False,
         "queryPairs": {
         },
-        "redirectPort": 3857,
+        "redirectPort": 7070,
         "redirectUrl": "client/oauthn2-liferay/callback",
         "refreshTokenUrl": "",
         "requestTimeout": 60,
