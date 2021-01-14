@@ -1060,8 +1060,7 @@ class Layman:
           "minResolution": 0,
           "opacity": 1,
           "params": {
-            "FORMAT": "'''+format+'''",
-            "FROMCRS": "'''+crs+'''",
+            "FORMAT": "'''+format+'''",            
             "INFO_FORMAT": "application/vnd.ogc.gml",
             "LAYERS": "'''+layers+'''",
             "VERSION": "1.3.0"
@@ -2915,9 +2914,9 @@ class Layman:
         self.existLayer = False
         #self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
         if (self.dlg.radioButton_wms.isChecked()):
-            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
         if (self.dlg.radioButton_wfs.isChecked()):
-            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1 ,"protocol":{"format": "hs.format.WFS","LAYERS": str(name),"url": wmsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1 ,"protocol":{"format": "hs.format.WFS","LAYERS": str(name),"url": wmsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
         self.importMap(x, 'add', 1)
         self.refreshLayerListReversed()
            
@@ -2971,7 +2970,7 @@ class Layman:
                 layers = str(layers).replace("'", "")
            # json = self.prepareLayerSchema(crs, format,url, layers)
             self.existLayer = False
-            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"FROMCRS":crs,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
            
             self.importMap(x, 'add', 1)
             self.refreshLayerListReversed()
@@ -2986,7 +2985,7 @@ class Layman:
                 if(param[0] == "url"):
                     url = param[1] 
             crs = layer.crs().authid()    
-            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"XYZ","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","FROMCRS":crs,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})    
+            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"XYZ","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})    
            
             self.importMap(x, 'add', 1)
             self.refreshLayerListReversed()
@@ -3011,7 +3010,7 @@ class Layman:
         x = self.dlg.listWidget.currentRow()
 
 
-        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(name),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(name),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
         self.importMap(x, 'add', 1)
         self.refreshLayerList()
 
@@ -3132,9 +3131,9 @@ class Layman:
                         wmsUrl = self.URI+'/geoserver/'+layerName+'/ows'
                     #self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layerName),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layers[i].name()),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
                     if (self.dlg.radioButton_wms.isChecked()):
-                        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+                        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                     if (self.dlg.radioButton_wfs.isChecked()):
-                        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1 ,"protocol":{"format": "hs.format.WFS","LAYERS": str(layerName),"url": wmsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1 ,"protocol":{"format": "hs.format.WFS","LAYERS": str(layerName),"url": wmsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
                     successful = successful + 1
                     #self.dlg.progressBar.setValue(self.dlg.progressBar.value()+step)
                     self.dlg.progressBar.show() 
