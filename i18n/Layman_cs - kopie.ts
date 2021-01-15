@@ -18,7 +18,7 @@
         <translation>Vrstvy v Laymanu</translation>
     </message>
     <message>
-        <location filename="../dlg_setPermission.ui" line="60"/>
+        <location filename="../dlg_addMap.ui" line="60"/>
         <source>Close</source>
         <translation>Zavřít</translation>
     </message>
@@ -148,7 +148,7 @@
         <translation>Layman - editovat metadata</translation>
     </message>
     <message>
-        <location filename="../dlg_setPermission.ui" line="47"/>
+        <location filename="../dlg_editMap.ui" line="47"/>
         <source>Save</source>
         <translation>Uložit</translation>
     </message>
@@ -330,7 +330,7 @@
     <message>
         <location filename="../dlg_importMap.ui" line="218"/>
         <source>QGIS map list</source>
-        <translation>Mapové vrstvy v QGIS</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../dlg_importMap.ui" line="341"/>
@@ -360,58 +360,28 @@
     <message>
         <location filename="../dlg_addLayer.ui" line="191"/>
         <source>Set permissions</source>
-        <translation>Nastavit práva</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../dlg_ConnectionManager.ui" line="170"/>
         <source>Install dependencies</source>
-        <translation>Instalovat závislosti</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="158"/>
         <source>Update</source>
-        <translation>Aktualizovat</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="171"/>
         <source>Available version:</source>
-        <translation>Dostupná verze:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="35"/>
-        <source>Layman - Set layer permissions</source>
-        <translation>Layman - Nastavení práv vrstev</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="86"/>
-        <source>Add</source>
-        <translation>Přidat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="112"/>
-        <source>Remove</source>
-        <translation>Odebrat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="135"/>
-        <source>Users:</source>
-        <translation>Uživatelé:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="168"/>
-        <source>Read:</source>
-        <translation>Čtení:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="181"/>
-        <source>Write:</source>
-        <translation>Zápis:</translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="2142"/>
+        <location filename="../Layman.py" line="2141"/>
         <source>&amp;Layman</source>
         <translation></translation>
     </message>

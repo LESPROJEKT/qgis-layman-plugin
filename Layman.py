@@ -1650,55 +1650,56 @@ class Layman:
         return None
     def checkNameCreateMap(self):
         text = self.dlg.lineEdit_2.text()
-        text = self.removeUnacceptableChars(text)
-        print(text)
-        ### map check
-        url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+str(text)+"/file"
-        print(url)
-        r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
-        print(r.content)
-        res = r.json()
-        print(res)
-        ch = True
-        e = False
-        try:
-            if res['code'] == 2:
-                ch = False
-            else:
-                ch = True
-        except:
+        if text != "":
+            text = self.removeUnacceptableChars(text)
+            print(text)
+            ### map check
+            url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+str(text)+"/file"
+            print(url)
+            r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+            print(r.content)
+            res = r.json()
+            print(res)
             ch = True
-            e = True ## kdyz nevraci rescode tak je to v poradku
+            e = False
+            try:
+                if res['code'] == 2:
+                    ch = False
+                else:
+                    ch = True
+            except:
+                ch = True
+                e = True ## kdyz nevraci rescode tak je to v poradku
 
-        if not ch:
-            self.dlg.pushButton_CreateComposition.setEnabled(False)
-            self.dlg.label_info.show()
-            if self.locale == "cs":
-                self.dlg.label_info.setText("Nepřípustný znak v názvu!")
-            else:
-                self.dlg.label_info.setText("Unacceptable char in title!")
-        elif (not e):            
-            self.dlg.pushButton_CreateComposition.setEnabled(True)
-            self.dlg.label_info.hide()
+            if not ch:
+                self.dlg.pushButton_CreateComposition.setEnabled(False)
+                self.dlg.label_info.show()
+                if self.locale == "cs":
+                    self.dlg.label_info.setText("Nepřípustný znak v názvu!")
+                else:
+                    self.dlg.label_info.setText("Unacceptable char in title!")
+            elif (not e):            
+                self.dlg.pushButton_CreateComposition.setEnabled(True)
+                self.dlg.label_info.hide()
             
-        else:
-            self.dlg.pushButton_CreateComposition.setEnabled(False)
-            self.dlg.label_info.show()
-            if self.locale == "cs":
-                self.dlg.label_info.setText("Kompozice s tímto jménem již existuje!")
             else:
-                self.dlg.label_info.setText("Composition name already exists!")
-        ##
-        self.dlg.label_info.setStyleSheet("color: red;")
+                self.dlg.pushButton_CreateComposition.setEnabled(False)
+                self.dlg.label_info.show()
+                if self.locale == "cs":
+                    self.dlg.label_info.setText("Kompozice s tímto jménem již existuje!")
+                else:
+                    self.dlg.label_info.setText("Composition name already exists!")
+            ##
+            self.dlg.label_info.setStyleSheet("color: red;")
 
-        #if (self.checkIfMapExist(text)):
-        #    self.dlg.pushButton_CreateComposition.setEnabled(False)
-        #    self.dlg.label_info.show()
+            #if (self.checkIfMapExist(text)):
+            #    self.dlg.pushButton_CreateComposition.setEnabled(False)
+            #    self.dlg.label_info.show()
             
-        #else:
-        #    self.dlg.pushButton_CreateComposition.setEnabled(True)
-        #    self.dlg.label_info.hide()
-    #----------------------------------------------------------
+            #else:
+            #    self.dlg.pushButton_CreateComposition.setEnabled(True)
+            #    self.dlg.label_info.hide()
+        #----------------------------------------------------------
     def readLayerJson(self,layerName, service):
         #self.threadAddMap = threading.Thread(target=lambda: self.readLayerJsonThread(layerName,service))
         #self.threadAddMap.start()

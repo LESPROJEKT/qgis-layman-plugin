@@ -1,3 +1,4 @@
+pøidat nový formuláø do pro file (pokud existuje)
 pylupdate5 "pro file"
 nyní upravit pøeklad buï pøes qlinqist, nebo manuálnì
 lrelease Layman_cs.ts
