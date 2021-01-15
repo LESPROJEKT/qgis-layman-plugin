@@ -2851,7 +2851,9 @@ class Layman:
     def addExistingLayerToComposite(self, name, type):
         #self.dlg.label_loading.show() 
         #self.dlg.progressBar_loader.show()
-        nameInList = name         
+        print(name)
+        nameInList = name
+        oldname = name
         name = self.removeUnacceptableChars(name).lower()
         self.dlg.pushButton_addRaster.setEnabled(False)
         x = self.dlg.listWidget.currentRow()
@@ -2861,7 +2863,9 @@ class Layman:
                 if (type == "raster"):
                     self.threadAddRaster = threading.Thread(target=lambda: self.addExistingLayerToCompositeThread(nameInList,x))
                     self.threadAddRaster.start()
-                if (type == "wms"):
+                if (type == "wms"): 
+                    
+                    #nameInList = nameInList.split(" ")[0]
                     threading.Thread(target=lambda: self.addExistingWMSLayerToCompositeThread(name, nameInList,x)).start()
                     
                 self.dlg.progressBar.show() 
@@ -3052,8 +3056,9 @@ class Layman:
         except:
             pass
     def addLayerToComposite(self,x):
-        if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsRasterLayer)):
-            self.addExternalWMSToComposite(self.dlg.comboBox_wms.currentText())
+        if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsRasterLayer)):            
+            print("External WMS detected")
+            self.addExternalWMSToComposite(self.dlg.mMapLayerComboBox.currentLayer().name())
         if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsVectorLayer)):
             self.dlg.pushButton.setEnabled(False)
             self.compositeListOld = copy.deepcopy(self.compositeList) ## list pred upravou pro vraceni zmen
@@ -3709,7 +3714,7 @@ class Layman:
         #print(layerNameTitle)
         #print(layerName)
         
-        layerName = self.removeUnacceptableChars(layerName)
+        #layerName = self.removeUnacceptableChars(layerName)
         print(layerName)
         layerName = self.parseWMSlayers(layerName)
         epsg = "EPSG:4326"
@@ -3718,6 +3723,8 @@ class Layman:
         print(urlWithParams)
         print("test")
         print(layerNameTitle)
+        print(urlWithParams)
+        print(layerName)
         ### quri
         #authCfg=self.client_id[-7:]
         #authCfg = '957je05'
