@@ -1400,10 +1400,10 @@ class Layman:
                     name = self.removeUnacceptableChars(name).lower()   
                     threading.Thread(target=lambda: self.layerDeleteThread(name)).start()
                     self.dlg.progressBar_loader.show() 
-                    try:
-                        self.deleteLayerThrowCompositions(name)
-                    except:
-                        pass
+                    #try:
+                    self.deleteLayerThrowCompositions(name)
+                    #except:
+                    #    pass
                 
             else:    
                 name = self.removeUnacceptableChars(name).lower()   
@@ -3217,14 +3217,30 @@ class Layman:
         self.dlg.progressBar.show() 
         self.dlg.label_import.show()
     def deteteLayerFromCompositeThread(self, x, position, name):
-        previousLayers = self.compositeList[x]['layers']       #zaloha  
+        #print("xxxxx")
+        #print(self.compositeList[x])
+        #previousLayers = self.compositeList[x]['layers']       #zaloha  
+        previousLayers = []
+        #print(previousLayers)
+        for i in range (0, len(self.compositeList[x]['layers'])):
+            if (self.compositeList[x]['layers'][i]['title'] == name):
+                pass
+            else:
+                previousLayers.append(self.compositeList[x]['layers'][i])
+        print(previousLayers)
         self.compositeList[x]['layers'] = []            #vymazat vsechny vrstvy
         for i in range (0,len(previousLayers)):
-            print(len(previousLayers) - (position+1))
-            print(i)
-            if (i != len(previousLayers) - (position+1)):      ## kompozice je obracena oproti HSlayers proto odecist        
-               self.compositeList[x]['layers'].append(previousLayers[i])        
+            #print(len(previousLayers) - (position+1))
+            #print(i)
+            
+            #print(name)
+           
+            if (i != len(previousLayers) - (position+1)):      ## kompozice je obracena oproti HSlayers proto odecist   
+                
+                self.compositeList[x]['layers'].append(previousLayers[i])        
        # self.importMap(x, "del")
+        #print("#####")
+        #print(self.compositeList[x])
         self.importMap(x, "delLay")
         done = True
         if (len(self.compositeList[x]['layers']) != 0 and len(self.compositeList[x]['layers']) != None):
@@ -3301,7 +3317,7 @@ class Layman:
         data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract']} 
         req = requests.get(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'], headers = self.getAuthHeader(self.authCfg))
         mapCode = req.status_code ## test jestli vrstva na serveru existuje. Pokud ne = error 404
-        if (mapCode == 404 or operation == "mod" or operation == "del" or operation == "mov"):
+        if (mapCode == 404 or operation == "mod" or operation == "del" or operation == "mov" or operation == "delLay"):
         #if(True):
             if (operation == "add"):    
                 if self.locale == "cs":
@@ -3359,9 +3375,13 @@ class Layman:
                 #print(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'])      
               
                 response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'],headers = self.getAuthHeader(self.authCfg))
-                #print(response.content)
-                #print("deleted")
+                print(response.content)
+                print(self.compositeList[x])
+                print("deleted")
+
                 response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
+                print(response.content)
+                print("renewed")
                              
                 return
             if (operation == "del"):
