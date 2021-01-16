@@ -667,7 +667,9 @@ class Layman:
             self.dlg.pushButton_up.setEnabled(self.up)
             self.dlg.pushButton_down.setEnabled(self.down)
             self.dlg.pushButton_deleteLayers.setEnabled(self.deleteL)
-            self.dlg.pushButton.setEnabled(self.post)
+          #  self.dlg.pushButton.setEnabled(self.post)
+            self.dlg.pushButton.setEnabled(True)
+           # self.dlg.pushButton.setEnabled(True)
             try:
                 self.dlg.pushButton_addMap.setEnabled(self.add)
                 self.dlg.pushButton_addRaster.setEnabled(self.addR)
@@ -1804,8 +1806,56 @@ class Layman:
 
             except:
                 pass
+            #try: ## některé formuláře nemají progress bar
+            #    self.dlg.progressBar.hide() 
+            #    self.dlg.label_import.hide() 
+            #    self.importMapEnvironmnet(True)
+            #    pass
+            #except:
+            #    pass
+                
+            #try:
+            #    self.dlg.pushButton.setEnabled(True)
+            #except:
+            #    pass
           
-            
+        if message == "exportPatch":
+            try:
+                threadsB = set()
+                for thread in threading.enumerate(): 
+                    threadsB.add(thread.name)
+                   # print(thread.name)
+                #print(self.ThreadsA)
+                #print(threadsB)
+                #print(self.ThreadsA == threadsB)
+                if(self.ThreadsA == threadsB):
+                    self.dlg.progressBar.hide() 
+                    self.dlg.label_import.hide()
+                
+
+            except:
+                pass
+            try: ## některé formuláře nemají progress bar
+                ## resime situaci kdy se dela patch v kompozici
+                self.dlg.pushButton.setEnabled(True)
+                self.dlg.pushButton_deleteMap.setEnabled(True)
+                self.dlg.pushButton_editMeta.setEnabled(True)
+                self.dlg.pushButton_down.setEnabled(True)
+                self.dlg.pushButton_up.setEnabled(True)
+                self.dlg.pushButton_deleteLayers.setEnabled(True)
+                self.dlg.pushButton_up.setEnabled(True)
+                self.dlg.pushButton_addRaster.setEnabled(True)
+                self.dlg.progressBar.hide() 
+                self.dlg.label_import.hide() 
+                
+                
+            except:
+                pass
+                
+            #try:
+            #    self.dlg.pushButton.setEnabled(True)
+            #except:
+            #    pass    
         if message == "delLay":
             try:
                 self.dlg.label_thumbnail.setText(' ')
@@ -1871,6 +1921,7 @@ class Layman:
             try:    
                 self.dlg.pushButton_addRaster.setEnabled(True)
                 self.importMapEnvironmnet(True)
+                
                 
                 self.dlg.progressBar.hide() 
                 self.dlg.label_import.hide()
@@ -2491,14 +2542,21 @@ class Layman:
         else:
             return True
     
-    def mergeGeojsons(self, paths, output):
+    def mergeGeojsons(self, paths, output, layerName):
         feats = list()
-        top = """
+        #top = """
+        #{
+        #"type": "FeatureCollection",
+        #"name": "jan_vrobelmix",
+        #"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+        #"features": ["""
+        #"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+        top = '''
         {
         "type": "FeatureCollection",
-        "name": "jan_vrobelmix",
-        "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
-        "features": ["""
+        "name": "'''+layerName+'''",        
+        "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG:3857" } },
+        "features": ['''
         bottom = """]
         }
         """
@@ -2598,7 +2656,7 @@ class Layman:
             paths = list()
             for layer in layers:
                 print(paths.append(self.json_exportMix(layer)))
-            self.mergeGeojsons(paths, self.getTempPath(self.removeUnacceptableChars(layer.name())))
+            self.mergeGeojsons(paths, self.getTempPath(self.removeUnacceptableChars(layer.name())),self.removeUnacceptableChars(layer.name()))
 
         else:
             self.json_export(layer_name)
@@ -2627,7 +2685,7 @@ class Layman:
             else:
                 QgsMessageLog.logMessage("importn_"+layer_name)
            ## self.writeState(1)
-            QgsMessageLog.logMessage("export")
+            QgsMessageLog.logMessage("exportPatch")
             
             #iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
 
@@ -2637,7 +2695,7 @@ class Layman:
             paths = list()
             for layer in layers:
                 paths.append(self.json_exportMix(layer))
-            self.mergeGeojsons(paths, self.getTempPath(self.removeUnacceptableChars(layer.name())))
+            self.mergeGeojsons(paths, self.getTempPath(self.removeUnacceptableChars(layer.name()))),self.removeUnacceptableChars(layer.name())
 
         else:
             self.json_export(layer_name)
@@ -2715,10 +2773,11 @@ class Layman:
 
         if (nameCheck and validExtent):
                      
-            crs = layers[0].crs().authid()
-            crs = "EPSG:4326"
-            data = { 'name' :  str(layer_name).lower(), 'title' : str(layer_name), 'crs' : str(crs) } 
-            
+           # crs = layers[0].crs().authid()
+            crs = "EPSG:3857"
+          #  data = { 'name' :  str(layer_name).lower(), 'title' : str(layer_name), 'crs' : str(crs) } 
+            data = { 'name' :  str(layer_name).lower(), 'title' : str(layer_name)} 
+           # data = { 'name' :  str(layer_name).lower(), 'title' : str(layer_name), 'crs' : str(crs) } 
             if (self.checkValidAttributes(layer_name)):
                 if (self.checkExistingLayer(layer_name)):
                     
@@ -3224,6 +3283,7 @@ class Layman:
         #if (s != 0):
         #    self.dlg.progressBar.show() 
         #    self.dlg.label_import.show()
+        #self.importMapEnvironmnet(True)
         tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
         
         try:
@@ -3332,6 +3392,8 @@ class Layman:
                     self.dlg.progressBar.setValue(0)                
      
         else:
+            #print("tst")
+            #self.dlg.pushButton.setEnabled(False)
             print(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'])       
             files = {'file': (jsonPath, open(jsonPath, 'rb')),} 
             response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'], data = data, files=files, headers = self.getAuthHeader(self.authCfg))
