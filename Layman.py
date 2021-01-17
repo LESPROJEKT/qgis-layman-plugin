@@ -3260,7 +3260,8 @@ class Layman:
         with open(tempFile, 'rb') as f:
                     d = json.load(f)        
         files = {'file': (tempFile, open(tempFile, 'rb')),} 
-        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract']} 
+        #data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract']} 
+        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
         print(self.URI+'/rest/'+self.laymanUsername+'/maps/')   
         print(self.getAuthHeader(self.authCfg))
         response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
@@ -3314,7 +3315,7 @@ class Layman:
             d = json.load(f)
 
         files = {'file': (jsonPath, open(jsonPath, 'rb')),} 
-        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract']} 
+        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
         req = requests.get(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'], headers = self.getAuthHeader(self.authCfg))
         mapCode = req.status_code ## test jestli vrstva na serveru existuje. Pokud ne = error 404
         if (mapCode == 404 or operation == "mod" or operation == "del" or operation == "mov" or operation == "delLay"):
