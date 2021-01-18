@@ -3877,7 +3877,8 @@ class Layman:
     
     def loadWfs(self, url, layerName,layerNameTitle, groupName = ''):
         layerName = self.removeUnacceptableChars(layerName)
-        epsg = 'EPSG:3857'        
+        epsg = 'EPSG:3857'    
+        epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()
         uri = self.URI+"/geoserver/"+self.laymanUsername+"/ows?srsname="+epsg+"&typename="+self.laymanUsername+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
         url = url.replace("%2F", "/").replace("%3A",":").replace("/client","")
         r = url.split("/")
@@ -3941,7 +3942,7 @@ class Layman:
                         lineFeats.append(feat) 
                         line =  1       
                 if (point == 1):
-                    vl = QgsVectorLayer("Point", layerName, "memory")    
+                    vl = QgsVectorLayer("Point?crs="+epsg, layerName, "memory")    
                     pr = vl.dataProvider()        
                     pr.addFeatures(pointFeats)
                     vl.updateFields()
@@ -3961,7 +3962,7 @@ class Layman:
                         #   # print(vlayer.loadSldStyle(tempf))
                         #    vlayer.triggerRepaint()   
                 if (line == 1):
-                    vl = QgsVectorLayer("LineString", layerName, "memory")    
+                    vl = QgsVectorLayer("LineString?crs="+epsg, layerName, "memory")    
                     pr = vl.dataProvider()        
                     pr.addFeatures(lineFeats)
                     vl.updateFields()
@@ -3980,7 +3981,7 @@ class Layman:
                         #   # print(vlayer.loadSldStyle(tempf))
                         #    vlayer.triggerRepaint()    
                 if (pol == 1):
-                    vl = QgsVectorLayer("Polygon", layerName, "memory")    
+                    vl = QgsVectorLayer("Polygon?crs="+epsg, layerName, "memory")    
                     pr = vl.dataProvider()        
                     pr.addFeatures(polyFeats)
                     vl.updateExtents()         
