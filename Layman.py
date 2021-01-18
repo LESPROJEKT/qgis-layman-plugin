@@ -381,7 +381,7 @@ class Layman:
         self.dlg = UserInfoDialog() 
         self.dlg.show()
         self.dlg.pushButton_logout.setStyleSheet("#pushButton_logout {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_logout:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_update.setStyleSheet("#pushButton_update {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_update:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
+        self.dlg.pushButton_update.setStyleSheet("#pushButton_update {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_update:hover{background: #66ab27 ;}#pushButton_update:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         userEndpoint = self.URI + "/rest/current-user"
         r = requests.get(url = userEndpoint,  headers = self.getAuthHeader(self.authCfg))
@@ -4563,11 +4563,21 @@ class Layman:
         with open(save_path, 'wb') as fd:
             for chunk in r.iter_content(chunk_size=chunk_size):
                 fd.write(chunk)
-    def copytree(self, src, dst, symlinks=False, ignore=None):
+    def copytree(self, src, dst, symlinks=False, ignore=None):      
+        try:
+            shutil.rmtree(dst)
+            os.mkdir(dst)
+        except:
+            if self.locale == "cs":
+                QMessageBox.information(None, "Error", "Plugin nebyl aktualizován!") 
+            else:
+                QMessageBox.information(None, "Error", "Plugin was not updated!") 
+            return
         for item in os.listdir(src):
+            
             s = os.path.join(src, item)
             d = os.path.join(dst, item)
-            if os.path.isdir(s):
+            if os.path.isdir(s):      
                 shutil.copytree(s, d, symlinks, ignore)
             else:
                 shutil.copy2(s, d)
