@@ -1998,8 +1998,25 @@ class Layman:
             print("debug in readMapJson - false")
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file'     
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-            data = r.json()            
-            self.loadService2(data,service, name)
+            data = r.json() 
+            ## rozvetveni zdali chce uzivatel otevrit kompozici v novem projektu
+            layers = iface.mapCanvas().layers() ## pokud neexistuej vrstva otazka nema smysl
+            if len(layers) > 0:
+                if self.locale == "cs":
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v novém QGIS projektu?")
+                else:
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open composition in new QGIS project?")
+                msgbox.addButton(QMessageBox.Yes)
+                msgbox.addButton(QMessageBox.No)
+                msgbox.setDefaultButton(QMessageBox.No)
+                reply = msgbox.exec()
+                if (reply == QMessageBox.Yes):
+                    iface.newProject()
+                    self.loadService2(data,service, name)
+                else:
+                    self.loadService2(data,service, name)
+            else:
+                self.loadService2(data,service, name)
         
     def deleteMapFromServer(self,name):        
         

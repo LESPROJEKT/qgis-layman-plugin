@@ -10,14 +10,14 @@
 name=Layman
 qgisMinimumVersion=3.0
 description=Layman
-version=1.53
+version=1.54
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
 about=Connector to Layman server
 
 tracker=http://bugs
-repository=http://repo
+repository=https://gitlab.com/Vrobel/layman_qgis/-/blob/master/README.md
 # End of mandatory metadata
 
 # Recommended items:
