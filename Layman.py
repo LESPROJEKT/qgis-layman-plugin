@@ -1892,10 +1892,7 @@ class Layman:
             try:    
                 self.dlg.pushButton_addRaster.setEnabled(True)
                 self.importMapEnvironmnet(True)
-                
-                
-                self.dlg.progressBar.hide() 
-                self.dlg.label_import.hide()
+             
             except:
                 pass # pro formulár kde neni progressbar
             
@@ -2949,7 +2946,7 @@ class Layman:
         if (self.dlg.radioButton_wms.isChecked()):
             self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
         if (self.dlg.radioButton_wfs.isChecked()):
-            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1 ,"protocol":{"format": "hs.format.WFS","LAYERS": str(name),"url": wmsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
         self.importMap(x, 'add', 1)
         self.refreshLayerListReversed()
            
@@ -3118,23 +3115,7 @@ class Layman:
              
                     self.postRequest(layers[i].name())
                     layerName = self.removeUnacceptableChars(layers[i].name())
-                    #wmsStatus = 'PENDING'
-                    #j = 0
-                    #while ((wmsStatus == 'PENDING') and (j < 10)):
-                    #    print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
-                    #    response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
-                    #    res = self.fromByteToJson(response.content)
-                    #    try:
-                    #        wmsStatus = res['wms']['status']
-                    #    except:
-                    #        wmsStatus = "done"
-                    #    time.sleep(1)
-                    #    j = j + 1
-            
-
-             
-
-              
+           
                 else:
                     self.postRequest(layers[i].name())
                     wmsStatus = 'PENDING'
@@ -3167,7 +3148,7 @@ class Layman:
                     if (self.dlg.radioButton_wms.isChecked()):
                         self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                     if (self.dlg.radioButton_wfs.isChecked()):
-                        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1 ,"protocol":{"format": "hs.format.WFS","LAYERS": str(layerName),"url": wmsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
                     successful = successful + 1
                     #self.dlg.progressBar.setValue(self.dlg.progressBar.value()+step)
                     self.dlg.progressBar.show() 
@@ -3574,7 +3555,11 @@ class Layman:
         j = 0
         for i in range (0, len(data['layers'])):
             for j in range (0, len(layers)):
-                if (data['layers'][i]['params']['LAYERS'] in layers[j].name() ):
+                try:
+                    layer = data['layers'][i]['params']['LAYERS'] # wms
+                except:
+                    layer = data['layers'][i]['name']
+                if (layer in layers[j].name() ):
                   #  existingLayers.append(data['layers'][i]['params']['LAYERS'])
                    j = i
                    #print("founded")
@@ -3637,7 +3622,10 @@ class Layman:
         #for x in range(len(data['layers'])):       ## descending order 
             #repairUrl = self.convertUrlFromHex(data['layers'][x]['url'])  
             repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
-            layerName = data['layers'][x]['params']['LAYERS']
+            try:
+                layerName = data['layers'][x]['params']['LAYERS']
+            except:
+                layerName = data['layers'][x]['name']
             format = data['layers'][x]['params']['FORMAT']
            #  epsg = str(data['groups']['projection']).upper()
             epsg = 'EPSG:4326' 
@@ -3672,14 +3660,16 @@ class Layman:
         return url
     def loadService2(self, data, service, groupName = ''):   
         for x in range(len(data['layers'])- 1, -1, -1):       ## descending order
-            className = data['layers'][x]['className']          
-            try:
+            className = data['layers'][x]['className']     
+            if className == 'HSLayers.Layer.WMS':
                 layerName = data['layers'][x]['params']['LAYERS']
-            except:
+            if className == 'OpenLayers.Layer.Vector': 
+                print(data['layers'][x])
                 try:
+                    layerName = data['layers'][x]['name']
+                except:
                     layerName = data['layers'][x]['protocol']['LAYERS']
-                except: 
-                    layerName = "unnamed layer"
+
             if self.checkLayerOnLayman(layerName):
                 
                 if className == 'HSLayers.Layer.WMS':        
@@ -3706,13 +3696,7 @@ class Layman:
                 
                     
                 if className == 'OpenLayers.Layer.Vector': 
-                   # repairUrl = repairUrl.replace("ows","wfs")
-                    #repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
-                    try:
-                        layerName = data['layers'][x]['protocol']['LAYERS']
-                    except: 
-                        layerName = "unnamed layer"
-                   # format = data['layers'][x]['protocol']['FORMAT']           
+                    
                     epsg = 'EPSG:4326'            
                 
                     layerNameTitle = data['layers'][x]['title']                    
@@ -3839,7 +3823,9 @@ class Layman:
        # print(uri)        
       #  uri = url + "?srsname="+epsg+"&typename="+self.laymanUsername+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
         uri = url + "?srsname="+epsg+"&typename="+acc+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
-      
+        print(epsg)
+        print(acc+":"+layerName)
+        print(url)
         
         quri = QgsDataSourceUri()        
         quri.setParam("srsname", epsg)
