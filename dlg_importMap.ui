@@ -485,6 +485,19 @@
      <string>Load Map (WFS)</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="pushButton_setMapPermissions">
+    <property name="geometry">
+     <rect>
+      <x>80</x>
+      <y>500</y>
+      <width>191</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string> Set permissions</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QProgressBar" name="progressBar_loader">
    <property name="enabled">

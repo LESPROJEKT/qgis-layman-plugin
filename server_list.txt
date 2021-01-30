@@ -1,4 +1,4 @@
-https://www.agrihub.cz,https://www.agrihub.cz/client,id-db181713-5e17-81fc-0c08-d72fa67e5fc,secret-f2eb1859-2e47-1ca4-32d6-a96c747a7259
+https://www.agrihub.cz,https://www.agrihub.cz,id-db181713-5e17-81fc-0c08-d72fa67e5fc,secret-f2eb1859-2e47-1ca4-32d6-a96c747a7259
 https://hub.lesprojekt.cz,https://hub.lesprojekt.cz,id-8679cb4c-dc93-caff-0274-587fb723a14,secret-da27e84a-3186-a174-fe58-0f425dad7f1
 https://www.smartafrihub.com,https://www.smartafrihub.com,id-1bdbb56b-af73-af0f-2448-2e17a399837
 https://hub.polirural.eu,https://polirural-layman.lesprojekt.cz,id-d11ed4fe-9399-e7b5-02b1-be139b2da6

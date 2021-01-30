@@ -98,6 +98,7 @@ from .dlg_setPermission import SetPermissionDialog
 
 
 
+
 class Layman:
     """QGIS Plugin Implementation."""
     
@@ -401,11 +402,63 @@ class Layman:
             self.dlg.label_avversion.hide()
             self.dlg.label_5.hide()
             self.dlg.pushButton_update.setEnabled(False)
+    def run_SetMapPermission(self, mapName):
+        self.dlg = SetPermissionDialog() 
+        self.dlg.show()
+        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
+        self.dlg.pushButton_addRead.setStyleSheet("#pushButton_addRead {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addRead:hover{background: #66ab27 ;}#pushButton_addRead:disabled{background: #64818b ;}")
+        self.dlg.pushButton_removeRead.setStyleSheet("#pushButton_removeRead {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeRead:hover{background: #66ab27 ;}#pushButton_removeRead:disabled{background: #64818b ;}")
+        self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
+        self.dlg.pushButton_addWrite.setStyleSheet("#pushButton_addWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addWrite:hover{background: #66ab27 ;}#pushButton_addWrite:disabled{background: #64818b ;}")
+        self.dlg.pushButton_removeWrite.setStyleSheet("#pushButton_removeWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeWrite:hover{background: #66ab27 ;}#pushButton_removeWrite:disabled{background: #64818b ;}")
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        uri = self.URI + "/rest/users"
+        usersDict = dict()
+        usersDict['EVERYONE'] = 'EVERYONE'
+        usersDictReversed = dict()
+        usersDictReversed['EVERYONE'] = 'EVERYONE'
+        r= requests.get(uri)
+        res = self.fromByteToJson(r.content)
+        userCount = len(res)
+        ##nabit combobox
+        self.dlg.comboBox_users.addItem('EVERYONE')
+        for i in range (0, userCount):
+            #print(res[i]['name'])
+            #print(res[i]['username'])
+            usersDict[res[i]['name']] = res[i]['username'] 
+            usersDictReversed[res[i]['username']] = res[i]['name'] 
+            self.dlg.comboBox_users.addItem(res[i]['name'])
+        ##nabit listView
+        mapName = self.removeUnacceptableChars(mapName)
+        uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName
+        
+        r= requests.get(uri,headers = self.getAuthHeader(self.authCfg))
+        res = self.fromByteToJson(r.content)
+      
+        lenRead = len(res['access_rights']['read'])
+        lenWrite = len(res['access_rights']['write'])
+        for i in range (0, lenRead):
+            self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
+        for i in range (0, lenWrite):
+            self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
+        self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions(mapName, usersDict, "maps"))
+        self.dlg.pushButton_addRead.clicked.connect(lambda: self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText()))
+        self.dlg.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
+    
+        self.dlg.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
+        self.dlg.pushButton_removeWrite.clicked.connect(lambda: self.dlg.listWidget_write.removeItemWidget(self.dlg.listWidget_write.takeItem(self.dlg.listWidget_write.currentRow())))
+        
+        self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog())  
     def run_SetPermission(self, layerName):
         self.dlg = SetPermissionDialog() 
         self.dlg.show()
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-       
+        self.dlg.pushButton_addRead.setStyleSheet("#pushButton_addRead {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addRead:hover{background: #66ab27 ;}#pushButton_addRead:disabled{background: #64818b ;}")
+        self.dlg.pushButton_removeRead.setStyleSheet("#pushButton_removeRead {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeRead:hover{background: #66ab27 ;}#pushButton_removeRead:disabled{background: #64818b ;}")
+        self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
+        self.dlg.pushButton_addWrite.setStyleSheet("#pushButton_addWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addWrite:hover{background: #66ab27 ;}#pushButton_addWrite:disabled{background: #64818b ;}")
+        self.dlg.pushButton_removeWrite.setStyleSheet("#pushButton_removeWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeWrite:hover{background: #66ab27 ;}#pushButton_removeWrite:disabled{background: #64818b ;}")
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")       
         uri = self.URI + "/rest/users"
         usersDict = dict()
         usersDict['EVERYONE'] = 'EVERYONE'
@@ -435,7 +488,7 @@ class Layman:
             self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
         for i in range (0, lenWrite):
             self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
-        self.dlg.pushButton_save.clicked.connect(lambda: self.updateLayerPermissions(layerName, usersDict))
+        self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions(layerName, usersDict, "layers"))
         self.dlg.pushButton_addRead.clicked.connect(lambda: self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText()))
         self.dlg.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
     
@@ -553,6 +606,7 @@ class Layman:
         self.dlg.pushButton_editMeta.setEnabled(False)
         self.dlg.pushButton_addRaster.setEnabled(False)
         self.dlg.pushButton_up.setEnabled(False)
+        self.dlg.pushButton_setMapPermissions.setEnabled(False)
         self.dlg.pushButton_down.setEnabled(False)
         self.dlg.pushButton_deleteLayers.setEnabled(False)
        # self.dlg.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.VectorLayer)
@@ -562,6 +616,8 @@ class Layman:
         self.dlg.pushButton_up.clicked.connect(lambda: self.reorderLayers(self.dlg.listWidget_listLayers.currentRow(), 1, self.dlg.listWidget.currentRow()))
         self.dlg.pushButton_down.clicked.connect(lambda: self.reorderLayers(self.dlg.listWidget_listLayers.currentRow(), -1, self.dlg.listWidget.currentRow()))
         self.dlg.pushButton_saveOrder.clicked.connect(lambda: self.saveReorder(self.dlg.listWidget.currentRow()))
+        self.dlg.pushButton_setMapPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.dlg.listWidget.currentItem().text()))
+        
         #if not self.loadedInMemory:
         self.threadComposites = threading.Thread(target=self.loadCompositesThread)
         self.threadComposites.start()
@@ -583,12 +639,14 @@ class Layman:
         self.dlg.pushButton_deleteLayers.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'minus.png'))
         self.dlg.pushButton_deleteMap.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'minus.png'))
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
+        self.dlg.pushButton_setMapPermissions.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         self.dlg.listWidget.itemClicked.connect(self.refreshLayerListReversed)
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_deleteMap.setEnabled(True))
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_editMeta.setEnabled(True))
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_addRaster.setEnabled(True))
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_up.setEnabled(True))
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_down.setEnabled(True))
+        self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_setMapPermissions.setEnabled(True))
         self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_down.setEnabled(True))
         self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_up.setEnabled(True))
         self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_deleteLayers.setEnabled(True))
@@ -652,6 +710,8 @@ class Layman:
         self.dlg.pushButton_loadMap.setStyleSheet("#pushButton_loadMap {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_loadMap:hover{background: #66ab27 ;}#pushButton_loadMap:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.dlg.pushButton_saveOrder.setStyleSheet("#pushButton_saveOrder {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_saveOrder:hover{background: #66ab27 ;}#pushButton_saveOrder:disabled{background: #64818b ;}")
+        self.dlg.pushButton_saveOrder.setStyleSheet("#pushButton_saveOrder {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_saveOrder:hover{background: #66ab27 ;}#pushButton_saveOrder:disabled{background: #64818b ;}")
+        self.dlg.pushButton_setMapPermissions.setStyleSheet("#pushButton_setMapPermissions {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setMapPermissions:hover{background: #66ab27 ;}#pushButton_setMapPermissions:disabled{background: #64818b ;}")
         
         
 
@@ -662,6 +722,7 @@ class Layman:
             
             self.dlg.pushButton_deleteMap.setEnabled(self.deleteM)
             self.dlg.pushButton_editMeta.setEnabled(self.editM)
+            self.dlg.pushButton_setMapPermissions.setEnabled(self.editP)
             self.dlg.pushButton_up.setEnabled(self.up)
             self.dlg.pushButton_down.setEnabled(self.down)
             self.dlg.pushButton_deleteLayers.setEnabled(self.deleteL)
@@ -679,7 +740,9 @@ class Layman:
             self.deleteM = self.dlg.pushButton_deleteMap.isEnabled()
             self.dlg.pushButton_deleteMap.setEnabled(False)
             self.editM = self.dlg.pushButton_editMeta.isEnabled()
+            self.editP = self.dlg.pushButton_setMapPermissions.isEnabled()
             self.dlg.pushButton_editMeta.setEnabled(False)
+            self.dlg.pushButton_setMapPermissions.setEnabled(False)
             self.up = self.dlg.pushButton_up.isEnabled()
             self.dlg.pushButton_up.setEnabled(False)
             self.down = self.dlg.pushButton_down.isEnabled()
@@ -963,12 +1026,14 @@ class Layman:
         self.threadLayers.start()
 
         
-        self.dlg.pushButton_delete.clicked.connect(lambda: self.layerDelete(self.dlg.treeWidget.selectedItems()[0].text(0)))    
+        #self.dlg.pushButton_delete.clicked.connect(lambda: self.layerDelete(self.dlg.treeWidget.selectedItems()[0].text(0)))    
+        self.dlg.pushButton_delete.clicked.connect(lambda: self.callDeleteLayer(self.dlg.treeWidget.selectedItems()))    
         self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
         self.dlg.pushButton.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems()[0].text(0), "WMS"))
         self.dlg.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems()[0].text(0), "WFS"))
         self.dlg.treeWidget.itemClicked.connect(self.showThumbnail)  
         self.dlg.treeWidget.itemClicked.connect(self.enableDeleteButton) 
+        self.dlg.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         #self.dlg.setWindowModality(Qt.ApplicationModal)
         self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showPermissionsDialog(self.dlg.treeWidget.selectedItems()[0].text(0)))
@@ -1034,7 +1099,7 @@ class Layman:
        
         str1 = "," 
         return (str1.join(s)) 
-    def updateLayerPermissions(self,layerName, userDict):
+    def updatePermissions(self,layerName, userDict, type):
         
         itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
         itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
@@ -1047,7 +1112,7 @@ class Layman:
         data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}
         #data = {'access_rights':  read}
         
-        response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName, data = data,  headers = self.getAuthHeader(self.authCfg))
+        response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layerName, data = data,  headers = self.getAuthHeader(self.authCfg))
         
         if (response.status_code == 200):
             if self.locale == "cs":                
@@ -1124,13 +1189,25 @@ class Layman:
         self.dlg.lineEdit_5.setText(str(ymin))
         self.dlg.lineEdit_6.setText(str(ymax))
         self.dlg.label_4.setText("Extent of canvas: " + it.text(0))
-
+    def checkSelectedCount(self):
+        if (len(self.dlg.treeWidget.selectedItems()) > 1):
+            self.dlg.pushButton_setPermissions.setEnabled(False)
+            self.dlg.pushButton_wfs.setEnabled(False)
+            self.dlg.pushButton_delete.setEnabled(True)
+            self.dlg.pushButton.setEnabled(False)
+        else:
+            self.dlg.pushButton_setPermissions.setEnabled(True)
+            self.dlg.pushButton_wfs.setEnabled(True)
+            self.dlg.pushButton_delete.setEnabled(True)
+            self.dlg.pushButton.setEnabled(True)
+        
     def enableDeleteButton(self, item, col):
         self.dlg.pushButton.setEnabled(True)
         self.dlg.pushButton_wfs.setEnabled(True)
         self.dlg.pushButton_layerRedirect.setEnabled(True)
         self.dlg.pushButton_delete.setEnabled(True)
         self.dlg.pushButton_setPermissions.setEnabled(True)
+        self.checkSelectedCount()
 
     def enableButton(self, item, col):
         
@@ -1140,6 +1217,7 @@ class Layman:
        # self.dlg.pushButton_map.setEnabled(True)
         self.dlg.pushButton_deleteLayers.setEnabled(True)
         self.dlg.pushButton_editMeta.setEnabled(True)
+        self.dlg.pushButton_setMapPermissions.setEnabled(True)
         self.dlg.pushButton_addRaster.setEnabled(True)   
         try:
             if (self.WMSenable):
@@ -1364,7 +1442,9 @@ class Layman:
     def afterCloseEditMapDialog(self):
         self.dlg = self.old_dlg
 
-    
+    def showMapPermissionsDialog(self, x):        
+        self.old_dlg = self.dlg
+        self.run_SetMapPermission(x)
     def showPermissionsDialog(self, x):        
         self.old_dlg = self.dlg
         self.run_SetPermission(x)
@@ -1382,7 +1462,14 @@ class Layman:
     def saveEditedToComposite(self,x):        
         self.compositeList[x]['abstract'] =  self.dlg.lineEdit_abstract.text()  
         self.compositeList[x]['title'] =  self.dlg.lineEdit_title.text() 
-
+    def callDeleteLayer(self, layers):
+        #print("len" + str(len(layers)))
+        items = list()
+        for i in range (0, len(self.dlg.treeWidget.selectedItems())):
+            items.append(self.dlg.treeWidget.selectedItems()[i].text(0))
+        print(items)
+        for j in range (0, len(items)):
+            self.layerDelete(items[j])
     def layerDelete(self, name):
         if self.locale == "cs":
             msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Chcete opravdu smazat vrstvu "+str(name)+"?")
@@ -1505,8 +1592,12 @@ class Layman:
             layer = it.text()##pro listWidget
         try:
             layer = self.removeUnacceptableChars(layer)
-            url = self.URI+'/rest/' +self.laymanUsername+'/layers/'+str(layer).lower().replace(" ","_")+'/thumbnail'    
-            data = urlopen(url).read()
+            url = self.URI+'/rest/' +self.laymanUsername+'/layers/'+layer+'/thumbnail'    
+            print("thubmnailURL" + url)
+            #data = urlopen(url).read()
+            r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+            data = r.content
+            #print(data)
             pixmap = QPixmap(200, 200)
             pixmap.loadFromData(data)
             smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
@@ -1521,8 +1612,12 @@ class Layman:
             layer = it.text()##pro listWidget
         try:
             layer = self.removeUnacceptableChars(layer)
-            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layer).lower().replace(" ","_")+'/thumbnail'    
-            data = urlopen(url).read()
+            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer+'/thumbnail'
+            print("thubmnailURL" + url)
+            #data = urlopen(url).read()
+            #print(data)
+            r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+            data = r.content
             pixmap = QPixmap(170, 170)
             pixmap.loadFromData(data)
             smaller_pixmap = pixmap.scaled(170, 170, Qt.KeepAspectRatio, Qt.FastTransformation)
@@ -1811,6 +1906,7 @@ class Layman:
                 self.dlg.pushButton.setEnabled(True)
                 self.dlg.pushButton_deleteMap.setEnabled(True)
                 self.dlg.pushButton_editMeta.setEnabled(True)
+                self.dlg.pushButton_setMapPermissions.setEnabled(True)
                 self.dlg.pushButton_down.setEnabled(True)
                 self.dlg.pushButton_up.setEnabled(True)
                 self.dlg.pushButton_deleteLayers.setEnabled(True)
@@ -4424,6 +4520,17 @@ class Layman:
             #if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
             #    self.setup_oauth(self.client_id[-7:], self.liferayServer)
             ##authconfig end
+            ## check for new version
+           
+            versionCheck = self.checkVersion()
+            if versionCheck[0] == False:
+                if self.locale == "cs":
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Nová verze pluginu Layman k dispozici."), Qgis.Success, duration=15)
+                else:
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "New version of Layman plugin available."), Qgis.Success, duration=15)
+
+            ##
+
             self.authHeader = authHeader
             self.authOptained()
             self.dlg.close()
