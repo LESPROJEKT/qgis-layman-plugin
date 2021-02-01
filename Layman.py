@@ -1349,18 +1349,21 @@ class Layman:
          for i in range (0,len(self.compositeList[self.dlg.listWidget.currentRow()]['layers'])):    
             
             self.dlg.listWidget_listLayers2.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
-    def deleteLayerThrowCompositions(self, name):
+    def deleteLayerThrowCompositions(self, name, title):
+        
         name = self.removeUnacceptableChars(name).lower()
         for x in range (0,len(self.compositeList)):
-           
+            
             for i in range (0,len(self.compositeList[x]['layers'])): 
-              
-                 if (name == self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title'])):
-                    inComposite = True
-                    print("inComposite")
+                 try: 
+                     if (name == self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title'])):
+                        inComposite = True
+                        print("inComposite")
                  
                     
-                    threading.Thread(target=lambda: self.deteteLayerFromCompositeThread(x, i, name)).start()
+                        threading.Thread(target=lambda: self.deteteLayerFromCompositeThread(x, i, name, title)).start()
+                 except:
+                     print("nesprávný formát kompozice: " + name)
     def checkLayersInComopsitions(self, name):
         name = self.removeUnacceptableChars(name)
         #print("remove" + name)
@@ -1471,6 +1474,7 @@ class Layman:
         for j in range (0, len(items)):
             self.layerDelete(items[j])
     def layerDelete(self, name):
+        title = name
         if self.locale == "cs":
             msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Chcete opravdu smazat vrstvu "+str(name)+"?")
         else:
@@ -1495,7 +1499,7 @@ class Layman:
                     threading.Thread(target=lambda: self.layerDeleteThread(name)).start()
                     self.dlg.progressBar_loader.show() 
                     #try:
-                    self.deleteLayerThrowCompositions(name)
+                    self.deleteLayerThrowCompositions(name, title)
                     #except:
                     #    pass
                 
@@ -1844,6 +1848,13 @@ class Layman:
                 self.dlg.progressBar.hide() 
             except:
                 pass
+        if message == "layerDeleteFromCompositeWrong":
+            if self.locale == "cs":
+            
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrsta v kompozici nebyla úspěšně smazána."), Qgis.Warning, duration=3)
+            else:
+           
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer in composition was not successfully deleted."), Qgis.Warning, duration=3)
         if message == "refreshComposite":
             try:
                 self.refreshCompositeList()        ## pouze pro import Form     
@@ -3121,6 +3132,7 @@ class Layman:
         response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
         #response = requests.get('https://layman.lesprojekt.cz/rest/lay3/layers/' + layer_name+ '/style') test
         tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name)+ ".sld"
+        #print(tempf)
         with open(tempf, 'wb') as f:
             f.write(response.content)
         #print(response.status_code)
@@ -3281,10 +3293,12 @@ class Layman:
             self.deleteLayerFromCanvas(name)   
         time.sleep(1)
         QgsMessageLog.logMessage("delLayComposite")
-    def deteteLayerFromCompositeThread(self, x, position, name):        
+    def deteteLayerFromCompositeThread(self, x, position, name, title):        
         previousLayers = []       
+        lenBefore = len(self.compositeList[x]['layers'])
         for i in range (0, len(self.compositeList[x]['layers'])):
-            if (self.compositeList[x]['layers'][i]['title'] == name):
+            if (self.compositeList[x]['layers'][i]['title'] == title):
+                #print("del:" + title)
                 pass
             else:
                 previousLayers.append(self.compositeList[x]['layers'][i])
@@ -3295,17 +3309,23 @@ class Layman:
             if (i != len(previousLayers) - (position+1)):      ## kompozice je obracena oproti HSlayers proto odecist   
                 
                 self.compositeList[x]['layers'].append(previousLayers[i])        
-        #self.importMap(x, "del")       
-        self.importMap(x, "delLay")
-        done = True
-        if (len(self.compositeList[x]['layers']) != 0 and len(self.compositeList[x]['layers']) != None):
-            for i in range (0, len(self.compositeList[x]['layers'])):
-                #if (self.compositeList[x]['layers'][i]['params']['LAYERS'] == name):
-                if (self.compositeList[x]['layers'][i]['title'] == name):
-                    done = False
-        if (done and QgsProject.instance().mapLayersByName(name)):    ## kompozice může mít načtené vrstvy, které nejsou v canvasu
-            self.deleteLayerFromCanvas(name)   
-        time.sleep(1)
+        #self.importMap(x, "del") 
+        print(lenBefore)
+        print(len(self.compositeList[x]['layers']))
+        if (lenBefore - 1) ==  len(self.compositeList[x]['layers']):     
+            self.importMap(x, "delLay")
+            done = True
+            if (len(self.compositeList[x]['layers']) != 0 and len(self.compositeList[x]['layers']) != None):
+                for i in range (0, len(self.compositeList[x]['layers'])):
+                    #if (self.compositeList[x]['layers'][i]['params']['LAYERS'] == name):
+                    if (self.compositeList[x]['layers'][i]['title'] == title):
+                        done = False
+            #if (done and QgsProject.instance().mapLayersByName(title)):    ## kompozice může mít načtené vrstvy, které nejsou v canvasu
+            #    self.deleteLayerFromCanvas(title)   
+            #time.sleep(1)
+        else:
+            QgsMessageLog.logMessage("layerDeleteFromCompositeWrong")
+       
         
         
     def importCleanComposite(self,x):
@@ -3517,7 +3537,8 @@ class Layman:
 
     def patchLayer(self, layer_name, data):
         
-        self.layerName = layer_name.lower()
+        #self.layerName = layer_name.lower()
+        self.layerName = self.removeUnacceptableChars(layer_name)
         
         sldPath = self.getTempPath(self.layerName).replace("geojson", "sld")
         geoPath = self.getTempPath(self.layerName)
@@ -3652,6 +3673,7 @@ class Layman:
         for i in range (0, len(data['layers'])):
             for j in range (0, len(layers)):
                 try:
+                    print(data['layers'][i])
                     layer = data['layers'][i]['params']['LAYERS'] # wms
                 except:
                     layer = data['layers'][i]['name']
@@ -3945,9 +3967,11 @@ class Layman:
                     QgsProject.instance().addMapLayer(vlayer)
                 ## zde bude SLD kod
                 code = self.getSLD(layerName)
+                
+                
                 if (code == 200):
                     tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
-                   # print(vlayer.loadSldStyle(tempf))
+                    vlayer.loadSldStyle(tempf)
                     vlayer.triggerRepaint()
             else: ### cast pro slozenou geometrii
                 self.mixedLayers.append(layerName)
