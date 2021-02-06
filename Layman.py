@@ -441,7 +441,7 @@ class Layman:
             self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
         for i in range (0, lenWrite):
             self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
-        self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions(mapName, usersDict, "maps"))
+        self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions([mapName], usersDict, "maps"))
         self.dlg.pushButton_addRead.clicked.connect(lambda: self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText()))
         self.dlg.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
     
@@ -476,18 +476,20 @@ class Layman:
             usersDictReversed[res[i]['username']] = res[i]['name'] 
             self.dlg.comboBox_users.addItem(res[i]['name'])
         ##nabit listView
-        layerName = self.removeUnacceptableChars(layerName)
-        uri = self.URI + "/rest/"+self.laymanUsername+"/layers/"+layerName
+        print(len(layerName))
+        if (len(layerName) == 1):            
+            layerName[0] = self.removeUnacceptableChars(layerName[0])
+            uri = self.URI + "/rest/"+self.laymanUsername+"/layers/"+layerName[0]
         
-        r= requests.get(uri,headers = self.getAuthHeader(self.authCfg))
-        res = self.fromByteToJson(r.content)
+            r= requests.get(uri,headers = self.getAuthHeader(self.authCfg))
+            res = self.fromByteToJson(r.content)
       
-        lenRead = len(res['access_rights']['read'])
-        lenWrite = len(res['access_rights']['write'])
-        for i in range (0, lenRead):
-            self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
-        for i in range (0, lenWrite):
-            self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
+            lenRead = len(res['access_rights']['read'])
+            lenWrite = len(res['access_rights']['write'])
+            for i in range (0, lenRead):
+                self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
+            for i in range (0, lenWrite):
+                self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
         self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions(layerName, usersDict, "layers"))
         self.dlg.pushButton_addRead.clicked.connect(lambda: self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText()))
         self.dlg.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
@@ -1029,14 +1031,14 @@ class Layman:
         #self.dlg.pushButton_delete.clicked.connect(lambda: self.layerDelete(self.dlg.treeWidget.selectedItems()[0].text(0)))    
         self.dlg.pushButton_delete.clicked.connect(lambda: self.callDeleteLayer(self.dlg.treeWidget.selectedItems()))    
         self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
-        self.dlg.pushButton.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems()[0].text(0), "WMS"))
-        self.dlg.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems()[0].text(0), "WFS"))
+        self.dlg.pushButton.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WMS"))
+        self.dlg.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WFS"))
         self.dlg.treeWidget.itemClicked.connect(self.showThumbnail)  
         self.dlg.treeWidget.itemClicked.connect(self.enableDeleteButton) 
         self.dlg.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         #self.dlg.setWindowModality(Qt.ApplicationModal)
-        self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showPermissionsDialog(self.dlg.treeWidget.selectedItems()[0].text(0)))
+        self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showPermissionsDialog(self.dlg.treeWidget.selectedItems()))
         self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
@@ -1093,7 +1095,7 @@ class Layman:
         #    if(str(param[0]) == "layers"):
         #        layers.append(param[1])   
         #     #   print(layers)    
-        #json = self.prepareLayerSchema(crs, format,url, layers)
+       
         self.addExistingLayerToComposite(name, "wms")
     def listToString(self, s):     
        
@@ -1111,10 +1113,15 @@ class Layman:
             userNamesWrite.append(userDict[pom])
         data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}
         #data = {'access_rights':  read}
-        
-        response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layerName, data = data,  headers = self.getAuthHeader(self.authCfg))
-        
-        if (response.status_code == 200):
+        status = True
+        for layer in layerName:
+            layer = self.removeUnacceptableChars(layer)
+            response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer, data = data,  headers = self.getAuthHeader(self.authCfg))
+            print(response.content)
+            if (response.status_code != 200):
+                status = False
+
+        if (status):
             if self.locale == "cs":                
                 QMessageBox.information(None, "Uloženo", "Práva byly úspěšně uloženy.")
             else:
@@ -1124,37 +1131,7 @@ class Layman:
                 QMessageBox.information(None, "Chyba", "Práva k vrstvě nebyly uloženy!")               
             else:
                 QMessageBox.information(None, "Error", "Permissions was not saved!")                 
-    def prepareLayerSchema(self, crs, format,url, layers):
-        if (len(layers) == 1):
-            layers = str(layers).replace("[", "").replace("]", "")
-        else:
-            layers = str(layers)
-        
-        json = '''"layers": [
-        {
-          "className": "HSLayers.Layer.WMS",
-          "dimensions": {},
-          "legends": [
-            ""
-          ],
-          "maxResolution": null,
-          "metadata": {},
-          "minResolution": 0,
-          "opacity": 1,
-          "params": {
-            "FORMAT": "'''+format+'''",            
-            "INFO_FORMAT": "application/vnd.ogc.gml",
-            "LAYERS": "'''+layers+'''",
-            "VERSION": "1.3.0"
-          },
-          "ratio": 1.5,
-          "singleTile": true,
-          "title": "okresy",
-          "url": "'''+url+'''",
-          "visibility": true,
-          "wmsMaxScale": 0
-        }'''
-        return json   
+    
     def disableExport(self):
         #print(self.dlg.treeWidget.currentItem())
        # print(self.dlg.treeWidget.selectedItems())
@@ -1191,10 +1168,10 @@ class Layman:
         self.dlg.label_4.setText("Extent of canvas: " + it.text(0))
     def checkSelectedCount(self):
         if (len(self.dlg.treeWidget.selectedItems()) > 1):
-            self.dlg.pushButton_setPermissions.setEnabled(False)
-            self.dlg.pushButton_wfs.setEnabled(False)
+            self.dlg.pushButton_setPermissions.setEnabled(True)
+            self.dlg.pushButton_wfs.setEnabled(True)
             self.dlg.pushButton_delete.setEnabled(True)
-            self.dlg.pushButton.setEnabled(False)
+            self.dlg.pushButton.setEnabled(True)
         else:
             self.dlg.pushButton_setPermissions.setEnabled(True)
             self.dlg.pushButton_wfs.setEnabled(True)
@@ -1446,11 +1423,14 @@ class Layman:
         self.dlg = self.old_dlg
 
     def showMapPermissionsDialog(self, x):        
-        self.old_dlg = self.dlg
+        self.old_dlg = self.dlg        
         self.run_SetMapPermission(x)
     def showPermissionsDialog(self, x):        
         self.old_dlg = self.dlg
-        self.run_SetPermission(x)
+        names = list() 
+        for i in range (0, len(self.dlg.treeWidget.selectedItems())):
+            names.append(self.dlg.treeWidget.selectedItems()[i].text(0))  
+        self.run_SetPermission(names)
     def showEditMapDialog(self, x):        
         self.old_dlg = self.dlg
         self.run_EditMap(x)
@@ -1776,7 +1756,9 @@ class Layman:
     def readLayerJson(self,layerName, service):
         #self.threadAddMap = threading.Thread(target=lambda: self.readLayerJsonThread(layerName,service))
         #self.threadAddMap.start()
-        self.readLayerJsonThread(layerName,service)
+        for i in range (0, len(self.dlg.treeWidget.selectedItems())):
+            name = self.dlg.treeWidget.selectedItems()[i].text(0)        
+            self.readLayerJsonThread(name,service)
     
     def readLayerJsonThread(self, layerName,service):
         if self.checkLayerOnLayman(layerName):
@@ -1950,7 +1932,7 @@ class Layman:
                        
                 
         if message[0:8] == "imports_":
-            if self.locale == "cs":
+            if self.locale == "cs":               
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" byla úspěšně nahrána "), Qgis.Success, duration=3)
             else:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was successfully imported"), Qgis.Success, duration=3)
@@ -1981,13 +1963,13 @@ class Layman:
                     self.processingList[i][2] = 2
                     #print(self.processingList)
                     done = done + 1
-            try:
-                if self.locale == "cs":
-                    self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
-                else:
-                    self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
-            except:
-                pass
+            #try:
+            #    if self.locale == "cs":
+            #        self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+            #    else:
+            #        self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+            #except:
+            #    pass
         if message == "addRaster":
             try:
                 self.dlg.progressBar.hide() 
@@ -2965,10 +2947,7 @@ class Layman:
                         self.dlg.progressBar.show() 
                         self.dlg.label_import.show()
                         threading.Thread(target=lambda: self.postThread(layer_name,data, False)).start()    
-                    #        if response.status_code == 200:
-                    #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
-                    #        else:
-                    #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was not imported."), Qgis.Warning, duration=3)
+                  
                     else:
                         if self.locale == "cs":
                             QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
@@ -3104,8 +3083,7 @@ class Layman:
             if (len(layers) == 1):
                 layers = str(layers).replace("[", "").replace("]", "").replace("'", "")
             else:
-                layers = str(layers).replace("'", "")
-           # json = self.prepareLayerSchema(crs, format,url, layers)
+                layers = str(layers).replace("'", "")           
             self.existLayer = False
             self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
            
