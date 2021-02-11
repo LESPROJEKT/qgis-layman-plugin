@@ -1289,8 +1289,9 @@ class Layman:
         self.client_id = servers[i][2]
         try:
             self.client_secret = servers[i][3]
+            self.authCfg = servers[i][4]
         except:
-            pass
+            pass # old version compatibility
       
     def enableLoadMapButtons(self, item):
         self.dlg.pushButton_mapWFS.setEnabled(True)
@@ -4304,7 +4305,7 @@ class Layman:
         config = QgsAuthMethodConfig()
         url = QUrl(self.URI+ "/rest/current-user")
         xx = QNetworkRequest(url)
-        #print(xx.header(QNetworkRequest.KnownHeaders(-2)))
+        print(xx.header(QNetworkRequest.KnownHeaders(-2)))
         i = 0
         success = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))
         print(success[0])
@@ -4403,10 +4404,10 @@ class Layman:
         #self.loadAllCompositesT()
         threading.Thread(target=self.loadAllCompositesT).start() ## načteme kompozice do pole ve vláknu 
         ### authconfig
-        authcfg_id = self.client_id[-7:]
+        authcfg_id = self.authCfg
         if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
             QgsApplication.authManager().clearAllCachedConfigs()
-            self.setup_oauth(self.client_id[-7:], self.liferayServer)
+            self.setup_oauth(self.authCfg, self.liferayServer)
 
         ##authconfig end
         self.dlg.close()
@@ -4509,10 +4510,11 @@ class Layman:
             i = i +1
             time.sleep(0.5)
     def openAuthLiferayUrl2(self):
-        self.authCfg = self.client_id[-7:]
-        authcfg_id = self.client_id[-7:]
-        if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
-            self.setup_oauth(self.client_id[-7:], self.liferayServer)
+        #self.authCfg = self.client_id[-7:]
+        #authcfg_id = self.client_id[-7:]
+        authcfg_id = self.authCfg
+        #if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
+        self.setup_oauth(authcfg_id, self.liferayServer)
         authHeader = self.getAuthHeader(self.authCfg)
         if (authHeader):
             self.registerUserIfNotExists()
