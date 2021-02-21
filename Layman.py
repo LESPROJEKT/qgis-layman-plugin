@@ -414,20 +414,29 @@ class Layman:
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         uri = self.URI + "/rest/users"
         usersDict = dict()
-        usersDict['EVERYONE'] = 'EVERYONE'
+        if self.locale == "cs":
+            usersDict['EVERYONE'] = 'VŠICHNI'
+        else:
+            usersDict['EVERYONE'] = 'EVERYONE'
         usersDictReversed = dict()
-        usersDictReversed['EVERYONE'] = 'EVERYONE'
+        if self.locale == "cs":
+            usersDictReversed['EVERYONE'] = 'VŠICHNI'
+        else:
+            usersDictReversed['EVERYONE'] = 'EVERYONE'
         r= requests.get(uri)
         res = self.fromByteToJson(r.content)
         userCount = len(res)
         ##nabit combobox
-        self.dlg.comboBox_users.addItem('EVERYONE')
+        if self.locale == "cs":
+            self.dlg.comboBox_users.addItem('VŠICHNI')
+        else:            
+            self.dlg.comboBox_users.addItem('EVERYONE')
         for i in range (0, userCount):
             #print(res[i]['name'])
             #print(res[i]['username'])
             usersDict[res[i]['name']] = res[i]['username'] 
             usersDictReversed[res[i]['username']] = res[i]['name'] 
-            self.dlg.comboBox_users.addItem(res[i]['name'])
+            self.dlg.comboBox_users.addItem(res[i]['name']  + ' , ' + res[i]['username'])
         ##nabit listView
         mapName = self.removeUnacceptableChars(mapName)
         uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName
@@ -438,11 +447,13 @@ class Layman:
         lenRead = len(res['access_rights']['read'])
         lenWrite = len(res['access_rights']['write'])
         for i in range (0, lenRead):
-            self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
+            if (usersDictReversed[res['access_rights']['read'][i]] != usersDictReversed[self.laymanUsername]):
+                self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
         for i in range (0, lenWrite):
-            self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
+            if (usersDictReversed[res['access_rights']['write'][i]] != usersDictReversed[self.laymanUsername]):
+                self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
         self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions([mapName], usersDict, "maps"))
-        self.dlg.pushButton_addRead.clicked.connect(lambda: self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText()))
+        self.dlg.pushButton_addRead.clicked.connect(lambda: self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0]))
         self.dlg.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
     
         self.dlg.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
@@ -461,20 +472,31 @@ class Layman:
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")       
         uri = self.URI + "/rest/users"
         usersDict = dict()
-        usersDict['EVERYONE'] = 'EVERYONE'
+        if self.locale == "cs":
+            usersDict['EVERYONE'] = 'VŠICHNI'
+        else:
+            usersDict['EVERYONE'] = 'EVERYONE'
         usersDictReversed = dict()
-        usersDictReversed['EVERYONE'] = 'EVERYONE'
+        if self.locale == "cs":
+            usersDictReversed['EVERYONE'] = 'VŠICHNI'
+        else:
+            usersDictReversed['EVERYONE'] = 'EVERYONE'
         r= requests.get(uri)
         res = self.fromByteToJson(r.content)
+        print(r.content)
         userCount = len(res)
         ##nabit combobox
-        self.dlg.comboBox_users.addItem('EVERYONE')
+        if self.locale == "cs":
+            self.dlg.comboBox_users.addItem('VŠICHNI')
+        else:            
+            self.dlg.comboBox_users.addItem('EVERYONE')
         for i in range (0, userCount):
             #print(res[i]['name'])
             #print(res[i]['username'])
             usersDict[res[i]['name']] = res[i]['username'] 
             usersDictReversed[res[i]['username']] = res[i]['name'] 
-            self.dlg.comboBox_users.addItem(res[i]['name'])
+            if (res[i]['name'] != self.laymanUsername):
+                self.dlg.comboBox_users.addItem(res[i]['name'] + ' , ' + res[i]['username'] )
         ##nabit listView
         print(len(layerName))
         if (len(layerName) == 1):            
@@ -487,11 +509,14 @@ class Layman:
             lenRead = len(res['access_rights']['read'])
             lenWrite = len(res['access_rights']['write'])
             for i in range (0, lenRead):
-                self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
+                print(usersDictReversed)
+                if (usersDictReversed[res['access_rights']['read'][i]] != usersDictReversed[self.laymanUsername]):
+                    self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
             for i in range (0, lenWrite):
-                self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
+                if (usersDictReversed[res['access_rights']['write'][i]] != usersDictReversed[self.laymanUsername]):
+                    self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
         self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions(layerName, usersDict, "layers"))
-        self.dlg.pushButton_addRead.clicked.connect(lambda: self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText()))
+        self.dlg.pushButton_addRead.clicked.connect(lambda: self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0]))
         self.dlg.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
     
         self.dlg.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
@@ -1106,29 +1131,44 @@ class Layman:
         itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
         itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
         userNamesRead = list()
+        userNamesRead.append(self.laymanUsername)
         for pom in itemsTextListRead:
-            userNamesRead.append(userDict[pom])
+           # print(pom)
+            if pom == "VŠICHNI":      
+                
+                userNamesRead.append("EVERYONE")
+            #print(pom)
+            else:
+                userNamesRead.append(userDict[pom])
         userNamesWrite = list()
+        userNamesWrite.append(self.laymanUsername)
         for pom in itemsTextListWrite:
-            userNamesWrite.append(userDict[pom])
+            if pom == "VŠICHNI":
+                userNamesRead.append("EVERYONE")
+            else:
+                userNamesWrite.append(userDict[pom])
         data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}
         #data = {'access_rights':  read}
+        print(data)
         status = True
         for layer in layerName:
             layer = self.removeUnacceptableChars(layer)
+            #print(layer)
+            #print(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer)
             response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer, data = data,  headers = self.getAuthHeader(self.authCfg))
             print(response.content)
+            #print(response.status_code)
             if (response.status_code != 200):
                 status = False
 
         if (status):
             if self.locale == "cs":                
-                QMessageBox.information(None, "Uloženo", "Práva byly úspěšně uloženy.")
+                QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
             else:
                 QMessageBox.information(None, "Saved", "Permissions was saved successfully.")
         else:
             if self.locale == "cs":
-                QMessageBox.information(None, "Chyba", "Práva k vrstvě nebyly uloženy!")               
+                QMessageBox.information(None, "Chyba", "Práva nebyla uložena!")               
             else:
                 QMessageBox.information(None, "Error", "Permissions was not saved!")                 
     
@@ -2305,10 +2345,10 @@ class Layman:
     def setWritePermissionList(self):
         itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
         if (self.dlg.comboBox_users.currentText() in itemsTextListRead):
-            self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText())
+            self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
         else:
-            self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText())
-            self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText())
+            self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+            self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
     def removeWritePermissionList(self):
         self.deleteItem(self.dlg.listWidget_read.currentItem().text())
         self.dlg.listWidget_read.removeItemWidget(self.dlg.listWidget_read.takeItem(self.dlg.listWidget_read.currentRow()))
