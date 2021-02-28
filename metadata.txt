@@ -10,11 +10,12 @@
 name=Layman
 qgisMinimumVersion=3.0
 description=Layman
-version=1.60
+version=1.61
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
-about=Connector to Layman server
+about=
+	This plugin is client for Layman server, that provides WFS, WMS services. There is possible create map compositions, store metadata, sigle layers and load back by WMS or WFS. Plugin support OAuth2 autorization and read/write permissions for every layer/composition.
 
 tracker=https://gitlab.com/Vrobel/layman_qgis/-/issues
 repository=https://gitlab.com/Vrobel/layman_qgis/-/blob/master/README.md
@@ -23,16 +24,17 @@ repository=https://gitlab.com/Vrobel/layman_qgis/-/blob/master/README.md
 # Recommended items:
 
 # Uncomment the following line and add your changelog:
-# changelog=
+changelog=
+	1.60 - owner permissions bug fixed, removed experimental flag
 
 # Tags are comma separated with spaces allowed
 tags=python
 
-homepage=https://www.plan4all.eu/
+homepage=https://hub.plan4all.eu/qgis
 category=Plugins
 icon=icon.png
 # experimental flag
-experimental=True
+experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False

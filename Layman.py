@@ -154,6 +154,7 @@ class Layman:
         self.batchLength = 0
         self.focusedLayer = None
         self.done = 0
+        self.name = ""
         self.millis = 0
         self.version = "1.0.0"
         self.initFiles()
@@ -412,6 +413,11 @@ class Layman:
         self.dlg.pushButton_addWrite.setStyleSheet("#pushButton_addWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addWrite:hover{background: #66ab27 ;}#pushButton_addWrite:disabled{background: #64818b ;}")
         self.dlg.pushButton_removeWrite.setStyleSheet("#pushButton_removeWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeWrite:hover{background: #66ab27 ;}#pushButton_removeWrite:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        self.dlg.progressBar_loader.hide() 
+        self.dlg.listWidget_read.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
+        self.dlg.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
+        self.dlg.pushButton_removeRead.setEnabled(False)
+        self.dlg.pushButton_removeWrite.setEnabled(False)
         uri = self.URI + "/rest/users"
         usersDict = dict()
         if self.locale == "cs":
@@ -447,15 +453,19 @@ class Layman:
         lenRead = len(res['access_rights']['read'])
         lenWrite = len(res['access_rights']['write'])
         for i in range (0, lenRead):
-            if (usersDictReversed[res['access_rights']['read'][i]] != usersDictReversed[self.laymanUsername]):
-                self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
+            #if (usersDictReversed[res['access_rights']['read'][i]] != usersDictReversed[self.laymanUsername]):
+            self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
         for i in range (0, lenWrite):
-            if (usersDictReversed[res['access_rights']['write'][i]] != usersDictReversed[self.laymanUsername]):
-                self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
-        self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions([mapName], usersDict, "maps"))
-        self.dlg.pushButton_addRead.clicked.connect(lambda: self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0]))
+           # if (usersDictReversed[res['access_rights']['write'][i]] != usersDictReversed[self.laymanUsername]):
+            self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
+        #self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions([mapName], usersDict, "maps"))
+        self.dlg.pushButton_save.clicked.connect(lambda:  self.dlg.progressBar_loader.show())
+        self.dlg.pushButton_save.clicked.connect(lambda: threading.Thread(target=lambda: self.updatePermissions([mapName], usersDict, "maps")).start())
+        
+
+        self.dlg.pushButton_addRead.clicked.connect(lambda: self.checkAddedItemDuplicity("read"))
         self.dlg.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
-    
+
         self.dlg.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
         self.dlg.pushButton_removeWrite.clicked.connect(lambda: self.dlg.listWidget_write.removeItemWidget(self.dlg.listWidget_write.takeItem(self.dlg.listWidget_write.currentRow())))
         
@@ -470,6 +480,11 @@ class Layman:
         self.dlg.pushButton_addWrite.setStyleSheet("#pushButton_addWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addWrite:hover{background: #66ab27 ;}#pushButton_addWrite:disabled{background: #64818b ;}")
         self.dlg.pushButton_removeWrite.setStyleSheet("#pushButton_removeWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeWrite:hover{background: #66ab27 ;}#pushButton_removeWrite:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")       
+        self.dlg.progressBar_loader.hide() 
+        self.dlg.listWidget_read.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
+        self.dlg.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
+        self.dlg.pushButton_removeRead.setEnabled(False)
+        self.dlg.pushButton_removeWrite.setEnabled(False)
         uri = self.URI + "/rest/users"
         usersDict = dict()
         if self.locale == "cs":
@@ -510,15 +525,20 @@ class Layman:
             lenWrite = len(res['access_rights']['write'])
             for i in range (0, lenRead):
                 print(usersDictReversed)
-                if (usersDictReversed[res['access_rights']['read'][i]] != usersDictReversed[self.laymanUsername]):
-                    self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
+                #if (usersDictReversed[res['access_rights']['read'][i]] != usersDictReversed[self.laymanUsername]):
+                self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
             for i in range (0, lenWrite):
-                if (usersDictReversed[res['access_rights']['write'][i]] != usersDictReversed[self.laymanUsername]):
-                    self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
-        self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions(layerName, usersDict, "layers"))
-        self.dlg.pushButton_addRead.clicked.connect(lambda: self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0]))
+                ##if (usersDictReversed[res['access_rights']['write'][i]] != usersDictReversed[self.laymanUsername]):
+                self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
+        else:
+            self.dlg.listWidget_read.addItem(self.name)
+            self.dlg.listWidget_write.addItem(self.name)
+            self.dlg.listWidget_read.addItem(usersDict['EVERYONE'])
+        self.dlg.pushButton_save.clicked.connect(lambda:  self.dlg.progressBar_loader.show())
+        self.dlg.pushButton_save.clicked.connect(lambda: threading.Thread(target=lambda: self.updatePermissions(layerName, usersDict, "layers")).start())
+        self.dlg.pushButton_addRead.clicked.connect(lambda:  self.checkAddedItemDuplicity("read"))
         self.dlg.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
-    
+        
         self.dlg.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
         self.dlg.pushButton_removeWrite.clicked.connect(lambda: self.dlg.listWidget_write.removeItemWidget(self.dlg.listWidget_write.takeItem(self.dlg.listWidget_write.currentRow())))
         
@@ -952,7 +972,7 @@ class Layman:
                     #print(self.dlg.comboBox_server.itemText(i))
                     if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
                         self.dlg.comboBox_server.setCurrentIndex(i)
-                self.dlg.lineEdit_AgriID.setText(config['DEFAULT']['id']) 
+                #self.dlg.lineEdit_AgriID.setText(config['DEFAULT']['id']) 
                 self.dlg.lineEdit_server.setText(config['DEFAULT']['server']) 
                 self.dlg.lineEdit_serverLayman.setText(config['DEFAULT']['layman']) 
             except:
@@ -1126,12 +1146,40 @@ class Layman:
        
         str1 = "," 
         return (str1.join(s)) 
+    def checkAddedItemDuplicity(self, type):
+        itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
+        print(itemsTextListWrite)
+        print(self.dlg.comboBox_users.currentText().split(' , ')[0])
+        if type == "read":
+            if ((self.dlg.comboBox_users.currentText().split(' , ')[0] not in itemsTextListRead)):
+            
+                self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                return True
+            else:
+                print("xx")
+                if self.locale == "cs":                
+                    QMessageBox.information(None, "Layman", "Tato role se již v seznamu vyskytuje!")
+                else:
+                    QMessageBox.information(None, "Layman", "This role already exists in the list!")
+                return False
+        else:
+            if ((self.dlg.comboBox_users.currentText().split(' , ')[0] not in itemsTextListWrite) and type == "write"):
+              #  self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                return True
+            else:
+                print("yy")
+                if self.locale == "cs":                
+                    QMessageBox.information(None, "Layman", "Tato role se již v seznamu vyskytuje!")
+                else:
+                    QMessageBox.information(None, "Layman", "This role already exists in the list!")
+                return False
     def updatePermissions(self,layerName, userDict, type):
         
         itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
         itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
         userNamesRead = list()
-        userNamesRead.append(self.laymanUsername)
+        #userNamesRead.append(self.laymanUsername)
         for pom in itemsTextListRead:
            # print(pom)
             if pom == "VŠICHNI":      
@@ -1141,15 +1189,15 @@ class Layman:
             else:
                 userNamesRead.append(userDict[pom])
         userNamesWrite = list()
-        userNamesWrite.append(self.laymanUsername)
+        #userNamesWrite.append(self.laymanUsername)
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
-                userNamesRead.append("EVERYONE")
+                userNamesWrite.append("EVERYONE")
             else:
                 userNamesWrite.append(userDict[pom])
         data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}
         #data = {'access_rights':  read}
-        print(data)
+       # print(data)
         status = True
         for layer in layerName:
             layer = self.removeUnacceptableChars(layer)
@@ -1161,17 +1209,20 @@ class Layman:
             if (response.status_code != 200):
                 status = False
 
-        if (status):
-            if self.locale == "cs":                
-                QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
-            else:
-                QMessageBox.information(None, "Saved", "Permissions was saved successfully.")
+        #if (status):
+        #    if self.locale == "cs":                
+        #        QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
+        #    else:
+        #        QMessageBox.information(None, "Saved", "Permissions was saved successfully.")
+        #else:
+        #    if self.locale == "cs":
+        #        QMessageBox.information(None, "Chyba", "Práva nebyla uložena!")               
+        #    else:
+        #        QMessageBox.information(None, "Error", "Permissions was not saved!")  
+        if (status):               
+            QgsMessageLog.logMessage("permissionsDoneT")
         else:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Chyba", "Práva nebyla uložena!")               
-            else:
-                QMessageBox.information(None, "Error", "Permissions was not saved!")                 
-    
+            QgsMessageLog.logMessage("permissionsDoneF")
     def disableExport(self):
         #print(self.dlg.treeWidget.currentItem())
        # print(self.dlg.treeWidget.selectedItems())
@@ -1206,6 +1257,24 @@ class Layman:
         self.dlg.lineEdit_5.setText(str(ymin))
         self.dlg.lineEdit_6.setText(str(ymax))
         self.dlg.label_4.setText("Extent of canvas: " + it.text(0))
+    def checkPermissionButtons(self):      
+        try:
+            if self.dlg.listWidget_read.currentItem().text() == self.name:
+                self.dlg.pushButton_removeRead.setEnabled(False)
+            else:
+                self.dlg.pushButton_removeRead.setEnabled(True)
+        except:
+            self.dlg.pushButton_removeRead.setEnabled(False)
+            print("neni vybrana polozka")
+        try:
+            if self.dlg.listWidget_write.currentItem().text() == self.name:
+                self.dlg.pushButton_removeWrite.setEnabled(False)
+            else:
+                self.dlg.pushButton_removeWrite.setEnabled(True)
+        except:
+            self.dlg.pushButton_removeWrite.setEnabled(False)
+            print("neni vybrana polozka")
+        
     def checkSelectedCount(self):
         if (len(self.dlg.treeWidget.selectedItems()) > 1):
             self.dlg.pushButton_setPermissions.setEnabled(True)
@@ -1971,7 +2040,21 @@ class Layman:
                 pass
             #self.loadLayersThread()
                        
-                
+        if message[0:15] == "permissionsDone":    
+            try:
+                self.dlg.progressBar_loader.hide() 
+                if (message[-1:] == "T"):
+                    if self.locale == "cs":                
+                        QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
+                    else:
+                        QMessageBox.information(None, "Saved", "Permissions was saved successfully.")
+                else:
+                    if self.locale == "cs":
+                        QMessageBox.information(None, "Chyba", "Práva nebyla uložena!")               
+                    else:
+                        QMessageBox.information(None, "Error", "Permissions was not saved!")  
+            except:
+                print("form was killed before response")
         if message[0:8] == "imports_":
             if self.locale == "cs":               
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" byla úspěšně nahrána "), Qgis.Success, duration=3)
@@ -2130,9 +2213,9 @@ class Layman:
             layers = iface.mapCanvas().layers() ## pokud neexistuej vrstva otazka nema smysl
             if len(layers) > 0:
                 if self.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v novém QGIS projektu?")
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v novém projektu QGIS? Pokud ne, kompozice se sloučí se stávajícím mapovým obsahem.")
                 else:
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open composition in new QGIS project?")
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open composition in new QGIS project? If not, composition merge with the actual map content.")
                 msgbox.addButton(QMessageBox.Yes)
                 msgbox.addButton(QMessageBox.No)
                 msgbox.setDefaultButton(QMessageBox.No)
@@ -2343,12 +2426,13 @@ class Layman:
         self.dlg.lineEdit_6.setText(str(ext.yMaximum()))
 
     def setWritePermissionList(self):
-        itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
-        if (self.dlg.comboBox_users.currentText() in itemsTextListRead):
-            self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
-        else:
-            self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
-            self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+        if self.checkAddedItemDuplicity("write"):
+            itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
+            if (self.dlg.comboBox_users.currentText() in itemsTextListRead):
+                self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+            else:
+                self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
     def removeWritePermissionList(self):
         self.deleteItem(self.dlg.listWidget_read.currentItem().text())
         self.dlg.listWidget_read.removeItemWidget(self.dlg.listWidget_read.takeItem(self.dlg.listWidget_read.currentRow()))
@@ -2587,9 +2671,11 @@ class Layman:
             ## transforma test
           #  result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(layer, layer_filename, "utf-8", crs, ogr_driver_name) # export jsonu do souboru
 
-            sld_filename = filePath.replace("geojson", "sld").lower()            
+            sld_filename = filePath.replace("geojson", "sld").lower()     
+            qml_filename = filePath.replace("geojson", "qml").lower() 
             result3 = False
             layer.saveSldStyle(sld_filename)
+            layer.saveNamedStyle(qml_filename)
     def json_exportMix(self, layer):    
     
         filePath = self.getTempPath(self.removeUnacceptableChars(layer.name() + str(layer.geometryType())).lower())  
@@ -2802,12 +2888,14 @@ class Layman:
         #path = self.transformLayer(layer_name)
         ######
         sldPath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+        qmlPath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
         geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
             self.postInChunks(layer_name, "post")
         else:
-            if(os.path.isfile(sldPath)): ## existuje sld?
+            if(os.path.isfile(sldPath)): ## existuje qml?
                 files = [('file', open(geoPath, 'rb')), ('sld', open(sldPath, 'rb'))]
+                #files = [('file', open(geoPath, 'rb')), ('style', open(qmlPath, 'rb'))]
             else:
                 files = {'file': (geoPath, open(geoPath, 'rb')),} 
 
@@ -3916,7 +4004,7 @@ class Layman:
                 QgsProject.instance().addMapLayer(rlayer)
         else:
             if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "WMS není pro vrstu "+layerNameTitle+ " k dispozici.")
+                QMessageBox.information(None, "Layman", "WMS není pro vrstvu "+layerNameTitle+ " k dispozici.")
             else:
                 QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
     def loadXYZ(self, url, layerName,layerNameTitle, format, epsg, groupName = ''):      
@@ -4549,6 +4637,12 @@ class Layman:
                 #print("obtained code")
             i = i +1
             time.sleep(0.5)
+    def getUserName(self):
+        userEndpoint = self.URI+ "/rest/current-user"   
+        r = requests.get(url = userEndpoint, headers = self.getAuthHeader(self.authCfg))
+        res = self.fromByteToJson(r.content)
+        print(res)
+        return res['claims']['name']
     def openAuthLiferayUrl2(self):
         #self.authCfg = self.client_id[-7:]
         #authcfg_id = self.client_id[-7:]
@@ -4559,6 +4653,7 @@ class Layman:
         if (authHeader):
             self.registerUserIfNotExists()
             threading.Thread(target=self.loadAllCompositesT).start() ## načteme kompozice do pole ve vláknu 
+            self.name = self.getUserName()
             ### authconfig
             #authcfg_id = self.client_id[-7:]
             #if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():

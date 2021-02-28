@@ -172,13 +172,32 @@
    <property name="geometry">
     <rect>
      <x>290</x>
-     <y>50</y>
+     <y>60</y>
      <width>55</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
     <string>Write:</string>
+   </property>
+  </widget>
+  <widget class="QProgressBar" name="progressBar_loader">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>216</x>
+     <y>303</y>
+     <width>111</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="maximum">
+    <number>0</number>
+   </property>
+   <property name="value">
+    <number>0</number>
    </property>
   </widget>
  </widget>
