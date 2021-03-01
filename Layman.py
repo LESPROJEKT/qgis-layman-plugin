@@ -1604,7 +1604,10 @@ class Layman:
         response = requests.delete(url, headers = self.getAuthHeader(self.authCfg))
      
         self.deleteItemFromTreeWidget(name)
-        QgsMessageLog.logMessage("delLay")
+        if response.status_code == 200:
+            QgsMessageLog.logMessage("delLay")
+        else:
+            QgsMessageLog.logMessage("delLayErr")
     def deleteItemFromTreeWidget(self,name):
         #print(name)
         iterator= QTreeWidgetItemIterator(self.dlg.treeWidget);
@@ -2026,6 +2029,11 @@ class Layman:
             #    self.dlg.pushButton.setEnabled(True)
             #except:
             #    pass    
+        if message == "delLayErr":
+            if self.locale == "cs":                
+                QMessageBox.information(None, "Error", "Vrstva nebyla smazána!")
+            else:
+                QMessageBox.information(None, "Error", "Layer was not deleted!")
         if message == "delLay":
             try:
                 self.dlg.label_thumbnail.setText(' ')
