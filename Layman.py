@@ -548,6 +548,7 @@ class Layman:
         self.dlg = EditMapDialog()      
         self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_range.setStyleSheet("#pushButton_range {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_range:hover{background: #66ab27 ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         
        
@@ -566,7 +567,8 @@ class Layman:
         self.dlg.lineEdit_ymax.setText(self.compositeList[x]['extent'][3])
         self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog()) 
         self.dlg.pushButton_save.clicked.connect(lambda: self.modifyMap(x))
-        self.dlg.rejected.connect(lambda: self.afterCloseCompositeDialog())
+        self.dlg.pushButton_range.clicked.connect(lambda: self.setRangeFromCanvas())
+        #self.dlg.rejected.connect(lambda: self.afterCloseCompositeDialog())
         self.dlg.show()
         result = self.dlg.exec_()
 
@@ -1041,6 +1043,13 @@ class Layman:
         self.threadLayers = threading.Thread(target=self.loadMapsThread)
         self.threadLayers.start()
         result = self.dlg.exec_()
+    def setRangeFromCanvas(self):
+        ext = self.iface.mapCanvas().extent()
+        self.dlg.lineEdit_xmin.setText(str(ext.xMinimum()))
+        self.dlg.lineEdit_xmax.setText(str(ext.xMaximum()))
+        self.dlg.lineEdit_ymin.setText(str(ext.yMinimum()))
+        self.dlg.lineEdit_ymax.setText(str(ext.yMaximum()))
+
     def loadMapsThread(self):
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
        
@@ -1159,9 +1168,9 @@ class Layman:
             else:
                 print("xx")
                 if self.locale == "cs":                
-                    QMessageBox.information(None, "Layman", "Tato role se již v seznamu vyskytuje!")
+                    QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
                 else:
-                    QMessageBox.information(None, "Layman", "This role already exists in the list!")
+                    QMessageBox.information(None, "Layman", "This user already exists in the list!")
                 return False
         else:
             if ((self.dlg.comboBox_users.currentText().split(' , ')[0] not in itemsTextListWrite) and type == "write"):
@@ -1170,9 +1179,9 @@ class Layman:
             else:
                 print("yy")
                 if self.locale == "cs":                
-                    QMessageBox.information(None, "Layman", "Tato role se již v seznamu vyskytuje!")
+                    QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
                 else:
-                    QMessageBox.information(None, "Layman", "This role already exists in the list!")
+                    QMessageBox.information(None, "Layman", "This user already exists in the list!")
                 return False
     def updatePermissions(self,layerName, userDict, type):
         
@@ -1966,6 +1975,13 @@ class Layman:
                 self.dlg.progressBar.hide() 
                 self.dlg.label_import.hide()
                 self.refreshLayerListReversed()
+                self.dlg.pushButton_addMap.setEnabled(True)
+                self.dlg.pushButton_deleteMap.setEnabled(True)
+                self.dlg.pushButton_editMeta.setEnabled(True)
+                self.dlg.pushButton_setMapPermissions.setEnabled(True)
+                self.dlg.pushButton_addRaster.setEnabled(True)
+                if (self.dlg.mMapLayerComboBox.count() > 0):
+                    self.dlg.pushButton.setEnabled(True)
             except:
                 print("chyba")
 
@@ -2291,6 +2307,11 @@ class Layman:
             del (self.compositeList[x])        
             self.refreshCompositeList()## pro import map form
             self.dlg.listWidget_listLayers.clear()
+            self.dlg.pushButton_deleteMap.setEnabled(False)
+            self.dlg.pushButton_editMeta.setEnabled(False)
+            self.dlg.pushButton_setMapPermissions.setEnabled(False)
+            self.dlg.pushButton.setEnabled(False)
+            self.dlg.pushButton_addRaster.setEnabled(False)
       
         
         
@@ -2436,11 +2457,13 @@ class Layman:
     def setWritePermissionList(self):
         if self.checkAddedItemDuplicity("write"):
             itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
-            if (self.dlg.comboBox_users.currentText() in itemsTextListRead):
+            if (self.dlg.comboBox_users.currentText().split(' , ')[0] in itemsTextListRead):
                 self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                print("1")
             else:
                 self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
                 self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                print("2")
     def removeWritePermissionList(self):
         self.deleteItem(self.dlg.listWidget_read.currentItem().text())
         self.dlg.listWidget_read.removeItemWidget(self.dlg.listWidget_read.takeItem(self.dlg.listWidget_read.currentRow()))
@@ -2558,12 +2581,12 @@ class Layman:
         oldName = self.dlg.lineEdit_name.text()
         response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+oldName,headers = self.getAuthHeader(self.authCfg))
        
-        self.dlg.close()
-        self.afterCloseEditMapDialog()
+        #self.dlg.close()
+        #self.afterCloseEditMapDialog()
         self.importMap(x, 'mod')
         
         try:
-            self.refreshCompositeList()
+            #self.refreshCompositeList()
             iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
         except:
             pass

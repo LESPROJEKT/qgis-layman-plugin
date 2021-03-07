@@ -315,6 +315,19 @@
     <string>YMin:</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="pushButton_range">
+   <property name="geometry">
+    <rect>
+     <x>360</x>
+     <y>200</y>
+     <width>141</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Extent from layers</string>
+   </property>
+  </widget>
  </widget>
  <tabstops>
   <tabstop>pushButton_save</tabstop>
