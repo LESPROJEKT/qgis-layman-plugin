@@ -68,6 +68,7 @@ import qgis.gui
 from qgis.gui import QgsMapCanvas
 from qgis.core import QgsApplication
 from qgis.utils import iface
+import xml.etree.ElementTree as ET
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QWidget, QInputDialog, QLineEdit, QFileDialog
 import requests
 import tempfile
@@ -567,7 +568,8 @@ class Layman:
         self.dlg.lineEdit_ymax.setText(self.compositeList[x]['extent'][3])
         self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog()) 
         self.dlg.pushButton_save.clicked.connect(lambda: self.modifyMap(x))
-        self.dlg.pushButton_range.clicked.connect(lambda: self.setRangeFromCanvas())
+       # self.dlg.pushButton_range.clicked.connect(lambda: self.setRangeFromCanvas())
+        self.dlg.pushButton_range.clicked.connect(lambda: self.setExtentFromLayers(x))
         #self.dlg.rejected.connect(lambda: self.afterCloseCompositeDialog())
         self.dlg.show()
         result = self.dlg.exec_()
@@ -611,6 +613,7 @@ class Layman:
         self.dlg.lineEdit.hide()
         self.dlg.pushButton_CreateComposition.clicked.connect(lambda: self.createComposite(self.dlg.lineEdit.text(),self.dlg.lineEdit_2.text()))              
         layers = QgsProject.instance().mapLayers().values()
+        self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog()) 
         self.dlg.treeWidget.itemClicked.connect(self.setExtent)
         for layer in layers:
            # self.dlg.listWidget_listLayers.addItem(layer.name())
@@ -635,9 +638,10 @@ class Layman:
 
         self.dlg.show()
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        if (fromImport):
-            self.dlg.rejected.connect(lambda: self.afterCloseCompositeDialog())
+        #if (fromImport):
+            #self.dlg.rejected.connect(lambda: self.afterCloseCompositeDialog())
         result = self.dlg.exec_()
+        
 
 
     def run_ImportMapDialog(self):        
@@ -1043,6 +1047,68 @@ class Layman:
         self.threadLayers = threading.Thread(target=self.loadMapsThread)
         self.threadLayers.start()
         result = self.dlg.exec_()
+    def setExtentFromLayers(self, x):
+        xmin = None
+        xmax = None
+        ymin = None
+        ymax = None
+        initRun = True
+        url = self.URI+'/client/geoserver/'+self.laymanUsername+'/ows?service=wms&version=1.1.1&request=GetCapabilities'
+        r = requests.get(url)
+        names = list()
+        renge = list()
+        tree = ET.ElementTree(ET.fromstring(r.content))
+        root = tree.getroot()
+        for name in  root.findall("./Capability/Layer/Layer/Name"):
+            #print(name.tag,name.attrib, name.text)
+            names.append(name.text)    
+        for name in  root.findall("./Capability/Layer/Layer/LatLonBoundingBox"):
+            #print(name.tag,name.attrib, name.text)    
+            renge.append(name.attrib)
+        for i in range(len(self.compositeList[x]['layers'])): 
+            className = self.compositeList[x]['layers'][i]['className']     
+            if className == 'HSLayers.Layer.WMS' or 'OpenLayers.Layer.Vector':
+                name = self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title'])
+            #    url = self.compositeList['layers'][x]['url']
+            #if className == 'OpenLayers.Layer.Vector': 
+            #    url = self.compositeList['layers'][x]['params']['LAYERS']
+                
+            #url = "https://hub.lesprojekt.cz/geoserver/jan_vrobel_wms/ows?service=wms&version=1.1.1&request=GetCapabilities"
+            
+                
+                #print(r.content)
+                #print(len(names))    
+                #print(len(renge)) 
+                #print(renge[0]['maxy'])
+                #print(renge[0]['maxx'])
+                #print(renge[0]['miny'])
+                #print(renge[0]['minx'])
+                print(len(names))
+                for i in range (0, len(names)):
+                    if names[i] == name:
+                        if initRun:
+                            ymax = renge[i]['maxy']
+                            xmax = renge[i]['maxx']
+                            ymin = renge[i]['miny']
+                            xmin = renge[i]['minx']  
+                            initRun = False
+                        if renge[i]['maxy'] > ymax:
+                            print("maxy" + ymax ,renge[i]['maxy'] )
+                            ymax = renge[i]['maxy']
+                        if renge[i]['maxx'] > xmax:
+                            print("maxx" + xmax, renge[i]['maxx'] )
+                            xmax = renge[i]['maxx']
+                        if renge[i]['miny'] < ymin:
+                            print("miny"+ ymin, renge[i]['miny'])
+                            ymin = renge[i]['miny']
+                        if renge[i]['minx'] < xmin:
+                            print("minx"+ xmin, renge[i]['minx'] )
+                            xmin = renge[i]['minx']    
+        self.dlg.lineEdit_xmin.setText(str(xmin))
+        self.dlg.lineEdit_xmax.setText(str(xmax))
+        self.dlg.lineEdit_ymin.setText(str(ymin))
+        self.dlg.lineEdit_ymax.setText(str(ymax))
+                
     def setRangeFromCanvas(self):
         ext = self.iface.mapCanvas().extent()
         self.dlg.lineEdit_xmin.setText(str(ext.xMinimum()))
