@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.0
 description=Layman
-version=1.63
+version=1.64
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -26,7 +26,7 @@ repository=https://gitlab.com/Vrobel/layman_qgis/-/blob/master/README.md
 # Uncomment the following line and add your changelog:
 changelog=
 	1.60 - owner permissions bug fixed, removed experimental flag
-
+	1.64 - map composition can get extent from own layers, form bugs in manage form fixed
 # Tags are comma separated with spaces allowed
 tags=python
 
