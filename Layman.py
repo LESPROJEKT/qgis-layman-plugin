@@ -81,6 +81,7 @@ import base64
 import hashlib
 import html
 import re
+from distutils.version import LooseVersion, StrictVersion
 import urllib.parse
 from .ogr2ogr import main
 ## forms
@@ -159,6 +160,7 @@ class Layman:
         self.millis = 0
         self.version = "1.0.0"
         self.initFiles()
+        self.laymanVersion = None
         self.firstStart = True
         self.mixedLayers = list()
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
@@ -2943,7 +2945,7 @@ class Layman:
         else:
             self.json_export(layer_name)
         #self.json_export(layer_name)     
-           
+        
         geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
         #try:
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
@@ -2984,15 +2986,19 @@ class Layman:
         #### transform test
         #path = self.transformLayer(layer_name)
         ######
-        sldPath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
-        qmlPath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+      #  sldPath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+      #  qmlPath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
         geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0"):
+            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+        else:
+            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
             self.postInChunks(layer_name, "post")
         else:
-            if(os.path.isfile(sldPath)): ## existuje qml?
-                files = [('file', open(geoPath, 'rb')), ('sld', open(sldPath, 'rb'))]
-                #files = [('file', open(geoPath, 'rb')), ('style', open(qmlPath, 'rb'))]
+            if(os.path.isfile(stylePath)): ## existuje style?
+                #files = [('file', open(geoPath, 'rb')), ('sld', open(qmlPath, 'rb'))]
+                files = [('file', open(geoPath, 'rb')), ('style', open(stylePath, 'rb'))]
             else:
                 files = {'file': (geoPath, open(geoPath, 'rb')),} 
 
@@ -3332,6 +3338,28 @@ class Layman:
             self.refreshLayerListReversed()
         time.sleep(1)
         QgsMessageLog.logMessage("addRaster")
+    def getStyle(self, layer_name):
+        response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
+        #h = requests.head(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
+        #header = h.headers
+        #content_type = header.get('content-type')
+        print("zz")
+        #print(contentType)
+        res = response.content
+        res = res.decode("utf-8")
+        if (res[0:5] == "<qgis" and response.status_code == 200):
+            print("got qml")
+            suffix = ".qml"
+
+        if (res[0:5] == "<?xml" and response.status_code == 200):
+            print("got sld")
+            suffix = ".sld"
+
+        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name) + suffix
+        #print(tempf)
+        with open(tempf, 'wb') as f:
+            f.write(response.content)
+        return response.status_code, suffix.replace(".","")
     def getSLD(self, layer_name):
         response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
         #response = requests.get('https://layman.lesprojekt.cz/rest/lay3/layers/' + layer_name+ '/style') test
@@ -3744,12 +3772,17 @@ class Layman:
         #self.layerName = layer_name.lower()
         self.layerName = self.removeUnacceptableChars(layer_name)
         
-        sldPath = self.getTempPath(self.layerName).replace("geojson", "sld")
+        #sldPath = self.getTempPath(self.layerName).replace("geojson", "sld")
+        #qmlPath = self.getTempPath(self.layerName).replace("geojson", "qml")
         geoPath = self.getTempPath(self.layerName)
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0"):
+            stylePath = self.getTempPath(self.layerName).replace("geojson", "qml")
+        else:
+            stylePath = self.getTempPath(self.layerName).replace("geojson", "sld")
         ##self.layerName = self.layerName
       
-        if(os.path.isfile(sldPath)): ## existuje sld?
-            files = [('file', open(geoPath, 'rb')), ('sld', open(sldPath, 'rb'))]
+        if(os.path.isfile(stylePath)): ## existuje styl?
+            files = [('file', open(geoPath, 'rb')), ('style', open(stylePath, 'rb'))]
             
         else:
             files = {'file': (geoPath, open(geoPath, 'rb')),}  
@@ -4163,6 +4196,7 @@ class Layman:
        # print(vlayer.isValid()) 
         
         if (vlayer.isValid()):
+            print("cc")
             if (self.getTypesOfGeom(vlayer) < 2):
            # if (True):    
                 if (groupName != ''):
@@ -4170,13 +4204,20 @@ class Layman:
                 else:            
                     QgsProject.instance().addMapLayer(vlayer)
                 ## zde bude SLD kod
-                code = self.getSLD(layerName)
+                print("tt")
+                style = self.getStyle(layerName)
+                #code = self.getSLD(layerName)
                 
                 
-                if (code == 200):
-                    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
-                    vlayer.loadSldStyle(tempf)
-                    vlayer.triggerRepaint()
+                if (style[0] == 200):
+                    if (style[1] == "sld"):
+                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                        vlayer.loadSldStyle(tempf)
+                        vlayer.triggerRepaint()
+                    if (style[1] == "qml"):
+                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                        vlayer.loadNamedStyle(tempf)
+                        vlayer.triggerRepaint()
             else: ### cast pro slozenou geometrii
                 self.mixedLayers.append(layerName)
                 pointFeats = list()
@@ -4344,9 +4385,14 @@ class Layman:
 
         url = self.URI + "/rest/"+self.laymanUsername+"/layers"
         name = self.removeUnacceptableChars(name)  
-        sldPath = self.getTempPath(name).replace("geojson", "sld").lower()
+        #sldPath = self.getTempPath(name).replace("geojson", "sld").lower()
+        #qmlPath = self.getTempPath(name).replace("geojson", "qml").lower()
         geoPath = self.getTempPath(name).lower()
-        files = {'sld': (sldPath, open(sldPath, 'rb')),} # nahrávám sld
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0"):
+            stylePath = self.getTempPath(name).replace("geojson", "sld").lower()
+        else:
+            stylePath = self.getTempPath(self.layerName).replace("geojson", "sld")
+        files = {'style': (stylePath, open(stylePath, 'rb')),} # nahrávám sld
         payload = {        
             'file': name.lower()+".geojson",
             'title': name
@@ -4628,6 +4674,7 @@ class Layman:
         self.startThread()   
         #self.loadAllCompositesT()
         threading.Thread(target=self.loadAllCompositesT).start() ## načteme kompozice do pole ve vláknu 
+       
         ### authconfig
         authcfg_id = self.authCfg
         if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
@@ -4751,6 +4798,21 @@ class Layman:
             self.registerUserIfNotExists()
             threading.Thread(target=self.loadAllCompositesT).start() ## načteme kompozice do pole ve vláknu 
             self.name = self.getUserName()
+
+
+             ## layman version
+            
+            url = self.URI+ "/rest/about/version"   
+            print(url)
+            r = requests.get(url = url)
+            #print (r.content)
+            try:
+                res = self.fromByteToJson(r.content)
+                print(res['about']['applications']['layman']['version'])
+                self.laymanVersion = res['about']['applications']['layman']['version']
+            except:
+                self.laymanVersion = "0.0.0"
+            ##
             ### authconfig
             #authcfg_id = self.client_id[-7:]
             #if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
