@@ -975,16 +975,16 @@ class Layman:
                 self.dlg.pushButton_Connect.setEnabled(True) 
             #self.dlg.lineEdit_userName.setText(config['DEFAULT']['login'] + "@lesprojekt.cz")  
             self.dlg.lineEdit_userName.setText(config['DEFAULT']['login'])  
-            try:
-                for i in range (0, self.dlg.comboBox_server.count()):                
-                    #print(self.dlg.comboBox_server.itemText(i))
-                    if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
-                        self.dlg.comboBox_server.setCurrentIndex(i)
-                #self.dlg.lineEdit_AgriID.setText(config['DEFAULT']['id']) 
-                self.dlg.lineEdit_server.setText(config['DEFAULT']['server']) 
-                self.dlg.lineEdit_serverLayman.setText(config['DEFAULT']['layman']) 
-            except:
-                print("udaj v ini nenalezen")
+            
+            for i in range (0, self.dlg.comboBox_server.count()):                
+                #print(self.dlg.comboBox_server.itemText(i))
+                if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
+                    self.dlg.comboBox_server.setCurrentIndex(i)
+            #self.dlg.lineEdit_AgriID.setText(config['DEFAULT']['id']) 
+            #self.dlg.lineEdit_server.setText(config['DEFAULT']['server']) 
+           # self.dlg.lineEdit_serverLayman.setText(config['DEFAULT']['layman']) 
+            #except:
+             #   print("udaj v ini nenalezen")
         else:
             try:
                 os.makedirs(os.getenv("HOME") + os.sep + ".layman")
@@ -4797,6 +4797,7 @@ class Layman:
         if (authHeader):
             self.registerUserIfNotExists()
             threading.Thread(target=self.loadAllCompositesT).start() ## načteme kompozice do pole ve vláknu 
+            self.saveIni() 
             self.name = self.getUserName()
 
 
