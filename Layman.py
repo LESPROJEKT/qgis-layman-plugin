@@ -1547,14 +1547,23 @@ class Layman:
         return inComposite
 
 
-    def refreshCompositeList(self):
+    def refreshCompositeList(self, new=False):
         self.dlg.listWidget.clear()
         
         
         for i in range (0, len(self.compositeList)):
            # self.dlg.listWidget.addItem(self.compositeList[i]['name'])
            self.dlg.listWidget.addItem(self.compositeList[i]['title'])
- 
+        if new:
+            self.dlg.listWidget.setCurrentRow(self.dlg.listWidget.count() -1)
+            self.dlg.pushButton_deleteMap.setEnabled(True)
+            self.dlg.pushButton_editMeta.setEnabled(True)
+            self.dlg.pushButton_setMapPermissions.setEnabled(True)
+            self.dlg.pushButton_down.setEnabled(False)
+            self.dlg.pushButton_up.setEnabled(False)
+            self.dlg.pushButton_deleteLayers.setEnabled(False)
+            self.dlg.listWidget_listLayers.clear()
+         
 
     def refreshLayerList(self):
         self.dlg.listWidget_listLayers.clear()
@@ -3762,7 +3771,7 @@ class Layman:
             x = len(self.compositeList) - 1
             self.importCleanComposite(x)
             try:
-                self.refreshCompositeList()
+                self.refreshCompositeList(True)
             except:
                 pass
 
