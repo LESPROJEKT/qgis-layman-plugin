@@ -934,7 +934,7 @@ class Layman:
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
         self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-
+        self.selectSelectedLayer()
         self.dlg.show()
         #self.dlg.rejected.connect(lambda: self.setBatchLengthZero()) 
         
@@ -1148,8 +1148,8 @@ class Layman:
         self.dlg.pushButton_setPermissions.setEnabled(False)
         self.threadLayers = threading.Thread(target=self.loadLayersThread)
         self.threadLayers.start()
-
-        
+        #self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.selectSelectedLayer())
+            
         #self.dlg.pushButton_delete.clicked.connect(lambda: self.layerDelete(self.dlg.treeWidget.selectedItems()[0].text(0)))    
         self.dlg.pushButton_delete.clicked.connect(lambda: self.callDeleteLayer(self.dlg.treeWidget.selectedItems()))    
         self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
@@ -1168,7 +1168,7 @@ class Layman:
         self.dlg.pushButton_wfs.setStyleSheet("#pushButton_wfs {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_wfs:hover{background: #66ab27 ;}#pushButton_wfs:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-
+        
         self.dlg.progressBar_loader.show() 
         self.dlg.label_loading.show() 
         self.dlg.show()
@@ -1334,6 +1334,28 @@ class Layman:
         self.dlg.lineEdit_5.setText(str(ymin))
         self.dlg.lineEdit_6.setText(str(ymax))
         self.dlg.label_4.setText("Extent of canvas: " + it.text(0))
+    def selectSelectedLayer(self):
+        try:
+            layer = self.iface.activeLayer()
+            layerName = layer.name()
+        except:
+            print("no layer in list")
+            return
+        iterator = QTreeWidgetItemIterator(self.dlg.treeWidget, QTreeWidgetItemIterator.All)
+        while iterator.value():
+            item = iterator.value()
+            if item.text(0) == layerName:
+                self.dlg.treeWidget.setCurrentItem(item, 1)
+            iterator +=1
+        
+        #it = QTreeWidgetItemIterator(self.dlg.treeWidget)      
+        #while it:
+        #    print(it.text(0))
+        #    print(layerName)
+        #    if it.text(0) == layerName:
+        #        *it.setSelected(True)
+        #    ++it
+
     def checkPermissionButtons(self):      
         try:
             if self.dlg.listWidget_read.currentItem().text() == self.name:
