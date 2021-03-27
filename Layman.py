@@ -668,8 +668,10 @@ class Layman:
         self.dlg.pushButton.clicked.connect(lambda: self.addLayerToComposite(self.dlg.listWidget.currentRow()))   
         self.dlg.pushButton_deleteMap.clicked.connect(lambda: self.deleteMap(self.dlg.listWidget.currentItem().text(),self.dlg.listWidget.currentRow()))
        # self.dlg.pushButton_deleteMap.clicked.connect(lambda: self.deleteMapFromCanvas(self.dlg.listWidget.currentRow())) 
-        self.dlg.pushButton_up.clicked.connect(lambda: self.reorderLayers(self.dlg.listWidget_listLayers.currentRow(), 1, self.dlg.listWidget.currentRow()))
-        self.dlg.pushButton_down.clicked.connect(lambda: self.reorderLayers(self.dlg.listWidget_listLayers.currentRow(), -1, self.dlg.listWidget.currentRow()))
+        self.dlg.pushButton_up.clicked.connect(lambda: self.reorderLayers(self.dlg.treeWidget_listLayers.indexOfTopLevelItem(self.dlg.treeWidget_listLayers.currentItem()), 1, self.dlg.listWidget.currentRow()))
+        #self.dlg.pushButton_down.clicked.connect(lambda: self.reorderLayers(self.dlg.listWidget_listLayers.currentRow(), -1, self.dlg.listWidget.currentRow()))
+        self.dlg.pushButton_down.clicked.connect(lambda: self.reorderLayers(self.dlg.treeWidget_listLayers.indexOfTopLevelItem(self.dlg.treeWidget_listLayers.currentItem()), -1, self.dlg.listWidget.currentRow()))
+        
         self.dlg.pushButton_saveOrder.clicked.connect(lambda: self.saveReorder(self.dlg.listWidget.currentRow()))
         self.dlg.pushButton_setMapPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.dlg.listWidget.currentItem().text()))
         
@@ -702,9 +704,12 @@ class Layman:
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_up.setEnabled(True))
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_down.setEnabled(True))
         self.dlg.listWidget.itemClicked.connect(lambda: self.dlg.pushButton_setMapPermissions.setEnabled(True))
-        self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_down.setEnabled(True))
-        self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_up.setEnabled(True))
-        self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_deleteLayers.setEnabled(True))
+        #self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_down.setEnabled(True))
+        #self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_up.setEnabled(True))
+        #self.dlg.listWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_deleteLayers.setEnabled(True))
+        self.dlg.treeWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_down.setEnabled(True))
+        self.dlg.treeWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_up.setEnabled(True))
+        self.dlg.treeWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_deleteLayers.setEnabled(True))
         self.dlg.listWidget.itemClicked.connect(lambda: self.setListLayer())
 
         self.dlg.rejected.connect(lambda: self.saveReorder())
@@ -739,10 +744,12 @@ class Layman:
      #############
         self.dlg.pushButton.setEnabled(False)
         self.dlg.pushButton_deleteLayers.setEnabled(False)
-        self.dlg.listWidget_listLayers.itemClicked.connect(self.showSmallThumbnail)
+        self.dlg.treeWidget_listLayers.itemClicked.connect(self.showSmallThumbnail)
+        self.dlg.treeWidget_listLayers.itemDoubleClicked.connect(self.wms_wfs)
       #  self.dlg.listWidget_listLayers.itemClicked.connect(self.showThumbnail)
         self.dlg.listWidget.itemClicked.connect(self.enableButton)          
-        self.dlg.pushButton_deleteLayers.clicked.connect(lambda: self.deteteLayerFromComposite(self.dlg.listWidget.currentRow(),self.dlg.listWidget_listLayers.currentRow(), self.dlg.listWidget_listLayers.currentItem().text()))    
+        #self.dlg.pushButton_deleteLayers.clicked.connect(lambda: self.deteteLayerFromComposite(self.dlg.listWidget.currentRow(),self.dlg.listWidget_listLayers.currentRow(), self.dlg.listWidget_listLayers.currentItem().text()))    
+        self.dlg.pushButton_deleteLayers.clicked.connect(lambda: self.deteteLayerFromComposite(self.dlg.listWidget.currentRow(),self.dlg.treeWidget_listLayers.indexOfTopLevelItem(self.dlg.treeWidget_listLayers.currentItem()), self.dlg.treeWidget_listLayers.selectedItems()[0].text(0)))    
        # self.form()
         self.dlg.show()
         self.dlg.progressBar_loader.show() 
@@ -868,7 +875,10 @@ class Layman:
             self.dlg.comboBox_raster.addItem(data[row]['title'])
             self.dlg.comboBox_raster.setCurrentIndex(0)
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
-        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        try:
+            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        except:
+            QgsMessageLog.logMessage("errConnection")
         data = r.json()
         
         for row in range(0, len(data)):            
@@ -1347,14 +1357,7 @@ class Layman:
             if item.text(0) == layerName:
                 self.dlg.treeWidget.setCurrentItem(item, 1)
             iterator +=1
-        
-        #it = QTreeWidgetItemIterator(self.dlg.treeWidget)      
-        #while it:
-        #    print(it.text(0))
-        #    print(layerName)
-        #    if it.text(0) == layerName:
-        #        *it.setSelected(True)
-        #    ++it
+ 
 
     def checkPermissionButtons(self):      
         try:
@@ -1431,13 +1434,15 @@ class Layman:
             self.dlg.pushButton_Connect.setEnabled(False) 
 
     def setListLayer(self):
-        count = self.dlg.listWidget_listLayers.count()
+        #count = self.dlg.listWidget_listLayers.count()
+        count = self.dlg.treeWidget_listLayers.topLevelItemCount()
         if count == 0:
             self.dlg.pushButton_deleteLayers.setEnabled(False)
             self.dlg.pushButton_up.setEnabled(False)
             self.dlg.pushButton_down.setEnabled(False)
         else:
-            self.dlg.listWidget_listLayers.setCurrentRow(0)
+            #self.dlg.listWidget_listLayers.setCurrentRow(0)
+            self.dlg.treeWidget_listLayers.setCurrentItem(self.dlg.treeWidget_listLayers.topLevelItem(0),0)
             self.dlg.pushButton_deleteLayers.setEnabled(True)
             self.dlg.pushButton_up.setEnabled(True)
             self.dlg.pushButton_down.setEnabled(True)
@@ -1585,27 +1590,38 @@ class Layman:
             self.dlg.pushButton_up.setEnabled(False)
             self.dlg.pushButton_deleteLayers.setEnabled(False)
             self.dlg.listWidget_listLayers.clear()
+            self.dlg.treeWidget_listLayers.clear()
          
 
     def refreshLayerList(self):
-        self.dlg.listWidget_listLayers.clear()
+        #self.dlg.listWidget_listLayers.clear()
+        self.dlg.treeWidget_listLayers.clear()       
         for i in (range (0,len(self.compositeList[self.dlg.listWidget.currentRow()]['layers']))):
-            self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
+            #self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
+            item = QTreeWidgetItem([self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'],self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['className'] ])
+            self.dlg.treeWidget_listLayers.addTopLevelItem(item)
             #print(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
 
     def refreshLayerListNonReversed(self):
-        self.dlg.listWidget_listLayers.clear()
+        #self.dlg.listWidget_listLayers.clear()
+        self.dlg.treeWidget_listLayers.clear()   
         for i in range (0,len(self.compositeList[self.dlg.listWidget.currentRow()]['layers'])):
-            self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
+            item = QTreeWidgetItem([self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['title'],self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['className'] ])
+            self.dlg.treeWidget_listLayers.addTopLevelItem(item)
+            #self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
     #        print(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
     def refreshLayerListReversed(self):
-        self.dlg.listWidget_listLayers.clear()
+        #self.dlg.listWidget_listLayers.clear()
+        self.dlg.treeWidget_listLayers.clear() 
         for i in range (len(self.compositeList[self.dlg.listWidget.currentRow()]['layers'])-1,-1,-1):
             #self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
-            self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['title'])
+            item = QTreeWidgetItem([self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['title'],self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['className'] ])
+            self.dlg.treeWidget_listLayers.addTopLevelItem(item)
+            #self.dlg.listWidget_listLayers.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['title'])
             #print(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
-        try:
-            self.dlg.listWidget_listLayers.setCurrentRow(0)
+        try:         
+            self.dlg.treeWidget_listLayers.setCurrentItem(self.dlg.treeWidget_listLayers.topLevelItem(0),0)
+            #self.dlg.listWidget_listLayers.setCurrentRow(0)
         except:
             self.dlg.pushButton_deleteLayers.setEnabled(False)
             self.dlg.pushButton_up.setEnabled(False)
@@ -1788,7 +1804,52 @@ class Layman:
            
             
             self.refreshLayerListReversed()
-            self.dlg.listWidget_listLayers.setCurrentRow(pos + order)
+            self.dlg.treeWidget_listLayers.setCurrentItem(self.dlg.treeWidget_listLayers.topLevelItem(pos + order),pos + order)
+            #self.dlg.listWidget_listLayers.setCurrentRow(pos + order)
+    def wms_wfs(self, item, column):
+        print(item.text(0))   
+        if item.text(1) == "HSLayers.Layer.WMS" or item.text(1) == "OpenLayers.Layer.Vector":
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Služba pro vrstvu "+item.text(0)+" bude změněna.")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Service for layer "+item.text(0)+" will be changed")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.Yes):
+                for layer in self.compositeList[self.dlg.listWidget.currentRow()]['layers']:
+                    if layer['title'] == item.text(0):
+                        if item.text(1) == "HSLayers.Layer.WMS":
+                            url = layer['url']
+                            name = layer['params']['LAYERS']
+                            layer['className'] = "OpenLayers.Layer.Vector"
+                            layer['protocol'] = {                               
+                                "FROMCRS": "EPSG:3857",
+                                "INFO_FORMAT": "application/vnd.ogc.gml",
+                                "LAYERS": name,
+                                "format": "hs.format.WFS",
+                                "url": url
+                              }
+                            del layer['params']
+                            del layer['url']
+
+                        if item.text(1) == "OpenLayers.Layer.Vector":
+                            url = layer['protocol']['url']
+                            name = layer['protocol']['LAYERS']
+                            layer['className'] = "HSLayers.Layer.WMS"
+                            layer['params'] = {
+                                "FORMAT": "image/png",
+                                "FROMCRS": "EPSG:3857",
+                                "INFO_FORMAT": "application/vnd.ogc.gml",
+                                "LAYERS": name,
+                                "VERSION": "1.3.0"
+                              }
+                            del layer['protocol']
+                            del layer['url'] 
+                #print(self.compositeList[self.dlg.listWidget.currentRow()])
+                self.importMap(self.dlg.listWidget.currentRow(), 'mod')
+                self.refreshLayerListReversed()
 
     def showThumbnail(self, it):
         try:
@@ -2016,6 +2077,10 @@ class Layman:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)               
             else:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
+            try:
+                self.dlg.progressBar_loader.hide() 
+            except:
+                print("progressbar doesnt exist")
         if message == "successLoadComp":
             try:
                 self.dlg.label_loading.hide() 
