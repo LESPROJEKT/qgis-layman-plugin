@@ -1838,15 +1838,15 @@ class Layman:
                             url = layer['protocol']['url']
                             name = layer['protocol']['LAYERS']
                             layer['className'] = "HSLayers.Layer.WMS"
+                            layer['url'] = url
                             layer['params'] = {
                                 "FORMAT": "image/png",
-                                "FROMCRS": "EPSG:3857",
-                                "INFO_FORMAT": "application/vnd.ogc.gml",
+                                "FROMCRS": "EPSG:3857",                          
                                 "LAYERS": name,
                                 "VERSION": "1.3.0"
                               }
                             del layer['protocol']
-                            del layer['url'] 
+                       
                 #print(self.compositeList[self.dlg.listWidget.currentRow()])
                 self.importMap(self.dlg.listWidget.currentRow(), 'mod')
                 self.refreshLayerListReversed()
