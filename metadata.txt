@@ -29,6 +29,7 @@ changelog=
 	1.64 - map composition can get extent from own layers, form bugs in manage form fixed
 	1.65 - support QML on Layman server > v10.0.0
 	1.67 - Create map bug in form fixed
+	1.69 - added option - change wms/wfs service for hs layer type
 # Tags are comma separated with spaces allowed
 tags=python
 
