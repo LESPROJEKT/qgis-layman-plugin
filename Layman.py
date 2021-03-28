@@ -4110,7 +4110,12 @@ class Layman:
         url = url.replace('%26','&') 
         return url
     def loadService2(self, data, service, groupName = ''):   
-        for x in range(len(data['layers'])- 1, -1, -1):       ## descending order
+        for x in range(len(data['layers'])- 1, -1, -1):       ## descending order            
+            try:
+                subgroupName =  data['layers'][x]['path']
+            except:
+                ## path not found
+                subgroupName = ""
             className = data['layers'][x]['className']     
             if className == 'HSLayers.Layer.WMS':
                 layerName = data['layers'][x]['params']['LAYERS']
@@ -4133,7 +4138,7 @@ class Layman:
                     repairUrl = data['layers'][x]['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)
                     #self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
-                    self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
+                    self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName)
                 if className == 'XYZ':
                     repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
                     layerName = data['layers'][x]['params']['LAYERS']
@@ -4143,7 +4148,7 @@ class Layman:
                     layerNameTitle = data['layers'][x]['title']
                     repairUrl = data['layers'][x]['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)
-                    self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName)
+                    self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName)
                 
                     
                 if className == 'OpenLayers.Layer.Vector': 
@@ -4153,7 +4158,7 @@ class Layman:
                     layerNameTitle = data['layers'][x]['title']                    
                     repairUrl = data['layers'][x]['protocol']['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)
-                    self.loadWfs(repairUrl, layerName,layerNameTitle, groupName)
+                    self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName)
             else:
                 if self.locale == "cs":
                     QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
@@ -4189,7 +4194,7 @@ class Layman:
         else:
             return layerString
 
-    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = ''):     
+    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = ''):     
       
         
         #layerName = self.removeUnacceptableChars(layerName)
@@ -4225,7 +4230,7 @@ class Layman:
             
         if (rlayer.isValid()):  
             if (groupName != ''):
-                self.addWmsToGroup(groupName,rlayer)
+                self.addWmsToGroup(groupName,rlayer, subgroupName)
             else:          
                 QgsProject.instance().addMapLayer(rlayer)
         else:
@@ -4233,7 +4238,7 @@ class Layman:
                 QMessageBox.information(None, "Layman", "WMS není pro vrstvu "+layerNameTitle+ " k dispozici.")
             else:
                 QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
-    def loadXYZ(self, url, layerName,layerNameTitle, format, epsg, groupName = ''):      
+    def loadXYZ(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName= ''):      
       
         
         layerName = self.removeUnacceptableChars(layerName)
@@ -4254,7 +4259,7 @@ class Layman:
             
         if (rlayer.isValid()):  
             if (groupName != ''):
-                self.addWmsToGroup(groupName,rlayer)
+                self.addWmsToGroup(groupName,rlayer, subgroupName)
             else:          
                 QgsProject.instance().addMapLayer(rlayer)
         else:
@@ -4263,7 +4268,7 @@ class Layman:
             else:
                 QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
     
-    def loadWfs(self, url, layerName,layerNameTitle, groupName = ''):
+    def loadWfs(self, url, layerName,layerNameTitle, groupName = '', subgroupName = ''):
         layerName = self.removeUnacceptableChars(layerName)
         epsg = 'EPSG:3857'    
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()
@@ -4296,7 +4301,7 @@ class Layman:
             if (self.getTypesOfGeom(vlayer) < 2):
            # if (True):    
                 if (groupName != ''):
-                    self.addWmsToGroup(groupName,vlayer)
+                    self.addWmsToGroup(groupName,vlayer, subgroupName)
                 else:            
                     QgsProject.instance().addMapLayer(vlayer)
                 ## zde bude SLD kod
@@ -4422,26 +4427,42 @@ class Layman:
             if typesL+typesP+typesPol > 2:
                 return typesL+typesP+typesPol
         return typesL+typesP+typesPol
-    def addWmsToGroup(self, groupName, layer, subgroup = False):
-        root = QgsProject.instance().layerTreeRoot()
-        group = root.findGroup(groupName)
-        if subgroup and group:
-            group = group.findGroup(layer.name())
-            #if not(sub):
-            #    group.addGroup(layer.name()) 
-            #    group = group.findGroup(layer.name())
-        if not(group):
-            group = root.addGroup(groupName)  
-            if subgroup:
-                sub = group.findGroup(layer.name())
-                if not(sub):
-                    group.addGroup(layer.name()) 
-                    group = group.findGroup(layer.name())
+    #def addWmsToGroup(self, groupName, layer, subgroup = False):
+    #    root = QgsProject.instance().layerTreeRoot()
+    #    group = root.findGroup(groupName)
+    #    if subgroup and group:
+    #        group = group.findGroup(layer.name())
+    #        #if not(sub):
+    #        #    group.addGroup(layer.name()) 
+    #        #    group = group.findGroup(layer.name())
+    #    if not(group):
+    #        group = root.addGroup(groupName)  
+    #        if subgroup:
+    #            sub = group.findGroup(layer.name())
+    #            if not(sub):
+    #                group.addGroup(layer.name()) 
+    #                group = group.findGroup(layer.name())
                         
+    #        #group = self.reorderToTop(groupName)
+    #    time.sleep(1)
+    #    QgsProject.instance().addMapLayer(layer,False)
+    #    group.insertChildNode(1000,QgsLayerTreeLayer(layer))       
+    def addWmsToGroup(self, groupName, layer, subgroupName=""):
+        root = QgsProject.instance().layerTreeRoot()
+        group = root.findGroup(groupName) 
+        if not(group):
+            group = root.addGroup(groupName) 
+                                   
             #group = self.reorderToTop(groupName)
+        #####
         time.sleep(1)
-        QgsProject.instance().addMapLayer(layer,False)
-        group.insertChildNode(1000,QgsLayerTreeLayer(layer))        
+        if subgroupName == "":
+            QgsProject.instance().addMapLayer(layer,False)
+            group.insertChildNode(1000,QgsLayerTreeLayer(layer))     
+        else:
+            subgroup = group.addGroup(subgroupName)                  
+            subgroup.insertChildNode(1000,QgsLayerTreeLayer(layer))   
+        
     def addLayerToGroup(self, groupName, layer):
         root = QgsProject.instance().layerTreeRoot()
         group = root.findGroup(groupName) 
@@ -4449,9 +4470,13 @@ class Layman:
             group = root.addGroup(groupName) 
                                    
             #group = self.reorderToTop(groupName)
+        #####
+        #subgroup = group.addGroup("testGroup")
+        #####
         time.sleep(1)
         QgsProject.instance().addMapLayer(layer,False)
         group.insertChildNode(1000,QgsLayerTreeLayer(layer))                
+        #subgroup.insertChildNode(1000,QgsLayerTreeLayer(layer))                
     def reorderToTop(self, name):
         root = QgsProject.instance().layerTreeRoot()
         for ch in root.children():
