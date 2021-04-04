@@ -2470,7 +2470,7 @@ class Layman:
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning, duration=3)
             del (self.compositeList[x])        
             self.refreshCompositeList()## pro import map form
-            self.dlg.listWidget_listLayers.clear()
+            self.dlg.treeWidget_listLayers.clear()
             self.dlg.pushButton_deleteMap.setEnabled(False)
             self.dlg.pushButton_editMeta.setEnabled(False)
             self.dlg.pushButton_setMapPermissions.setEnabled(False)
