@@ -4510,7 +4510,7 @@ class Layman:
         #qmlPath = self.getTempPath(name).replace("geojson", "qml").lower()
         geoPath = self.getTempPath(name).lower()
         if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0"):
-            stylePath = self.getTempPath(name).replace("geojson", "sld").lower()
+            stylePath = self.getTempPath(name).replace("geojson", "qml").lower()
         else:
             stylePath = self.getTempPath(self.layerName).replace("geojson", "sld")
         files = {'style': (stylePath, open(stylePath, 'rb')),} # nahrávám sld
