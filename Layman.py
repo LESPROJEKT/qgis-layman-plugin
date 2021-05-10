@@ -387,6 +387,7 @@ class Layman:
         self.dlg.show()
         self.dlg.pushButton_logout.setStyleSheet("#pushButton_logout {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_logout:hover{background: #66ab27 ;}")
         self.dlg.pushButton_update.setStyleSheet("#pushButton_update {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_update:hover{background: #66ab27 ;}#pushButton_update:disabled{background: #64818b ;}")
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         userEndpoint = self.URI + "/rest/current-user"
         r = requests.get(url = userEndpoint,  headers = self.getAuthHeader(self.authCfg))
@@ -400,6 +401,7 @@ class Layman:
         self.dlg.label_agrihub.setText(res['claims']['email'])
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.dlg.label_version.setText(self.getVersion())
+        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         versionCheck = self.checkVersion()
         self.dlg.label_avversion.setText(versionCheck[1])
         if versionCheck[0] == True:
@@ -463,7 +465,8 @@ class Layman:
             self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
         #self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions([mapName], usersDict, "maps"))
         self.dlg.pushButton_save.clicked.connect(lambda:  self.dlg.progressBar_loader.show())
-        self.dlg.pushButton_save.clicked.connect(lambda: threading.Thread(target=lambda: self.updatePermissions([mapName], usersDict, "maps")).start())
+        #self.dlg.pushButton_save.clicked.connect(lambda: threading.Thread(target=lambda: self.updatePermissions([mapName], usersDict, "maps", True)).start())
+        self.dlg.pushButton_save.clicked.connect(lambda:self.askForLayerPermissionChanges([mapName], usersDict, "maps"))
         
 
         self.dlg.pushButton_addRead.clicked.connect(lambda: self.checkAddedItemDuplicity("read"))
@@ -545,7 +548,8 @@ class Layman:
         self.dlg.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
         self.dlg.pushButton_removeWrite.clicked.connect(lambda: self.dlg.listWidget_write.removeItemWidget(self.dlg.listWidget_write.takeItem(self.dlg.listWidget_write.currentRow())))
         
-        self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog()) 
+        #|self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog()) 
+        self.dlg.rejected.connect(lambda: self.afterClosePermissionMapDialog()) 
         
     def run_EditMap(self, x):
         self.dlg = EditMapDialog()      
@@ -1096,8 +1100,9 @@ class Layman:
                 #print(renge[0]['miny'])
                 #print(renge[0]['minx'])
                 print(len(names))
-                for i in range (0, len(names)):
+                for i in range (0, len(names)):                    
                     if names[i] == name:
+                        print("matched")
                         if initRun:
                             ymax = renge[i]['maxy']
                             xmax = renge[i]['maxx']
@@ -1115,11 +1120,17 @@ class Layman:
                             ymin = renge[i]['miny']
                         if renge[i]['minx'] < xmin:
                             print("minx"+ xmin, renge[i]['minx'] )
-                            xmin = renge[i]['minx']    
-        self.dlg.lineEdit_xmin.setText(str(xmin))
-        self.dlg.lineEdit_xmax.setText(str(xmax))
-        self.dlg.lineEdit_ymin.setText(str(ymin))
-        self.dlg.lineEdit_ymax.setText(str(ymax))
+                            xmin = renge[i]['minx']   
+        if (xmin == None or xmax == None or ymin == None or ymax==None):
+            if self.locale == "cs":                
+                QMessageBox.information(None, "Layman", "Záznam prostorového rozsahu vrstev vybrané kompozice nebyl nalezen!")
+            else:
+                QMessageBox.information(None, "Layman", "A record of the spatial extent of the layers of the selected composition was not found!")
+        else:
+            self.dlg.lineEdit_xmin.setText(str(xmin))
+            self.dlg.lineEdit_xmax.setText(str(xmax))
+            self.dlg.lineEdit_ymin.setText(str(ymin))
+            self.dlg.lineEdit_ymax.setText(str(ymax))
                 
     def setRangeFromCanvas(self):
         ext = self.iface.mapCanvas().extent()
@@ -1261,7 +1272,21 @@ class Layman:
                 else:
                     QMessageBox.information(None, "Layman", "This user already exists in the list!")
                 return False
-    def updatePermissions(self,layerName, userDict, type):
+    def askForLayerPermissionChanges(self,layerName, userDict, type):
+        if self.locale == "cs":
+            msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
+        else:
+            msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Do you want set these permissions to layers included in map composition?")
+        msgbox.addButton(QMessageBox.Yes)
+        msgbox.addButton(QMessageBox.No)
+        msgbox.setDefaultButton(QMessageBox.No)
+        reply = msgbox.exec()
+        if (reply == QMessageBox.Yes):
+            threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, True)).start()
+        else:
+            threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
+
+    def updatePermissions(self,layerName, userDict, type, check=False):
         
         itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
         itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
@@ -1295,7 +1320,23 @@ class Layman:
             #print(response.status_code)
             if (response.status_code != 200):
                 status = False
-
+        ## rekurzivni zmeny
+        if (type == "maps" and check):
+            
+            if status:
+                layerList = list()
+                for i in range (0,len(self.compositeList)):
+                    if self.compositeList[i]['name'] == layerName[0]:  
+                        for j in range (0,len(self.compositeList[i]['layers'])):
+                            if self.compositeList[i]['layers'][j]['className'] == "HSLayers.Layer.WMS":
+                                layerList.append(self.compositeList[i]['layers'][j]['params']['LAYERS'])
+                            if self.compositeList[i]['layers'][j]['className'] == "OpenLayers.Layer.Vector":
+                                #layerList.append(self.compositeList[i]['layers'][j]['name'])
+                                layerList.append(self.compositeList[i]['layers'][j]['protocol']['LAYERS'])
+                self.updatePermissions(layerList,userDict, "layers")
+            else:
+                QgsMessageLog.logMessage("permissionsDoneF")
+        # konec
         #if (status):
         #    if self.locale == "cs":                
         #        QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
@@ -1306,10 +1347,11 @@ class Layman:
         #        QMessageBox.information(None, "Chyba", "Práva nebyla uložena!")               
         #    else:
         #        QMessageBox.information(None, "Error", "Permissions was not saved!")  
-        if (status):               
-            QgsMessageLog.logMessage("permissionsDoneT")
         else:
-            QgsMessageLog.logMessage("permissionsDoneF")
+            if (status):               
+                QgsMessageLog.logMessage("permissionsDoneT")
+            else:
+                QgsMessageLog.logMessage("permissionsDoneF")
     def disableExport(self):
         #print(self.dlg.treeWidget.currentItem())
        # print(self.dlg.treeWidget.selectedItems())
@@ -1655,7 +1697,9 @@ class Layman:
 
     def afterCloseEditMapDialog(self):
         self.dlg = self.old_dlg
-
+        self.refreshCompositeList()
+    def afterClosePermissionMapDialog(self):        
+        self.dlg = self.old_dlg
     def showMapPermissionsDialog(self, x):        
         self.old_dlg = self.dlg        
         self.run_SetMapPermission(x)
@@ -2286,7 +2330,9 @@ class Layman:
             try:
                 self.dlg.progressBar.hide() 
                 self.dlg.label_import.hide()
-                
+                self.dlg.pushBuqgistton_down.setEnabled(True)
+                self.dlg.pushButton_up.setEnabled(True)
+                self.dlg.pushButton_deleteLayers.setEnabled(True)
             except:
                 pass
             
@@ -2301,6 +2347,7 @@ class Layman:
                 self.dlg.label_thumbnail.setText(' ')
             except:
                 pass
+            #self.refreshLayerListReversed()
         if message == "wrongLoaded": 
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Připojení se serverem selhalo!"), Qgis.Warning, duration=3)
@@ -3300,6 +3347,7 @@ class Layman:
             inComposite = name in self.isRasterLayerInComposite(x, name)
             if not(inComposite):
                 if (type == "raster"):
+                    self.importMapEnvironmnet(False)
                     self.threadAddRaster = threading.Thread(target=lambda: self.addExistingLayerToCompositeThread(nameInList,x))
                     self.threadAddRaster.start()
                 if (type == "wms"): 
@@ -3362,7 +3410,7 @@ class Layman:
         if (self.dlg.radioButton_wfs.isChecked()):
             self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
         self.importMap(x, 'add', 1)
-        self.refreshLayerListReversed()
+        #self.refreshLayerListReversed()
            
         #self.dlg.label_loading.hide() 
         
@@ -3813,7 +3861,10 @@ class Layman:
             except:
                 pass
             try:
-                row = self.dlg.listWidget_listLayers.currentRow()
+                #row = self.dlg.listWidget_listLayers.currentRow()
+                row = self.dlg.treeWidget_listLayers.indexOfTopLevelItem(self.dlg.treeWidget_listLayers.currentItem())
+                print(row)
+
                
             except:
               
@@ -3826,7 +3877,8 @@ class Layman:
             try:                
                 time.sleep(1)
                 
-                self.dlg.listWidget_listLayers.setCurrentRow(row)
+                #self.dlg.listWidget_listLayers.setCurrentRow(row)
+                self.dlg.treeWidget_listLayers.setCurrentItem(self.dlg.treeWidget_listLayers.topLevelItem(0),0)
                 if (self.dlg.listWidget_listLayers.currentRow() == -1):                    
                     self.dlg.pushButton_deleteLayers.setEnabled(False)
                     self.dlg.pushButton_up.setEnabled(False)
@@ -4026,8 +4078,10 @@ class Layman:
         for i in reversed(range (0, len(data['layers']))):
             #if (data['layers'][i]['params']['LAYERS'] ==  name ):
             #    existingLayers.append(data['layers'][i]['params']['LAYERS'])
-             if (data['layers'][i]['title'] ==  name ):
-                existingLayers.append(data['layers'][i]['title'])
+             if (self.removeUnacceptableChars(data['layers'][i]['title']) ==  name ):
+                existingLayers.append(self.removeUnacceptableChars(data['layers'][i]['title']))
+        print(name)
+        print(existingLayers)
         return existingLayers
     
     def addComposite(self, data, service, groupName = ''):     
