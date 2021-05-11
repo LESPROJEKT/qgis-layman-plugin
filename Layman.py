@@ -541,7 +541,8 @@ class Layman:
             self.dlg.listWidget_write.addItem(self.name)
             self.dlg.listWidget_read.addItem(usersDict['EVERYONE'])
         self.dlg.pushButton_save.clicked.connect(lambda:  self.dlg.progressBar_loader.show())
-        self.dlg.pushButton_save.clicked.connect(lambda: threading.Thread(target=lambda: self.updatePermissions(layerName, usersDict, "layers")).start())
+        #self.dlg.pushButton_save.clicked.connect(lambda: threading.Thread(target=lambda: self.updatePermissions(layerName, usersDict, "layers")).start())
+        self.dlg.pushButton_save.clicked.connect(lambda: self.askForMapPermissionChanges(layerName, usersDict, "layers"))
         self.dlg.pushButton_addRead.clicked.connect(lambda:  self.checkAddedItemDuplicity("read"))
         self.dlg.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
         
@@ -1272,6 +1273,26 @@ class Layman:
                 else:
                     QMessageBox.information(None, "Layman", "This user already exists in the list!")
                 return False
+    def askForMapPermissionChanges(self,layerName, userDict, type):
+        included = False
+        for name in layerName:
+            if (self.checkLayersInComopsitions(name)):
+                included = True
+        if (included):
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Vybrané vrstvy jsou obsaženy v existujících mapových kompozicích. Chcete nastavit změny v právech i v tyto mapový kompozice?")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Selected layers are included in existing map compositions. Do you want set same permissions for these map compositions?")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.Yes):
+                threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type, True)).start()
+            else:
+                threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type, False)).start()
+        else:
+            threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type)).start()
     def askForLayerPermissionChanges(self,layerName, userDict, type):
         if self.locale == "cs":
             msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
@@ -1336,6 +1357,13 @@ class Layman:
                 self.updatePermissions(layerList,userDict, "layers")
             else:
                 QgsMessageLog.logMessage("permissionsDoneF")
+
+        elif (type == "layers" and check):
+            for name in layerName:
+                compositionList = self.getCompositionsByLayer(name)
+                for comp in compositionList:
+                    self.updatePermissions([comp],userDict, "maps", False)
+            
         # konec
         #if (status):
         #    if self.locale == "cs":                
@@ -1614,7 +1642,21 @@ class Layman:
                 except:
                     pass
         return inComposite
-
+    def getCompositionsByLayer(self, name):
+        compositionList = list()
+        for x in range (0,len(self.compositeList)):
+            for i in range (0,len(self.compositeList[x]['layers'])):
+                try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+                    if (name == self.compositeList[x]['layers'][i]['params']['LAYERS']):
+                        compositionList.append(self.compositeList[x]['name'])                      
+                except:
+                    pass
+                try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+                    if (name == self.compositeList[x]['layers'][i]['protocol']['LAYERS']):
+                        compositionList.append(self.compositeList[x]['name'])                     
+                except:
+                    pass
+        return compositionList
 
     def refreshCompositeList(self, new=False):
         self.dlg.listWidget.clear()
