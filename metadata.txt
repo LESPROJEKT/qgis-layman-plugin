@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.0
 description=Layman
-version=1.70.1
+version=1.71
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -30,6 +30,7 @@ changelog=
 	1.65 - support QML on Layman server > v10.0.0
 	1.67 - Create map bug in form fixed
 	1.69 - added option - change wms/wfs service for hs layer type
+	1.71 - set permissions over all layers in composition
 # Tags are comma separated with spaces allowed
 tags=python
 
