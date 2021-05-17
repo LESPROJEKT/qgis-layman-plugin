@@ -160,6 +160,7 @@ class Layman:
         self.millis = 0
         self.version = "1.0.0"
         self.initFiles()
+        self.current = "external"
         self.laymanVersion = None
         self.firstStart = True
         self.mixedLayers = list()
@@ -227,7 +228,7 @@ class Layman:
         except FileExistsError:
             print("Directory " , tempDir ,  " already exists")
 
-
+        
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -1030,8 +1031,7 @@ class Layman:
         result = self.dlg.exec_()
         self.dlg.rejected.connect(lambda: self.loginReject())
     def run_AddMapDialog(self):        
-        self.dlg = AddMapDialog()
-        
+        self.dlg = AddMapDialog()      
         
         
         self.dlg.pushButton.setEnabled(False)
@@ -1039,8 +1039,7 @@ class Layman:
         self.dlg.pushButton_mapWFS.setEnabled(True)
         self.dlg.pushButton.hide()
         self.dlg.pushButton_mapWFS.hide()
-        self.dlg.label_info.hide()
-     
+        self.dlg.label_info.hide()     
         self.dlg.treeWidget.itemClicked.connect(self.showThumbnailMap)
         self.dlg.treeWidget.itemClicked.connect(self.enableButton)
         self.dlg.treeWidget.itemClicked.connect(self.enableLoadMapButtons)
@@ -1922,7 +1921,14 @@ class Layman:
 
                         if item.text(1) == "OpenLayers.Layer.Vector":
                             url = layer['protocol']['url']
-                            name = layer['protocol']['LAYERS']
+                            try:
+                                name = layer['protocol']['LAYERS']
+                            except:
+                                if self.locale == "cs":
+                                    QMessageBox.information(None, "Layman", "Tato vrstva má zastaralý formát metadat.")
+                                else:
+                                    QMessageBox.information(None, "Layman", "This layer has old format of metadata.")
+                                return
                             layer['className'] = "HSLayers.Layer.WMS"
                             layer['url'] = url
                             layer['params'] = {
@@ -2459,6 +2465,7 @@ class Layman:
     def readMapJson(self,name, service):
         #self.dlg.progressBar_loader.show() 
         #self.dlg.label_loading.show()
+        self.current = name
     
         
         self.readMapJsonThread(name,service)
@@ -3211,6 +3218,55 @@ class Layman:
             QgsMessageLog.logMessage("export")
             
             #QMessageBox.information(None, "Message", "Layer exported sucessfully.")
+
+    def getLayerGroup(self):
+        if (iface.activeLayer() != None):
+            prj = QgsProject().instance()
+            root = prj.layerTreeRoot()
+            #print("test")
+            for child in root.children():
+                if isinstance(child, QgsLayerTreeGroup): ##pokud je intance group tak hledáme shodu pres layer ID
+                    #print ("- group: " + child.name())
+                    for child2 in child.children():
+                       # print ("- layer: "+ "  ID: " + child2.layerId())
+                        #print(iface.activeLayer().id(),child2.layerId())                    
+                        try:
+                            splitted = child2.layerId().split(" ")
+                            
+                        except:
+                            print("Nejedna se o vhodnou vrstvu")
+                            #print(child2.name())
+                            return
+                        for s in splitted:
+                           # print(iface.activeLayer().id(),s)
+            
+                            if (iface.activeLayer().id() == s):                    
+                                print(iface.activeLayer().name(), child.name())
+                                self.addLayerToPath(iface.activeLayer().name(), child.name())
+                elif isinstance(child, QgsLayerTreeLayer):
+                    pass
+                   # print ("- layer: "+ "  ID: " + child.layerId())
+                   # print(child.parent().isGroup(child.parent()))
+                   # print(child.parent().depth())
+                   #     
+    def addLayerToPath(self, name, groupName):
+        x = self.getCompositionIndexByName()
+        print(x)
+        for i in range (0, len(self.compositeList[x]['layers'])):
+            if (self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']) == self.removeUnacceptableChars(name)): #
+                self.compositeList[x]['layers'][i]['path'] = groupName
+                print("modifing " + self.compositeList[x]['name'] + "adding group name " + groupName)
+                self.importMap(x, 'mov') ## ukládáme změny na server
+                
+
+
+    def getCompositionIndexByName(self):
+        print(self.current)
+        for x in range (0, len(self.compositeList)):
+            if self.removeUnacceptableChars(self.compositeList[x]['title']) == self.removeUnacceptableChars(self.current):
+                return x
+
+
     def postRequest(self, layer_name):     
         nameCheck = True
         validExtent = True
@@ -4206,11 +4262,12 @@ class Layman:
         url = url.replace('%26','&') 
         return url
     def loadService2(self, data, service, groupName = ''):   
+        groupName = ''
         for x in range(len(data['layers'])- 1, -1, -1):       ## descending order            
-            try:
+            try:                
                 subgroupName =  data['layers'][x]['path']
             except:
-                ## path not found
+                print("path for layer not found")
                 subgroupName = ""
             className = data['layers'][x]['className']     
             if className == 'HSLayers.Layer.WMS':
@@ -4232,7 +4289,7 @@ class Layman:
                     wmsName = data['layers'][x]['params']['LAYERS']  
                     layerNameTitle = data['layers'][x]['title']
                     repairUrl = data['layers'][x]['url']
-                    repairUrl = self.convertUrlFromHex(repairUrl)
+                    repairUrl = self.convertUrlFromHex(repairUrl)                  
                     #self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
                     self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName)
                 if className == 'XYZ':
@@ -4325,8 +4382,9 @@ class Layman:
             pass # pro qgis 3.10 a vys
             
         if (rlayer.isValid()):  
-            if (groupName != ''):
-                self.addWmsToGroup(groupName,rlayer, subgroupName)
+            if (groupName != '' or subgroupName != ''):
+                self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path
+                #self.addWmsToGroup(groupName,rlayer, subgroupName)
             else:          
                 QgsProject.instance().addMapLayer(rlayer)
         else:
@@ -4890,6 +4948,8 @@ class Layman:
         self.registerUserIfNotExists()        
         self.startThread()   
         #self.loadAllCompositesT()
+        
+
         threading.Thread(target=self.loadAllCompositesT).start() ## načteme kompozice do pole ve vláknu 
        
         ### authconfig
@@ -5037,7 +5097,14 @@ class Layman:
             #    self.setup_oauth(self.client_id[-7:], self.liferayServer)
             ##authconfig end
             ## check for new version
-           
+           ## startuje naslouchani na zmenu do groupy
+            prj = QgsProject().instance()
+            root = prj.layerTreeRoot()
+            print("xxxxxx")
+            print(root)
+            print("xxxxxx")
+            root.layerOrderChanged.connect(lambda: self.getLayerGroup())
+            ## konec naslouchani
             versionCheck = self.checkVersion()
             if versionCheck[0] == False:
                 if self.locale == "cs":
