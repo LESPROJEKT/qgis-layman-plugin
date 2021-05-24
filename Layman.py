@@ -570,10 +570,16 @@ class Layman:
         self.dlg.lineEdit_units.setText(self.compositeList[x]['units'])
         self.dlg.lineEdit_scale.setText(str(self.compositeList[x]['scale']))
         self.dlg.lineEdit_user.setText(self.compositeList[x]['user']['name'])
+
+
         self.dlg.lineEdit_xmin.setText(self.compositeList[x]['extent'][0])
         self.dlg.lineEdit_xmax.setText(self.compositeList[x]['extent'][2])
         self.dlg.lineEdit_ymin.setText(self.compositeList[x]['extent'][1])
         self.dlg.lineEdit_ymax.setText(self.compositeList[x]['extent'][3])
+        self.dlg.lineEdit_xmin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.dlg.lineEdit_xmax.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.dlg.lineEdit_ymin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.dlg.lineEdit_ymax.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog()) 
         self.dlg.pushButton_save.clicked.connect(lambda: self.modifyMap(x))
        # self.dlg.pushButton_range.clicked.connect(lambda: self.setRangeFromCanvas())
@@ -892,7 +898,7 @@ class Layman:
         ##self.dlg.refresh()
         #self.dlg.listWidget.update()
         #self.refreshLayerList()
-        time.sleep(2)
+        #time.sleep(2)
         QgsMessageLog.logMessage("successLoadComp")
        # try:
        #     self.dlg.label_loading.hide() 
@@ -1139,23 +1145,13 @@ class Layman:
         self.dlg.lineEdit_ymin.setText(str(ext.yMinimum()))
         self.dlg.lineEdit_ymax.setText(str(ext.yMaximum()))
 
-    def loadMapsThread(self):
+    def loadMapsThread(self):            
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
-       
         r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-       
         data = r.json()
-        
-        
         for row in range(0, len(data)):
-            url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+data[row]['name']+'/file'
-            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-           
-            d = r.json()
-                 
-            item = QTreeWidgetItem([d['title']])            
+            item = QTreeWidgetItem([data[row]['title']])
             self.dlg.treeWidget.addTopLevelItem(item)
-        time.sleep(1)
         QgsMessageLog.logMessage("loadMaps")
         
     def run_AddLayerDialog(self):
@@ -2374,6 +2370,11 @@ class Layman:
             #        self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
             #except:
             #    pass
+        if message == "path added":
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Parametr path byl modifikován."), Qgis.Success, duration=3)
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Parameter path was modified."), Qgis.Success, duration=3)
         if message == "addRaster":
             try:
                 self.dlg.progressBar.hide() 
@@ -2458,7 +2459,7 @@ class Layman:
                 QgsMessageLog.logMessage(map)
                 self.disableEnvironment()
                 return
-            self.compositeList.append (map)
+            self.compositeList.append(map)
         self.loadedInMemory = True
         QgsMessageLog.logMessage("compositionLoaded")
     
@@ -2829,10 +2830,10 @@ class Layman:
         #transformace extentu
      
 
-        self.compositeList[x]['extent'][0] = self.dlg.lineEdit_xmin.text()
-        self.compositeList[x]['extent'][2] = self.dlg.lineEdit_xmax.text()
-        self.compositeList[x]['extent'][1] = self.dlg.lineEdit_ymin.text()
-        self.compositeList[x]['extent'][3] = self.dlg.lineEdit_ymax.text()
+        self.compositeList[x]['extent'][0] = self.dlg.lineEdit_xmin.text().replace(",",".")
+        self.compositeList[x]['extent'][2] = self.dlg.lineEdit_xmax.text().replace(",",".")
+        self.compositeList[x]['extent'][1] = self.dlg.lineEdit_ymin.text().replace(",",".")
+        self.compositeList[x]['extent'][3] = self.dlg.lineEdit_ymax.text().replace(",",".")
    
         center = tform.transform(QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()))
         self.compositeList[x]['center'][0] = center.x()
@@ -3218,47 +3219,69 @@ class Layman:
             QgsMessageLog.logMessage("export")
             
             #QMessageBox.information(None, "Message", "Layer exported sucessfully.")
-
-    def getLayerGroup(self):
-        if (iface.activeLayer() != None):
+    def getLayerGroupTest(self):
+        threading.Thread(target=lambda: self.getLayerGroup(iface.activeLayer())).start()
+    def getLayerGroup(self, layer):
+        #time.sleep(1)
+        if (layer != None):
             prj = QgsProject().instance()
             root = prj.layerTreeRoot()
             #print("test")
             for child in root.children():
+                print(child)
                 if isinstance(child, QgsLayerTreeGroup): ##pokud je intance group tak hledáme shodu pres layer ID
                     #print ("- group: " + child.name())
                     for child2 in child.children():
                        # print ("- layer: "+ "  ID: " + child2.layerId())
-                        #print(iface.activeLayer().id(),child2.layerId())                    
-                        try:
-                            splitted = child2.layerId().split(" ")
-                            
-                        except:
-                            print("Nejedna se o vhodnou vrstvu")
-                            #print(child2.name())
-                            return
-                        for s in splitted:
-                           # print(iface.activeLayer().id(),s)
+                        #print(iface.activeLayer().id(),child2.layerId())  
+                        #print(child2.name())                 
+                        if isinstance(child2, QgsLayerTreeLayer):
+                            try:
+                                splitted = child2.layerId().split(" ")                            
+                            except:
+                               # print("Nejedna se o vhodnou vrstvu")
+                                #print(child2.name())
+                                return
+                            for s in splitted:
+                               # print(iface.activeLayer().id(),s)
             
-                            if (iface.activeLayer().id() == s):                    
-                                print(iface.activeLayer().name(), child.name())
-                                self.addLayerToPath(iface.activeLayer().name(), child.name())
+                                if (layer.id() == s):                    
+                                    #print(iface.activeLayer().name(), child.name())
+                                    self.addLayerToPath(layer.name(), child.name())
+                                    return
                 elif isinstance(child, QgsLayerTreeLayer):
-                    pass
+                    
+                    print(child.layerId(), layer.id())
+                    if (layer.id() == child.layerId()): 
+                        self.checkLayerPath(layer.name())
                    # print ("- layer: "+ "  ID: " + child.layerId())
                    # print(child.parent().isGroup(child.parent()))
                    # print(child.parent().depth())
                    #     
     def addLayerToPath(self, name, groupName):
         x = self.getCompositionIndexByName()
-        print(x)
+       # print(x)
         for i in range (0, len(self.compositeList[x]['layers'])):
             if (self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']) == self.removeUnacceptableChars(name)): #
                 self.compositeList[x]['layers'][i]['path'] = groupName
                 print("modifing " + self.compositeList[x]['name'] + "adding group name " + groupName)
                 self.importMap(x, 'mov') ## ukládáme změny na server
+                #QgsMessageLog.logMessage("path added")
                 
-
+                
+    def checkLayerPath(self, name):
+        x = self.getCompositionIndexByName()
+        for i in range (0, len(self.compositeList[x]['layers'])):
+            if (self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']) == self.removeUnacceptableChars(name)): 
+                try:
+                    if self.compositeList[x]['layers'][i]['path'] != "":
+                        del self.compositeList[x]['layers'][i]['path']
+                        print("modifing " + self.compositeList[x]['name'] + "layer " + name)
+                        self.importMap(x, 'mov') ## ukládáme změny na server
+                    else:
+                        pass                        
+                except:
+                    print("path not found. Skipping")
 
     def getCompositionIndexByName(self):
         print(self.current)
@@ -3438,6 +3461,7 @@ class Layman:
         
         nameInList = name
         oldname = name
+        title = name
         name = self.removeUnacceptableChars(name).lower()
         self.dlg.pushButton_addRaster.setEnabled(False)
         x = self.dlg.listWidget.currentRow()
@@ -3457,14 +3481,14 @@ class Layman:
                 self.dlg.label_import.show()
             else:
                 if self.locale == "cs":
-                    QMessageBox.information(None, "Message", "Kompozice již obsahuje vrstvu "+name+"!")
+                    QMessageBox.information(None, "Message", "Kompozice již obsahuje vrstvu "+title+"!")
                 else:
-                    QMessageBox.information(None, "Message", "Composition already include layer "+name+"!")
+                    QMessageBox.information(None, "Message", "Composition already include layer "+title+"!")
         else:
             if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Nelze načíst vrstvu: "+name)
+                QMessageBox.information(None, "Layman", "Nelze načíst vrstvu: "+title)
             else:
-                QMessageBox.information(None, "Layman", "Something went wrong with this layer: "+name)
+                QMessageBox.information(None, "Layman", "Something went wrong with this layer: "+title)
     def processingWorker(self): ## self.processingList[i][2] hodnoty 0 v procesu, 1 importováno, 2 vypsaná notifikace
         done = 0
         
@@ -4263,12 +4287,26 @@ class Layman:
         return url
     def loadService2(self, data, service, groupName = ''):   
         groupName = ''
+        try:
+            test = data['layers']
+        except:
+            print("corrupted composition")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Kompozice je poškozena!")
+            else:
+                QMessageBox.information(None, "Layman", "Map composition is corrupted!")
+            return
         for x in range(len(data['layers'])- 1, -1, -1):       ## descending order            
             try:                
                 subgroupName =  data['layers'][x]['path']
             except:
                 print("path for layer not found")
                 subgroupName = ""
+            try:
+                timeDimension = data['layers'][x]['dimensions']
+            except:
+                print("time dimensions for layer not found")
+                timeDimension = ""
             className = data['layers'][x]['className']     
             if className == 'HSLayers.Layer.WMS':
                 layerName = data['layers'][x]['params']['LAYERS']
@@ -4291,7 +4329,7 @@ class Layman:
                     repairUrl = data['layers'][x]['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)                  
                     #self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
-                    self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName)
+                    self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension)
                 if className == 'XYZ':
                     repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
                     layerName = data['layers'][x]['params']['LAYERS']
@@ -4346,21 +4384,28 @@ class Layman:
             return res.replace("_","")
         else:
             return layerString
-
-    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = ''):     
+ 
+    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension=''):     
       
         
-        #layerName = self.removeUnacceptableChars(layerName)
-       
+        #layerName = self.removeUnacceptableChars(layerName)        
+
         layerName = self.parseWMSlayers(layerName)
         epsg = "EPSG:4326"
         url = url.replace("%2F", "/").replace("%3A",":")
         urlWithParams = 'contextualWMSLegend=0&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url
-     
+        
         ### quri
         #authCfg=self.client_id[-7:]
         #authCfg = '957je05'
         quri = QgsDataSourceUri()
+        if timeDimension != {}:
+            quri.setParam("type", "wmst")
+            #quri.setParam("timeDimensionExtent", "1995-01-01/2021-12-31/PT5M")
+            print(timeDimension)
+            quri.setParam("timeDimensionExtent", timeDimension['time']['values'])
+            quri.setParam("allowTemporalUpdates", "true")
+            quri.setParam("temporalSource", "provider")
         quri.setParam("layers", layerName)
         quri.setParam("styles", '')
         quri.setParam("format", 'image/png')
@@ -5103,7 +5148,7 @@ class Layman:
             print("xxxxxx")
             print(root)
             print("xxxxxx")
-            root.layerOrderChanged.connect(lambda: self.getLayerGroup())
+            root.layerOrderChanged.connect(lambda: self.getLayerGroupTest())
             ## konec naslouchani
             versionCheck = self.checkVersion()
             if versionCheck[0] == False:
