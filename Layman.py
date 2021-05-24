@@ -3570,6 +3570,7 @@ class Layman:
         #res = self.fromByteToJson(response.content)
         #print(res)
        # wmsUrl = res['wms']['url']
+        dimension = ""
         layer = QgsProject.instance().mapLayersByName(nameInList)[0]
         params = layer.dataProvider().dataSourceUri().split("&")
         if not (self.isXYZ(layer.name())):
@@ -3588,6 +3589,8 @@ class Layman:
                     #print(url) 
                 if(str(param[0]) == "layers"):
                     layers.append(param[1])   
+                if(str(param[0]) == "timeDimensionExtent"):
+                    dimension = (param[1]) 
                  #   print(layers) 
                     #   
                     #      
@@ -3596,10 +3599,19 @@ class Layman:
             else:
                 layers = str(layers).replace("'", "")           
             self.existLayer = False
-            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
-           
+            print(dimension)
+            if dimension == "":
+                self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions":{},"singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+            else:
+                #dim = { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} }
+               # print({"dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} }})
+                #print({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
+                
+                self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
+            #self.importMap(x, "mod")
             self.importMap(x, 'add', 1)
-            self.refreshLayerListReversed()
+            time.sleep(1)
+            #self.refreshLayerListReversed()
            
             #self.dlg.label_loading.hide() 
         
@@ -3614,8 +3626,10 @@ class Layman:
             self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"XYZ","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})    
            
             self.importMap(x, 'add', 1)
-            self.refreshLayerListReversed()
-        time.sleep(1)
+            
+            time.sleep(1)
+            self.refreshLayerListReversed() ## mozna bude treba odstranit
+        
         QgsMessageLog.logMessage("addRaster")
     def getStyle(self, layer_name):
         response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
