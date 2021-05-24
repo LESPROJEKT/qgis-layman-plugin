@@ -380,35 +380,48 @@ class Layman:
             icon_path,
             text=self.tr(u'User info'),
             callback=self.run_UserInfoDialog,
-            enabled_flag=False,
+            enabled_flag=True,
             parent=self.iface.mainWindow())
     #--------------------------------------------------------------------------
     def run_UserInfoDialog(self):
         self.dlg = UserInfoDialog() 
         self.dlg.show()
-        self.dlg.pushButton_logout.setStyleSheet("#pushButton_logout {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_logout:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_logout.setStyleSheet("#pushButton_logout {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_logout:hover{background: #66ab27 ;}#pushButton_logout:disabled{background: #64818b ;}")
         self.dlg.pushButton_update.setStyleSheet("#pushButton_update {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_update:hover{background: #66ab27 ;}#pushButton_update:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        userEndpoint = self.URI + "/rest/current-user"
-        r = requests.get(url = userEndpoint,  headers = self.getAuthHeader(self.authCfg))
-        res = r.text
-        res = self.fromByteToJson(r.content)
-        self.dlg.pushButton_logout.clicked.connect(lambda: self.logout())
-        self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin())
-        print(res['claims'])
-        self.dlg.label_layman.setText(res['claims']['preferred_username'])
-        self.dlg.label_server.setText(self.liferayServer)
-        self.dlg.label_agrihub.setText(res['claims']['email'])
-        self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.dlg.label_version.setText(self.getVersion())
-        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        versionCheck = self.checkVersion()
-        self.dlg.label_avversion.setText(versionCheck[1])
-        if versionCheck[0] == True:
-            self.dlg.label_avversion.hide()
-            self.dlg.label_5.hide()
-            self.dlg.pushButton_update.setEnabled(False)
+        print(self.liferayServer)
+        if self.liferayServer != None:
+            userEndpoint = self.URI + "/rest/current-user"
+            r = requests.get(url = userEndpoint,  headers = self.getAuthHeader(self.authCfg))
+            res = r.text
+            res = self.fromByteToJson(r.content)
+            self.dlg.pushButton_logout.clicked.connect(lambda: self.logout())
+            self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin())
+            print(res['claims'])
+            self.dlg.label_layman.setText(res['claims']['preferred_username'])
+            self.dlg.label_server.setText(self.liferayServer)
+            self.dlg.label_agrihub.setText(res['claims']['email'])
+            self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
+            self.dlg.label_version.setText(self.getVersion())
+            self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
+            versionCheck = self.checkVersion()
+            self.dlg.label_avversion.setText(versionCheck[1])
+            if versionCheck[0] == True:
+                self.dlg.label_avversion.hide()
+                self.dlg.label_5.hide()
+                self.dlg.pushButton_update.setEnabled(False)
+        else:
+            self.dlg.label_version.setText(self.getVersion())
+            versionCheck = self.checkVersion()
+            self.dlg.label_avversion.setText(versionCheck[1])
+            if versionCheck[0] == True:
+                self.dlg.label_avversion.hide()
+                self.dlg.label_5.hide()
+                self.dlg.pushButton_update.setEnabled(False)
+            self.dlg.pushButton_logout.setEnabled(False)
+            self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin())
+            self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
     def run_SetMapPermission(self, mapName):
         self.dlg = SetPermissionDialog() 
         self.dlg.show()
