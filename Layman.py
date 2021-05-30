@@ -37,7 +37,6 @@ from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
 # Initialize Qt resources from file resources.py
 from .resources import *
 import re
-#from .flaskServer import *
 from multiprocessing import Process
 from pathlib import Path 
 import processing
@@ -76,7 +75,6 @@ import time
 from urllib.request import urlopen
 import subprocess
 import threading
-#from flask import Flask, request, jsonify
 import base64
 import hashlib
 import html
@@ -177,13 +175,8 @@ class Layman:
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
         #self.watcher = QFileSystemWatcher()
         #self.watcher.addPath(path)
-        #self.watcher.fileChanged.connect(self.authOptained)
-        try:
-            from flask import Flask, request, jsonify
-            self.dependencies = True
-        except:
-            #self.dependencies = False
-            self.dependencies = True
+        #self.watcher.fileChanged.connect(self.authOptained)     
+        self.dependencies = True
         if os.path.isfile(path):
 
             self.authFileTime =os.path.getmtime(path)
@@ -1344,6 +1337,7 @@ class Layman:
             layer = self.removeUnacceptableChars(layer)
             #print(layer)
             #print(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer)
+            print(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer)
             response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer, data = data,  headers = self.getAuthHeader(self.authCfg))
             print(response.content)
             #print(response.status_code)
@@ -1562,8 +1556,7 @@ class Layman:
         ## flush variables
         self.loadedInMemory = False
         self.compositeList = []
-        self.compositeListOld = []
-       # self.flaskThread.join()
+        self.compositeListOld = []       
        # self.thread1.join() ## ukončujeme vlákno, které se stará o refresh tokenů OAUTH
     def disableEnvironment(self):
         self.menu_saveLocalFile.setEnabled(False)
@@ -2674,7 +2667,7 @@ class Layman:
         # disconnects
         self.dockwidget.closingPlugin.disconnect(self.onClosePlugin)
 
-       # self.flaskThread.terminate() ## killing daemons
+      
        # self.thread1.terminate()
         self.pluginIsActive = False
 
@@ -3628,7 +3621,7 @@ class Layman:
             self.importMap(x, 'add', 1)
             
             time.sleep(1)
-            self.refreshLayerListReversed() ## mozna bude treba odstranit
+            self.refreshLayerListReversed() ## mozna bude treba odstranit kvuli padum
         
         QgsMessageLog.logMessage("addRaster")
     def getStyle(self, layer_name):
@@ -3891,7 +3884,15 @@ class Layman:
     def fromByteToJson(self, res):
         pom = res        
         pom = pom.decode('utf_8')
-        pom = json.loads(pom)
+        try:
+            pom = json.loads(pom)
+        except:
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Došlo k chybě při komunikaci se serverem.") 
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "An error occurred while communicating with the server.")
+            return     
+        
         return pom
 
     def importMap(self, x, operation, s = 0): ##s je počet vrstev úspěšně nahraných na server   
@@ -4337,7 +4338,7 @@ class Layman:
             className = data['layers'][x]['className']     
             if className == 'HSLayers.Layer.WMS':
                 layerName = data['layers'][x]['params']['LAYERS']
-            if className == 'OpenLayers.Layer.Vector': 
+            if className == 'OpenLayers.Layer.Vector' or className == 'Vector': 
                 print(data['layers'][x])
                 try:
                     layerName = data['layers'][x]['name']
@@ -4369,14 +4370,20 @@ class Layman:
                     self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName)
                 
                     
-                if className == 'OpenLayers.Layer.Vector': 
-                    
-                    epsg = 'EPSG:4326'            
+                if className == 'OpenLayers.Layer.Vector' or className == 'Vector': 
+                    epsg = 'EPSG:4326'         
                 
                     layerNameTitle = data['layers'][x]['title']                    
                     repairUrl = data['layers'][x]['protocol']['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)
-                    self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName)
+                    try: ## nove rozdeleni
+                        if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
+                        
+                            self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName)
+                    except:
+                        self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName)
+                    #elif (data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
+                    #    self.loadWfs(wfsUrl, layerName, layerNameTitle) 
             else:
                 if self.locale == "cs":
                     QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
@@ -4496,7 +4503,7 @@ class Layman:
     
     def loadWfs(self, url, layerName,layerNameTitle, groupName = '', subgroupName = ''):
         layerName = self.removeUnacceptableChars(layerName)
-        epsg = 'EPSG:3857'    
+        #epsg = 'EPSG:3857'    
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()
         uri = self.URI+"/geoserver/"+self.laymanUsername+"/ows?srsname="+epsg+"&typename="+self.laymanUsername+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
         url = url.replace("%2F", "/").replace("%3A",":").replace("/client","")
@@ -4504,7 +4511,7 @@ class Layman:
         acc = (r[len(r)-2])
        # print(uri)        
       #  uri = url + "?srsname="+epsg+"&typename="+self.laymanUsername+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
-        uri = url + "?srsname="+epsg+"&typename="+acc+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
+       # uri = url + "?srsname="+epsg+"&typename="+acc+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
         print(epsg)
         print(acc+":"+layerName)
         print(url)
@@ -5190,62 +5197,7 @@ class Layman:
             self.authOptained()
             self.dlg.close()
 
-        
-    def openAuthLiferayUrl(self):
-        self.disableEnvironment()
-        self.loadedInMemory = False
-        self.compositeList = []
-        self.compositeListOld = []
-        #self.liferayServer = self.dlg.lineEdit_server.text()
-        #self.URI = self.dlg.lineEdit_serverLayman.text()
-        self.getCodeChallenge(self.getCodeVerifier()) ##generování kódů
-       # self.client_id = self.dlg.lineEdit_AgriID.text()
-        #path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
-        #self.watcher = QFileSystemWatcher()
-        #self.watcher.addPath(path)
-        #self.watcher.fileChanged.connect(self.authOptained)
-      
-        
-            #################       
-        #path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
-        #self.watcher2 = QFileSystemWatcher()
-        #self.watcher2.addPath(path)
-        #self.watcher2.fileChanged.connect(self.authOptained)
-        threading.Thread(target=lambda: self.checkAuthChange()).start() 
-        url = self.liferayServer+'/o/oauth2/authorize?response_type=code&client_id='+self.client_id+'&redirect_uri=http%3A%2F%2Flocalhost:3857%2Fclient%2Fauthn%2Foauth2-liferay%2Fcallback&code_challenge='+self.code_challenge ##n4bQgYhMfWWaL-qgxVrQFaO_TxsrC4Is0V1sFbDwCgg'  
-        try:
-            r = requests.get("http://127.0.0.1:3857") 
-            print(r.content)
-            if (r.content == b'Flask server'):
-                print("flask already running")
-                webbrowser.open(url, new=2)   
-            else:
-                self.flaskThread = StartFlaskDaemon()
-                self.flaskThread.daemon = True
-                self.flaskThread.start() 
-                if (self.flaskThread.isAlive()):
-                    print("flask is running correctly")      
-                    
-                    webbrowser.open(url, new=2)
-                else:
-                    if self.locale == "cs":
-                        QMessageBox.information(None, "Error", "Flask server pravděpodobně neběží!")  
-                    else:
-                        QMessageBox.information(None, "Error", "Flask server is probably not running correctly!")  
-
-        except:
-            print ("##### flask server is starting #####")   
-            self.flaskThread = StartFlaskDaemon()
-            self.flaskThread.daemon = True
-            self.flaskThread.start() 
-            if (self.flaskThread.isAlive()):
-                print("flask is running correctly")                 
-                webbrowser.open(url, new=2)
-            else:
-                if self.locale == "cs":
-                    QMessageBox.information(None, "Error", "Flask server pravděpodobně neběží!") 
-                else:
-                    QMessageBox.information(None, "Error", "Flask server is probably not running correctly!") 
+  
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
         with open(save_path, 'wb') as fd:
@@ -5368,30 +5320,7 @@ class Layman:
             self.dockwidget.show()
        
 
-class StartFlaskDaemon(threading.Thread):    
-    def run(self):
-        from subprocess import Popen, PIPE
-        import platform
-        import sys
-        import subprocess
-        import time
-        from pathlib import Path
-        d= os.path.dirname(Path(__file__).absolute()) + os.sep+"flask_listener" + os.sep + "flask_listener.py" 
-        global process
-        if platform.system() == 'Windows':
-            try:
-                process = subprocess.call(["python", d],stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600, shell=True)
-            except:
-                #process.kill()
-                print("killed")
-        else:
-            
-            process = subprocess.Popen(["python " + d],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-                        
-               
 
-        stdout, stderr = process.communicate()
-        print (stdout, stderr)
         
     
    
