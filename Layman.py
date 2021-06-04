@@ -95,6 +95,7 @@ from .dlg_editMap import EditMapDialog
 from .dlg_ConnectionManager import ConnectionManagerDialog
 from .dlg_userInfo import UserInfoDialog
 from .dlg_setPermission import SetPermissionDialog
+from .dlg_currentComposition import CurrentCompositionDialog
 
 
 
@@ -159,6 +160,7 @@ class Layman:
         self.version = "1.0.0"
         self.initFiles()
         self.current = "external"
+        self.changedLayer = set()
         self.laymanVersion = None
         self.firstStart = True
         self.mixedLayers = list()
@@ -354,6 +356,7 @@ class Layman:
             enabled_flag=False,
             parent=self.iface.mainWindow())   
         
+        
         #icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'delete.png'
         #self.menu_DeleteMapDialog = self.add_action(
         #    icon_path,
@@ -375,7 +378,69 @@ class Layman:
             callback=self.run_UserInfoDialog,
             enabled_flag=True,
             parent=self.iface.mainWindow())
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'composition.png'
+        self.menu_CurrentCompositionDialog = self.add_action(
+            icon_path,
+            text=self.tr(u'Current composition'),
+            callback=self.run_CurrentCompositionDialog,
+            enabled_flag=False,
+            parent=self.iface.mainWindow()) 
     #--------------------------------------------------------------------------
+    def run_CurrentCompositionDialog(self):
+        self.dlg = CurrentCompositionDialog() 
+        self.dlg.show()
+        x = self.getCompositionIndexByName()
+        self.dlg.label_loadedComposition.setText(self.current)
+        layerList = list()
+        for i in range (0, len(self.compositeList[x]['layers'])):            
+            layerList.append(self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']))
+       # layers = self.iface.mapCanvas().layers()
+        layers = QgsProject.instance().mapLayers().values()
+        for layer in layers:
+            layerType = layer.type()
+            #if layerType == QgsMapLayer.VectorLayer:
+            item = QListWidgetItem()                
+            item.setText(layer.name())
+            print(self.removeUnacceptableChars(layer.name()), layerList)
+            if self.removeUnacceptableChars(layer.name()) in layerList:
+                item.setCheckState(2)
+                if layerType == QgsMapLayer.VectorLayer:
+                    layer.editingStopped.connect(self.layerEditStopped)
+            else:
+                item.setCheckState(0)
+                if layerType == QgsMapLayer.VectorLayer:
+                    try:
+                        layer.editingStopped.disconnect()
+                    except:
+                        print("connect to stopEditing not exists")
+            #print(item.flags())
+            #print(item.checkState())
+            self.dlg.listWidget_layers.addItem(item)
+
+        self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers(layerList))
+
+    def saveMapLayers(self, layerList):
+        x = self.getCompositionIndexByName()
+        for index in range(self.dlg.listWidget_layers.count()):
+            item = self.dlg.listWidget_layers.item(index)
+            if item.checkState() == 2 and  self.removeUnacceptableChars(item.text()) not in layerList: 
+                if not self.checkLayerInCurrentCompositon(item.text()): # kdyz se nenachazi v kompozici nahravame
+                    layer = QgsProject.instance().mapLayersByName(item.text())[0]
+                    layerType = layer.type()                    
+                    if layerType == QgsMapLayer.VectorLayer:
+                        layer.editingStopped.connect(self.layerEditStopped)
+                    threading.Thread(target=lambda: self.addLayerToComposite2(x, layer)).start()
+                    #self.addLayerToComposite2(x, layer)
+                    
+                    
+            elif item.checkState() == 0:
+                for i in range (0, len(self.compositeList[x]['layers'])): 
+                    if self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']) == self.removeUnacceptableChars(item.text()):
+                        del self.compositeList[x]['layers'][i]
+
+                   
+        
+
     def run_UserInfoDialog(self):
         self.dlg = UserInfoDialog() 
         self.dlg.show()
@@ -644,6 +709,10 @@ class Layman:
                 self.dlg.treeWidget.addTopLevelItem(item)
         ext = iface.mapCanvas().extent()
         self.dlg.lineEdit.setValidator(QRegExpValidator(QRegExp("[a-z]{1}[a-z0-9]{1,30}")))      
+        self.dlg.lineEdit_3.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.dlg.lineEdit_4.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.dlg.lineEdit_5.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.dlg.lineEdit_6.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.dlg.lineEdit_2.editingFinished.connect(self.checkNameCreateMap)
         self.dlg.lineEdit_3.setText(str(ext.xMinimum()))
         self.dlg.lineEdit_4.setText(str(ext.xMaximum()))
@@ -1567,6 +1636,7 @@ class Layman:
         self.menu_ImportLayerDialog.setEnabled(False)
         self.menu_ImportMapDialog.setEnabled(False)    
         self.menu_UserInfoDialog.setEnabled(False)
+        self.menu_CurrentCompositionDialog.setEnabled(False)
     def setServers(self, servers, i):        
         self.URI = servers[i][1]
         self.liferayServer = servers[i][0]
@@ -1632,6 +1702,21 @@ class Layman:
         inComposite = False
         for x in range (0,len(self.compositeList)):           
             for i in range (0,len(self.compositeList[x]['layers'])): 
+                try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+                    if (name == self.compositeList[x]['layers'][i]['params']['LAYERS']):
+                        inComposite = True                      
+                except:
+                    pass
+                try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+                    if (name == self.compositeList[x]['layers'][i]['protocol']['LAYERS']):
+                        inComposite = True                      
+                except:
+                    pass
+        return inComposite
+    def checkLayerInCurrentCompositon(self, name):
+        x = self.getCompositionIndexByName()
+        inComposite = False
+        for i in range (0,len(self.compositeList[x]['layers'])): 
                 try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
                     if (name == self.compositeList[x]['layers'][i]['params']['LAYERS']):
                         inComposite = True                      
@@ -2153,7 +2238,10 @@ class Layman:
                     return
                 format = 'png'
                 epsg = 'EPSG:4326' 
-                self.loadWms(wmsUrl, layerName,layerNameTitle, format, epsg) 
+                timeDimension = {}
+                groupName=""
+                subgroup=""
+                self.loadWms(wmsUrl, layerName,layerNameTitle, format, epsg, groupName,subgroup, timeDimension) 
             if (service == "WFS"):
                 try:
                     wfsUrl = data['wfs']['url']
@@ -2516,9 +2604,29 @@ class Layman:
                     self.loadService2(data,service, name)
                 else:
                     self.loadService2(data,service, name)
+                
             else:
                 self.loadService2(data,service, name)
-        
+            try:
+                self.prj.layerWasAdded.disconnect()
+            except:
+                pass
+            self.prj=QgsProject.instance()
+            #self.prj.layerWasAdded.connect(self.layerAdded)
+            layers = QgsProject.instance().mapLayers().values() ## hlidac vrstvy
+            for layer in layers:
+                layerType = layer.type()
+                if layerType == QgsMapLayer.VectorLayer:
+                    layer.editingStopped.connect(self.layerEditStopped)
+            self.menu_CurrentCompositionDialog.setEnabled(True)
+
+    def layerAdded(self, layer):
+        self.run_CurrentCompositionDialog()
+
+    def layerEditStopped(self):
+        layer = iface.activeLayer()
+        self.postRequest(layer.name(), True)
+
     def deleteMapFromServer(self,name):        
         
         url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name    
@@ -3296,7 +3404,7 @@ class Layman:
                 return x
 
 
-    def postRequest(self, layer_name):     
+    def postRequest(self, layer_name, auto=False):     
         nameCheck = True
         validExtent = True
         layers = QgsProject.instance().mapLayersByName(layer_name)         
@@ -3339,31 +3447,38 @@ class Layman:
                 if (self.checkExistingLayer(layer_name)):
                     
                     #print("vrstva již existuje")
-                    if self.locale == "cs":
-                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Vrstva "+layer_name+" již na serveru existuje. Chcete přepsat její geometrii?")
+                    if not auto:
+                        if self.locale == "cs":
+                            msgbox = QMessageBox(QMessageBox.Question, "Layman", "Vrstva "+layer_name+" již na serveru existuje. Chcete přepsat její geometrii?")
+                        else:
+                            msgbox = QMessageBox(QMessageBox.Question, "Layman", "Layer "+layer_name+" already exists in server. Do you want overwrite it´s geometry?")
+                        msgbox.addButton(QMessageBox.Yes)
+                        msgbox.addButton(QMessageBox.No)
+                        msgbox.setDefaultButton(QMessageBox.No)
+                        reply = msgbox.exec()
+                        if (reply == QMessageBox.Yes):
+                            self.dlg.progressBar.show() 
+                            self.dlg.label_import.show()
+                            q = self.setProcessingItem(layer_name)
+                            threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
+                            #print("vrstva již existuje")
+                        
+                        else:
+                            self.batchLength = self.batchLength - 1 
                     else:
-                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Layer "+layer_name+" already exists in server. Do you want overwrite it´s geometry?")
-                    msgbox.addButton(QMessageBox.Yes)
-                    msgbox.addButton(QMessageBox.No)
-                    msgbox.setDefaultButton(QMessageBox.No)
-                    reply = msgbox.exec()
-                    if (reply == QMessageBox.Yes):
-                        self.dlg.progressBar.show() 
-                        self.dlg.label_import.show()
                         q = self.setProcessingItem(layer_name)
                         threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
-                        #print("vrstva již existuje")
-                        
-                    else:
-                        self.batchLength = self.batchLength - 1 
+
                 else:
             
                     self.layerName = layer_name
                    # if (self.checkEpsg(layer_name)):
                     if(True): ##Pravděpodobně nebude třeba testovat EPSG, pokud se detekuje, je vrstva transformována. 
                       #  print (layer_name)
-                        self.dlg.progressBar.show() 
-                        self.dlg.label_import.show()
+                        if not auto:
+                            self.dlg.progressBar.show() 
+                            self.dlg.label_import.show()
+                        
                         q = self.setProcessingItem(layer_name)
                         threading.Thread(target=lambda: self.postThread(layer_name,data, q,True)).start()    
                     #        if response.status_code == 200:
@@ -3765,7 +3880,7 @@ class Layman:
                         j = j + 1
             
 
-                    #print(res)
+                    print(res)
                     try:
                         wmsUrl = res['wms']['url']
                     except:
@@ -3780,6 +3895,81 @@ class Layman:
                     self.dlg.progressBar.show() 
                     self.dlg.label_import.show()
                     self.importMapEnvironmnet(False)
+                    threading.Thread(target=lambda: self.importMap(x, "add", successful) ).start()
+                    #self.importMap(x, "add", successful) 
+    def addLayerToComposite2(self,x, layer):
+        if (isinstance(layer,QgsRasterLayer)):            
+            print("External WMS detected")
+            self.addExternalWMSToComposite(layer.name())
+        if (isinstance(layer,QgsVectorLayer)):          
+            self.compositeListOld = copy.deepcopy(self.compositeList) ## list pred upravou pro vraceni zmen
+            #layers = self.getSelectedLayers() #odkomentovat pro zapnuti nacitani vrstev z listwidgetu
+            layers = []
+            layers.append(layer)
+            successful = 0
+            print (len(layers))
+            #try:
+            #    step = self.getProgressBarStep(len(layers))
+            #except:
+            #    if self.locale == "cs":
+            #        QMessageBox.information(None, "Layman", "Není vybrána žádná vrstva!")
+            #    else:
+            #        QMessageBox.information(None, "Layman", "No layer selected!")
+        
+            for i in range (0, len(layers)):
+                print(type(layers[i]))           
+            
+                #print (self.isLayerInComposite(x))
+                #print (layers[i].name() in self.isLayerInComposite(x))
+                #inComposite = layers[i].name() in self.isLayerInComposite(x)
+                inComposite = False
+                layerName = self.removeUnacceptableChars(layers[i].name()).lower()
+                if (self.checkExistingLayer(layers[i].name()) and inComposite):
+                    j = self.getLayerInCompositePosition(x)
+                    print("j je: " + str(j))
+                
+            
+             
+                    self.postRequest(layers[i].name(), True)
+                    layerName = self.removeUnacceptableChars(layers[i].name())
+           
+                else:
+                    self.postRequest(layers[i].name(), True)
+                    wmsStatus = 'PENDING'
+                    j = 0
+                    while ((wmsStatus == 'PENDING') and (j < 10)):
+                        print("waiting")
+                        print(wmsStatus)
+                        print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
+                        #response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
+                        response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), headers = self.getAuthHeader(self.authCfg))
+                        res = self.fromByteToJson(response.content)
+                 
+                        print(res)
+                        try:
+                            #wmsStatus = res['wms']['status']
+                            wmsStatus = res['wms']['url']
+                        except:
+                            #wmsStatus = "done"
+                            wmsStatus = "PENDING"
+                        time.sleep(1)
+                        j = j + 1
+            
+
+                    print(res)
+                    try:
+                        wmsUrl = res['wms']['url']
+                    except:
+                        #wmsUrl = self.URI+'/geoserver/'+layerName+'/ows'
+                        wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'/wfs'
+                    #self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layerName),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layers[i].name()),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+                    #if (self.dlg.radioButton_wms.isChecked()):
+                    #    self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+                    #if (self.dlg.radioButton_wfs.isChecked()):
+                    self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
+                    successful = successful + 1
+                    #self.dlg.progressBar.setValue(self.dlg.progressBar.value()+step)             
+                    
                     threading.Thread(target=lambda: self.importMap(x, "add", successful) ).start()
                     #self.importMap(x, "add", successful) 
     def getProgressBarStep(self, count):
@@ -4425,7 +4615,8 @@ class Layman:
         #layerName = self.removeUnacceptableChars(layerName)        
 
         layerName = self.parseWMSlayers(layerName)
-        epsg = "EPSG:4326"
+        #epsg = "EPSG:4326"
+        epsg = QgsProject.instance().crs().authid()
         url = url.replace("%2F", "/").replace("%3A",":")
         urlWithParams = 'contextualWMSLegend=0&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url
         
@@ -4433,22 +4624,29 @@ class Layman:
         #authCfg=self.client_id[-7:]
         #authCfg = '957je05'
         quri = QgsDataSourceUri()
-        if timeDimension != {}:
-            quri.setParam("type", "wmst")
-            #quri.setParam("timeDimensionExtent", "1995-01-01/2021-12-31/PT5M")
-            print(timeDimension)
-            quri.setParam("timeDimensionExtent", timeDimension['time']['values'])
-            quri.setParam("allowTemporalUpdates", "true")
-            quri.setParam("temporalSource", "provider")
+        if timeDimension != {} or timeDimension != "":
+            try: 
+                print(timeDimension['time']['values'])
+                print(timeDimension)
+                quri.setParam("type", "wmst")
+                #quri.setParam("timeDimensionExtent", "1995-01-01/2021-12-31/PT5M")
+                print(timeDimension)
+                quri.setParam("timeDimensionExtent", str(timeDimension['time']['values']))
+                quri.setParam("allowTemporalUpdates", "true")
+                quri.setParam("temporalSource", "provider")
+            except:
+                print("dimension exception")
         quri.setParam("layers", layerName)
         quri.setParam("styles", '')
         quri.setParam("format", 'image/png')
-        quri.setParam("crs", 'EPSG:4326')
+        #quri.setParam("crs", 'EPSG:4326')
+        quri.setParam("crs", epsg)
         quri.setParam("dpiMode", '7')
         quri.setParam("featureCount", '10')
         quri.setParam("authcfg", self.authCfg)   # <---- here my authCfg url parameter
         quri.setParam("contextualWMSLegend", '0')
         quri.setParam("url", url)
+        print(str(quri.encodedUri()))
         rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8"), layerNameTitle, 'wms')
         #print(rlayer.isValid())
         ##quri end
@@ -4924,6 +5122,7 @@ class Layman:
      #   self.menu_DeleteMapDialog.setEnabled(True)
     #    self.menu_CreateCompositeDialog.setEnabled(True)
         self.menu_UserInfoDialog.setEnabled(True)
+        self.menu_CurrentCompositionDialog.setEnabled(False)
         
         #self.textbox.setText("Layman: Logged user")
     def getAuthHeader(self, authCfg):        
