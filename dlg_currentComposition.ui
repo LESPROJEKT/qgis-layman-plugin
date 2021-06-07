@@ -38,7 +38,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Close</string>
+    <string>Close and save</string>
    </property>
   </widget>
   <widget class="QListWidget" name="listWidget_layers">
