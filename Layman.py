@@ -1571,7 +1571,8 @@ class Layman:
     def saveReorder(self):
         for x in self.mapsChanged:
            
-            self.importMap(x, 'mov')
+            #self.importMap(x, 'mov')
+            self.patchMap(x)
         print("changes saved to server")
         #self.dlg.pushButton_saveOrder.setEnabled(False)
     def getVersion(self):
@@ -2385,6 +2386,16 @@ class Layman:
                 self.dlg.progressBar.hide() 
             except:
                 pass
+        if message == "patchMapP":
+            if self.locale == "cs":            
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice byla upravena"), Qgis.Success, duration=3)
+            else:           
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Composition was changed"), Qgis.Success, duration=3)
+        if message == "patchMapN":
+            if self.locale == "cs":            
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice nebyla upravena"), Qgis.Warning, duration=3)
+            else:           
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Error: Composition was not changed"), Qgis.Warning, duration=3)
         if message == "layerDeleteFromCompositeWrong":
             if self.locale == "cs":
             
@@ -4192,6 +4203,11 @@ class Layman:
         
         response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'], files=files, data = data, headers = self.getAuthHeader(self.authCfg))
         self.processingRequest = False
+        print(response.status_code)
+        if (response.status_code == 200):
+            QgsMessageLog.logMessage("patchMapP")
+        else:
+            QgsMessageLog.logMessage("patchMapN")
         return
     def importMap(self, x, operation, s = 0): ##s je počet vrstev úspěšně nahraných na server   
         #if (s != 0):
@@ -4255,18 +4271,9 @@ class Layman:
                 response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'],headers = self.getAuthHeader(self.authCfg))
               
                 response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
-                req = requests.get(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'], headers = self.getAuthHeader(self.authCfg))
-                mapCode = req.status_code ## test jestli vrstva na serveru existuje. Pokud ne = error 404
-                if (mapCode == 404):
-                    response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
+                
                 return
-            if (operation == "movx"):   
-                print("movvvvvvvvvvvvvvvvx")
-                response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'],headers = self.getAuthHeader(self.authCfg))
-              
-                response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
-                self.processingRequest = False
-                return
+            
             if (operation == "delLay"):                
                     
               
