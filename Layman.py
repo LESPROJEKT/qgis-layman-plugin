@@ -1438,7 +1438,8 @@ class Layman:
                                 layerList.append(self.compositeList[i]['layers'][j]['params']['LAYERS'])
                             if self.compositeList[i]['layers'][j]['className'] == "OpenLayers.Layer.Vector":
                                 #layerList.append(self.compositeList[i]['layers'][j]['name'])
-                                layerList.append(self.compositeList[i]['layers'][j]['protocol']['LAYERS'])
+                                #layerList.append(self.compositeList[i]['layers'][j]['protocol']['LAYERS'])
+                                layerList.append(self.compositeList[i]['layers'][j]['name'])
                 self.updatePermissions(layerList,userDict, "layers")
             else:
                 QgsMessageLog.logMessage("permissionsDoneF")
@@ -1723,7 +1724,7 @@ class Layman:
                 except:
                     pass
                 try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
-                    if (name == self.compositeList[x]['layers'][i]['protocol']['LAYERS']):
+                    if (name == self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['name'])):
                         inComposite = True                      
                 except:
                     pass
@@ -1751,12 +1752,14 @@ class Layman:
                     if (name == self.compositeList[x]['layers'][i]['params']['LAYERS']):
                         compositionList.append(self.compositeList[x]['name'])                      
                 except:
-                    pass
+                    print("chyba pri parovani jmena")
                 try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
-                    if (name == self.compositeList[x]['layers'][i]['protocol']['LAYERS']):
+                    #if (name == self.compositeList[x]['layers'][i]['protocol']['LAYERS']):
+                    if (name == self.compositeList[x]['layers'][i]['name']):
                         compositionList.append(self.compositeList[x]['name'])                     
                 except:
-                    pass
+                    print("chyba pri parovani jmena")
+                    
         return compositionList
 
     def refreshCompositeList(self, new=False):
@@ -3750,13 +3753,14 @@ class Layman:
         res = self.fromByteToJson(response.content)
         #print(res)
         wmsUrl = res['wms']['url']
+        wfsUrl = res['wfs']['url']
         
         self.existLayer = False
         #self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
         if (self.dlg.radioButton_wms.isChecked()):
             self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
         if (self.dlg.radioButton_wfs.isChecked()):
-            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+            self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wfsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
         self.importMap(x, 'add', 1)
         #self.refreshLayerListReversed()
            
@@ -3989,12 +3993,16 @@ class Layman:
                     try:
                         wmsUrl = res['wms']['url']
                     except:
-                        wmsUrl = self.URI+'/geoserver/'+layerName+'/ows'
+                        wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'/ows'
+                    try:
+                        wfsUrl = res['wfs']['url']
+                    except:
+                        wfsUrl = self.URI+'/geoserver/'+self.laymanUsername+'/wfs'
                     #self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layerName),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layers[i].name()),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
                     if (self.dlg.radioButton_wms.isChecked()):
                         self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                     if (self.dlg.radioButton_wfs.isChecked()):
-                        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wfsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
                     successful = successful + 1
                     #self.dlg.progressBar.setValue(self.dlg.progressBar.value()+step)
                     self.dlg.progressBar.show() 
