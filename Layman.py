@@ -3536,7 +3536,24 @@ class Layman:
             if self.removeUnacceptableChars(self.compositeList[x]['title']) == self.removeUnacceptableChars(self.current):
                 return x
 
-
+    def readDimFromCapatibilites(self, url, name):
+        r = requests.get(url + "?service=wms&request=GetCapabilities")
+        print("redDim")
+        #print(r.content)
+        dimension = ""
+        e = ET.ElementTree(ET.fromstring(r.content))
+        #e = ET.ElementTree.fromstring(r.content)
+        check = False
+        for elt in e.iter():    
+            if (elt.tag.split("}")[1] == "Title"):
+                if (self.removeUnacceptableChars(elt.text)== self.removeUnacceptableChars(name)):
+                    check = True
+            if (elt.tag.split("}")[1] == "Dimension"):
+                if check:
+                    print(elt.text)
+                    dimension = elt.text 
+                    check = False                  
+                    return dimension
     def postRequest(self, layer_name, auto=False):     
         nameCheck = True
         validExtent = True
@@ -4758,17 +4775,23 @@ class Layman:
         #authCfg = '957je05'
         quri = QgsDataSourceUri()
         if timeDimension != {} or timeDimension != "":
-            try: 
-                print(timeDimension['time']['values'])
-                print(timeDimension)
-                quri.setParam("type", "wmst")
-                #quri.setParam("timeDimensionExtent", "1995-01-01/2021-12-31/PT5M")
-                print(timeDimension)
-                quri.setParam("timeDimensionExtent", str(timeDimension['time']['values']))
-                quri.setParam("allowTemporalUpdates", "true")
-                quri.setParam("temporalSource", "provider")
-            except:
-                print("dimension exception")
+            if 'value' in timeDimension['time']:
+                if 'values' in timeDimension['time']:
+                    print(timeDimension['time']['values'])
+                    print(timeDimension)
+                    quri.setParam("type", "wmst")
+                    #quri.setParam("timeDimensionExtent", "1995-01-01/2021-12-31/PT5M")
+                    print(timeDimension)
+                    quri.setParam("timeDimensionExtent", str(timeDimension['time']['values']))
+                    quri.setParam("allowTemporalUpdates", "true")
+                    quri.setParam("temporalSource", "provider")
+                else:         
+                    quri.setParam("type", "wmst")
+                    quri.setParam("timeDimensionExtent", self.readDimFromCapatibilites(url, layerName))
+                    quri.setParam("allowTemporalUpdates", "true")
+                    quri.setParam("temporalSource", "provider")
+            #except:
+            #    print("dimension exception")
         quri.setParam("layers", layerName)
         quri.setParam("styles", '')
         quri.setParam("format", 'image/png')
