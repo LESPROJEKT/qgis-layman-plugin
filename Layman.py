@@ -476,6 +476,7 @@ class Layman:
             self.dlg.label_agrihub.setText(res['claims']['email'])
             self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
             self.dlg.label_version.setText(self.getVersion())
+            self.dlg.label_versionLayman.setText(self.laymanVersion)
             self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
             versionCheck = self.checkVersion()
             self.dlg.label_avversion.setText(versionCheck[1])
@@ -747,7 +748,11 @@ class Layman:
         
 
 
-    def run_ImportMapDialog(self):        
+    def run_ImportMapDialog(self):   
+        try:
+            self.timerLayer.timeout.disconnect()
+        except:
+            pass
         self.dlg = ImportMapDialog()
         self.dlg.label_import.hide()
         self.dlg.radioButton_wms.setChecked(True)
@@ -1576,6 +1581,14 @@ class Layman:
             self.patchMap(x)
         print("changes saved to server")
         #self.dlg.pushButton_saveOrder.setEnabled(False)
+        try:
+            self.timerLayer = QTimer()
+            self.timerLayer.setInterval(10000)
+            self.timerLayer.timeout.connect(lambda: self.syncOrder(iface.mapCanvas().layers())) 
+            self.timerLayer.start()
+            print("starting timer")
+        except:
+            print("timer exception")
     def getVersion(self):
         config = configparser.ConfigParser()
         config.read(os.path.join(self.plugin_dir ,'metadata.txt'))
@@ -1939,6 +1952,8 @@ class Layman:
             self.dlg.treeWidget.addTopLevelItem(item)
        
     def syncOrder(self, layers):
+        print("sync order")
+        
        # print("syncOrder################")         
         x = self.getCompositionIndexByName()
         if not (self.checkCompositionChanges(x, layers)):
@@ -1955,6 +1970,7 @@ class Layman:
                     name = self.removeUnacceptableChars(backup['layers'][i]['title'])
                    # print(name, self.removeUnacceptableChars(layer.name()))
                     if name == self.removeUnacceptableChars(layer.name()) and name not in usedLayers:
+                        print(name)
                         self.compositeList[x]['layers'].append(backup['layers'][i])
                         usedLayers.append(layer.name())
            # print(self.compositeList[x])
@@ -1966,7 +1982,8 @@ class Layman:
                 self.patchMap(x)
                 #self.importMap(x, 'mov')
                 #threading.Thread(target=lambda: self.importMap(x, 'mov')).start()
-            
+            if len(self.compositeList[x]['layers']) == 0:
+                self.compositeList[x]['layers'] = backup['layers']
 
             #print("syncOrder################") 
                 
@@ -1979,7 +1996,7 @@ class Layman:
         try:
             len(self.compositeList[x]['layers']) == None
         except:
-            print("excepted")
+            #print("excepted")
             return True
         if self.processingRequest == True: ## processing group hlida at nejdou 2 requesty na úpravu mapy najednou
             print("processing something else")
@@ -1987,8 +2004,8 @@ class Layman:
         for i in range (0, len(layers)):    
             #print(layers[i])
            # print(i)         
-            print(i, j)
-            print (len(self.compositeList[x]['layers']))
+            #print(i, j)
+            #print (len(self.compositeList[x]['layers']))
             if (i - j) < len(self.compositeList[x]['layers']):
                 name = self.removeUnacceptableChars(self.compositeList[x]['layers'][i - j]['title'])
                 print(name,self.removeUnacceptableChars(layers[i].name()))
@@ -2084,8 +2101,13 @@ class Layman:
                 for layer in self.compositeList[self.dlg.listWidget.currentRow()]['layers']:
                     if layer['title'] == item.text(0):
                         if item.text(1) == "HSLayers.Layer.WMS":
-                            url = layer['url']
                             name = layer['params']['LAYERS']
+                            #url = layer['url']                           
+                            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name  
+                            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+                            data = r.json()
+                            url = data['wfs']['url']
+                            
                             layer['className'] = "OpenLayers.Layer.Vector"
                             layer['protocol'] = {                               
                                 "FROMCRS": "EPSG:3857",
@@ -2098,7 +2120,6 @@ class Layman:
                             del layer['url']
 
                         if item.text(1) == "OpenLayers.Layer.Vector":
-                            url = layer['protocol']['url']
                             try:
                                 name = layer['protocol']['LAYERS']
                             except:
@@ -2107,6 +2128,12 @@ class Layman:
                                 else:
                                     QMessageBox.information(None, "Layman", "This layer has old format of metadata.")
                                 return
+                            #url = layer['url']                           
+                            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name  
+                            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+                            data = r.json()
+                            url = data['wms']['url']
+                            
                             layer['className'] = "HSLayers.Layer.WMS"
                             layer['url'] = url
                             layer['params'] = {
@@ -2661,13 +2688,19 @@ class Layman:
     def readMapJson(self,name, service):
         #self.dlg.progressBar_loader.show() 
         #self.dlg.label_loading.show()
+        self.processingRequest = True
         self.current = name
     
-        
+        try:
+            self.timerLayer.timeout.disconnect()
+            print("sync order vypinani")
+        except:
+            print("sync order vypinani")
         self.readMapJsonThread(name,service)
  
     
     def readMapJsonThread(self,name, service):
+        
         nameWithDiacritics = name        
         name = self.removeUnacceptableChars(name)
         
@@ -2732,12 +2765,13 @@ class Layman:
                 layerType = layer.type()
                 if layerType == QgsMapLayer.VectorLayer:
                     layer.editingStopped.connect(self.layerEditStopped)
-            self.menu_CurrentCompositionDialog.setEnabled(True)
+            self.menu_CurrentCompositionDialog.setEnabled(True)                 
             iface.layerTreeView().currentLayerChanged.connect(lambda: self.syncOrder(iface.mapCanvas().layers()))
             self.timerLayer = QTimer()
             self.timerLayer.setInterval(10000)
             self.timerLayer.timeout.connect(lambda: self.syncOrder(iface.mapCanvas().layers())) 
             self.timerLayer.start()
+            self.processingRequest = False
 
     def removeSignals(self):
         print("removing signals")
@@ -3750,6 +3784,15 @@ class Layman:
                     
                     #nameInList = nameInList.split(" ")[0]
                     threading.Thread(target=lambda: self.addExistingWMSLayerToCompositeThread(name, nameInList,x)).start()
+                if (self.current):
+                    url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name           
+                    r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+                    data = r.json()
+                    url = data['wms']['url']
+                    layerNameTitle = data['title']
+                    epsg =""
+                    self.loadWms(url, name,layerNameTitle, "", epsg, groupName = '', subgroupName = '', timeDimension={})
+                    
                     
                 self.dlg.progressBar.show() 
                 self.dlg.label_import.show()
@@ -4773,8 +4816,8 @@ class Layman:
         ### quri
         #authCfg=self.client_id[-7:]
         #authCfg = '957je05'
-        quri = QgsDataSourceUri()
-        if timeDimension != {} or timeDimension != "":
+        quri = QgsDataSourceUri()       
+        if timeDimension != {}:
             if 'value' in timeDimension['time']:
                 if 'values' in timeDimension['time']:
                     print(timeDimension['time']['values'])
