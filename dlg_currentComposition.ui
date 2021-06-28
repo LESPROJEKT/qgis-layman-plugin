@@ -9,19 +9,19 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>480</width>
+    <width>520</width>
     <height>257</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>480</width>
+    <width>520</width>
     <height>257</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>480</width>
+    <width>520</width>
     <height>257</height>
    </size>
   </property>
@@ -31,9 +31,9 @@
   <widget class="QPushButton" name="pushButton_close">
    <property name="geometry">
     <rect>
-     <x>322</x>
-     <y>200</y>
-     <width>130</width>
+     <x>320</x>
+     <y>110</y>
+     <width>151</width>
      <height>28</height>
     </rect>
    </property>
@@ -56,7 +56,7 @@
     <rect>
      <x>20</x>
      <y>10</y>
-     <width>101</width>
+     <width>121</width>
      <height>16</height>
     </rect>
    </property>
@@ -67,7 +67,7 @@
   <widget class="QLabel" name="label_loadedComposition">
    <property name="geometry">
     <rect>
-     <x>120</x>
+     <x>150</x>
      <y>10</y>
      <width>321</width>
      <height>16</height>
@@ -75,6 +75,45 @@
    </property>
    <property name="text">
     <string/>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_close2">
+   <property name="geometry">
+    <rect>
+     <x>320</x>
+     <y>70</y>
+     <width>151</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Close</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_new">
+   <property name="geometry">
+    <rect>
+     <x>320</x>
+     <y>29</y>
+     <width>151</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>New</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_readonly">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>230</y>
+     <width>211</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Composition is read only</string>
    </property>
   </widget>
  </widget>
