@@ -2108,10 +2108,13 @@ class Layman:
     #            self.compositeList[x]['layers'] = backup['layers']
 
     #        #print("syncOrder################") 
-                
+    #def syncOrder(self, layers):       
+    #    print("sync order")
+    #    print(layers)
     def syncOrder(self, layers):
         #return ## treba doaldit
         print("sync order")
+        print(layers)
         
        # print("syncOrder################")         
        # x = self.getCompositionIndexByName()
@@ -2141,9 +2144,10 @@ class Layman:
                 #self.patchMap2()
                 #self.importMap(x, 'mov')
                 #threading.Thread(target=lambda: self.importMap(x, 'mov')).start()
-            if len(composition['layers']) == 0:
+            elif len(composition['layers']) == 0 or len(composition['layers']) != len(backup['layers']):
                 print("syncOrder rollback")
                 composition['layers'] = backup['layers']
+           
 
             #print("syncOrder################") 
     def updateComposition(self):
@@ -2205,14 +2209,16 @@ class Layman:
         except:
             print("excepted")
             return True
-        if self.processingRequest == True: ## processing group hlida at nejdou 2 requesty na úpravu mapy najednou
-            print("processing something else")
-            return True
+        #if self.processingRequest == True: ## processing group hlida at nejdou 2 requesty na úpravu mapy najednou
+        #    print("processing something else")
+        #    return True
         for i in range (0, len(layers)):    
             #print(layers[i])
            # print(i)         
             print(i, j)
             print (len(composition['layers']))
+            print("test poli")
+            print((i - j), len(composition['layers']))
             if (i - j) < len(composition['layers']):
                 name = self.removeUnacceptableChars(composition['layers'][i - j]['title'])
                 print(name,self.removeUnacceptableChars(layers[i].name()))
@@ -2227,6 +2233,7 @@ class Layman:
             else:
                 print("no matched")
                 j = j + 1
+
             i = i + 1
         if (matched == len(composition['layers'])):
             print("true")
@@ -3004,7 +3011,7 @@ class Layman:
                 self.menu_CurrentCompositionDialog.setEnabled(True)                 
                 #iface.layerTreeView().currentLayerChanged.connect(lambda: self.syncOrder(iface.mapCanvas().layers()))
                 #self.timerLayer = QTimer()
-                #self.timerLayer.setInterval(1000)
+                #self.timerLayer.setInterval(5000)
                 #self.timerLayer.timeout.connect(lambda: self.syncOrder([layer for layer in QgsProject.instance().mapLayers().values()])) 
                 #self.timerLayer.start()
                 self.processingRequest = False
@@ -3792,7 +3799,13 @@ class Layman:
             #QMessageBox.information(None, "Message", "Layer exported sucessfully.")
     def getLayerGroupTest(self):
         threading.Thread(target=lambda: self.getLayerGroup(iface.activeLayer())).start()
+
+    def getLayersOrder(self):
+        bridge = iface.layerTreeCanvasBridge()
+        root = bridge.rootGroup()
+        return root.layerOrder()
     def getLayerGroup(self, layer):
+        self.syncOrder(self.getLayersOrder())
         #time.sleep(1)
         self.processingRequest = True
         if (layer != None):
