@@ -2142,6 +2142,14 @@ class Layman:
 
             if backup['layers'] != composition['layers'] and len(backup['layers']) == len(composition['layers']):
                 print("saving order")
+                print("####")
+                print("order before")
+                for i in range (0,len(backup['layers'])):
+                    print(backup['layers'][i]['title'])
+                print("order after")
+                for i in range (0,len(backup['layers'])):
+                    print(composition['layers'][i]['title'])
+                print("####")
                 #self.patchMap2()
                 #self.importMap(x, 'mov')
                 #threading.Thread(target=lambda: self.importMap(x, 'mov')).start()
@@ -2213,7 +2221,8 @@ class Layman:
         #if self.processingRequest == True: ## processing group hlida at nejdou 2 requesty na úpravu mapy najednou
         #    print("processing something else")
         #    return True
-        for i in range (0, len(layers)):    
+        for i in range (len(layers)-1,-1,-1):
+        #for i in range (0, len(layers)):    
             #print(layers[i])
            # print(i)         
             print(i, j)
@@ -3814,7 +3823,7 @@ class Layman:
             root = prj.layerTreeRoot()
             #print("test")
             for child in root.children():
-                print(child)
+                #print(child)
                 if isinstance(child, QgsLayerTreeGroup): ##pokud je intance group tak hledáme shodu pres layer ID
                     #print ("- group: " + child.name())
                     for child2 in child.children():
@@ -3846,25 +3855,27 @@ class Layman:
                    #   
         self.processingRequest = False                     
     def addLayerToPath(self, name, groupName):
-        x = self.getCompositionIndexByName()
+        #x = self.getCompositionIndexByName()
+        composition = self.instance.getComposition()
        # print(x)
-        for i in range (0, len(self.compositeList[x]['layers'])):
-            if (self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']) == self.removeUnacceptableChars(name)): #
-                self.compositeList[x]['layers'][i]['path'] = groupName
-                print("modifing " + self.compositeList[x]['name'] + "adding group name " + groupName)
-                self.importMap(x, 'mov') ## ukládáme změny na server
+        for i in range (0, len(composition['layers'])):
+            if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(name)): #
+                composition['layers'][i]['path'] = groupName
+                print("modifing " + composition['name'] + "adding group name " + groupName)
+                #self.importMap(x, 'mov') ## ukládáme změny na server
                 #QgsMessageLog.logMessage("path added")
                 
                 
     def checkLayerPath(self, name):
-        x = self.getCompositionIndexByName()
-        for i in range (0, len(self.compositeList[x]['layers'])):
-            if (self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']) == self.removeUnacceptableChars(name)): 
+        #x = self.getCompositionIndexByName()
+        composition = self.instance.getComposition()
+        for i in range (0, len(composition['layers'])):
+            if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(name)): 
                 try:
-                    if self.compositeList[x]['layers'][i]['path'] != "":
-                        del self.compositeList[x]['layers'][i]['path']
-                        print("modifing " + self.compositeList[x]['name'] + "layer " + name)
-                        self.importMap(x, 'mov') ## ukládáme změny na server
+                    if composition['layers'][i]['path'] != "":
+                        del composition['layers'][i]['path']
+                        print("modifing " + composition['name'] + "layer " + name)
+                        #self.importMap(x, 'mov') ## ukládáme změny na server
                     else:
                         pass                        
                 except:
