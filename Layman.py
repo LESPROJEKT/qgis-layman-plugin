@@ -499,8 +499,9 @@ class Layman:
             r = requests.get(url = userEndpoint,  headers = self.getAuthHeader(self.authCfg))
             res = r.text
             res = self.fromByteToJson(r.content)
+            versionCheck = self.checkVersion()
             self.dlg.pushButton_logout.clicked.connect(lambda: self.logout())
-            self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin())
+            self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
             print(res['claims'])
             self.dlg.label_layman.setText(res['claims']['preferred_username'])
             self.dlg.label_server.setText(self.liferayServer)
@@ -509,7 +510,7 @@ class Layman:
             self.dlg.label_version.setText(self.getVersion())
             self.dlg.label_versionLayman.setText(self.laymanVersion)
             self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-            versionCheck = self.checkVersion()
+            
             self.dlg.label_avversion.setText(versionCheck[1])
             if versionCheck[0] == True:
                 self.dlg.label_avversion.hide()
@@ -524,7 +525,7 @@ class Layman:
                 self.dlg.label_5.hide()
                 self.dlg.pushButton_update.setEnabled(False)
             self.dlg.pushButton_logout.setEnabled(False)
-            self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin())
+            self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
             self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
     def run_SetMapPermission(self, mapName, fromAddMap = False):
         self.dlg = SetPermissionDialog() 
@@ -6058,7 +6059,18 @@ class Layman:
                 shutil.copytree(s, d, symlinks, ignore)
             else:
                 shutil.copy2(s, d)
-    def updatePlugin(self):
+    def updatePlugin(self, version):
+        if (len(version.split(".")) > 2):
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Aktualizace pluginu", "Tato verze pluginu není v QGIS repozitáři a může obsahovat nové netestované funkcionality. Chcete opravdu instalovat tuto verzi?")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Plugin update", "This version of the plugin is not included in the QGIS repository and may contain new untested functionalities. Do you really want to install this version?")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.No):
+                return
         url = "https://gitlab.com/Vrobel/layman_qgis/-/archive/master/layman_qgis-master.zip" 
         save_path = tempfile.gettempdir() + os.sep + "layman.zip"
         self.download_url(url, save_path)
