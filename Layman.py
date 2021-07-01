@@ -5196,7 +5196,11 @@ class Layman:
                     layerNameTitle = data['layers'][x]['title']                    
                     repairUrl = data['layers'][x]['protocol']['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)
+                    subgroupName = ""
+                    if "path" in  data['layers'][x]:
+                        groupName = data['layers'][x]['path']  
                     try: ## nove rozdeleni
+                        
                         if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
                         
                             success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
@@ -5387,6 +5391,7 @@ class Layman:
            # if (True):    
                 if (groupName != ''):
                     self.addWmsToGroup(groupName,vlayer, subgroupName)
+                    
                 else:            
                     QgsProject.instance().addMapLayer(vlayer)
                 if visibility == False:
