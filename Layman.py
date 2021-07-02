@@ -458,11 +458,17 @@ class Layman:
             if item.checkState() == 2 and  self.removeUnacceptableChars(item.text()) not in layerList: 
                 if not self.checkLayerInCurrentCompositon(item.text()): # kdyz se nenachazi v kompozici nahravame
                     layer = QgsProject.instance().mapLayersByName(item.text())[0]
-                    layerType = layer.type()                    
-                    if layerType == QgsMapLayer.VectorLayer:
-                        layer.editingStopped.connect(self.layerEditStopped)
+                    if layer.featureCount() > 0:
+                        layerType = layer.type()                    
+                        if layerType == QgsMapLayer.VectorLayer:
+                            layer.editingStopped.connect(self.layerEditStopped)
                     
-                    layers.append(layer)
+                        layers.append(layer)
+                    else:
+                        if self.locale == "cs":                
+                            QMessageBox.information(None, "Layman import layer", "Nelze nahrát vrstvu: "+layer.name()+", protože neobsahuje žádný prvek!")
+                        else:
+                            QMessageBox.information(None, "Layman import layer", "Unable to load layer: "+layer.name()+", because it has no feature!")
                     #self.addLayerToComposite2(x, layer)
                     
                     
@@ -5286,7 +5292,7 @@ class Layman:
                     quri.setParam("temporalSource", "provider")
             #except:
             #    print("dimension exception")
-        quri.setParam("layers", layerName)
+        quri.setParam("layers", layerName.replace("'", ""))
         quri.setParam("styles", '')
         quri.setParam("format", 'image/png')
         #quri.setParam("crs", 'EPSG:4326')
@@ -5298,6 +5304,9 @@ class Layman:
         quri.setParam("url", url)
         print(str(quri.encodedUri()))
         rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
+        if not url.startswith(self.URI):
+            quri.removeParam("authcfg")
+            rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
         #print(rlayer.isValid())
         ##quri end
        # rlayer = QgsRasterLayer(urlWithParams, layerNameTitle, 'wms')
@@ -5318,6 +5327,7 @@ class Layman:
                 QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
             return True
         else:
+            QgsProject.instance().addMapLayer(rlayer)
             #if self.locale == "cs":
             #    QMessageBox.information(None, "Layman", "WMS není pro vrstvu "+layerNameTitle+ " k dispozici.")
             #else:
