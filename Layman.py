@@ -396,6 +396,8 @@ class Layman:
         self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #66ab27 ;}#pushButton_new:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.pushButton_close2.setStyleSheet("#pushButton_close2 {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close2:hover{background: #66ab27 ;}#pushButton_close2:disabled{background: #64818b ;}")
+        self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
+        self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         if self.current != None:
             self.dlg.pushButton_close.setEnabled(True)
             x = self.getCompositionIndexByName()
@@ -445,6 +447,7 @@ class Layman:
                 self.dlg.listWidget_layers.setEnabled(False)
                 self.dlg.pushButton_close.setEnabled(False)
                 self.dlg.label_readonly.show()
+        self.dlg.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog(None))
         self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers(layerList))
         self.dlg.pushButton_close2.clicked.connect(lambda: self.dlg.close())
         self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
@@ -679,15 +682,45 @@ class Layman:
         
         #|self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog()) 
         self.dlg.rejected.connect(lambda: self.afterClosePermissionMapDialog()) 
-        
+    def run_EditCurrentMap(self):
+        composition = self.instance.getComposition()
+        self.dlg = EditMapDialog()      
+        self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_range.setStyleSheet("#pushButton_range {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_range:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_range_2.setStyleSheet("#pushButton_range_2 {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_range_2:hover{background: #66ab27 ;}#pushButton_range_2:disabled{background: #64818b ;}")
+        self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}") 
+        self.dlg.lineEdit_name.hide()
+        self.dlg.label_2.hide()
+        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
+        self.dlg.lineEdit_name.setText(composition['name'])
+        self.dlg.lineEdit_abstract.setText(composition['abstract'])
+        self.dlg.lineEdit_title.setText(composition['title'])
+        self.dlg.lineEdit_units.setText(composition['units'])
+        self.dlg.lineEdit_scale.setText(str(composition['scale']))
+        self.dlg.lineEdit_user.setText(composition['user']['name'])
+        self.dlg.lineEdit_xmin.setText(composition['extent'][0])
+        self.dlg.lineEdit_xmax.setText(composition['extent'][2])
+        self.dlg.lineEdit_ymin.setText(composition['extent'][1])
+        self.dlg.lineEdit_ymax.setText(composition['extent'][3])
+        self.dlg.lineEdit_xmin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.dlg.lineEdit_xmax.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.dlg.lineEdit_ymin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.dlg.lineEdit_ymax.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.dlg.rejected.connect(lambda: self.afterCloseCurrentMapDialog()) 
+        self.dlg.pushButton_save.clicked.connect(lambda: self.modifyMap())
+        self.dlg.pushButton_range_2.clicked.connect(lambda: self.setRangeFromCanvas())
+        self.dlg.pushButton_range.clicked.connect(lambda: self.setExtentFromLayers(self.getCompositionIndexByName()))
+        #self.dlg.rejected.connect(lambda: self.afterCloseCompositeDialog())
+        self.dlg.show()
+        result = self.dlg.exec_()
+
     def run_EditMap(self, x):
         self.dlg = EditMapDialog()      
         self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
         self.dlg.pushButton_range.setStyleSheet("#pushButton_range {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_range:hover{background: #66ab27 ;}")
-        self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        
-       
+        self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}") 
         self.dlg.lineEdit_name.hide()
         self.dlg.label_2.hide()
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
@@ -697,8 +730,6 @@ class Layman:
         self.dlg.lineEdit_units.setText(self.compositeList[x]['units'])
         self.dlg.lineEdit_scale.setText(str(self.compositeList[x]['scale']))
         self.dlg.lineEdit_user.setText(self.compositeList[x]['user']['name'])
-
-
         self.dlg.lineEdit_xmin.setText(self.compositeList[x]['extent'][0])
         self.dlg.lineEdit_xmax.setText(self.compositeList[x]['extent'][2])
         self.dlg.lineEdit_ymin.setText(self.compositeList[x]['extent'][1])
@@ -1220,6 +1251,7 @@ class Layman:
         self.threadLayers.start()
         result = self.dlg.exec_()
     def setExtentFromLayers(self, x):
+        print(self.compositeList[x])
         xmin = None
         xmax = None
         ymin = None
@@ -1227,6 +1259,7 @@ class Layman:
         initRun = True
         url = self.URI+'/client/geoserver/'+self.laymanUsername+'/ows?service=wms&version=1.1.1&request=GetCapabilities'
         r = requests.get(url)
+        #print(r.content)
         names = list()
         renge = list()
         tree = ET.ElementTree(ET.fromstring(r.content))
@@ -1281,7 +1314,7 @@ class Layman:
             if self.locale == "cs":                
                 QMessageBox.information(None, "Layman", "Záznam prostorového rozsahu vrstev vybrané kompozice nebyl nalezen!")
             else:
-                QMessageBox.information(None, "Layman", "A record of the spatial extent of the layers of the selected composition was not found!")
+                QMessageBox.information(None, "Layman", "A record of the layers spatial extent for the selected composition was not found!")
         else:
             self.dlg.lineEdit_xmin.setText(str(xmin))
             self.dlg.lineEdit_xmax.setText(str(xmax))
@@ -1982,7 +2015,9 @@ class Layman:
     def afterCloseCompositeDialog(self):        
         self.dlg = self.old_dlg
         self.refreshCompositeList()
-
+    def afterCloseCurrentMapDialog(self):
+        self.dlg = self.old_dlg
+       
     def afterCloseEditMapDialog(self):
         self.dlg = self.old_dlg
         self.refreshCompositeList()
@@ -1999,7 +2034,10 @@ class Layman:
         self.run_SetPermission(names)
     def showEditMapDialog(self, x):        
         self.old_dlg = self.dlg
-        self.run_EditMap(x)
+        if x:
+            self.run_EditMap(x)
+        else:
+            self.run_EditCurrentMap()
             ############### pravdepodobne půjde smazat
     def refreshItems(self):
   
@@ -3412,7 +3450,9 @@ class Layman:
                 self.loadJsonLayer(fileName[0])
         except:
             pass
-    def modifyMap(self, x):        
+    def modifyMap(self, x = None): 
+        if not x:
+            x = self.getCompositionIndexByName()
         name = self.removeUnacceptableChars(self.dlg.lineEdit_title.text())
         #self.compositeList[x]['name'] = self.dlg.lineEdit_name.text()
         self.compositeList[x]['name'] = name
@@ -5494,6 +5534,7 @@ class Layman:
 
             return True
         else:
+            QgsProject.instance().addMapLayer(vlayer)
             return False
             if self.locale == "cs":
                 QMessageBox.information(None, "Layman", "WFS není pro vrstu "+layerNameTitle+ " k dispozici.")
