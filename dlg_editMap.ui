@@ -37,8 +37,8 @@
   <widget class="QPushButton" name="pushButton_save">
    <property name="geometry">
     <rect>
-     <x>51</x>
-     <y>204</y>
+     <x>50</x>
+     <y>190</y>
      <width>88</width>
      <height>27</height>
     </rect>
@@ -50,8 +50,8 @@
   <widget class="QPushButton" name="pushButton_close">
    <property name="geometry">
     <rect>
-     <x>188</x>
-     <y>203</y>
+     <x>180</x>
+     <y>190</y>
      <width>93</width>
      <height>28</height>
     </rect>
@@ -318,14 +318,27 @@
   <widget class="QPushButton" name="pushButton_range">
    <property name="geometry">
     <rect>
-     <x>350</x>
-     <y>200</y>
-     <width>161</width>
+     <x>320</x>
+     <y>180</y>
+     <width>181</width>
      <height>27</height>
     </rect>
    </property>
    <property name="text">
-    <string>Extent from layers</string>
+    <string>From capatibilites</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_range_2">
+   <property name="geometry">
+    <rect>
+     <x>320</x>
+     <y>210</y>
+     <width>181</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>From canvas</string>
    </property>
   </widget>
  </widget>
