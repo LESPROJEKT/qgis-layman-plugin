@@ -392,6 +392,7 @@ class Layman:
         self.dlg = CurrentCompositionDialog() 
         self.dlg.show()
         self.dlg.pushButton_close.setEnabled(False)
+        self.dlg.pushButton_editMeta.setEnabled(False)
         self.dlg.label_readonly.hide()
         self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #66ab27 ;}#pushButton_new:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
@@ -400,6 +401,7 @@ class Layman:
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         if self.current != None:
             self.dlg.pushButton_close.setEnabled(True)
+            self.dlg.pushButton_editMeta.setEnabled(True)
             x = self.getCompositionIndexByName()
             self.dlg.label_loadedComposition.setText(self.current)
             layerList = list()
@@ -444,6 +446,7 @@ class Layman:
             elif self.laymanUsername == self.instance.getWorkspace():
                 pass
             else:
+                
                 self.dlg.listWidget_layers.setEnabled(False)
                 self.dlg.pushButton_close.setEnabled(False)
                 self.dlg.label_readonly.show()
@@ -1258,7 +1261,7 @@ class Layman:
         ymax = None
         initRun = True
         url = self.URI+'/client/geoserver/'+self.laymanUsername+'/ows?service=wms&version=1.1.1&request=GetCapabilities'
-        r = requests.get(url)
+        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
         #print(r.content)
         names = list()
         renge = list()
@@ -1289,6 +1292,8 @@ class Layman:
                 #print(renge[0]['miny'])
                 #print(renge[0]['minx'])
                 print(len(names))
+                print(names)
+                print(name)
                 for i in range (0, len(names)):                    
                     if names[i] == name:
                         print("matched")
