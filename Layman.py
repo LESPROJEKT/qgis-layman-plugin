@@ -399,6 +399,7 @@ class Layman:
         self.dlg.pushButton_close2.setStyleSheet("#pushButton_close2 {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close2:hover{background: #66ab27 ;}#pushButton_close2:disabled{background: #64818b ;}")
         self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
+        print(self.current)
         if self.current != None:
             self.dlg.pushButton_close.setEnabled(True)
             self.dlg.pushButton_editMeta.setEnabled(True)
@@ -782,11 +783,11 @@ class Layman:
             open(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt", "w").close
     def run_CreateCompositeDialog(self, fromImport = False, fromCurrent = False):
         self.dlg = CreateCompositeDialog()
-        
+        print(fromImport, fromCurrent)
         self.dlg.label_info.hide()
         self.dlg.label_2.hide()
         self.dlg.lineEdit.hide()
-        self.dlg.pushButton_CreateComposition.clicked.connect(lambda: self.createComposite(self.dlg.lineEdit.text(),self.dlg.lineEdit_2.text()))              
+                      
         layers = QgsProject.instance().mapLayers().values()
 
         #self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog()) 
@@ -816,16 +817,22 @@ class Layman:
         
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
 
-        self.dlg.show()
+        
         
         #if (fromImport):
             #self.dlg.rejected.connect(lambda: self.afterCloseCompositeDialog())
-        result = self.dlg.exec_()
-        if fromCurrent:
-            self.dlg.rejected.connect(lambda: self.afterClosePermissionMapDialog())
-            self.dlg.pushButton_close.clicked.connect(lambda: self.afterClosePermissionMapDialog())
+        
+        print("from current" + str(fromCurrent))
+        if fromCurrent:  
+            print("from current" + str(fromCurrent))
+            self.dlg.rejected.connect(lambda: self.afterCloseNewMapDialog())
+            self.dlg.pushButton_CreateComposition.clicked.connect(lambda: self.createComposite(self.dlg.lineEdit.text(),self.dlg.lineEdit_2.text(), True))
+            self.dlg.pushButton_close.clicked.connect(lambda: self.afterCloseNewMapDialog())
         else:
             self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
+            self.dlg.pushButton_CreateComposition.clicked.connect(lambda: self.createComposite(self.dlg.lineEdit.text(),self.dlg.lineEdit_2.text()))
+        result = self.dlg.exec_()
+        self.dlg.show()
 
 
 
@@ -2026,8 +2033,14 @@ class Layman:
     def afterCloseEditMapDialog(self):
         self.dlg = self.old_dlg
         self.refreshCompositeList()
-    def afterClosePermissionMapDialog(self):        
+    def afterCloseNewMapDialog(self):
+        self.dlg.close()
         self.dlg = self.old_dlg
+        self.dlg.close()
+        self.run_CurrentCompositionDialog()
+    def afterClosePermissionMapDialog(self):   
+        self.dlg = self.old_dlg
+        
     def showMapPermissionsDialog(self, x, fromAddMap = False):        
         self.old_dlg = self.dlg        
         self.run_SetMapPermission(x, fromAddMap)
@@ -3437,7 +3450,7 @@ class Layman:
         abstract = self.dlg.lineEdit_7.text()        
         comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(xmin),str(ymin),str(xmax),str(ymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
         #print(comp)
-        self.dlg.close()
+        
        ## iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + compositeName + " byla úspešně vytvořena."), Qgis.Success, duration=3)
         return comp
     def loadLocalFile(self):
@@ -4900,7 +4913,7 @@ class Layman:
         layer = self.iface.activeLayer()
         return layer
     
-    def createComposite(self, name, title):
+    def createComposite(self, name, title, setCurrent = False):
       #  if (name == "" or title == ""):
         if (title == ""):
             if self.locale == "cs":
@@ -4918,7 +4931,50 @@ class Layman:
                 self.refreshCompositeList(True)
             except:
                 pass
+            if setCurrent:
+                self.current = name
+                self.selectedWorkspace = self.laymanUsername
+                url = self.URI+'/rest/'+self.selectedWorkspace+'/maps/'+name+'/file'  
+                print(url)
+                r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+                data = r.json()
+                print(data)
+                self.instance = CurrentComposition(self.URI, name, self.selectedWorkspace, self.getAuthHeader(self.authCfg),self.laymanUsername)
+                self.instance.setComposition(data)
+                ## sync start
+                prj = QgsProject().instance()
+                root = prj.layerTreeRoot()
+                print("xxxxxx")
+                print(root)
+                print("xxxxxx")
+                root.layerOrderChanged.connect(lambda: self.getLayerGroupTest())
+                #root.layerOrderChanged.connect(lambda: self.syncOrder(iface.mapCanvas().layers()))
+                ## konec naslouchani
 
+                self.prj=QgsProject.instance()
+            
+                self.prj.removeAll.connect(self.removeSignals)              
+                self.menu_CurrentCompositionDialog.setEnabled(True)                 
+                #iface.layerTreeView().currentLayerChanged.connect(lambda: self.syncOrder(iface.mapCanvas().layers()))
+                #self.timerLayer = QTimer()
+                #self.timerLayer.setInterval(5000)
+                #self.timerLayer.timeout.connect(lambda: self.syncOrder([layer for layer in QgsProject.instance().mapLayers().values()])) 
+                #self.timerLayer.start()
+                self.processingRequest = False
+
+                composition = self.instance.getComposition()
+                self.backupComposition = copy.deepcopy(composition) 
+                self.syncComposition = QTimer()
+                self.syncComposition.setInterval(10000)
+                self.syncComposition.timeout.connect(lambda: self.updateComposition()) 
+                self.syncComposition.start()
+
+                root = QgsProject.instance().layerTreeRoot()
+                root.visibilityChanged.connect(self.changeVisibility)
+                ##
+
+                self.afterCloseNewMapDialog()
+        
 
     def patchLayer(self, layer_name, data):
         
