@@ -465,17 +465,20 @@ class Layman:
             if item.checkState() == 2 and  self.removeUnacceptableChars(item.text()) not in layerList: 
                 if not self.checkLayerInCurrentCompositon(item.text()): # kdyz se nenachazi v kompozici nahravame
                     layer = QgsProject.instance().mapLayersByName(item.text())[0]
-                    if layer.featureCount() > 0:
-                        layerType = layer.type()                    
-                        if layerType == QgsMapLayer.VectorLayer:
-                            layer.editingStopped.connect(self.layerEditStopped)
+                    if (isinstance(layer, QgsVectorLayer)):
+                        if layer.featureCount() > 0:
+                            layerType = layer.type()                    
+                            if layerType == QgsMapLayer.VectorLayer:
+                                layer.editingStopped.connect(self.layerEditStopped)
                     
-                        layers.append(layer)
-                    else:
-                        if self.locale == "cs":                
-                            QMessageBox.information(None, "Layman import layer", "Nelze nahrát vrstvu: "+layer.name()+", protože neobsahuje žádný prvek!")
+                            layers.append(layer)
                         else:
-                            QMessageBox.information(None, "Layman import layer", "Unable to load layer: "+layer.name()+", because it has no feature!")
+                            if self.locale == "cs":                
+                                QMessageBox.information(None, "Layman import layer", "Nelze nahrát vrstvu: "+layer.name()+", protože neobsahuje žádný prvek!")
+                            else:
+                                QMessageBox.information(None, "Layman import layer", "Unable to load layer: "+layer.name()+", because it has no feature!")
+                    else:
+                        layers.append(layer)
                     #self.addLayerToComposite2(x, layer)
                     
                     

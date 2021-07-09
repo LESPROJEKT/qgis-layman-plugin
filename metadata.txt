@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.0
 description=Layman
-version=1.74.10
+version=1.74.11
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
