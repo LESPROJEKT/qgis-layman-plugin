@@ -27,9 +27,6 @@ import tempfile
 import os
 import threading
 import io
-
-
-
 from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt, QFileSystemWatcher, QRegExp,QDir,QUrl, QByteArray , QTimer
 from PyQt5.QtGui import QIcon, QPixmap, QRegExpValidator, QDoubleValidator
 from PyQt5.QtWidgets import QAction, QTreeWidget,QTreeWidgetItemIterator, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem, QAbstractItemView
@@ -154,6 +151,7 @@ class Layman:
         self.importedLayer = None
         self.batchLength = 0
         self.focusedLayer = None
+        self.modified = False
         self.done = 0
         self.name = ""
         self.millis = 0
@@ -389,20 +387,26 @@ class Layman:
             parent=self.iface.mainWindow()) 
     #--------------------------------------------------------------------------
     def run_CurrentCompositionDialog(self):
+        self.modified = False
         self.dlg = CurrentCompositionDialog() 
         self.dlg.show()
         self.dlg.pushButton_close.setEnabled(False)
+        self.dlg.pushButton_close.hide()
         self.dlg.pushButton_editMeta.setEnabled(False)
+        self.dlg.pushButton_save.setEnabled(False)
         self.dlg.label_readonly.hide()
         self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #66ab27 ;}#pushButton_new:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.pushButton_close2.setStyleSheet("#pushButton_close2 {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close2:hover{background: #66ab27 ;}#pushButton_close2:disabled{background: #64818b ;}")
         self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
+        self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
+        self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))
         print(self.current)
         if self.current != None:
             self.dlg.pushButton_close.setEnabled(True)
             self.dlg.pushButton_editMeta.setEnabled(True)
+            self.dlg.pushButton_save.setEnabled(True)
             x = self.getCompositionIndexByName()
             self.dlg.label_loadedComposition.setText(self.current)
             layerList = list()
@@ -440,6 +444,7 @@ class Layman:
                 if self.laymanUsername not in composition['access_rights']['write']:
                     self.dlg.listWidget_layers.setEnabled(False)
                     self.dlg.pushButton_close.setEnabled(False)
+                    self.dlg.pushButton_save.setEnabled(False)
                     self.dlg.label_readonly.show()
 
                 else:
@@ -452,10 +457,22 @@ class Layman:
                 self.dlg.pushButton_close.setEnabled(False)
                 self.dlg.label_readonly.show()
         self.dlg.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog(None))
-        self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers(layerList))
+        self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers())
         self.dlg.pushButton_close2.clicked.connect(lambda: self.dlg.close())
         self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
-    def saveMapLayers(self, layerList):
+        self.dlg.pushButton_save.clicked.connect(lambda: self.updateComposition())
+        self.dlg.listWidget_layers.itemChanged.connect(lambda: self.layersWasModified())
+
+    
+    def layersWasModified(self):
+        self.modified = True
+    def saveMapLayers(self):
+        layerList = list()
+        composition = self.instance.getComposition()
+        #for i in range (0, len(self.compositeList[x]['layers'])):            
+        for i in range (0, len(composition['layers'])):            
+            #layerList.append(self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']))
+            layerList.append(self.removeUnacceptableChars(composition['layers'][i]['title']))
         composition = self.instance.getComposition()
         self.processingRequest = True
         layers = list()
@@ -484,7 +501,6 @@ class Layman:
                     
             elif item.checkState() == 0:
                 print(len(composition['layers']))
-
                 for i in range (0, len(composition['layers'])): 
                     print("deleting")
                     print(i)
@@ -498,9 +514,10 @@ class Layman:
             for layer in layers:
                 print(layer.name())
             #self.addLayerToComposite2(x, layers)
-            threading.Thread(target=lambda: self.addLayerToComposite2(composition, layers)).start()
-
-        self.dlg.close()
+            #threading.Thread(target=lambda: self.addLayerToComposite2(composition, layers)).start()
+            self.addLayerToComposite2(composition, layers)
+        
+        #self.dlg.close()
         
     def run_UserInfoDialog(self):
         self.dlg = UserInfoDialog() 
@@ -715,7 +732,7 @@ class Layman:
         self.dlg.lineEdit_ymin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.dlg.lineEdit_ymax.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.dlg.rejected.connect(lambda: self.afterCloseCurrentMapDialog()) 
-        self.dlg.pushButton_save.clicked.connect(lambda: self.modifyMap())
+        self.dlg.pushButton_save.clicked.connect(lambda: self.modifyMapNew())
         self.dlg.pushButton_range_2.clicked.connect(lambda: self.setRangeFromCanvas())
         self.dlg.pushButton_range.clicked.connect(lambda: self.setExtentFromLayers(self.getCompositionIndexByName()))
         #self.dlg.rejected.connect(lambda: self.afterCloseCompositeDialog())
@@ -1751,14 +1768,14 @@ class Layman:
             self.patchMap(x)
         print("changes saved to server")
         #self.dlg.pushButton_saveOrder.setEnabled(False)
-        try:
-            self.timerLayer = QTimer()
-            self.timerLayer.setInterval(10000)
-            self.timerLayer.timeout.connect(lambda: self.syncOrder(iface.mapCanvas().layers())) 
-            self.timerLayer.start()
-            print("starting timer")
-        except:
-            print("timer exception")
+        #try:
+        #    self.timerLayer = QTimer()
+        #    self.timerLayer.setInterval(10000)
+        #    self.timerLayer.timeout.connect(lambda: self.syncOrder(iface.mapCanvas().layers())) 
+        #    self.timerLayer.start()
+        #    print("starting timer")
+        #except:
+        #    print("timer exception")
     def getVersion(self):
         config = configparser.ConfigParser()
         config.read(os.path.join(self.plugin_dir ,'metadata.txt'))
@@ -2224,12 +2241,17 @@ class Layman:
            
 
             #print("syncOrder################") 
-    def updateComposition(self):
-        composition = self.instance.getComposition()
-        if composition != self.backupComposition:
-            print("composition will be updated")
-            self.backupComposition = copy.deepcopy(composition)   
-            self.patchMap2()
+    def updateComposition(self):        
+        if self.modified == True:
+            self.saveMapLayers()
+            self.modified = False
+        else:
+            composition = self.instance.getComposition()
+            print(composition != self.backupComposition)
+            if composition != self.backupComposition:
+                print("composition will be updated")
+                self.backupComposition = copy.deepcopy(composition)   
+                self.patchMap2()
                  
     def checkCompositionChanges2(self,x, layers):        
         check = False
@@ -3093,10 +3115,10 @@ class Layman:
 
                 composition = self.instance.getComposition()
                 self.backupComposition = copy.deepcopy(composition) 
-                self.syncComposition = QTimer()
-                self.syncComposition.setInterval(10000)
-                self.syncComposition.timeout.connect(lambda: self.updateComposition()) 
-                self.syncComposition.start()
+                #self.syncComposition = QTimer()
+                #self.syncComposition.setInterval(10000)
+                #self.syncComposition.timeout.connect(lambda: self.updateComposition()) 
+                #self.syncComposition.start()
 
                 root = QgsProject.instance().layerTreeRoot()
                 root.visibilityChanged.connect(self.changeVisibility)
@@ -3506,6 +3528,41 @@ class Layman:
             iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
         except:
             pass
+    def modifyMapNew(self): 
+        composition = self.instance.getComposition()
+        name = self.removeUnacceptableChars(self.dlg.lineEdit_title.text())
+        #self.compositeList[x]['name'] = self.dlg.lineEdit_name.text()
+        composition['name'] = name
+        composition['abstract'] = self.dlg.lineEdit_abstract.text()
+        composition['title'] = self.dlg.lineEdit_title.text()
+        src = QgsProject.instance().crs()
+        dest = QgsCoordinateReferenceSystem(4326)
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        #transformace extentu
+     
+
+        composition['extent'][0] = self.dlg.lineEdit_xmin.text().replace(",",".")
+        composition['extent'][2] = self.dlg.lineEdit_xmax.text().replace(",",".")
+        composition['extent'][1] = self.dlg.lineEdit_ymin.text().replace(",",".")
+        composition['extent'][3] = self.dlg.lineEdit_ymax.text().replace(",",".")
+   
+        center = tform.transform(QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()))
+        composition['center'][0] = center.x()
+        composition['center'][1] = center.y()
+        #print(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'])       
+             
+        #print(self.patchMap2())
+        if (self.patchMap2() == 200):
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Metadata byla úspěšně upravena."), Qgis.Success, duration=3)
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
+        else:
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Metadata nebyla úspěšně upravena."), Qgis.Warning, duration=3)
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was not saved successfully."), Qgis.Warning, duration=3)
+        
         
         
     def saveLocalFile(self):
@@ -4604,7 +4661,7 @@ class Layman:
                         #self.dlg.progressBar.setValue(self.dlg.progressBar.value()+step)             
         #self.importMap(x, "add", successful)
         #self.importMap(x, "mov")
-        #self.patchMap2()
+        self.patchMap2()
                         #threading.Thread(target=lambda: self.importMap(x, "add", successful) ).start()
                         #self.importMap(x, "add", successful) 
         self.processingRequest = False
@@ -4758,6 +4815,7 @@ class Layman:
         
         response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/maps/'+composition['name'], files=files, data = data, headers = self.getAuthHeader(self.authCfg))
         self.processingRequest = False
+        return response.status_code
         print(response.status_code)
         if (response.status_code == 200):
             QgsMessageLog.logMessage("patchMapP")
@@ -4967,10 +5025,10 @@ class Layman:
 
                 composition = self.instance.getComposition()
                 self.backupComposition = copy.deepcopy(composition) 
-                self.syncComposition = QTimer()
-                self.syncComposition.setInterval(10000)
-                self.syncComposition.timeout.connect(lambda: self.updateComposition()) 
-                self.syncComposition.start()
+                #self.syncComposition = QTimer()
+                #self.syncComposition.setInterval(10000)
+                #self.syncComposition.timeout.connect(lambda: self.updateComposition()) 
+                #self.syncComposition.start()
 
                 root = QgsProject.instance().layerTreeRoot()
                 root.visibilityChanged.connect(self.changeVisibility)
