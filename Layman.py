@@ -160,6 +160,7 @@ class Layman:
         self.current = None
         self.changedLayer = set()
         self.laymanVersion = None
+        self.isAuthorized = True
         self.selectedWorkspace = None
         self.firstStart = True
         self.processingRequest = False
@@ -536,7 +537,10 @@ class Layman:
             self.dlg.pushButton_logout.clicked.connect(lambda: self.logout())
             self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
             print(res['claims'])
-            self.dlg.label_layman.setText(res['claims']['preferred_username'])
+            if self.isAuthorized:
+                self.dlg.label_layman.setText(res['claims']['preferred_username'])
+            else:
+                self.dlg.label_layman.setText("Anonymous")
             self.dlg.label_server.setText(self.liferayServer)
             self.dlg.label_agrihub.setText(res['claims']['email'])
             self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
@@ -1173,15 +1177,14 @@ class Layman:
         self.dlg = ConnectionManagerDialog()
       
         self.dlg.show()
-        self.dlg.pushButton_Dependencies.hide()
+        #self.dlg.pushButton_Dependencies.hide()
         if not self.dependencies:
             self.dlg.pushButton_Connect.hide()
-            self.dlg.pushButton_Dependencies.show()
+           # self.dlg.pushButton_Dependencies.show()
             self.dlg.comboBox_server.setEnabled(False)
-            self.dlg.lineEdit_userName.setEnabled(False)
-        self.dlg.progressBar.hide()
+            self.dlg.lineEdit_userName.setEnabled(False) 
         self.dlg.pushButton_Connect.setEnabled(False) 
-        self.dlg.pushButton_Dependencies.clicked.connect(lambda: self.install())
+       # self.dlg.pushButton_Dependencies.clicked.connect(lambda: self.install())
         path = self.plugin_dir + os.sep + "server_list.txt"
         servers = self.csvToArray(path)
         self.dlg.label_APIKey_2.setToolTip("Username is important only with first login")
@@ -1224,6 +1227,7 @@ class Layman:
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2())
         self.dlg.pushButton_Continue.clicked.connect(lambda: self.getToken())
+        self.dlg.pushButton_NoLogin.clicked.connect(lambda: self.withoutLogin(servers, self.dlg.comboBox_server.currentIndex()))
         self.dlg.pushButton_Continue.setEnabled(False)    
         registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
         self.dlg.comboBox_server.currentTextChanged.connect(self.setReg)
@@ -1235,8 +1239,9 @@ class Layman:
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
         self.dlg.pushButton_Connect.setStyleSheet("#pushButton_Connect {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Connect:hover{background: #66ab27 ;}")
         self.dlg.pushButton_Continue.setStyleSheet("#pushButton_Continue {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Continue:hover{background: #66ab27 ;} #pushButton_Continue:disabled{background: #64818b ;}")
-        self.dlg.pushButton_Dependencies.setStyleSheet("#pushButton_Dependencies {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Dependencies:hover{background: #66ab27 ;} #pushButton_Dependencies:disabled{background: #64818b ;}")
+        #self.dlg.pushButton_Dependencies.setStyleSheet("#pushButton_Dependencies {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Dependencies:hover{background: #66ab27 ;} #pushButton_Dependencies:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
+        self.dlg.pushButton_NoLogin.setStyleSheet("#pushButton_NoLogin {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_NoLogin:hover{background: #66ab27 ;}")
         result = self.dlg.exec_()
         self.dlg.rejected.connect(lambda: self.loginReject())
     def run_AddMapDialog(self):        
@@ -1259,7 +1264,10 @@ class Layman:
         self.dlg.pushButton_mapWFS.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WFS'))
         self.dlg.pushButton_map.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WFS', self.dlg.treeWidget.selectedItems()[0].text(1)))
         self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.dlg.treeWidget.selectedItems()[0].text(0), True))
-        
+        if not self.isAuthorized:
+            self.dlg.checkBox_own.setEnabled(False)
+        else:
+            self.dlg.checkBox_own.setEnabled(True)
         self.dlg.pushButton_delete.clicked.connect(lambda: self.deleteMap(self.dlg.treeWidget.selectedItems()[0].text(0),self.getCompositionIndexByName(self.dlg.treeWidget.selectedItems()[0].text(0))))
         self.dlg.filter.valueChanged.connect(self.filterResults)
         self.dlg.filter.valueChanged.connect(self.disableButtonsAddMap)
@@ -1273,10 +1281,25 @@ class Layman:
         self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
         self.dlg.checkBox_own.stateChanged.connect(self.loadMapsThread)
         self.dlg.checkBox_own.stateChanged.connect(self.disableButtonsAddMap)
+        self.dlg.checkBox_own.stateChanged.connect(self.rememberValueMap)
+        self.dlg.pushButton_delete.setEnabled(False)
+        self.dlg.pushButton_setPermissions.setEnabled(False)
+        self.dlg.pushButton_map.setEnabled(False)
         self.dlg.show()
         self.dlg.progressBar_loader.show() 
         self.dlg.label_loading.show() 
-        self.threadLayers = threading.Thread(target=lambda: self.loadMapsThread(False))
+        try:
+            checked = self.getConfigItem("mapcheckbox")          
+            print(checked)
+        except:
+            checked = False
+        if checked == "0":
+            self.dlg.checkBox_own.setCheckState(0)
+            checked = False
+        if checked == "1":
+            self.dlg.checkBox_own.setCheckState(2)
+            checked = True
+        self.threadLayers = threading.Thread(target=lambda: self.loadMapsThread(checked))
        
         self.threadLayers.start()
         result = self.dlg.exec_()
@@ -1359,7 +1382,25 @@ class Layman:
         self.dlg.lineEdit_xmax.setText(str(ext.xMaximum()))
         self.dlg.lineEdit_ymin.setText(str(ext.yMinimum()))
         self.dlg.lineEdit_ymax.setText(str(ext.yMaximum()))
-
+    def withoutLogin(self, servers, i):
+        self.menu_CurrentCompositionDialog.setEnabled(False)
+        self.isAuthorized = False
+        self.URI = servers[i][1]
+        self.menu_AddLayerDialog.setEnabled(True) 
+        self.menu_AddMapDialog.setEnabled(True)    
+        self.dlg.close()
+    def rememberValueLayer(self, value):
+        ## 2 true, 0 false
+        if value == 2:
+            self.appendIniItem("layerCheckbox", "1")
+        if value == 0:
+            self.appendIniItem("layerCheckbox", "0")
+    def rememberValueMap(self, value):
+        ## 2 true, 0 false
+        if value == 2:
+            self.appendIniItem("mapCheckbox", "1")
+        if value == 0:
+            self.appendIniItem("mapCheckbox", "0")
     def loadMapsThread(self, onlyOwn):           
         self.dlg.treeWidget.clear()
         
@@ -1397,11 +1438,26 @@ class Layman:
         self.dlg.pushButton_wfs.setEnabled(False)
         self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.pushButton_setPermissions.setEnabled(False)
-        self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(False))
+        try:
+            checked = self.getConfigItem("layercheckbox")
+            print("tst")
+            print(checked)
+        except:
+            checked = False
+        if checked == "0":
+            self.dlg.checkBox_own.setCheckState(0)
+            checked = False
+        if checked == "1":
+            self.dlg.checkBox_own.setCheckState(2)
+            checked = True
+        self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
         self.threadLayers.start()
         self.dlg.checkBox_own.stateChanged.connect(self.loadLayersThread)
         #self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.selectSelectedLayer())
-            
+        if self.laymanUsername:
+            self.dlg.checkBox_own.setEnabled(True)    
+        else:
+            self.dlg.checkBox_own.setEnabled(False)   
         #self.dlg.pushButton_delete.clicked.connect(lambda: self.layerDelete(self.dlg.treeWidget.selectedItems()[0].text(0)))    
         self.dlg.pushButton_delete.clicked.connect(lambda: self.callDeleteLayer(self.dlg.treeWidget.selectedItems()))    
         self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
@@ -1415,6 +1471,7 @@ class Layman:
         self.dlg.filter.valueChanged.connect(self.filterResults)
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         #self.dlg.setWindowModality(Qt.ApplicationModal)
+        self.dlg.checkBox_own.stateChanged.connect(self.rememberValueLayer)
         self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showPermissionsDialog(self.dlg.treeWidget.selectedItems()))
         self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
@@ -1454,32 +1511,44 @@ class Layman:
         #        self.dlg.treeWidget.addTopLevelItem(item)
         #QgsMessageLog.logMessage("layersLoaded")
         self.dlg.treeWidget.clear()
-        
-        url = self.URI+'/rest/'+self.laymanUsername+'/layers'
-        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-        data = r.json()
-        if onlyOwn:
-            for row in range(0, len(data)):              
-                item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
+        if self.laymanUsername:
+            url = self.URI+'/rest/'+self.laymanUsername+'/layers'
+            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+            data = r.json()
+            if onlyOwn:
+                for row in range(0, len(data)):              
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
+                    self.dlg.treeWidget.addTopLevelItem(item)
+                QgsMessageLog.logMessage("layersLoaded")
+            else:
+                url = self.URI+'/rest/layers'
+                r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+                dataAll = r.json()
+                permissions = ""
+                for row in range(0, len(dataAll)):
+                    if self.laymanUsername in dataAll[row]['access_rights']['read'] or "EVERYONE" in dataAll[row]['access_rights']['read']:
+                        permissions = "read"
+                    if self.laymanUsername in dataAll[row]['access_rights']['write'] or "EVERYONE" in dataAll[row]['access_rights']['write']:
+                        permissions = "write"
+                    if dataAll[row] in data:
+                        permissions = "own"
+                    if permissions != "":
+                        item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
+                        self.dlg.treeWidget.addTopLevelItem(item)
+                QgsMessageLog.logMessage("layersLoaded")
+        else:
+           # self.URI = "https://hub.lesprojekt.cz"
+            url = self.URI+'/rest/layers'
+            r = requests.get(url = url)
+            data = r.json()
+            for row in range(0, len(data)):
+                if "EVERYONE" in data[row]['access_rights']['read']:
+                    permissions = "read"
+                if "EVERYONE" in data[row]['access_rights']['write']:
+                    permissions = "write"
+                item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions])
                 self.dlg.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("layersLoaded")
-        else:
-            url = self.URI+'/rest/layers'
-            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-            dataAll = r.json()
-            permissions = ""
-            for row in range(0, len(dataAll)):
-                if self.laymanUsername in dataAll[row]['access_rights']['read'] or "EVERYONE" in dataAll[row]['access_rights']['read']:
-                    permissions = "read"
-                if self.laymanUsername in dataAll[row]['access_rights']['write'] or "EVERYONE" in dataAll[row]['access_rights']['write']:
-                    permissions = "write"
-                if dataAll[row] in data:
-                    permissions = "own"
-                if permissions != "":
-                    item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
-                    self.dlg.treeWidget.addTopLevelItem(item)
-            QgsMessageLog.logMessage("layersLoaded")
-        
     def addExternalWMSToComposite(self, name):
         #layer = QgsProject.instance().mapLayersByName(name)[0]
         #params = layer.dataProvider().dataSourceUri().split("&")
@@ -1865,6 +1934,7 @@ class Layman:
       
     def enableLoadMapButtons(self, item):
         self.dlg.pushButton_mapWFS.setEnabled(True)
+        self.dlg.pushButton_map.setEnabled(True)
     def setPermissionsButton(self, item):    
         if item.text(2) != "own":
             self.dlg.pushButton_setPermissions.setEnabled(False)
@@ -4036,7 +4106,13 @@ class Layman:
     def postRequest(self, layer_name, auto=False):     
         nameCheck = True
         validExtent = True
-        layers = QgsProject.instance().mapLayersByName(layer_name)         
+        layers = QgsProject.instance().mapLayersByName(layer_name)       
+        if layers[0].featureCount() == 0:
+            if self.locale == "cs":                
+                QMessageBox.information(None, "Layman import layer", "Nelze nahrát vrstvu: "+layers[0].name()+", protože neobsahuje žádný prvek!")
+            else:
+                QMessageBox.information(None, "Layman import layer", "Unable to load layer: "+layers[0].name()+", because it has no feature!")
+            return
         layers[0].setName(layer_name)
         if len(layers) > 1:
             for l in layers:
@@ -5461,7 +5537,8 @@ class Layman:
         quri.setParam("crs", epsg)
         quri.setParam("dpiMode", '7')
         quri.setParam("featureCount", '10')
-        quri.setParam("authcfg", self.authCfg)   # <---- here my authCfg url parameter
+        if (self.laymanUsername):
+            quri.setParam("authcfg", self.authCfg)   # <---- here my authCfg url parameter
         quri.setParam("contextualWMSLegend", '0')
         quri.setParam("url", url)
         print(str(quri.encodedUri()))
@@ -5552,7 +5629,8 @@ class Layman:
         quri.setParam("version", "auto")
         quri.setParam("request", "GetFeature")
         quri.setParam("service", "WFS")
-        quri.setParam("authcfg", self.authCfg)
+        if (self.laymanUsername):
+            quri.setParam("authcfg", self.authCfg)
         quri.setParam("url", url)     
         vlayer = QgsVectorLayer(url+"?" + str(quri.encodedUri(), "utf-8"), layerNameTitle, "WFS")
        # print(vlayer.isValid()) 
@@ -5960,34 +6038,37 @@ class Layman:
         self.menu_CurrentCompositionDialog.setEnabled(True)
         
         #self.textbox.setText("Layman: Logged user")
-    def getAuthHeader(self, authCfg):        
-        config = QgsAuthMethodConfig()
-        url = QUrl(self.URI+ "/rest/current-user")
-        xx = QNetworkRequest(url)
-        print(xx.header(QNetworkRequest.KnownHeaders(-2)))
-        i = 0
-        success = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))
-        print(success[0])
-        if success[0] == False:
-            success  = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))
-        #while (success[0] == False or i < 30):
-        #    success  = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))
-        #    time.sleep(0.5)
-        #    i = i + 1
-        #print(xx.header(QNetworkRequest.KnownHeaders.ContentDispositionHeader))
-        if success[0] == True:
-            header = (xx.rawHeader(QByteArray(b"Authorization")))
-            #print(header)
-            authHeader ={
-              "Authorization": str(header, 'utf-8')           
-            } 
-            return authHeader
-        else:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Message", "Autorizace nebyla úspěšná! Prosím zkuste to znovu.")
+    def getAuthHeader(self, authCfg):    
+        if self.isAuthorized:
+            config = QgsAuthMethodConfig()
+            url = QUrl(self.URI+ "/rest/current-user")
+            xx = QNetworkRequest(url)
+            print(xx.header(QNetworkRequest.KnownHeaders(-2)))
+            i = 0
+            success = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))
+            print(success[0])
+            if success[0] == False:
+                success  = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))
+            #while (success[0] == False or i < 30):
+            #    success  = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))
+            #    time.sleep(0.5)
+            #    i = i + 1
+            #print(xx.header(QNetworkRequest.KnownHeaders.ContentDispositionHeader))
+            if success[0] == True:
+                header = (xx.rawHeader(QByteArray(b"Authorization")))
+                #print(header)
+                authHeader ={
+                  "Authorization": str(header, 'utf-8')           
+                } 
+                return authHeader
             else:
-                QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
-            return False
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Message", "Autorizace nebyla úspěšná! Prosím zkuste to znovu.")
+                else:
+                    QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
+                return False
+        else:
+            return ""
             
     def getCodeVerifier(self):
         code_verifier = base64.urlsafe_b64encode(os.urandom(40)).decode('utf-8')
@@ -6287,6 +6368,19 @@ class Layman:
             return [True, version]
         else:
             return [False, version]
+    def appendIniItem(self, key, item):
+        file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI' 
+        config = configparser.RawConfigParser()
+        config.read(file)
+        config.set('DEFAULT',key,item)                         
+        cfgfile = open(file,'w')
+        config.write(cfgfile, space_around_delimiters=False)  # use flag in case case you need to avoid white space.
+        cfgfile.close()
+    def getConfigItem(self, key):
+        file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI' 
+        config = configparser.RawConfigParser()
+        config.read(file)
+        return config.get('DEFAULT',key)
     def saveIni(self):
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'  
         dir = os.getenv("HOME") + os.sep + ".layman"
@@ -6295,17 +6389,21 @@ class Layman:
                 os.mkdir(dir)
             except OSError:  
                 print ("vytváření adresáře selhalo")
-        config = configparser.ConfigParser()
+        #config = configparser.ConfigParser()
 
-        config['DEFAULT']['login'] = self.Agrimail
-        config['DEFAULT']['id'] = self.client_id
-        print("server liferay" + self.liferayServer)
-        config['DEFAULT']['server'] = self.liferayServer
-        config['DEFAULT']['layman'] = self.URI
+        #config['DEFAULT']['login'] = self.Agrimail
+        #config['DEFAULT']['id'] = self.client_id
+        #print("server liferay" + self.liferayServer)
+        #config['DEFAULT']['server'] = self.liferayServer
+        #config['DEFAULT']['layman'] = self.URI
+        self.appendIniItem('login',self.Agrimail)
+        self.appendIniItem('id',self.client_id)
+        self.appendIniItem('server',self.liferayServer)
+        self.appendIniItem('layman',self.URI)
         
 
-        with open(file, 'w') as configfile:
-            config.write(configfile)        
+        #with open(file, 'w') as configfile:
+        #    config.write(configfile)        
     def loadIni(self):
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep +'layman_user.INI'        
         config = configparser.ConfigParser()
