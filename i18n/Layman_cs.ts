@@ -98,37 +98,37 @@
         <translation>Jméno kompozice:</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="132"/>
+        <location filename="../dlg_editMap.ui" line="281"/>
         <source>Title:</source>
         <translation>Název:</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="292"/>
+        <location filename="../dlg_createComposite.ui" line="187"/>
         <source>Extent of canvas:</source>
         <translation>Prostorový rozsah dat:</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="279"/>
+        <location filename="../dlg_editMap.ui" line="190"/>
         <source>XMin:</source>
         <translation>XMin:</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="266"/>
+        <location filename="../dlg_editMap.ui" line="177"/>
         <source>XMax:</source>
         <translation>XMax:</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="315"/>
+        <location filename="../dlg_editMap.ui" line="108"/>
         <source>YMin:</source>
         <translation>YMin:</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="253"/>
+        <location filename="../dlg_editMap.ui" line="164"/>
         <source>YMax:</source>
         <translation>YMax:</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="106"/>
+        <location filename="../dlg_editMap.ui" line="268"/>
         <source>Description:</source>
         <translation>Popis:</translation>
     </message>
@@ -153,22 +153,22 @@
         <translation>Uložit</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="119"/>
+        <location filename="../dlg_editMap.ui" line="330"/>
         <source>Name:</source>
         <translation>Jméno:</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="145"/>
+        <location filename="../dlg_editMap.ui" line="317"/>
         <source>Units:</source>
         <translation>Jednotka:</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="158"/>
+        <location filename="../dlg_editMap.ui" line="216"/>
         <source>Scale:</source>
         <translation>Měřítko:</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="171"/>
+        <location filename="../dlg_editMap.ui" line="255"/>
         <source>User:</source>
         <translation>Uživatel:</translation>
     </message>
@@ -365,7 +365,7 @@
     <message>
         <location filename="../dlg_ConnectionManager.ui" line="170"/>
         <source>Install dependencies</source>
-        <translation>Instalovat závislosti</translation>
+        <translation type="obsolete">Instalovat závislosti</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="158"/>
@@ -410,7 +410,7 @@
     <message>
         <location filename="../dlg_editMap.ui" line="328"/>
         <source>Extent from layers</source>
-        <translation>Rozsah z vrstev</translation>
+        <translation type="obsolete">Rozsah z vrstev</translation>
     </message>
     <message>
         <location filename="../dlg_importMap.ui" line="499"/>
@@ -430,7 +430,7 @@
     <message>
         <location filename="../dlg_addLayer.ui" line="214"/>
         <source>Show only my layers</source>
-    <translation>Zobrazit jenom mé vrstvy</translation>
+        <translation>Zobrazit jenom mé vrstvy</translation>
     </message>
     <message>
         <location filename="../dlg_addMap.ui" line="259"/>
@@ -469,13 +469,13 @@
     </message>
     <message>
         <location filename="../dlg_currentComposition.ui" line="41"/>
-        <source>Close and save</source>
-        <translation>Uložit a zavřít</translation>
+        <source>Save layers</source>
+        <translation type="unfinished">Uložit a zavřít</translation>
     </message>
     <message>
         <location filename="../dlg_currentComposition.ui" line="64"/>
         <source>Loaded composition:</source>
-        <translation>Načtená kompozice</translation>
+        <translation>Načtená kompozice:</translation>
     </message>
     <message>
         <location filename="../dlg_currentComposition.ui" line="103"/>
@@ -487,61 +487,96 @@
         <source>Composition is read only</source>
         <translation>Kompozice je pouze ke čtení</translation>
     </message>
+    <message>
+        <location filename="../dlg_ConnectionManager.ui" line="151"/>
+        <source>Continue without login</source>
+        <translation>Pokračovat bez přihlášení</translation>
+    </message>
+    <message>
+        <location filename="../dlg_editMap.ui" line="73"/>
+        <source>Extent of composition</source>
+        <translation>Prostorový rozsah</translation>
+    </message>
+    <message>
+        <location filename="../dlg_editMap.ui" line="85"/>
+        <source>From canvas</source>
+        <translation>Z plátna</translation>
+    </message>
+    <message>
+        <location filename="../dlg_editMap.ui" line="151"/>
+        <source>From capatibilites</source>
+        <translation>Z vrstev</translation>
+    </message>
+    <message>
+        <location filename="../dlg_editMap.ui" line="204"/>
+        <source>Metadata</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.ui" line="129"/>
+        <source>  Edit metadata</source>
+        <translation>Upravit metadata</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.ui" line="142"/>
+        <source>Save changes</source>
+        <translation>Uložit změny</translation>
+    </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="3148"/>
+        <location filename="../Layman.py" line="3430"/>
         <source>&amp;Layman</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="304"/>
+        <location filename="../Layman.py" line="303"/>
         <source>Current Row Number</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="310"/>
+        <location filename="../Layman.py" line="309"/>
         <source>Login</source>
         <translation>Přihlášení</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="319"/>
+        <location filename="../Layman.py" line="318"/>
         <source>Save as to JSON and SLD</source>
         <translation>Uložit jako JSON se symbologií</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="328"/>
+        <location filename="../Layman.py" line="327"/>
         <source>Load from JSON</source>
         <translation>Načíst z JSON</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="337"/>
+        <location filename="../Layman.py" line="336"/>
         <source>Export layer to server</source>
         <translation>Exportovat vrstvu na server</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="344"/>
+        <location filename="../Layman.py" line="343"/>
         <source>Load layer from server</source>
         <translation>Načíst vrstvu ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="351"/>
+        <location filename="../Layman.py" line="350"/>
         <source>Manage maps</source>
         <translation>Správce mapových kompozic</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="358"/>
+        <location filename="../Layman.py" line="357"/>
         <source>Load map from server</source>
         <translation>načíst mapovou komopozici ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="381"/>
+        <location filename="../Layman.py" line="380"/>
         <source>User info</source>
         <translation>Uživatelské info</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="388"/>
+        <location filename="../Layman.py" line="387"/>
         <source>Current composition</source>
         <translation>Aktuální kompozice</translation>
     </message>

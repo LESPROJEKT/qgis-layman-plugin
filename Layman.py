@@ -409,9 +409,10 @@ class Layman:
             self.dlg.pushButton_editMeta.setEnabled(True)
             self.dlg.pushButton_save.setEnabled(True)
             x = self.getCompositionIndexByName()
-            self.dlg.label_loadedComposition.setText(self.current)
-            layerList = list()
             composition = self.instance.getComposition()
+            self.dlg.label_loadedComposition.setText(composition['title'])
+            layerList = list()
+            
             #for i in range (0, len(self.compositeList[x]['layers'])):            
             for i in range (0, len(composition['layers'])):            
                 #layerList.append(self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']))
@@ -457,6 +458,10 @@ class Layman:
                 self.dlg.listWidget_layers.setEnabled(False)
                 self.dlg.pushButton_close.setEnabled(False)
                 self.dlg.label_readonly.show()
+        if not isAuthorized:
+            self.dlg.listWidget_layers.setEnabled(False)
+            self.dlg.pushButton_close.setEnabled(False)
+            self.dlg.pushButton_save.setEnabled(False)
         self.dlg.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog(None))
         self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers())
         self.dlg.pushButton_close2.clicked.connect(lambda: self.dlg.close())
@@ -1403,15 +1408,22 @@ class Layman:
             self.appendIniItem("mapCheckbox", "0")
     def loadMapsThread(self, onlyOwn):           
         self.dlg.treeWidget.clear()
-        
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
         r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
         data = r.json()
-        if onlyOwn:
-            for row in range(0, len(data)):              
+        if onlyOwn and self.isAuthorized:
+            for row in range(0, len(data)):  
                 item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
                 self.dlg.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("loadMaps")
+        elif not self.isAuthorized:
+            url = self.URI+'/rest/maps'
+            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+            dataAll = r.json()
+            permissions = ""
+            for row in range(0, len(dataAll)): 
+                item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read"])
+                self.dlg.treeWidget.addTopLevelItem(item)
         else:
             url = self.URI+'/rest/maps'
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
@@ -1427,7 +1439,7 @@ class Layman:
                 if permissions != "":
                     item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
                     self.dlg.treeWidget.addTopLevelItem(item)
-            QgsMessageLog.logMessage("loadMaps")
+        QgsMessageLog.logMessage("loadMaps")
         
     def run_AddLayerDialog(self):
         
