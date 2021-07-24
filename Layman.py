@@ -28,7 +28,7 @@ import os
 import threading
 import io
 from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt, QFileSystemWatcher, QRegExp,QDir,QUrl, QByteArray , QTimer
-from PyQt5.QtGui import QIcon, QPixmap, QRegExpValidator, QDoubleValidator
+from PyQt5.QtGui import QIcon, QPixmap, QRegExpValidator, QDoubleValidator, QBrush, QColor
 from PyQt5.QtWidgets import QAction, QTreeWidget,QTreeWidgetItemIterator, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem, QAbstractItemView
 from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
 # Initialize Qt resources from file resources.py
@@ -419,11 +419,13 @@ class Layman:
                 layerList.append(self.removeUnacceptableChars(composition['layers'][i]['title']))
        # layers = self.iface.mapCanvas().layers()
             layers = QgsProject.instance().mapLayers().values()
+            layersInCanvas = []
             for layer in layers:
                 layerType = layer.type()
                 #if layerType == QgsMapLayer.VectorLayer:
                 item = QListWidgetItem()                
                 item.setText(layer.name())
+                layersInCanvas.append(layer.name())                
                 print(self.removeUnacceptableChars(layer.name()), layerList)
                 if self.removeUnacceptableChars(layer.name()) in layerList:
                     item.setCheckState(2)
@@ -435,12 +437,23 @@ class Layman:
                         try:
                             layer.editingStopped.disconnect()
                         except:
-                            print("connect to stopEditing not exists")
-            #print(item.flags())
-            #print(item.checkState())
+                            print("connect to stopEditing not exists")          
+           
+                self.dlg.listWidget_layers.addItem(item)
+            print(layerList,layersInCanvas)
+            notActive = set(layerList) - set(layersInCanvas)
+            print("notActive")
+            print(notActive)
+            for layer in notActive:
+                item = QListWidgetItem()                
+                item.setText(layer)
+                brush = QBrush()
+                brush.setColor(QColor(255,17,0))
+                item.setForeground(brush)
+                item.setCheckState(2)
                 self.dlg.listWidget_layers.addItem(item)
             #print(self.compositeList[x])
-            print(composition)
+            #print(composition)
             if 'access_rights' in composition:#self.compositeList[x]:
                 #if self.laymanUsername not in self.compositeList[x]['access_rights']['write']:
                 if self.laymanUsername not in composition['access_rights']['write']:
@@ -458,7 +471,7 @@ class Layman:
                 self.dlg.listWidget_layers.setEnabled(False)
                 self.dlg.pushButton_close.setEnabled(False)
                 self.dlg.label_readonly.show()
-        if not isAuthorized:
+        if not self.isAuthorized:
             self.dlg.listWidget_layers.setEnabled(False)
             self.dlg.pushButton_close.setEnabled(False)
             self.dlg.pushButton_save.setEnabled(False)
@@ -3117,7 +3130,12 @@ class Layman:
             print("sync order vypinani")
         self.readMapJsonThread(name,service)
  
-    
+    def checkRemovedLayersInComposition(self, layers):
+        composition = self.instance.getComposition()
+
+        for layer in layers:
+            #if layer.name() in composition['title']
+            pass
     def readMapJsonThread(self,name, service):
         
         nameWithDiacritics = name        
@@ -3167,6 +3185,7 @@ class Layman:
                 self.prj.layerWasAdded.disconnect()
             except:
                 pass
+            #self.prj.layersRemoved.connect(self.checkRemovedLayersInComposition)
             if self.instance.getPermissions() == "w" or self.instance.getPermissions() == "n" :
                 ## startuje naslouchani na zmenu do groupy
                 prj = QgsProject().instance()
