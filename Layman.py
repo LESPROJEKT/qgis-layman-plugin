@@ -152,6 +152,7 @@ class Layman:
         self.batchLength = 0
         self.focusedLayer = None
         self.modified = False
+        self.stylesToUpdate = set()
         self.done = 0
         self.name = ""
         self.millis = 0
@@ -480,6 +481,7 @@ class Layman:
         self.dlg.pushButton_close2.clicked.connect(lambda: self.dlg.close())
         self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
         self.dlg.pushButton_save.clicked.connect(lambda: self.updateComposition())
+        self.dlg.progressBar_loader.hide()
         self.dlg.listWidget_layers.itemChanged.connect(lambda: self.layersWasModified())
 
     
@@ -506,6 +508,7 @@ class Layman:
                             layerType = layer.type()                    
                             if layerType == QgsMapLayer.VectorLayer:
                                 layer.editingStopped.connect(self.layerEditStopped)
+                                
                     
                             layers.append(layer)
                         else:
@@ -532,6 +535,7 @@ class Layman:
         if len(layers) > 0:
             for layer in layers:
                 print(layer.name())
+                
             #self.addLayerToComposite2(x, layers)
             #threading.Thread(target=lambda: self.addLayerToComposite2(composition, layers)).start()
             self.addLayerToComposite2(composition, layers)
@@ -2336,7 +2340,32 @@ class Layman:
            
 
             #print("syncOrder################") 
-    def updateComposition(self):        
+    def updateComposition(self):
+        ## hlidani nove pridanych vrstev pro symbologii
+        composition = self.instance.getComposition()
+        layerList = []
+        for i in range (0, len(composition['layers'])):                        
+            layerList.append(self.removeUnacceptableChars(composition['layers'][i]['title']))      
+            print(composition['layers'][i]['title'])
+        layers = list()     
+        for index in range(0, self.dlg.listWidget_layers.count()):
+            item = self.dlg.listWidget_layers.item(index)
+            if item.checkState() == 2 and  self.removeUnacceptableChars(item.text()) not in layerList: 
+                print(item.text())
+                lay = QgsProject.instance().mapLayersByName(item.text())[0]
+                lay.styleChanged.connect(self.layerStyleToUpdate)
+        #composition = self.instance.getComposition()  
+        #layerListBefore = set()
+        #for lay in composition['layers']:
+        #    layerListBefore.add(lay['name'])
+        threading.Thread(target=lambda: self.updateCompositionThread()).start()
+        
+        
+
+
+        self.dlg.progressBar_loader.show()
+        self.dlg.pushButton_save.setEnabled(False)
+    def updateCompositionThread(self):        
         if self.modified == True:
             self.saveMapLayers()
             self.modified = False
@@ -2347,7 +2376,41 @@ class Layman:
                 print("composition will be updated")
                 self.backupComposition = copy.deepcopy(composition)   
                 self.patchMap2()
-                 
+        if len(self.stylesToUpdate) > 0:
+            composition = self.instance.getComposition()           
+            layerList = set()
+            for layer in self.stylesToUpdate:
+                layerList.add(self.removeUnacceptableChars(layer.name()))
+            for lay in composition['layers']:
+                if lay['name'] in layerList:
+                    self.updateLayerStyle(lay['name'], lay['workspace'])
+                    self.stylesToUpdate.remove(QgsProject.instance().mapLayersByName(lay['name'])[0])
+            #for layer in self.stylesToUpdate:
+            #    if self.removeUnacceptableChars(layer.name()) in layerList:
+            #        self.updateLayerStyle
+        QgsMessageLog.logMessage("updateMapDone")    
+    def updateLayerStyle(self, layer_name, workspace):  
+        #layer_name = self.removeUnacceptableChars(layer.name())
+        layer = QgsProject.instance().mapLayersByName(layer_name)[0]
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0"):
+            tempFile = self.getTempPath(os.path.basename(layer_name))
+            stylePath = tempFile + ".qml"
+            layer.saveNamedStyle(stylePath)
+            #stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+        else:
+            tempFile = self.getTempPath(os.path.basename(layer_name))
+            stylePath = tempFile + ".sld"
+            layer.saveSldStyle(stylePath)
+            #stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+        files = [('style', open(stylePath, 'rb'))]
+        url = self.URI+'/rest/'+workspace+"/layers/" + layer_name
+        data = { 'name' :  layer_name, 'title' : str(layer.name())}
+        
+        url = self.URI+'/rest/'+workspace+"/layers/" + layer_name        
+        r = requests.patch(url, files=files, data = data, headers = self.getAuthHeader(self.authCfg))
+        print("patch styles##########")
+        print(r.content)
+
     def checkCompositionChanges2(self,x, layers):        
         check = False
         print((layers))
@@ -2791,6 +2854,14 @@ class Layman:
             QgsMessageLog.logMessage("readJson")
     def write_log_message(self,message, tag, level):
         #print(message)
+        if message == "updateMapDone":
+            self.dlg.progressBar_loader.hide()
+            self.dlg.pushButton_save.setEnabled(True)
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Změny v kompozici byly uloženy."), Qgis.Success, duration=3)               
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Changes in composition was saved."), Qgis.Success, duration=3)
+            
         if message == "errConnection":
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)               
@@ -3136,6 +3207,10 @@ class Layman:
         for layer in layers:
             #if layer.name() in composition['title']
             pass
+    def layerStyleToUpdate(self):        
+        layer = iface.activeLayer()
+        self.stylesToUpdate.add(layer)
+        print("symbology was changed")
     def readMapJsonThread(self,name, service):
         
         nameWithDiacritics = name        
@@ -3206,6 +3281,7 @@ class Layman:
                     layerType = layer.type()
                     if layerType == QgsMapLayer.VectorLayer:
                         layer.editingStopped.connect(self.layerEditStopped)
+                        layer.styleChanged.connect(self.layerStyleToUpdate)
                 self.menu_CurrentCompositionDialog.setEnabled(True)                 
                 #iface.layerTreeView().currentLayerChanged.connect(lambda: self.syncOrder(iface.mapCanvas().layers()))
                 #self.timerLayer = QTimer()
@@ -4763,7 +4839,7 @@ class Layman:
                         #    self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                         #if (self.dlg.radioButton_wfs.isChecked()):
                         
-                        composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{},"visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
                         successful = successful + 1                        
                         #self.dlg.progressBar.setValue(self.dlg.progressBar.value()+step)             
         #self.importMap(x, "add", successful)
