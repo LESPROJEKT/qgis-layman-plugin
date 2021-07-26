@@ -426,7 +426,7 @@ class Layman:
                 #if layerType == QgsMapLayer.VectorLayer:
                 item = QListWidgetItem()                
                 item.setText(layer.name())
-                layersInCanvas.append(layer.name())                
+                layersInCanvas.append(self.removeUnacceptableChars(layer.name()))                
                 print(self.removeUnacceptableChars(layer.name()), layerList)
                 if self.removeUnacceptableChars(layer.name()) in layerList:
                     item.setCheckState(2)
