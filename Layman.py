@@ -396,24 +396,35 @@ class Layman:
         self.dlg.pushButton_close.hide()
         self.dlg.pushButton_editMeta.setEnabled(False)
         self.dlg.pushButton_save.setEnabled(False)
+        self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.label_readonly.hide()
         self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #66ab27 ;}#pushButton_new:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.pushButton_close2.setStyleSheet("#pushButton_close2 {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close2:hover{background: #66ab27 ;}#pushButton_close2:disabled{background: #64818b ;}")
         self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
         self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
+        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))
         print(self.current)
         if self.current != None:
+            self.dlg.pushButton_editMeta.setEnabled(True) 
+            self.dlg.pushButton_new.setEnabled(True)
             self.dlg.pushButton_close.setEnabled(True)
             self.dlg.pushButton_editMeta.setEnabled(True)
             self.dlg.pushButton_save.setEnabled(True)
-            x = self.getCompositionIndexByName()
+            self.dlg.pushButton_delete.setEnabled(True)
+            #x = self.getCompositionIndexByName()
             composition = self.instance.getComposition()
-            self.dlg.label_loadedComposition.setText(composition['title'])
+            #self.dlg.label_loadedComposition.setText(composition['title'])
+            #self.dlg.label_loadedComposition.hide()
+            #self.dlg.label.hide()
             layerList = list()
             
+            if self.locale == "cs":
+                self.dlg.setWindowTitle("Kompozice: "+composition['title'])
+            else:
+                self.dlg.setWindowTitle("Composition: "+composition['title'])
             #for i in range (0, len(self.compositeList[x]['layers'])):            
             for i in range (0, len(composition['layers'])):            
                 #layerList.append(self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']))
@@ -446,13 +457,17 @@ class Layman:
             print("notActive")
             print(notActive)
             for layer in notActive:
-                item = QListWidgetItem()                
-                item.setText(layer)
+                item = QListWidgetItem()      
+                if self.locale == "cs":
+                    item.setText(layer + " (Smazána z plátna)")
+                else:
+                    item.setText(layer + " (Removed from canvas)")
                 brush = QBrush()
                 brush.setColor(QColor(255,17,0))
                 item.setForeground(brush)
-                item.setCheckState(2)
+                item.setCheckState(0)
                 self.dlg.listWidget_layers.addItem(item)
+                self.layersWasModified()
             #print(self.compositeList[x])
             #print(composition)
             if 'access_rights' in composition:#self.compositeList[x]:
@@ -461,6 +476,8 @@ class Layman:
                     self.dlg.listWidget_layers.setEnabled(False)
                     self.dlg.pushButton_close.setEnabled(False)
                     self.dlg.pushButton_save.setEnabled(False)
+                    self.dlg.pushButton_delete.setEnabled(False)
+                                    
                     self.dlg.label_readonly.show()
 
                 else:
@@ -473,20 +490,60 @@ class Layman:
                 self.dlg.pushButton_close.setEnabled(False)
                 self.dlg.label_readonly.show()
         if not self.isAuthorized:
+            self.dlg.pushButton_new.setEnabled(False)
             self.dlg.listWidget_layers.setEnabled(False)
             self.dlg.pushButton_close.setEnabled(False)
             self.dlg.pushButton_save.setEnabled(False)
+            self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog(None))
         self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers())
         self.dlg.pushButton_close2.clicked.connect(lambda: self.dlg.close())
         self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
         self.dlg.pushButton_save.clicked.connect(lambda: self.updateComposition())
+        self.dlg.pushButton_delete.clicked.connect(lambda: self.deleteCurrentMap())
         self.dlg.progressBar_loader.hide()
         self.dlg.listWidget_layers.itemChanged.connect(lambda: self.layersWasModified())
-
-    
+        self.dlg.listWidget_layers.itemChanged.connect(self.itemClick)
+    def itemClick(self, item):
+        if item.checkState() == 2 and self.checkIfLayerIsInMoreGroups(QgsProject.instance().mapLayersByName(item.text())[0]):
+            if self.locale == "cs":
+                self.dlg.label_info.setText("Vrstva " + item.text() +" je vnořena do dvou skupin. Uložena může být pouze jedna.")
+            else:
+                self.dlg.label_info.setText("Layer " + item.text() +" is nested in two groups. Only one can be saved.")
+        else:
+            self.dlg.label_info.setText("")
     def layersWasModified(self):
         self.modified = True
+    def checkIfLayerIsInMoreGroups(self, layer):
+        root = QgsProject.instance().layerTreeRoot()
+        tree_layer = root.findLayer(layer.id())
+        if tree_layer:
+            layer_parent = tree_layer.parent()
+
+            if layer_parent: 
+                print("Layer parent: {}".format(layer_parent.name() or 'root'))
+                group_parent = layer_parent.parent() # If you want to go up another level
+                test = layer_parent.name() or 'root'
+                if test == 'root':
+                    return False
+                if group_parent: 
+                    print("Group parent: {}".format(group_parent.name() or 'root'))
+                    test = group_parent.name() or 'root'
+                    if test == 'root':
+                        return False
+                    else:
+                        return True
+    def getGroupOfLayer(self, layer):
+        root = QgsProject.instance().layerTreeRoot()
+        tree_layer = root.findLayer(layer.id())
+        if tree_layer:
+            layer_parent = tree_layer.parent()
+
+            if layer_parent: 
+                print("Layer parent: {}".format(layer_parent.name() or 'root'))
+                group_parent = layer_parent.parent() 
+                return layer_parent.name() or 'root'
+                
     def saveMapLayers(self):
         layerList = list()
         composition = self.instance.getComposition()
@@ -503,6 +560,9 @@ class Layman:
             if item.checkState() == 2 and  self.removeUnacceptableChars(item.text()) not in layerList: 
                 if not self.checkLayerInCurrentCompositon(item.text()): # kdyz se nenachazi v kompozici nahravame
                     layer = QgsProject.instance().mapLayersByName(item.text())[0]
+                    #inTwoGroups = self.checkIfLayerIsInMoreGroups(layer)
+                    #if inTwoGroups:
+                    #    QgsMessageLog.logMessage("notifyTwoGroups"+layer.name())
                     if (isinstance(layer, QgsVectorLayer)):
                         if layer.featureCount() > 0:
                             layerType = layer.type()                    
@@ -527,9 +587,10 @@ class Layman:
                     print("deleting")
                     print(i)
                     #print(self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']),self.removeUnacceptableChars(item.text()))
-                    if self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(item.text()):                    
+                    if self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(item.text().split(" (")[0]):                    
                         del composition['layers'][i]
                         #threading.Thread(target=lambda: self.patchMap2()).start()
+                        self.patchMap2()
                         return
                    
         if len(layers) > 0:
@@ -561,10 +622,11 @@ class Layman:
             print(res['claims'])
             if self.isAuthorized:
                 self.dlg.label_layman.setText(res['claims']['preferred_username'])
+                self.dlg.label_agrihub.setText(res['claims']['email'])
             else:
                 self.dlg.label_layman.setText("Anonymous")
             self.dlg.label_server.setText(self.liferayServer)
-            self.dlg.label_agrihub.setText(res['claims']['email'])
+            
             self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
             self.dlg.label_version.setText(self.getVersion())
             self.dlg.label_versionLayman.setText(self.laymanVersion)
@@ -737,7 +799,7 @@ class Layman:
         self.dlg = EditMapDialog()      
         self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_range.setStyleSheet("#pushButton_range {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_range:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_range.setStyleSheet("#pushButton_range {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_range:hover{background: #66ab27 ;}#pushButton_range:disabled{background: #64818b ;}")
         self.dlg.pushButton_range_2.setStyleSheet("#pushButton_range_2 {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_range_2:hover{background: #66ab27 ;}#pushButton_range_2:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}") 
         self.dlg.lineEdit_name.hide()
@@ -762,6 +824,11 @@ class Layman:
         self.dlg.pushButton_range_2.clicked.connect(lambda: self.setRangeFromCanvas())
         self.dlg.pushButton_range.clicked.connect(lambda: self.setExtentFromLayers(self.getCompositionIndexByName()))
         #self.dlg.rejected.connect(lambda: self.afterCloseCompositeDialog())
+
+        if not self.isAuthorized:
+            self.dlg.pushButton_save.setEnabled(False)
+            self.dlg.pushButton_range.setEnabled(False)
+            self.dlg.pushButton_range_2.setEnabled(False)
         self.dlg.show()
         result = self.dlg.exec_()
 
@@ -2036,19 +2103,20 @@ class Layman:
                     pass
         return inComposite
     def checkLayerInCurrentCompositon(self, name):
-        x = self.getCompositionIndexByName()
+        composition = self.instance.getComposition()
         inComposite = False
-        for i in range (0,len(self.compositeList[x]['layers'])): 
-                try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
-                    if (name == self.compositeList[x]['layers'][i]['params']['LAYERS']):
-                        inComposite = True                      
-                except:
-                    pass
-                try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
-                    if (name == self.compositeList[x]['layers'][i]['protocol']['LAYERS']):
-                        inComposite = True                      
-                except:
-                    pass
+
+        for i in range (0,len(composition['layers'])): 
+            try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+                if (name == composition['layers'][i]['params']['LAYERS']):
+                    inComposite = True                      
+            except:
+                pass
+            try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+                if (name == composition['layers'][i]['protocol']['LAYERS']):
+                    inComposite = True                      
+            except:
+                pass
         return inComposite
     def getCompositionsByLayer(self, name):
         compositionList = list()
@@ -2854,6 +2922,11 @@ class Layman:
             QgsMessageLog.logMessage("readJson")
     def write_log_message(self,message, tag, level):
         #print(message)
+        if message[0:15] == "notifyTwoGroups":
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva " + message[15:100] +" je vnořena do dvou skupin. Uložena může být pouze jedna."), Qgis.Warning, duration=7)               
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer " + message[15:100] +" is nested in two groups. Only one can be saved."), Qgis.Warning, duration=7)
         if message == "updateMapDone":
             self.dlg.progressBar_loader.hide()
             self.dlg.pushButton_save.setEnabled(True)
@@ -3367,12 +3440,43 @@ class Layman:
        # self.refreshMapList()            
         self.refreshListWidgetMaps() ## pro treewidget
         
-      
+    def deleteCurrentMap(self):  
+        composition = self.instance.getComposition()
+        if self.locale == "cs":
+            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Chcete opravdu smazat tuto kompozici?")
+        else:
+            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Do you want really delete this composition?")
+        msgbox.addButton(QMessageBox.Yes)
+        msgbox.addButton(QMessageBox.No)
+        msgbox.setDefaultButton(QMessageBox.No)
+        reply = msgbox.exec()
+        if (reply == QMessageBox.Yes):
+            url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+composition['name']    
+            response = requests.delete(url, headers = self.getAuthHeader(self.authCfg))         
+            if (response.status_code == 200):
+                if self.locale == "cs":
+                #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + composition['name'] + " byla úspešně smazána."), Qgis.Success, duration=3)
+                else:
+                #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was sucessfully deleted."), Qgis.Success, duration=3)
+            else:
+                if self.locale == "cs":
+                #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + composition['name'] + " nebyla úspešně smazána."), Qgis.Warning, duration=3)
+                else:
+                #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was not sucessfully deleted."), Qgis.Warning, duration=3)
+          
+            self.instance = None
+            self.current = None
+            self.dlg.close()           
     def deleteMap(self,name, x):   
         if self.locale == "cs":
             msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Chcete opravdu smazat kompozici "+name+"?")
         else:
             msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Do you want really delete composition "+name+"?")
+    
         msgbox.addButton(QMessageBox.Yes)
         msgbox.addButton(QMessageBox.No)
         msgbox.setDefaultButton(QMessageBox.No)
@@ -4787,7 +4891,12 @@ class Layman:
                 layers.append(layer)
                 successful = 0
                 print (len(layers))
-            
+                path = ""
+                path = self.getGroupOfLayer(layer)
+                if path == 'root':
+                    path = ""
+                
+                print("path " + str(path))
                 for i in range (0, len(layers)):
                           
             
@@ -4839,7 +4948,7 @@ class Layman:
                         #    self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                         #if (self.dlg.radioButton_wfs.isChecked()):
                         
-                        composition['layers'].append({"metadata":{},"visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
                         successful = successful + 1                        
                         #self.dlg.progressBar.setValue(self.dlg.progressBar.value()+step)             
         #self.importMap(x, "add", successful)
@@ -4995,11 +5104,14 @@ class Layman:
         data = { 'name' :  composition['name'], 'title' : composition['title'], 'description' : composition['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
         print("movvvvvvvvvvvvvvvvx")
         #response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'],headers = self.getAuthHeader(self.authCfg))
-        
-        response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/maps/'+composition['name'], files=files, data = data, headers = self.getAuthHeader(self.authCfg))
+        workspace = self.instance.getWorkspace()
+        print(self.URI+'/rest/'+workspace+'/maps/'+composition['name'])
+        print(self.getAuthHeader(self.authCfg))
+        response = requests.patch(self.URI+'/rest/'+workspace+'/maps/'+composition['name'], files=files, data = data, headers = self.getAuthHeader(self.authCfg))
         self.processingRequest = False
-        return response.status_code
         print(response.status_code)
+        return response.status_code
+        
         if (response.status_code == 200):
             QgsMessageLog.logMessage("patchMapP")
         else:
@@ -6150,10 +6262,10 @@ class Layman:
             config = QgsAuthMethodConfig()
             url = QUrl(self.URI+ "/rest/current-user")
             xx = QNetworkRequest(url)
-            print(xx.header(QNetworkRequest.KnownHeaders(-2)))
+           # print(xx.header(QNetworkRequest.KnownHeaders(-2)))
             i = 0
             success = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))
-            print(success[0])
+            #print(success[0])
             if success[0] == False:
                 success  = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))
             #while (success[0] == False or i < 30):
@@ -6174,7 +6286,7 @@ class Layman:
                 else:
                     QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
                 return False
-        else:
+        else:            
             return ""
             
     def getCodeVerifier(self):
@@ -6368,6 +6480,7 @@ class Layman:
     def openAuthLiferayUrl2(self):
         #self.authCfg = self.client_id[-7:]
         #authcfg_id = self.client_id[-7:]
+        self.isAuthorized = True
         authcfg_id = self.authCfg
         #if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
         self.setup_oauth(authcfg_id, self.liferayServer)

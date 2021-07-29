@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>635</width>
+    <width>735</width>
     <height>200</height>
    </rect>
   </property>
@@ -21,13 +21,13 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>635</width>
+    <width>735</width>
     <height>200</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>635</width>
+    <width>735</width>
     <height>200</height>
    </size>
   </property>
@@ -37,7 +37,7 @@
   <widget class="QPushButton" name="pushButton_Connect">
    <property name="geometry">
     <rect>
-     <x>170</x>
+     <x>266</x>
      <y>130</y>
      <width>200</width>
      <height>27</height>
@@ -50,7 +50,7 @@
   <widget class="QPushButton" name="pushButton_close">
    <property name="geometry">
     <rect>
-     <x>390</x>
+     <x>480</x>
      <y>130</y>
      <width>200</width>
      <height>28</height>
@@ -76,7 +76,7 @@
   <widget class="QLabel" name="label_APIKey_2">
    <property name="geometry">
     <rect>
-     <x>60</x>
+     <x>52</x>
      <y>80</y>
      <width>121</width>
      <height>19</height>
@@ -92,9 +92,9 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>170</x>
+     <x>140</x>
      <y>80</y>
-     <width>420</width>
+     <width>541</width>
      <height>27</height>
     </rect>
    </property>
@@ -105,7 +105,7 @@
   <widget class="QLabel" name="label_APIKey_3">
    <property name="geometry">
     <rect>
-     <x>60</x>
+     <x>52</x>
      <y>30</y>
      <width>121</width>
      <height>19</height>
@@ -118,9 +118,9 @@
   <widget class="QComboBox" name="comboBox_server">
    <property name="geometry">
     <rect>
-     <x>170</x>
+     <x>140</x>
      <y>30</y>
-     <width>420</width>
+     <width>541</width>
      <height>31</height>
     </rect>
    </property>
@@ -128,7 +128,7 @@
   <widget class="QLabel" name="label_sign">
    <property name="geometry">
     <rect>
-     <x>400</x>
+     <x>338</x>
      <y>170</y>
      <width>251</width>
      <height>19</height>
@@ -141,8 +141,8 @@
   <widget class="QPushButton" name="pushButton_NoLogin">
    <property name="geometry">
     <rect>
-     <x>170</x>
-     <y>168</y>
+     <x>50</x>
+     <y>130</y>
      <width>200</width>
      <height>27</height>
     </rect>
