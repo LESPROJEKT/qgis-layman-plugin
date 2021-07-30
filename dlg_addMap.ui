@@ -259,6 +259,19 @@
     <string>Filter:</string>
    </property>
   </widget>
+  <widget class="QLabel" name="label_noUser">
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>12</y>
+     <width>111</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Nepřihlášený uživatel</string>
+   </property>
+  </widget>
  </widget>
  <customwidgets>
   <customwidget>

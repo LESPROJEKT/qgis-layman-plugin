@@ -343,13 +343,13 @@ class Layman:
             callback=self.run_AddLayerDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow()) 
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'upload-map.png'
-        self.menu_ImportMapDialog = self.add_action(
-            icon_path,
-            text=self.tr(u'Manage maps'),
-            callback=self.run_ImportMapDialog,
-            enabled_flag=False,
-            parent=self.iface.mainWindow())  
+        #icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'upload-map.png'
+        #self.menu_ImportMapDialog = self.add_action(
+        #    icon_path,
+        #    text=self.tr(u'Manage maps'),
+        #    callback=self.run_ImportMapDialog,
+        #    enabled_flag=False,
+        #    parent=self.iface.mainWindow())  
         icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'download_map.png'
         self.menu_AddMapDialog = self.add_action(
             icon_path,
@@ -507,9 +507,13 @@ class Layman:
     def itemClick(self, item):
         if item.checkState() == 2 and self.checkIfLayerIsInMoreGroups(QgsProject.instance().mapLayersByName(item.text())[0]):
             if self.locale == "cs":
-                self.dlg.label_info.setText("Vrstva " + item.text() +" je vnořena do dvou skupin. Uložena může být pouze jedna.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Vrstva " + item.text() +" je vnořena do dvou skupin. Uložena může být pouze jedna."), Qgis.Warning, duration=5)               
             else:
-                self.dlg.label_info.setText("Layer " + item.text() +" is nested in two groups. Only one can be saved.")
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layer " + item.text() +" is nested in two groups. Only one can be saved."), Qgis.Warning, duration=5)               
+            #if self.locale == "cs":
+            #    self.dlg.label_info.setText("Vrstva " + item.text() +" je vnořena do dvou skupin. Uložena může být pouze jedna.")
+            #else:
+            #    self.dlg.label_info.setText("Layer " + item.text() +" is nested in two groups. Only one can be saved.")
         else:
             self.dlg.label_info.setText("")
     def layersWasModified(self):
@@ -1347,6 +1351,7 @@ class Layman:
         self.dlg.treeWidget.itemClicked.connect(self.enableButton)
         self.dlg.treeWidget.itemClicked.connect(self.enableLoadMapButtons)
         self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
+        self.dlg.label_noUser.hide()
         
 
         self.dlg.pushButton.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WMS'))
@@ -1377,6 +1382,8 @@ class Layman:
         self.dlg.show()
         self.dlg.progressBar_loader.show() 
         self.dlg.label_loading.show() 
+        if not self.isAuthorized:
+            self.dlg.label_noUser.show()
         try:
             checked = self.getConfigItem("mapcheckbox")          
             print(checked)
@@ -1534,6 +1541,7 @@ class Layman:
         self.dlg.pushButton_wfs.setEnabled(False)
         self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.pushButton_setPermissions.setEnabled(False)
+        self.dlg.label_noUser.hide()
         try:
             checked = self.getConfigItem("layercheckbox")
             print("tst")
@@ -1559,7 +1567,8 @@ class Layman:
         self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
         self.dlg.pushButton.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WMS"))
         self.dlg.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WFS"))
-          
+        if not self.isAuthorized:
+            self.dlg.label_noUser.show()
         self.dlg.treeWidget.itemClicked.connect(self.enableDeleteButton) 
         self.dlg.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
         self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
@@ -3373,7 +3382,7 @@ class Layman:
                 root = QgsProject.instance().layerTreeRoot()
                 root.visibilityChanged.connect(self.changeVisibility)
     def changeVisibility(self, layerTreeNode):   
-        
+        print(layerTreeNode)
         if layerTreeNode.nodeType() == 0:
             print ("Group " + layerTreeNode.name())
             print(layerTreeNode.isVisible())
@@ -6250,7 +6259,7 @@ class Layman:
         self.menu_AddLayerDialog.setEnabled(True) 
         self.menu_AddMapDialog.setEnabled(True)       
         self.menu_ImportLayerDialog.setEnabled(True)
-        self.menu_ImportMapDialog.setEnabled(False)       
+        #self.menu_ImportMapDialog.setEnabled(False)       
      #   self.menu_DeleteMapDialog.setEnabled(True)
     #    self.menu_CreateCompositeDialog.setEnabled(True)
         self.menu_UserInfoDialog.setEnabled(True)
