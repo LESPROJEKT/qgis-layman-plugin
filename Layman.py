@@ -160,6 +160,7 @@ class Layman:
         self.initFiles()
         self.current = None
         self.changedLayer = set()
+        self.project = QgsProject.instance()
         self.laymanVersion = None
         self.isAuthorized = True
         self.selectedWorkspace = None
@@ -2024,7 +2025,7 @@ class Layman:
         self.menu_AddLayerDialog.setEnabled(False) 
         self.menu_AddMapDialog.setEnabled(False)       
         self.menu_ImportLayerDialog.setEnabled(False)
-        self.menu_ImportMapDialog.setEnabled(False)    
+        #self.menu_ImportMapDialog.setEnabled(False)    
         self.menu_UserInfoDialog.setEnabled(False)
         self.menu_CurrentCompositionDialog.setEnabled(False)
     def setServers(self, servers, i):        
@@ -2691,8 +2692,11 @@ class Layman:
                 #print(self.compositeList[self.dlg.listWidget.currentRow()])
                 self.importMap(self.dlg.listWidget.currentRow(), 'mod')
                 self.refreshLayerListReversed()
-
     def showThumbnail(self, it):
+        self.params = list()
+        self.params.append(it)
+        QgsMessageLog.logMessage("showThumbnail2")
+    def showThumbnail2(self, it):
         try:
             layer = it.text(0) ##pro QTreeWidget
             workspace = it.text(1)
@@ -2711,7 +2715,7 @@ class Layman:
             pixmap.loadFromData(data)
             smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
             self.dlg.label_thumbnail.setPixmap(smaller_pixmap)
-            self.dlg.label_thumbnail.setAlignment(Qt.AlignCenter)
+            self.dlg.labelmessage_thumbnail.setAlignment(Qt.AlignCenter)
         except:
             self.dlg.label_thumbnail.setText('  Unable to load thumbnail.')
     def showSmallThumbnail(self, it):
@@ -2885,8 +2889,15 @@ class Layman:
             name = self.dlg.treeWidget.selectedItems()[i].text(0)        
             workspace = self.dlg.treeWidget.selectedItems()[i].text(1)
             self.selectedWorkspace = workspace
-            self.readLayerJsonThread(name,service, workspace)
-    
+
+            #self.readLayerJsonThread(name,service, workspace)
+            self.params = list()
+            self.params.append(name)
+            self.params.append(service)
+            self.params.append(workspace)
+            self.dlg.progressBar_loader.show()
+            QgsMessageLog.logMessage("readlayerjson")
+            
     def readLayerJsonThread(self, layerName,service, workspace):
         if self.checkLayerOnLayman(layerName):
             layerNameTitle =layerName
@@ -2908,6 +2919,7 @@ class Layman:
                 timeDimension = {}
                 groupName=""
                 subgroup=""
+                #threading.Thread(target=lambda: self.loadWms(wmsUrl, layerName,layerNameTitle, format, epsg, groupName,subgroup, timeDimension) ).start()
                 success = self.loadWms(wmsUrl, layerName,layerNameTitle, format, epsg, groupName,subgroup, timeDimension) 
                 if not success:
                     if self.locale == "cs":
@@ -2922,13 +2934,17 @@ class Layman:
                     return
                 print("loading WFS")
                 success = self.loadWfs(wfsUrl, layerName, layerNameTitle) 
+                #threading.Thread(target=lambda: self.loadWfs(wfsUrl, layerName, layerNameTitle)).start()
                 if not success:
                     if self.locale == "cs":
                         QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
                     else:
                         QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
+            QgsMessageLog.logMessage("disableProgressBar")
         else:
+            QgsMessageLog.logMessage("disableProgressBar")
             QgsMessageLog.logMessage("readJson")
+            
     def write_log_message(self,message, tag, level):
         #print(message)
         if message[0:15] == "notifyTwoGroups":
@@ -2976,7 +2992,12 @@ class Layman:
                 self.dlg.label_loading.hide() 
             except:
                 pass
-        if message == "readJson":
+        if message == "disableProgressBar":
+            try:
+                self.dlg.progressBar_loader.hide()
+            except:
+                pass
+        if message == "readJson":            
             if self.locale == "cs":
                 QMessageBox.information(None, "Layman", "Something went wrong with this layer: ")
             else:
@@ -2988,6 +3009,21 @@ class Layman:
                 self.dlg.progressBar.hide() 
             except:
                 pass
+        if message == "readmapjson":
+            #name, service
+            self.readMapJsonThread(self.params[0],self.params[1])
+        if message =="showThumbnail2":
+            self.showThumbnail2(self.params[0])
+        if message == "readlayerjson":
+            #name, service ,workspace
+            self.readLayerJsonThread(self.params[0],self.params[1], self.params[2])
+        if message == "loadLayer":
+            print("loading layer")
+            QgsProject.instance().addMapLayer(self.project)
+            #try:
+            #    self.dlg.progressBar_loader.hide()
+            #except:
+            #    pass
         if message == "patchMapP":
             if self.locale == "cs":            
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice byla upravena"), Qgis.Success, duration=3)
@@ -3258,7 +3294,7 @@ class Layman:
                 return
             self.compositeList.append(map)
         self.loadedInMemory = True
-        QgsMessageLog.logMessage("compositionLoaded")
+        #QgsMessageLog.logMessage("compositionLoaded")
     
     def readMapJson(self,name, service, workspace=""):
         #self.dlg.progressBar_loader.show() 
@@ -3281,7 +3317,12 @@ class Layman:
             print("sync order vypinani")
         except:
             print("sync order vypinani")
-        self.readMapJsonThread(name,service)
+        #self.readMapJsonThread(name,service)
+        self.params = list()
+        self.params.append(name)
+        self.params.append(service)        
+        self.dlg.progressBar_loader.show()
+        QgsMessageLog.logMessage("readmapjson")
  
     def checkRemovedLayersInComposition(self, layers):
         composition = self.instance.getComposition()
@@ -3381,6 +3422,7 @@ class Layman:
 
                 root = QgsProject.instance().layerTreeRoot()
                 root.visibilityChanged.connect(self.changeVisibility)
+        QgsMessageLog.logMessage("layersLoaded")
     def changeVisibility(self, layerTreeNode):   
         print(layerTreeNode)
         if layerTreeNode.nodeType() == 0:
@@ -4222,6 +4264,7 @@ class Layman:
             
             #QMessageBox.information(None, "Message", "Layer exported sucessfully.")
     def getLayerGroupTest(self):
+        return
         threading.Thread(target=lambda: self.getLayerGroup(iface.activeLayer())).start()
 
     def getLayersOrder(self):
@@ -4543,6 +4586,7 @@ class Layman:
                 else:
                     QMessageBox.information(None, "Message", "Composition already include layer "+title+"!")
         else:
+            
             if self.locale == "cs":
                 QMessageBox.information(None, "Layman", "Nelze načíst vrstvu: "+title)
             else:
@@ -5632,7 +5676,11 @@ class Layman:
                     layerName = data['layers'][x]['name']
                 except:
                     layerName = data['layers'][x]['protocol']['LAYERS']
-
+            try:
+                print(layerName)
+            except:
+                print("wrong format of composition")
+                return
             if self.checkLayerOnLayman(layerName):
                 
                 if className == 'HSLayers.Layer.WMS':        
@@ -5733,31 +5781,35 @@ class Layman:
         layerName = self.parseWMSlayers(layerName)
         #epsg = "EPSG:4326"
         epsg = QgsProject.instance().crs().authid()
+        
         url = url.replace("%2F", "/").replace("%3A",":")
         urlWithParams = 'contextualWMSLegend=0&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url
         
         ### quri
         #authCfg=self.client_id[-7:]
         #authCfg = '957je05'
-        quri = QgsDataSourceUri()       
-        if timeDimension != {}:
-            if 'value' in timeDimension['time']:
-                if 'values' in timeDimension['time']:
-                    print(timeDimension['time']['values'])
-                    print(timeDimension)
-                    quri.setParam("type", "wmst")
-                    #quri.setParam("timeDimensionExtent", "1995-01-01/2021-12-31/PT5M")
-                    print(timeDimension)
-                    quri.setParam("timeDimensionExtent", str(timeDimension['time']['values']))
-                    quri.setParam("allowTemporalUpdates", "true")
-                    quri.setParam("temporalSource", "provider")
-                else:         
-                    quri.setParam("type", "wmst")
-                    quri.setParam("timeDimensionExtent", self.readDimFromCapatibilites(url, layerName))
-                    quri.setParam("allowTemporalUpdates", "true")
-                    quri.setParam("temporalSource", "provider")
-            #except:
-            #    print("dimension exception")
+        quri = QgsDataSourceUri()  
+        try:
+            if timeDimension != {}:
+                if 'value' in timeDimension['time']:
+                    if 'values' in timeDimension['time']:
+                        print(timeDimension['time']['values'])
+                        print(timeDimension)
+                        quri.setParam("type", "wmst")
+                        #quri.setParam("timeDimensionExtent", "1995-01-01/2021-12-31/PT5M")
+                        print(timeDimension)
+                        quri.setParam("timeDimensionExtent", str(timeDimension['time']['values']))
+                        quri.setParam("allowTemporalUpdates", "true")
+                        quri.setParam("temporalSource", "provider")
+                    else:         
+                        quri.setParam("type", "wmst")
+                        quri.setParam("timeDimensionExtent", self.readDimFromCapatibilites(url, layerName))
+                        quri.setParam("allowTemporalUpdates", "true")
+                        quri.setParam("temporalSource", "provider")
+                #except:
+                #    print("dimension exception")
+        except:
+            print("error with time wms")
         quri.setParam("layers", layerName.replace("'", ""))
         quri.setParam("styles", '')
         quri.setParam("format", 'image/png')
@@ -5776,6 +5828,10 @@ class Layman:
             rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
         #print(rlayer.isValid())
         ##quri end
+        if epsg == 'EPSG:5514':
+            wkt = 'PROJCRS["S-JTSK / Krovak", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak (Greenwich)", METHOD["Krovak", ID["EPSG",9819]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["southing (X)",south, ORDER[1], LENGTHUNIT["metre",1]], AXIS["westing (Y)",west, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5513]]'
+            crs = QgsCoordinateReferenceSystem(wkt) 
+            rlayer.setCrs(crs)
        # rlayer = QgsRasterLayer(urlWithParams, layerNameTitle, 'wms')
         try:
             print("extents")
@@ -5783,18 +5839,22 @@ class Layman:
         except:
             print("ignoreExtents works only with qgis 3.10 and higher")
             pass # pro qgis 3.10 a vys
-            
+        self.project = rlayer    
         if (rlayer.isValid()):  
             if (groupName != '' or subgroupName != ''):
                 self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path
                 #self.addWmsToGroup(groupName,rlayer, subgroupName)
-            else:          
-                QgsProject.instance().addMapLayer(rlayer)
+            else:   
+                
+                QgsMessageLog.logMessage("loadLayer")
+                
+                #QgsProject.instance().addMapLayer(rlayer)
             if visibility == False:
                 QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
             return True
         else:
-            QgsProject.instance().addMapLayer(rlayer)
+            QgsMessageLog.logMessage("loadLayer")
+            #QgsProject.instance().addMapLayer(rlayer)
             #if self.locale == "cs":
             #    QMessageBox.information(None, "Layman", "WMS není pro vrstvu "+layerNameTitle+ " k dispozici.")
             #else:
@@ -5838,6 +5898,9 @@ class Layman:
         layerName = self.removeUnacceptableChars(layerName)
         #epsg = 'EPSG:3857'    
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()
+        #if epsg == 'EPSG:5514':
+        #    wkt = 'PROJCRS["S-JTSK / Krovak", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak (Greenwich)", METHOD["Krovak", ID["EPSG",9819]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["southing (X)",south, ORDER[1], LENGTHUNIT["metre",1]], AXIS["westing (Y)",west, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5513]]'
+        #    epsg = QgsCoordinateReferenceSystem(wkt)            
         uri = self.URI+"/geoserver/"+self.laymanUsername+"/ows?srsname="+epsg+"&typename="+self.laymanUsername+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
         url = url.replace("%2F", "/").replace("%3A",":").replace("/client","")
         r = url.split("/")
@@ -5871,7 +5934,9 @@ class Layman:
                     self.addWmsToGroup(groupName,vlayer, subgroupName)
                     
                 else:            
-                    QgsProject.instance().addMapLayer(vlayer)
+                    #QgsProject.instance().addMapLayer(vlayer)
+                    self.project = vlayer
+                    QgsMessageLog.logMessage("loadLayer")
                 if visibility == False:
                     QgsProject.instance().layerTreeRoot().findLayer(vlayer.id()).setItemVisibilityChecked(False)
                 ## zde bude SLD kod

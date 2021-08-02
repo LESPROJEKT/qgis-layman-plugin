@@ -18,7 +18,7 @@
         <translation type="obsolete">Vrstvy v Laymanu</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="90"/>
+        <location filename="../dlg_currentComposition.ui" line="64"/>
         <source>Close</source>
         <translation>Zavřít</translation>
     </message>
@@ -70,7 +70,7 @@
     <message>
         <location filename="../dlg_createComposite.ui" line="35"/>
         <source>Layman - Create Composite</source>
-        <translation>Layman - Vytvořit mapovou komozici</translation>
+        <translation>Layman - Vytvořit mapovou kompozici</translation>
     </message>
     <message>
         <location filename="../dlg_createComposite.ui" line="47"/>
@@ -475,15 +475,15 @@
     <message>
         <location filename="../dlg_currentComposition.ui" line="64"/>
         <source>Loaded composition:</source>
-        <translation>Načtená kompozice:</translation>
+        <translation type="obsolete">Načtená kompozice:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="103"/>
+        <location filename="../dlg_currentComposition.ui" line="77"/>
         <source>New</source>
         <translation>Nová kompozice</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="116"/>
+        <location filename="../dlg_currentComposition.ui" line="90"/>
         <source>Composition is read only</source>
         <translation>Kompozice je pouze ke čtení</translation>
     </message>
@@ -513,70 +513,80 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="129"/>
+        <location filename="../dlg_currentComposition.ui" line="103"/>
         <source>  Edit metadata</source>
         <translation>Upravit metadata</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="142"/>
+        <location filename="../dlg_currentComposition.ui" line="116"/>
         <source>Save changes</source>
         <translation>Uložit změny</translation>
+    </message>
+    <message encoding="UTF-8">
+        <location filename="../dlg_addMap.ui" line="272"/>
+        <source>Nepřihlášený uživatel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.ui" line="161"/>
+        <source>Delete</source>
+        <translation>Smazat</translation>
     </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="3430"/>
+        <location filename="../Layman.py" line="3686"/>
         <source>&amp;Layman</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="303"/>
+        <location filename="../Layman.py" line="305"/>
         <source>Current Row Number</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="309"/>
+        <location filename="../Layman.py" line="311"/>
         <source>Login</source>
         <translation>Přihlášení</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="318"/>
+        <location filename="../Layman.py" line="320"/>
         <source>Save as to JSON and SLD</source>
         <translation>Uložit jako JSON se symbologií</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="327"/>
+        <location filename="../Layman.py" line="329"/>
         <source>Load from JSON</source>
         <translation>Načíst z JSON</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="336"/>
+        <location filename="../Layman.py" line="338"/>
         <source>Export layer to server</source>
         <translation>Exportovat vrstvu na server</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="343"/>
+        <location filename="../Layman.py" line="345"/>
         <source>Load layer from server</source>
         <translation>Načíst vrstvu ze serveru</translation>
     </message>
     <message>
         <location filename="../Layman.py" line="350"/>
         <source>Manage maps</source>
-        <translation>Správce mapových kompozic</translation>
+        <translation type="obsolete">Správce mapových kompozic</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="357"/>
+        <location filename="../Layman.py" line="359"/>
         <source>Load map from server</source>
         <translation>načíst mapovou komopozici ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="380"/>
+        <location filename="../Layman.py" line="382"/>
         <source>User info</source>
         <translation>Uživatelské info</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="387"/>
+        <location filename="../Layman.py" line="389"/>
         <source>Current composition</source>
         <translation>Aktuální kompozice</translation>
     </message>
