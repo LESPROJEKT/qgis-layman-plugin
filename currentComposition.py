@@ -34,7 +34,7 @@ class CurrentComposition(object):
         self.composition = json
 
     def getComposition(self):
-        return self.composition
+        return self.composition    
 
     def getPermissions(self): 
         url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name+'/file'     

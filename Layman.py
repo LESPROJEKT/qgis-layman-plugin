@@ -612,8 +612,7 @@ class Layman:
         
     def run_UserInfoDialog(self):
         self.dlg = UserInfoDialog() 
-        self.dlg.show()
-        self.dlg.pushButton_logout.setStyleSheet("#pushButton_logout {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_logout:hover{background: #66ab27 ;}#pushButton_logout:disabled{background: #64818b ;}")
+        self.dlg.show()        
         self.dlg.pushButton_update.setStyleSheet("#pushButton_update {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_update:hover{background: #66ab27 ;}#pushButton_update:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
@@ -623,8 +622,7 @@ class Layman:
             r = requests.get(url = userEndpoint,  headers = self.getAuthHeader(self.authCfg))
             res = r.text
             res = self.fromByteToJson(r.content)
-            versionCheck = self.checkVersion()
-            self.dlg.pushButton_logout.clicked.connect(lambda: self.logout())
+            versionCheck = self.checkVersion()            
             self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
             print(res['claims'])
             if self.isAuthorized:
@@ -651,8 +649,7 @@ class Layman:
             if versionCheck[0] == True:
                 self.dlg.label_avversion.hide()
                 self.dlg.label_5.hide()
-                self.dlg.pushButton_update.setEnabled(False)
-            self.dlg.pushButton_logout.setEnabled(False)
+                self.dlg.pushButton_update.setEnabled(False)            
             self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
             self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
     def run_SetMapPermission(self, mapName, fromAddMap = False):
@@ -1323,6 +1320,7 @@ class Layman:
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2())
         self.dlg.pushButton_Continue.clicked.connect(lambda: self.getToken())
+        
         self.dlg.pushButton_NoLogin.clicked.connect(lambda: self.withoutLogin(servers, self.dlg.comboBox_server.currentIndex()))
         self.dlg.pushButton_Continue.setEnabled(False)    
         registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
@@ -1333,11 +1331,32 @@ class Layman:
         else:
             self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_Connect.setStyleSheet("#pushButton_Connect {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Connect:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_Connect.setStyleSheet("#pushButton_Connect {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Connect:hover{background: #66ab27 ;}#pushButton_Connect:disabled{background: #64818b ;}")
         self.dlg.pushButton_Continue.setStyleSheet("#pushButton_Continue {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Continue:hover{background: #66ab27 ;} #pushButton_Continue:disabled{background: #64818b ;}")
         #self.dlg.pushButton_Dependencies.setStyleSheet("#pushButton_Dependencies {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Dependencies:hover{background: #66ab27 ;} #pushButton_Dependencies:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.dlg.pushButton_NoLogin.setStyleSheet("#pushButton_NoLogin {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_NoLogin:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_NoLogin.setStyleSheet("#pushButton_NoLogin {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_NoLogin:hover{background: #66ab27 ;}#pushButton_NoLogin:disabled{background: #64818b ;}")
+        self.dlg.pushButton_logout.setStyleSheet("#pushButton_logout {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_logout:hover{background: #66ab27 ;}#pushButton_logout:disabled{background: #64818b ;}")
+        self.dlg.pushButton_logout.clicked.connect(lambda: self.logout())        
+        print(self.laymanUsername == "")
+        if self.laymanUsername != "":
+            self.dlg.pushButton_logout.setEnabled(True)
+            self.dlg.pushButton_NoLogin.setEnabled(False)
+            self.dlg.pushButton_Connect.setEnabled(False)
+            self.dlg.comboBox_server.setEnabled(False)
+            self.dlg.lineEdit_userName.setEnabled(False)    
+            if self.locale == "cs":
+                self.dlg.setWindowTitle("Layman - Přihlášený uživatel: " + self.laymanUsername)
+            else:
+                self.dlg.setWindowTitle("Layman - Logged user: " + self.laymanUsername)
+            
+        else:
+            self.dlg.pushButton_logout.setEnabled(False)
+            self.dlg.pushButton_NoLogin.setEnabled(True)
+            self.dlg.pushButton_Connect.setEnabled(True)
+            self.dlg.comboBox_server.setEnabled(True)
+            self.dlg.lineEdit_userName.setEnabled(True)     
+            
         result = self.dlg.exec_()
         self.dlg.rejected.connect(lambda: self.loginReject())
     def run_AddMapDialog(self):        
@@ -1485,6 +1504,12 @@ class Layman:
         self.isAuthorized = False
         self.URI = servers[i][1]
         self.menu_AddLayerDialog.setEnabled(True) 
+        #self.menu_Connection.setEnabled(False)
+        self.laymanUsername = "Anonymous"        
+        self.dlg.pushButton_logout.setEnabled(True)
+        self.dlg.pushButton_NoLogin.setEnabled(False)
+        self.dlg.pushButton_Connect.setEnabled(False)
+        self.menu_UserInfoDialog.setEnabled(True)
         self.menu_AddMapDialog.setEnabled(True)    
         self.dlg.close()
     def rememberValueLayer(self, value):
@@ -2017,6 +2042,14 @@ class Layman:
         self.textbox.setText("Layman")
         ## flush variables
         self.loadedInMemory = False
+        #QgsApplication.authManager().clearCachedConfig("")
+        self.dlg.pushButton_NoLogin.setEnabled(True)
+        self.dlg.pushButton_Connect.setEnabled(True)
+        self.menu_UserInfoDialog.setEnabled(True)
+        self.laymanUsername = ""
+        self.current = None
+        self.liferayServer = None
+        #self.menu_Connection.setEnabled(True)
         self.compositeList = []
         self.compositeListOld = []       
        # self.thread1.join() ## ukončujeme vlákno, které se stará o refresh tokenů OAUTH
@@ -5960,10 +5993,12 @@ class Layman:
         #print(rlayer.isValid())
         ##quri end
         if epsg == 'EPSG:5514':
-            wkt = 'PROJCRS["S-JTSK / Krovak", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak (Greenwich)", METHOD["Krovak", ID["EPSG",9819]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["southing (X)",south, ORDER[1], LENGTHUNIT["metre",1]], AXIS["westing (Y)",west, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5513]]'
-            crs = QgsCoordinateReferenceSystem(wkt) 
+            #wkt = 'PROJCRS["S-JTSK / Krovak", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak (Greenwich)", METHOD["Krovak", ID["EPSG",9819]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["southing (X)",south, ORDER[1], LENGTHUNIT["metre",1]], AXIS["westing (Y)",west, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5513]]'
+            #crs = QgsCoordinateReferenceSystem(wkt) 
+            crs = QgsCoordinateReferenceSystem() 
+            crs.createFromProj("+proj=pipeline +step +inv +proj=webmerc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +step +proj=push +v_3 +step +proj=cart +ellps=WGS84 +step +inv +proj=helmert +x=570.8 +y=85.7 +z=462.8 +rx=4.998 +ry=1.587 +rz=5.261 +s=3.56 +convention=position_vector +step +inv +proj=cart +ellps=bessel +step +proj=pop +v_3 +step +proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel")
             rlayer.setCrs(crs)
-       # rlayer = QgsRasterLayer(urlWithParams, layerNameTitle, 'wms')
+        rlayer = QgsRasterLayer(urlWithParams, layerNameTitle, 'wms')
         try:
             print("extents")
             print(rlayer.ignoreExtents())
@@ -6439,13 +6474,7 @@ class Layman:
             else:
                 i += 1
         
-        
-        
-        
 
-
-
-    
     def authOptained (self):        
         try:
             self.dlg.pushButton_Continue.setEnabled(True)
@@ -6733,6 +6762,10 @@ class Layman:
 
             self.authHeader = authHeader
             self.authOptained()
+            #self.menu_Connection.setEnabled(False)
+            self.dlg.pushButton_logout.setEnabled(True)
+            self.dlg.pushButton_NoLogin.setEnabled(False)
+            self.dlg.pushButton_Connect.setEnabled(False)
             self.dlg.close()
 
   
