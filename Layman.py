@@ -104,7 +104,7 @@ class Layman:
 
 
     
-        #•t = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=7001)).start()
+       
     def __init__(self, iface):
         """Constructor.
         
@@ -120,8 +120,6 @@ class Layman:
         self.plugin_dir = os.path.dirname(__file__) 
         
         ## init global variables
-      #  global filename 
-    
         self.client_id = None
         self.filename = None
         self.layerName = None
@@ -459,12 +457,19 @@ class Layman:
             notActive = set(layerList) - set(layersInCanvas)
             print("notActive")
             print(notActive)
+            #print(self.unloadedLayers)
             for layer in notActive:
                 item = QListWidgetItem()      
+                #if  layer not in self.unloadedLayers:
                 if self.locale == "cs":
                     item.setText(layer + " (Smazána z plátna)")
                 else:
                     item.setText(layer + " (Removed from canvas)")
+                #else:
+                #    if self.locale == "cs":
+                #        item.setText(layer + " (Nedostatečná práva)")
+                #    else:
+                #        item.setText(layer + " (insufficient rights)")
                 brush = QBrush()
                 brush.setColor(QColor(255,17,0))
                 item.setForeground(brush)
@@ -1644,7 +1649,7 @@ class Layman:
         #        self.dlg.treeWidget.addTopLevelItem(item)
         #QgsMessageLog.logMessage("layersLoaded")
         self.dlg.treeWidget.clear()
-        if self.laymanUsername:
+        if self.laymanUsername and self.laymanUsername != "Anonymous":
             url = self.URI+'/rest/'+self.laymanUsername+'/layers'
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
             data = r.json()
@@ -2047,6 +2052,7 @@ class Layman:
         self.dlg.pushButton_Connect.setEnabled(True)
         self.menu_UserInfoDialog.setEnabled(True)
         self.laymanUsername = ""
+        self.isAuthorized = False
         self.current = None
         self.liferayServer = None
         #self.menu_Connection.setEnabled(True)
@@ -3093,14 +3099,16 @@ class Layman:
             print("###############################z")
             print(self.currentLayer)
             print(self.currentLayer[len(self.currentLayer)-1].name())
-            print(self.currentLayer[len(self.currentLayer)-1].isValid())
+            print(self.currentLayer[len(self.currentLayer)-1].isValid())            
             print("###############################z")
             QgsProject.instance().addMapLayer(self.currentLayer[0])
-            del self.currentLayer[0]
             #try:
-            #    self.dlg.progressBar_loader.hide()
+            #    QgsProject.instance().mapLayersByName(self.currentLayer[0].name())[0]
             #except:
-            #    pass
+            #    self.unloadedLayers.append(self.currentLayer[0].name())
+            del self.currentLayer[0]
+
+           
         if message == "patchMapP":
             if self.locale == "cs":            
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice byla upravena"), Qgis.Success, duration=3)
@@ -3155,19 +3163,7 @@ class Layman:
                 
 
             except:
-                pass
-            #try: ## některé formuláře nemají progress bar
-            #    self.dlg.progressBar.hide() 
-            #    self.dlg.label_import.hide() 
-            #    self.importMapEnvironmnet(True)
-            #    pass
-            #except:
-            #    pass
-                
-            #try:
-            #    self.dlg.pushButton.setEnabled(True)
-            #except:
-            #    pass
+                pass           
           
         if message == "exportPatch":
             try:
@@ -3375,6 +3371,7 @@ class Layman:
     def readMapJson2(self,name, service, workspace=""):
         #self.dlg.progressBar_loader.show() 
         #self.dlg.label_loading.show()
+        self.unloadedLayers = list()
         self.processingRequest = True
         name = self.removeUnacceptableChars(name)
         self.current = name
@@ -3432,8 +3429,11 @@ class Layman:
             print("debug in readMapJson - false")
             workspace = self.getCompositionWorkspace(name)
             self.selectedWorkspace = workspace 
-            #url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file'     
-            url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'     
+            #url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file' 
+            try:    
+                url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'     
+            except:
+                QgsMessageLog.logMessage("compositionSchemaError")
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
             data = r.json() 
             ## rozvetveni zdali chce uzivatel otevrit kompozici v novem projektu
@@ -4875,8 +4875,11 @@ class Layman:
         if (res[0:5] == "<?xml" and response.status_code == 200):
             print("got sld")
             suffix = ".sld"
-
-        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name) + suffix
+        try:
+            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name) + suffix
+        except:
+            print("symbologie nenalezena")
+            return (400,"")
         #print(tempf)
         with open(tempf, 'wb') as f:
             f.write(response.content)
@@ -5987,7 +5990,7 @@ class Layman:
         quri.setParam("url", url)
         print(str(quri.encodedUri()))
         rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
-        if not url.startswith(self.URI):
+        if not url.startswith(self.URI) or self.laymanUsername == "Anonymous":
             quri.removeParam("authcfg")
             rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
         #print(rlayer.isValid())
@@ -6086,7 +6089,7 @@ class Layman:
         quri.setParam("version", "auto")
         quri.setParam("request", "GetFeature")
         quri.setParam("service", "WFS")
-        if (self.laymanUsername):
+        if (self.laymanUsername != "Anonymous"):
             quri.setParam("authcfg", self.authCfg)
         quri.setParam("url", url)     
         vlayer = QgsVectorLayer(url+"?" + str(quri.encodedUri(), "utf-8"), layerNameTitle, "WFS")
