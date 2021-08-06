@@ -399,12 +399,12 @@ class Layman:
         self.dlg.pushButton_save.setEnabled(False)
         self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.label_readonly.hide()
-        self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #66ab27 ;}#pushButton_new:disabled{background: #64818b ;}")
+        self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #3bc4ff;}#pushButton_new:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.pushButton_close2.setStyleSheet("#pushButton_close2 {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close2:hover{background: #66ab27 ;}#pushButton_close2:disabled{background: #64818b ;}")
         self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
         self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
-        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #FF8080;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #FF2020 ;}#pushButton_delete:disabled{background: #64818b ;}")
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))
         print(self.current)
@@ -1383,6 +1383,7 @@ class Layman:
 
         self.dlg.pushButton.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WMS'))
         self.dlg.pushButton_mapWFS.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WFS'))
+        self.dlg.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
         self.dlg.pushButton_map.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WFS', self.dlg.treeWidget.selectedItems()[0].text(1)))
         self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.dlg.treeWidget.selectedItems()[0].text(0), True))
         if not self.isAuthorized:
@@ -1587,14 +1588,6 @@ class Layman:
         if checked == "1":
             self.dlg.checkBox_own.setCheckState(2)
             checked = True
-        self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
-        self.threadLayers.start()
-        self.dlg.checkBox_own.stateChanged.connect(self.loadLayersThread)
-        #self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.selectSelectedLayer())
-        if self.laymanUsername:
-            self.dlg.checkBox_own.setEnabled(True)    
-        else:
-            self.dlg.checkBox_own.setEnabled(False)   
         #self.dlg.pushButton_delete.clicked.connect(lambda: self.layerDelete(self.dlg.treeWidget.selectedItems()[0].text(0)))    
         self.dlg.pushButton_delete.clicked.connect(lambda: self.callDeleteLayer(self.dlg.treeWidget.selectedItems()))    
         self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
@@ -1602,6 +1595,7 @@ class Layman:
         self.dlg.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WFS"))
         if not self.isAuthorized:
             self.dlg.label_noUser.show()
+            self.dlg.checkBox_own.setEnabled(False)
         self.dlg.treeWidget.itemClicked.connect(self.enableDeleteButton) 
         self.dlg.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
         self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
@@ -1619,6 +1613,14 @@ class Layman:
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
         
+        self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
+        self.threadLayers.start()
+        self.dlg.checkBox_own.stateChanged.connect(self.loadLayersThread)
+        #self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.selectSelectedLayer())
+        if self.isAuthorized:
+            self.dlg.checkBox_own.setEnabled(True)    
+        else:
+            self.dlg.checkBox_own.setEnabled(False)   
         self.dlg.progressBar_loader.show() 
         self.dlg.label_loading.show() 
         self.dlg.show()
@@ -1649,7 +1651,7 @@ class Layman:
         #        self.dlg.treeWidget.addTopLevelItem(item)
         #QgsMessageLog.logMessage("layersLoaded")
         self.dlg.treeWidget.clear()
-        if self.laymanUsername and self.laymanUsername != "Anonymous":
+        if self.laymanUsername and self.isAuthorized:
             url = self.URI+'/rest/'+self.laymanUsername+'/layers'
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
             data = r.json()
@@ -1818,14 +1820,14 @@ class Layman:
             if status:
                 layerList = list()
                 for i in range (0,len(self.compositeList)):
-                    if self.compositeList[i]['name'] == layerName[0]:  
+                    if self.compositeList[i]['name'] == self.removeUnacceptableChars(layerName[0]):  
                         for j in range (0,len(self.compositeList[i]['layers'])):
                             if self.compositeList[i]['layers'][j]['className'] == "HSLayers.Layer.WMS":
                                 layerList.append(self.compositeList[i]['layers'][j]['params']['LAYERS'])
                             if self.compositeList[i]['layers'][j]['className'] == "OpenLayers.Layer.Vector":
                                 #layerList.append(self.compositeList[i]['layers'][j]['name'])
                                 #layerList.append(self.compositeList[i]['layers'][j]['protocol']['LAYERS'])
-                                layerList.append(self.compositeList[i]['layers'][j]['name'])
+                                layerList.append(self.removeUnacceptableChars(self.compositeList[i]['layers'][j]['title']))
                 self.updatePermissions(layerList,userDict, "layers")
             else:
                 
@@ -3075,6 +3077,9 @@ class Layman:
                 self.dlg.progressBar.hide() 
             except:
                 pass
+        if message == "showLoader":
+            print("shod")
+            self.dlg.progressBar_loader.show()
         if message == "readmapjson":
             #name, service
             #threading.Thread(target=lambda: self.readMapJson2(self.params[0],self.params[1],self.params[2])).start()
@@ -3361,12 +3366,28 @@ class Layman:
             self.compositeList.append(map)
         self.loadedInMemory = True
         #QgsMessageLog.logMessage("compositionLoaded")
-    def readMapJson(self,name, service, workspace=""):
+    def readMapJson(self,name, service, workspace=""):  
+        if QgsProject.instance().crs().authid() == 'EPSG:5514':
+            if QgsProject.instance().crs().toProj() == '+proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs':
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Warning, duration=10)
+                if self.locale == "cs":
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Používáte EPSG: 5514. Doporučujeme používat tranformaci 5514-1623"), Qgis.Success, duration=10)
+                #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Pro vrstvy v tomto projektu lze nastavit přesnější tranformace. Chcete tuto tranformaci nastavit?")
+                else:
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "You are using EPSG: 5514. We recommend using the transformation 5514-1623 "), Qgis.Success, duration=10)
+                #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "More accurate transformations can be set for layers in this project. Do you want to set up this transformation?")
+                #msgbox.addButton(QMessageBox.Yes)
+                #msgbox.addButton(QMessageBox.No)
+                #msgbox.setDefaultButton(QMessageBox.No)
+                #reply = msgbox.exec()
+                #if (reply == QMessageBox.Yes):
+                #    crs = QgsCoordinateReferenceSystem() 
+                #    crs.createFromProj("+proj=pipeline +step +inv +proj=webmerc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +step +proj=push +v_3 +step +proj=cart +ellps=WGS84 +step +inv +proj=helmert +x=570.8 +y=85.7 +z=462.8 +rx=4.998 +ry=1.587 +rz=5.261 +s=3.56 +convention=position_vector +step +inv +proj=cart +ellps=bessel +step +proj=pop +v_3 +step +proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel")
+                #    QgsProject.instance().setCrs(crs)
         self.params = list()
         self.params.append(name)
         self.params.append(service)
         self.params.append(workspace)
-        self.dlg.progressBar_loader.show()
         QgsMessageLog.logMessage("readmapjson")
     def readMapJson2(self,name, service, workspace=""):
         #self.dlg.progressBar_loader.show() 
@@ -3434,6 +3455,7 @@ class Layman:
                 url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'     
             except:
                 QgsMessageLog.logMessage("compositionSchemaError")
+                return
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
             data = r.json() 
             ## rozvetveni zdali chce uzivatel otevrit kompozici v novem projektu
@@ -5786,8 +5808,9 @@ class Layman:
                 print("wrong format of composition")
                 return
             if self.checkLayerOnLayman(layerName):
-                
+                QgsMessageLog.logMessage("showLoader")
                 threading.Thread(target=lambda: self.loadservice3(data,className,x,layerName, visibility, groupName, subgroupName, timeDimension)).start()
+                
                 #if className == 'HSLayers.Layer.WMS':        
                 #    #repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
                 #    layerName = data['layers'][x]['params']['LAYERS']
@@ -5866,8 +5889,8 @@ class Layman:
             repairUrl = data['layers'][x]['url']
             repairUrl = self.convertUrlFromHex(repairUrl)                  
             #self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
-            threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility)).start()
-            #success = self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility)
+            #threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility)).start()
+            success = self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility)
             #if not success:
             #    notify = True
             
@@ -5880,8 +5903,8 @@ class Layman:
             layerNameTitle = data['layers'][x]['title']
             repairUrl = data['layers'][x]['url']
             repairUrl = self.convertUrlFromHex(repairUrl)
-            threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)).start()
-            #success = self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)
+            #threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)).start()
+            success = self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)
             #if not success:
             #    notify = True
             
@@ -5898,14 +5921,14 @@ class Layman:
                 
                 if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
                     
-                    threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start()
-                    #success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
+                    #threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start()
+                    success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
                     #if not success:
                     #    notify = True
             except:
                 print("tst")
-                threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start()
-                #success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
+                #threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start()
+                success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
                 #if not success:
                 #    notify = True
             #elif (data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
@@ -5984,23 +6007,24 @@ class Layman:
         quri.setParam("crs", epsg)
         quri.setParam("dpiMode", '7')
         quri.setParam("featureCount", '10')
-        if (self.laymanUsername):
+        if (self.isAuthorized):
             quri.setParam("authcfg", self.authCfg)   # <---- here my authCfg url parameter
         quri.setParam("contextualWMSLegend", '0')
         quri.setParam("url", url)
         print(str(quri.encodedUri()))
         rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
-        if not url.startswith(self.URI) or self.laymanUsername == "Anonymous":
+        if not url.startswith(self.URI):
+            print("remove authcfg")
             quri.removeParam("authcfg")
             rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
         #print(rlayer.isValid())
         ##quri end
-        if epsg == 'EPSG:5514':
-            #wkt = 'PROJCRS["S-JTSK / Krovak", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak (Greenwich)", METHOD["Krovak", ID["EPSG",9819]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["southing (X)",south, ORDER[1], LENGTHUNIT["metre",1]], AXIS["westing (Y)",west, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5513]]'
-            #crs = QgsCoordinateReferenceSystem(wkt) 
-            crs = QgsCoordinateReferenceSystem() 
-            crs.createFromProj("+proj=pipeline +step +inv +proj=webmerc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +step +proj=push +v_3 +step +proj=cart +ellps=WGS84 +step +inv +proj=helmert +x=570.8 +y=85.7 +z=462.8 +rx=4.998 +ry=1.587 +rz=5.261 +s=3.56 +convention=position_vector +step +inv +proj=cart +ellps=bessel +step +proj=pop +v_3 +step +proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel")
-            rlayer.setCrs(crs)
+        #if epsg == 'EPSG:5514':
+        #    #wkt = 'PROJCRS["S-JTSK / Krovak", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak (Greenwich)", METHOD["Krovak", ID["EPSG",9819]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["southing (X)",south, ORDER[1], LENGTHUNIT["metre",1]], AXIS["westing (Y)",west, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5513]]'
+        #    #crs = QgsCoordinateReferenceSystem(wkt) 
+        #    crs = QgsCoordinateReferenceSystem() 
+        #    crs.createFromProj("+proj=pipeline +step +inv +proj=webmerc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +step +proj=push +v_3 +step +proj=cart +ellps=WGS84 +step +inv +proj=helmert +x=570.8 +y=85.7 +z=462.8 +rx=4.998 +ry=1.587 +rz=5.261 +s=3.56 +convention=position_vector +step +inv +proj=cart +ellps=bessel +step +proj=pop +v_3 +step +proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel")
+        #    rlayer.setCrs(crs)
         rlayer = QgsRasterLayer(urlWithParams, layerNameTitle, 'wms')
         try:
             print("extents")
@@ -6089,7 +6113,8 @@ class Layman:
         quri.setParam("version", "auto")
         quri.setParam("request", "GetFeature")
         quri.setParam("service", "WFS")
-        if (self.laymanUsername != "Anonymous"):
+        if (self.isAuthorized):
+            print("add authcfg")
             quri.setParam("authcfg", self.authCfg)
         quri.setParam("url", url)     
         vlayer = QgsVectorLayer(url+"?" + str(quri.encodedUri(), "utf-8"), layerNameTitle, "WFS")
@@ -6528,7 +6553,8 @@ class Layman:
                 else:
                     QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
                 return False
-        else:            
+        else:        
+           
             return ""
             
     def getCodeVerifier(self):
