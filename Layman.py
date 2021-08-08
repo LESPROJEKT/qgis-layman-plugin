@@ -426,7 +426,8 @@ class Layman:
                 self.dlg.setWindowTitle("Kompozice: "+composition['title'])
             else:
                 self.dlg.setWindowTitle("Composition: "+composition['title'])
-            #for i in range (0, len(self.compositeList[x]['layers'])):            
+            #for i in range (0, len(self.compositeList[x]['layers'])):    
+            print(composition)        
             for i in range (0, len(composition['layers'])):            
                 #layerList.append(self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']))
                 layerList.append(self.removeUnacceptableChars(composition['layers'][i]['title']))
@@ -2509,7 +2510,33 @@ class Layman:
 
         self.dlg.progressBar_loader.show()
         self.dlg.pushButton_save.setEnabled(False)
-    def updateCompositionThread(self):        
+    def updateVisibilityInComposition(self):        
+        composition = self.instance.getComposition()
+        root = QgsProject.instance().layerTreeRoot()
+        sublayers = root.children()
+        print(sublayers)
+        for lay in composition['layers']:
+            for sublayer in sublayers:    
+                #print(sublayer)
+                if isinstance(sublayer, QgsLayerTreeLayer):
+                    print(sublayer.isVisible())
+                    if self.removeUnacceptableChars(sublayer.name()) == self.removeUnacceptableChars(lay['title']):
+                        self.modifyPathOfLayer(sublayer.name(),"")
+                        self.modifyVisibilityOfLayer(sublayer.name(),sublayer.isVisible())
+                        print(sublayer.isVisible())
+                        print(sublayer.name())
+                   # sublayer.visibilityChanged.connect(changeVisibility)
+                if isinstance(sublayer, QgsLayerTreeGroup):
+                    for layer in sublayer.findLayers():                        
+                        if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(lay['title']):
+                            self.modifyPathOfLayer(layer.name(),sublayer.name())
+                            self.modifyVisibilityOfLayer(layer.name(),layer.isVisible() )
+                            print(layer.isVisible())
+                            print(layer.name())
+        print(composition)
+        
+    def updateCompositionThread(self): 
+        self.updateVisibilityInComposition()
         if self.modified == True:
             self.saveMapLayers()
             self.modified = False
@@ -2519,7 +2546,7 @@ class Layman:
             if composition != self.backupComposition:
                 print("composition will be updated")
                 self.backupComposition = copy.deepcopy(composition)   
-                self.patchMap2()
+                
         if len(self.stylesToUpdate) > 0:
             composition = self.instance.getComposition()           
             layerList = set()
@@ -2529,6 +2556,7 @@ class Layman:
                 if lay['name'] in layerList:
                     self.updateLayerStyle(lay['name'], lay['workspace'])
                     self.stylesToUpdate.remove(QgsProject.instance().mapLayersByName(lay['name'])[0])
+        self.patchMap2()
             #for layer in self.stylesToUpdate:
             #    if self.removeUnacceptableChars(layer.name()) in layerList:
             #        self.updateLayerStyle
@@ -3086,7 +3114,10 @@ class Layman:
             self.readMapJson2(self.params[0],self.params[1],self.params[2])
             #self.readMapJsonThread(self.params[0],self.params[1])
         if message =="showThumbnailMap2":
-            self.showThumbnailMap2(self.params[0])
+            try:
+                self.showThumbnailMap2(self.params[0])
+            except:
+                print("problem with thumbnail")
         if message =="showThumbnail2":
             self.showThumbnail2(self.params[0])
         if message =="compositionSchemaError":            
@@ -3107,6 +3138,13 @@ class Layman:
             print(self.currentLayer[len(self.currentLayer)-1].isValid())            
             print("###############################z")
             QgsProject.instance().addMapLayer(self.currentLayer[0])
+         
+            try:
+                visibility = self.instance.getVisibilityForLayer(self.currentLayer[0].name())
+                QgsProject.instance().layerTreeRoot().findLayer(self.currentLayer[0]).setItemVisibilityChecked(visibility)
+            except:
+                print("missing visibility parameter")
+                QgsProject.instance().layerTreeRoot().findLayer(self.currentLayer[0]).setItemVisibilityChecked(True)
             #try:
             #    QgsProject.instance().mapLayersByName(self.currentLayer[0].name())[0]
             #except:
@@ -3493,7 +3531,7 @@ class Layman:
             print("xxxxxx")
             print(root)
             print("xxxxxx")
-            root.layerOrderChanged.connect(lambda: self.getLayerGroupTest())
+            #root.layerOrderChanged.connect(lambda: self.getLayerGroupTest())
             #root.layerOrderChanged.connect(lambda: self.syncOrder(iface.mapCanvas().layers()))
             ## konec naslouchani
 
@@ -3523,7 +3561,7 @@ class Layman:
             #self.syncComposition.start()
 
             root = QgsProject.instance().layerTreeRoot()
-            root.visibilityChanged.connect(self.changeVisibility)
+           # root.visibilityChanged.connect(self.changeVisibility)
         QgsMessageLog.logMessage("layersLoaded")
     def changeVisibility(self, layerTreeNode):   
         print(layerTreeNode)
@@ -3540,6 +3578,14 @@ class Layman:
                 self.modifyVisibilityOfLayer(layerTreeNode.name(), layerTreeNode.isVisible())
             else:
                 print ("Error")
+    def modifyPathOfLayer(self, name, path):
+        composition = self.instance.getComposition()
+        #x = self.getCompositionIndexByName()
+        for i in range (0, len(composition['layers'])):
+            print("path")        
+            if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(name)):                
+                composition['layers'][i]['path'] = path
+       
     def modifyVisibilityOfLayer(self, name, checked):
         composition = self.instance.getComposition()
         #x = self.getCompositionIndexByName()
@@ -5474,7 +5520,7 @@ class Layman:
                 print("xxxxxx")
                 print(root)
                 print("xxxxxx")
-                root.layerOrderChanged.connect(lambda: self.getLayerGroupTest())
+                #root.layerOrderChanged.connect(lambda: self.getLayerGroupTest())
                 #root.layerOrderChanged.connect(lambda: self.syncOrder(iface.mapCanvas().layers()))
                 ## konec naslouchani
 
@@ -5497,7 +5543,7 @@ class Layman:
                 #self.syncComposition.start()
 
                 root = QgsProject.instance().layerTreeRoot()
-                root.visibilityChanged.connect(self.changeVisibility)
+               # root.visibilityChanged.connect(self.changeVisibility)
                 ##
 
                 self.afterCloseNewMapDialog()
@@ -6038,12 +6084,16 @@ class Layman:
                 self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path
                 #self.addWmsToGroup(groupName,rlayer, subgroupName)
             else:   
-                
+                self.params = []
+                self.params.append(visibility)
                 QgsMessageLog.logMessage("loadLayer")
                 
                 #QgsProject.instance().addMapLayer(rlayer)
-            if visibility == False:
-                QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
+            #if visibility == False:
+            #    print(rlayer.id())
+            #    print(self.project)
+            #    print(self.project.layerTreeRoot().findLayer(rlayer.id()))
+            #    self.project.layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
             return True
         else:
             QgsMessageLog.logMessage("loadLayer")
@@ -6136,8 +6186,9 @@ class Layman:
                     print(vlayer.isValid())
                     print("###############################")
                     QgsMessageLog.logMessage("loadLayer")
-                if visibility == False:
-                    QgsProject.instance().layerTreeRoot().findLayer(vlayer.id()).setItemVisibilityChecked(False)
+                #if visibility == False:
+                #    print(vlayer.id())
+                #    QgsProject.instance().layerTreeRoot().findLayer(vlayer.id()).setItemVisibilityChecked(False)
                 ## zde bude SLD kod
                 print("tt")
                 style = self.getStyle(layerName)
@@ -6298,7 +6349,12 @@ class Layman:
         else:
             subgroup = group.addGroup(subgroupName)                  
             subgroup.insertChildNode(1000,QgsLayerTreeLayer(layer))   
-        
+        visibility = self.instance.getVisibilityForLayer(layer.name())   
+        try:
+            QgsProject.instance().layerTreeRoot().findLayer(layer).setItemVisibilityChecked(visibility)
+        except:
+            print("missing visibility parameter")
+            QgsProject.instance().layerTreeRoot().findLayer(layer).setItemVisibilityChecked(True)
     def addLayerToGroup(self, groupName, layer):
         root = QgsProject.instance().layerTreeRoot()
         group = root.findGroup(groupName) 
