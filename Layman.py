@@ -3630,7 +3630,8 @@ class Layman:
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
             data = r.json() 
             ## rozvetveni zdali chce uzivatel otevrit kompozici v novem projektu
-            layers = iface.mapCanvas().layers() ## pokud neexistuej vrstva otazka nema smysl
+            #layers = iface.mapCanvas().layers() ## pokud neexistuej vrstva otazka nema smysl
+            layers = QgsProject.instance().mapLayers()
             if len(layers) > 0:
                 if self.locale == "cs":
                     msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v novém projektu QGIS? Pokud ne, kompozice se sloučí se stávajícím mapovým obsahem.")
