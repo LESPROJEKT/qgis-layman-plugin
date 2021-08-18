@@ -161,6 +161,32 @@
     <string>Delete</string>
    </property>
   </widget>
+  <widget class="QRadioButton" name="radioButton_wms">
+   <property name="geometry">
+    <rect>
+     <x>310</x>
+     <y>160</y>
+     <width>95</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>WMS</string>
+   </property>
+  </widget>
+  <widget class="QRadioButton" name="radioButton_wfs">
+   <property name="geometry">
+    <rect>
+     <x>410</x>
+     <y>160</y>
+     <width>95</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>WFS</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

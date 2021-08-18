@@ -21,7 +21,7 @@ class CurrentComposition(object):
     def getLayerNamesList(self):
         layerList = list()
         for layer in self.composition['layers']:
-            layerList.append(layer['name'])
+            layerList.append(self.removeUnacceptableChars(layer['title']))
         return layerList
     def getVisibilityForLayer(self,layerName):
         for layer in self.composition['layers']:
@@ -48,10 +48,13 @@ class CurrentComposition(object):
         try:
             self.user in data['access_rights']['write']
         except:
+            print("n")
             return "n"
         if self.user in data['access_rights']['write'] or "EVERYONE" in data['access_rights']['write']:
+            print("w")
             return "w"
         if self.user in data['access_rights']['read'] or "EVERYONE" in data['access_rights']['read']:
+            print("r")
             return "r"     
     def removeUnacceptableChars(self, input):
         input = input.lower()

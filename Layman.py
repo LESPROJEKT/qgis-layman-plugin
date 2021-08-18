@@ -2477,7 +2477,7 @@ class Layman:
             if layer.name() in serverOrder:
                 print(layer.name())
                 for lay in backup['layers']:
-                    if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(lay['name']):
+                    if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(lay['title']):
                         composition['layers'].append(lay)
         print(composition['layers'])
        
@@ -3210,7 +3210,8 @@ class Layman:
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Compositions was not loaded!"), Qgis.Warning, duration=3)
         if message == "reorderGroups":
             for g in self.groups:
-                self.reorderToTop(g[0], g[1] - 1) 
+                print(g[0], g[1])
+                self.reorderToTop(g[0], g[1]) 
 
         if message == "afterCompositionLoaded":
             self.afterCompositionLoaded()
@@ -3666,7 +3667,9 @@ class Layman:
             print("xxxxxx")
             print(root)
             print("xxxxxx")
-            #root.layerOrderChanged.connect(lambda: self.getLayerGroupTest())
+            #serverOrder = self.instance.getLayerNamesList()
+            #print(serverOrder)
+            root.layerOrderChanged.connect(lambda: self.getLayerGroupTest())
             #root.layerOrderChanged.connect(lambda: self.syncOrder(iface.mapCanvas().layers()))
             ## konec naslouchani
 
@@ -4557,8 +4560,11 @@ class Layman:
             QgsMessageLog.logMessage("export")
             
             #QMessageBox.information(None, "Message", "Layer exported sucessfully.")
-    def getLayerGroupTest(self):        
-        threading.Thread(target=lambda: self.getLayerGroup(iface.activeLayer())).start()
+    def getLayerGroupTest(self):
+        if self.run == False:
+            self.run = True
+            return
+        self.syncOrder2(self.getLayersOrder())
     
     def getLayersOrder(self):
         bridge = iface.layerTreeCanvasBridge()
@@ -5649,13 +5655,14 @@ class Layman:
                 print(data)
                 self.instance = CurrentComposition(self.URI, name, self.selectedWorkspace, self.getAuthHeader(self.authCfg),self.laymanUsername)
                 self.instance.setComposition(data)
+                
                 ## sync start
                 prj = QgsProject().instance()
                 root = prj.layerTreeRoot()
                 print("xxxxxx")
                 print(root)
                 print("xxxxxx")
-                #root.layerOrderChanged.connect(lambda: self.getLayerGroupTest())
+                root.layerOrderChanged.connect(lambda: self.getLayerGroupTest())
                 #root.layerOrderChanged.connect(lambda: self.syncOrder(iface.mapCanvas().layers()))
                 ## konec naslouchani
 
@@ -6129,6 +6136,8 @@ class Layman:
                     
                     if groupName != "":
                         self.groups.append([groupName, len(data['layers']) - i])
+                    else:
+                        self.groups.append([layerNameTitle, len(data['layers']) - i])
                     #self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName,"","")
                     threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility)).start())
                     #success = self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility)
@@ -6166,6 +6175,8 @@ class Layman:
                         groupName = ""
                     if groupName != "":
                         self.groups.append([groupName, len(data['layers']) -i])
+                    else:
+                        self.groups.append([layerNameTitle, len(data['layers']) - i])
                     try: ## nove rozdeleni
                 
                         if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
