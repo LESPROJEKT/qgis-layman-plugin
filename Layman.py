@@ -27,7 +27,7 @@ import tempfile
 import os
 import threading
 import io
-from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt, QFileSystemWatcher, QRegExp,QDir,QUrl, QByteArray , QTimer
+from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt, QFileSystemWatcher, QRegExp,QDir,QUrl, QByteArray , QTimer, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QRegExpValidator, QDoubleValidator, QBrush, QColor
 from PyQt5.QtWidgets import QAction, QTreeWidget,QTreeWidgetItemIterator, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem, QAbstractItemView
 from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
@@ -402,12 +402,15 @@ class Layman:
         self.dlg.label_readonly.hide()
         self.dlg.radioButton_wms.setChecked(True)
         self.dlg.radioButton_wfs.setChecked(False)
+        self.dlg.radioButton_wfs.setEnabled(False)
+        self.dlg.radioButton_wms.setEnabled(False)
         self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #3bc4ff;}#pushButton_new:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.pushButton_close2.setStyleSheet("#pushButton_close2 {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close2:hover{background: #66ab27 ;}#pushButton_close2:disabled{background: #64818b ;}")
         self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
         self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
         self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #FF8080;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #FF2020 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        self.dlg.listWidget_service.setStyleSheet("#listWidget_service {height:20px;}")
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))
         print(self.current)
@@ -418,14 +421,17 @@ class Layman:
             self.dlg.pushButton_editMeta.setEnabled(True)
             self.dlg.pushButton_save.setEnabled(True)
             self.dlg.pushButton_delete.setEnabled(True)
-            self.dlg.radioButton_wms.setEnabled(True)
-            self.dlg.radioButton_wfs.setEnabled(True)
+            self.dlg.radioButton_wms.setEnabled(False)
+            self.dlg.radioButton_wfs.setEnabled(False)
             #x = self.getCompositionIndexByName()
+            self.instance.refreshComposition()
             composition = self.instance.getComposition()
             #self.dlg.label_loadedComposition.setText(composition['title'])
             #self.dlg.label_loadedComposition.hide()
             #self.dlg.label.hide()
+
             layerList = list()
+            serviceList = list()
             
             if self.locale == "cs":
                 self.dlg.setWindowTitle("Kompozice: "+composition['title'])
@@ -436,22 +442,34 @@ class Layman:
             for i in range (0, len(composition['layers'])):            
                 #layerList.append(self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']))
                 layerList.append(self.removeUnacceptableChars(composition['layers'][i]['title']))
+                serviceList.append(composition['layers'][i]['className'])
        # layers = self.iface.mapCanvas().layers()
             layers = QgsProject.instance().mapLayers().values()
             layersInCanvas = []
+            
             for layer in layers:
                 layerType = layer.type()
                 #if layerType == QgsMapLayer.VectorLayer:
                 item = QListWidgetItem()                
-                item.setText(layer.name())
+                item.setText(layer.name())                
+                itemService = QListWidgetItem()
                 layersInCanvas.append(self.removeUnacceptableChars(layer.name()))                
                 print(self.removeUnacceptableChars(layer.name()), layerList)
-                if self.removeUnacceptableChars(layer.name()) in layerList:
+                if self.removeUnacceptableChars(layer.name()) in layerList:   
+                    i = layerList.index(self.removeUnacceptableChars(layer.name()))
+                    if serviceList[i] == 'OpenLayers.Layer.Vector':
+                        itemService.setText("Layman WFS")
+                    if serviceList[i] == 'HSLayers.Layer.WMS':
+                        itemService.setText("Layman WMS")
                     item.setCheckState(2)
                     if layerType == QgsMapLayer.VectorLayer:
                         layer.editingStopped.connect(self.layerEditStopped)
                 else:
                     item.setCheckState(0)
+                    if self.locale == "cs":
+                        itemService.setText("Vrstva v QGIS")
+                    else:
+                        itemService.setText("QGIS layer")
                     if layerType == QgsMapLayer.VectorLayer:
                         try:
                             layer.editingStopped.disconnect()
@@ -459,6 +477,8 @@ class Layman:
                             print("connect to stopEditing not exists")          
            
                 self.dlg.listWidget_layers.addItem(item)
+                itemService.setSizeHint(QSize(0, 17))
+                self.dlg.listWidget_service.addItem(itemService)
             print(layerList,layersInCanvas)
             notActive = set(layerList) - set(layersInCanvas)
             print("notActive")
@@ -488,6 +508,7 @@ class Layman:
                 #if self.laymanUsername not in self.compositeList[x]['access_rights']['write']:
                 if self.laymanUsername not in composition['access_rights']['write']:
                     self.dlg.listWidget_layers.setEnabled(False)
+                    self.dlg.listWidget_service.setEnabled(False)
                     self.dlg.pushButton_close.setEnabled(False)
                     self.dlg.pushButton_save.setEnabled(False)
                     self.dlg.pushButton_delete.setEnabled(False)
@@ -501,6 +522,7 @@ class Layman:
             else:
                 
                 self.dlg.listWidget_layers.setEnabled(False)
+                self.dlg.listWidget_service.setEnabled(False)
                 self.dlg.pushButton_close.setEnabled(False)
                 self.dlg.label_readonly.show()
         if not self.isAuthorized:
@@ -508,6 +530,7 @@ class Layman:
             self.dlg.radioButton_wfs.setEnabled(False)
             self.dlg.pushButton_new.setEnabled(False)
             self.dlg.listWidget_layers.setEnabled(False)
+            self.dlg.listWidget_service.setEnabled(False)
             self.dlg.pushButton_close.setEnabled(False)
             self.dlg.pushButton_save.setEnabled(False)
             self.dlg.pushButton_delete.setEnabled(False)
@@ -539,6 +562,8 @@ class Layman:
             del self.layerServices[self.removeUnacceptableChars(item.text())]
             
     def showService(self, item):
+        self.dlg.radioButton_wms.setEnabled(True)
+        self.dlg.radioButton_wfs.setEnabled(True)
         print("show service")
         print(self.removeUnacceptableChars(item.text()),self.layerServices)
         print(self.removeUnacceptableChars(item.text()) in self.layerServices)
@@ -560,7 +585,7 @@ class Layman:
             else: 
                 self.dlg.radioButton_wfs.setEnabled(False)
                 self.dlg.radioButton_wms.setEnabled(False)
-    def itemClick(self, item):
+    def itemClick(self, item):        
         if item.checkState() == 2 and self.checkIfLayerIsInMoreGroups(QgsProject.instance().mapLayersByName(item.text())[0]):
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Vrstva " + item.text() +" je vnořena do dvou skupin. Uložena může být pouze jedna."), Qgis.Warning, duration=5)               
@@ -2563,16 +2588,18 @@ class Layman:
             for sublayer in sublayers:    
                 #print(sublayer)
                 if isinstance(sublayer, QgsLayerTreeLayer):
-                    #print(sublayer.isVisible())
+                    #print(sublayer.isVisible())                   
                     if self.removeUnacceptableChars(sublayer.name()) == self.removeUnacceptableChars(lay['title']):
+                       # print(sublayer.name() + " QgsLayerTreeLayer modify")
                         self.modifyPathOfLayer(sublayer.name(),"")
                         self.modifyVisibilityOfLayer(sublayer.name(),sublayer.isVisible())
                         #print(sublayer.isVisible())
                         #print(sublayer.name())
                    # sublayer.visibilityChanged.connect(changeVisibility)
-                if isinstance(sublayer, QgsLayerTreeGroup):
+                if isinstance(sublayer, QgsLayerTreeGroup):                    
                     for layer in sublayer.findLayers():                        
                         if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(lay['title']):
+                           # print(sublayer.name() + " QgsLayerTreeGroup modify")
                             self.modifyPathOfLayer(layer.name(),sublayer.name())
                             self.modifyVisibilityOfLayer(layer.name(),layer.isVisible() )
                             #print(layer.isVisible())
@@ -2582,6 +2609,7 @@ class Layman:
     def updateCompositionThread(self): 
         composition = self.instance.getComposition()  
         self.updateVisibilityInComposition()
+        
         if self.modified == True:
             self.saveMapLayers()
             self.modified = False
@@ -3211,7 +3239,11 @@ class Layman:
         if message == "reorderGroups":
             for g in self.groups:
                 print(g[0], g[1])
-                self.reorderToTop(g[0], g[1]) 
+                try:
+                    self.reorderToTop(g[0], g[1]) 
+                except:
+                    pass
+                    print("reoder exception")
 
         if message == "afterCompositionLoaded":
             self.afterCompositionLoaded()

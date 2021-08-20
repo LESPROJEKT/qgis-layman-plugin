@@ -40,7 +40,11 @@ class CurrentComposition(object):
 
     def getComposition(self):
         return self.composition    
-
+    def refreshComposition(self):
+        url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name+'/file'     
+        r = requests.get(url = url, headers = self.header)
+        data = r.json()
+        self.composition = data
     def getPermissions(self): 
         url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name+'/file'     
         r = requests.get(url = url, headers = self.header)
