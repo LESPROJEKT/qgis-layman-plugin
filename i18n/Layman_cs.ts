@@ -63,7 +63,7 @@
         <translation>Email:</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="106"/>
+        <location filename="../dlg_userInfo.ui" line="93"/>
         <source>Server:</source>
         <translation>Server:</translation>
     </message>
@@ -313,7 +313,7 @@
         <translation>Liferay uživatel:</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="93"/>
+        <location filename="../dlg_ConnectionManager.ui" line="164"/>
         <source>Logout</source>
         <translation>Odhlásit se</translation>
     </message>
@@ -338,12 +338,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../dlg_importMap.ui" line="335"/>
+        <location filename="../dlg_currentComposition.ui" line="174"/>
         <source>WMS</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../dlg_importMap.ui" line="348"/>
+        <location filename="../dlg_currentComposition.ui" line="187"/>
         <source>WFS</source>
         <translation type="unfinished"></translation>
     </message>
@@ -353,7 +353,7 @@
         <translation>Načíst kompozici</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="132"/>
+        <location filename="../dlg_userInfo.ui" line="119"/>
         <source>Plugin version:</source>
         <translation>Verze pluginu</translation>
     </message>
@@ -368,12 +368,12 @@
         <translation type="obsolete">Instalovat závislosti</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="158"/>
+        <location filename="../dlg_userInfo.ui" line="145"/>
         <source>Update</source>
         <translation>Aktualizovat</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="171"/>
+        <location filename="../dlg_userInfo.ui" line="158"/>
         <source>Available version:</source>
         <translation>Dostupná verze:</translation>
     </message>
@@ -458,7 +458,7 @@
         <translation>Zobrazit jenom mé kompozice</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="210"/>
+        <location filename="../dlg_userInfo.ui" line="197"/>
         <source>Layman version:</source>
         <translation>Verze Laymana:</translation>
     </message>
@@ -532,41 +532,51 @@
         <source>Delete</source>
         <translation>Smazat</translation>
     </message>
+    <message>
+        <location filename="../dlg_currentComposition.ui" line="210"/>
+        <source>Layers:</source>
+        <translation>Vrstvy:</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.ui" line="223"/>
+        <source>Type:</source>
+        <translation>Typ:</translation>
+    </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="3686"/>
+        <location filename="../Layman.py" line="4022"/>
         <source>&amp;Layman</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="305"/>
+        <location filename="../Layman.py" line="306"/>
         <source>Current Row Number</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="311"/>
+        <location filename="../Layman.py" line="312"/>
         <source>Login</source>
         <translation>Přihlášení</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="320"/>
+        <location filename="../Layman.py" line="321"/>
         <source>Save as to JSON and SLD</source>
         <translation>Uložit jako JSON se symbologií</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="329"/>
+        <location filename="../Layman.py" line="330"/>
         <source>Load from JSON</source>
         <translation>Načíst z JSON</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="338"/>
+        <location filename="../Layman.py" line="339"/>
         <source>Export layer to server</source>
         <translation>Exportovat vrstvu na server</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="345"/>
+        <location filename="../Layman.py" line="346"/>
         <source>Load layer from server</source>
         <translation>Načíst vrstvu ze serveru</translation>
     </message>
@@ -576,17 +586,17 @@
         <translation type="obsolete">Správce mapových kompozic</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="359"/>
+        <location filename="../Layman.py" line="360"/>
         <source>Load map from server</source>
         <translation>načíst mapovou komopozici ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="382"/>
+        <location filename="../Layman.py" line="383"/>
         <source>User info</source>
         <translation>Uživatelské info</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="389"/>
+        <location filename="../Layman.py" line="390"/>
         <source>Current composition</source>
         <translation>Aktuální kompozice</translation>
     </message>

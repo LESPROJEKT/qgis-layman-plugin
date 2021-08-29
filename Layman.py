@@ -139,6 +139,7 @@ class Layman:
         self.authHeader = None
         self.code_verifier = None
         self.code_challenge = None
+        self.wrongLayers = False
         self.Agrimail = ""
         self.loadedInMemory = False
         self.liferayServer = None
@@ -458,18 +459,21 @@ class Layman:
                 if self.removeUnacceptableChars(layer.name()) in layerList:   
                     i = layerList.index(self.removeUnacceptableChars(layer.name()))
                     if serviceList[i] == 'OpenLayers.Layer.Vector':
-                        itemService.setText("Layman WFS")
+                        #itemService.setText("Layman WFS")
+                        itemService.setText(layer.providerType())
                     if serviceList[i] == 'HSLayers.Layer.WMS':
-                        itemService.setText("Layman WMS")
+                        #itemService.setText("Layman WMS")
+                        itemService.setText(layer.providerType())
                     item.setCheckState(2)
                     if layerType == QgsMapLayer.VectorLayer:
                         layer.editingStopped.connect(self.layerEditStopped)
                 else:
                     item.setCheckState(0)
-                    if self.locale == "cs":
-                        itemService.setText("Vrstva v QGIS")
-                    else:
-                        itemService.setText("QGIS layer")
+                    #if self.locale == "cs":
+                    #    itemService.setText("Vrstva v QGIS")
+                    #else:
+                    #    itemService.setText("QGIS layer")
+                    itemService.setText(layer.providerType())
                     if layerType == QgsMapLayer.VectorLayer:
                         try:
                             layer.editingStopped.disconnect()
@@ -3732,6 +3736,13 @@ class Layman:
 
             root = self.project.layerTreeRoot()
            # root.visibilityChanged.connect(self.changeVisibility)
+        if self.wrongLayers:
+            self.wrongLayers = False 
+            if self.locale == "cs":
+               QMessageBox.information(None, "Layman", "Některé vrstvy nebyly načteny.")
+            else:
+               QMessageBox.information(None, "Layman", "Some layers was not loaded")
+
         QgsMessageLog.logMessage("layersLoaded")
     def changeVisibility(self, layerTreeNode):   
         print(layerTreeNode)
@@ -6227,10 +6238,11 @@ class Layman:
                     #    self.loadWfs(wfsUrl, layerName, layerNameTitle) 
                     
             else:
-                if self.locale == "cs":
-                    QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
-                else:
-                    QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
+                self.wrongLayers = True
+                #if self.locale == "cs":
+                #    QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
+                #else:
+                #    QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
 
             i = i + 1
         
@@ -6475,7 +6487,11 @@ class Layman:
         r = url.split("/")
         acc = (r[len(r)-2])
        # print(uri)        
-      #  uri = url + "?srsname="+epsg+"&typename="+self.laymanUsername+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
+        #uri = url + "?srsname="+epsg+"&typename="+acc+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
+        #vlayer = QgsVectorLayer(uri, layerNameTitle, "WFS")
+        #self.currentLayer.append(vlayer)
+        #QgsMessageLog.logMessage("loadLayer")
+        #return
        # uri = url + "?srsname="+epsg+"&typename="+acc+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
         print(epsg)
         print(acc+":"+layerName)
@@ -6494,7 +6510,8 @@ class Layman:
             quri.setParam("authcfg", self.authCfg)
         quri.setParam("url", url)     
         vlayer = QgsVectorLayer(url+"?" + str(quri.encodedUri(), "utf-8"), layerNameTitle, "WFS")
-       # print(vlayer.isValid()) 
+        print("validity WFS")
+        print(vlayer.isValid()) 
         
         if (vlayer.isValid()):
             print("cc")
