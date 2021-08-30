@@ -1125,7 +1125,7 @@ class Layman:
         self.dlg.pushButton_addRaster.clicked.connect(lambda: self.addExistingLayerToComposite(self.dlg.comboBox_raster.currentText(), "raster"))
         #### nahrát mapy ze serveru do comboboxu
         self.dlg.comboBox_raster.currentIndexChanged.connect(lambda: self.dlg.pushButton_addRaster.setEnabled(True))
-      
+        
         self.dlg.pushButton_loadMap.clicked.connect(lambda: self.readMapJson(self.dlg.comboBox_loadMap.currentText(), 'WMS'))
         self.dlg.pushButton_loadMapWFS.clicked.connect(lambda: self.readMapJson(self.dlg.comboBox_loadMap.currentText(), 'WFS'))
         self.dlg.pushButton_loadMapWFS.hide()
@@ -3577,10 +3577,11 @@ class Layman:
     def readMapJson(self,name, service, workspace=""):  
         if QgsProject.instance().crs().authid() == 'EPSG:5514':
             if QgsProject.instance().crs().toProj() == '+proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs':
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Warning, duration=10)
+                
                 if self.locale == "cs":
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Používáte EPSG: 5514. Doporučujeme používat tranformaci 5514-1623"), Qgis.Success, duration=10)
                 #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Pro vrstvy v tomto projektu lze nastavit přesnější tranformace. Chcete tuto tranformaci nastavit?")
+                   # QMessageBox.information(None, "Layman", "Používáte EPSG: 5514. Doporučujeme používat tranformaci 5514-1623")
                 else:
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "You are using EPSG: 5514. We recommend using the transformation 5514-1623 "), Qgis.Success, duration=10)
                 #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "More accurate transformations can be set for layers in this project. Do you want to set up this transformation?")
