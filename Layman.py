@@ -6161,6 +6161,9 @@ class Layman:
             className = data['layers'][x]['className']     
             visibility = data['layers'][x]['visibility']      
             print(str(visibility) + "visibility")
+            if className == 'XYZ':
+                layerName = data['layers'][x]['title']
+                self.layerServices[layerName] = 'XYZ'
             if className == 'HSLayers.Layer.WMS':
                 layerName = data['layers'][x]['params']['LAYERS']
                 self.layerServices[layerName] = 'HSLayers.Layer.WMS'
@@ -6477,6 +6480,7 @@ class Layman:
     
       
         rlayer = QgsRasterLayer("type=xyz&url="+url, layerNameTitle, "wms") 
+        print("xyz valid? " + str(rlayer.isValid()))
         try:
             print("extents")
             print(rlayer.ignoreExtents())
@@ -6487,8 +6491,12 @@ class Layman:
         if (rlayer.isValid()):  
             if (groupName != ''):
                 self.addWmsToGroup(groupName,rlayer, subgroupName, i)
-            else:          
-                QgsProject.instance().addMapLayer(rlayer)
+            else:   
+                self.currentLayer.append(rlayer) 
+                self.params = []
+                self.params.append(visibility)
+                QgsMessageLog.logMessage("loadLayer")
+                #QgsProject.instance().addMapLayer(rlayer)
             if visibility == False:
                 QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
             return True
