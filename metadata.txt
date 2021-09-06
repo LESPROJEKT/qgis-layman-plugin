@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.0
 description=Layman
-version=1.76.8
+version=1.77.0
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -35,6 +35,7 @@ changelog=
 	1.73 - deeper integration layman composition to QGIS
 	1.74 - bugs permission fixed
 	1.75 - possibility load public layers without login
+	1.77 - logout issues
 # Tags are comma separated with spaces allowed
 tags=python
 

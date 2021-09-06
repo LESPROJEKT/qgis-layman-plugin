@@ -1,6 +1,8 @@
 import requests
 import re
 import json
+from qgis.core import *
+
 class CurrentComposition(object):
     def __init__(self, uri, name, workspace, header, user):       
         self.composition = list() 
@@ -9,6 +11,7 @@ class CurrentComposition(object):
         self.workspace = workspace
         self.header = header
         self.user = user
+        self.layerIds = list()
         
 
 
@@ -27,6 +30,11 @@ class CurrentComposition(object):
         for layer in self.composition['layers']:
             if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(layer['title']):
                 return layer['visibility']
+    def isLayerId(self, id):
+        if id in self.layerIds:
+            return True
+        else:
+            return False
 
     def getLayerList(self):
         layerList = list()
@@ -34,7 +42,9 @@ class CurrentComposition(object):
             layerList.append(layer)
         return layerList
     
-
+    def setIds(self, layers):
+        for layer in layers:
+            self.layerIds.append(layer.id())
     def setComposition(self, json):
         self.composition = json
 
