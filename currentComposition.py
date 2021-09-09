@@ -12,7 +12,7 @@ class CurrentComposition(object):
         self.header = header
         self.user = user
         self.layerIds = list()
-        
+        self.layers = list()
 
 
     def getComposition(self):
@@ -35,7 +35,11 @@ class CurrentComposition(object):
             return True
         else:
             return False
-
+    def changeLayerId(self, layer):
+        for i in range(0, len(self.layers)):
+            if self.layers[i].name() == layer.name():
+                self.layerIds[i] = layer.id()
+     
     def getLayerList(self):
         layerList = list()
         for layer in self.composition['layers']:
@@ -45,6 +49,7 @@ class CurrentComposition(object):
     def setIds(self, layers):
         for layer in layers:
             self.layerIds.append(layer.id())
+            self.layers.append(layer)
     def setComposition(self, json):
         self.composition = json
 

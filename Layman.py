@@ -376,6 +376,14 @@ class Layman:
         #    callback=self.run_CreateCompositeDialog,
         #    enabled_flag=False,
         #    parent=self.iface.mainWindow())
+        
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'map.png'
+        self.menu_CurrentCompositionDialog = self.add_action(
+            icon_path,
+            text=self.tr(u'Current composition'),
+            callback=self.run_CurrentCompositionDialog,
+            enabled_flag=False,
+            parent=self.iface.mainWindow()) 
         icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'account.svg'
         self.menu_UserInfoDialog = self.add_action(
             icon_path,
@@ -383,13 +391,6 @@ class Layman:
             callback=self.run_UserInfoDialog,
             enabled_flag=True,
             parent=self.iface.mainWindow())
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'composition.png'
-        self.menu_CurrentCompositionDialog = self.add_action(
-            icon_path,
-            text=self.tr(u'Current composition'),
-            callback=self.run_CurrentCompositionDialog,
-            enabled_flag=False,
-            parent=self.iface.mainWindow()) 
     #--------------------------------------------------------------------------
     def run_CurrentCompositionDialog(self):
         self.modified = False
@@ -478,6 +479,10 @@ class Layman:
                         #itemService.setText("Layman WMS")
                         itemService.setText(str(layer.providerType()).upper())
                     item.setCheckState(2)
+                    if self.locale == "cs":
+                        item.setToolTip("Tato vrstva je zobrazena a je součástí načtené kompozice.")
+                    else:
+                        item.setToolTip("This layer is displayed and is part of the loaded composition.")
                     if layerType == QgsMapLayer.VectorLayer:
                         layer.editingStopped.connect(self.layerEditStopped)
                 else:
@@ -486,7 +491,16 @@ class Layman:
                     #    itemService.setText("Vrstva v QGIS")
                     #else:
                     #    itemService.setText("QGIS layer")
-                    itemService.setText(str(layer.providerType()).upper())
+                    if self.locale == "cs":
+                        item.setToolTip("Tato vrstva není součástí kompozice.")
+                    else:
+                        item.setToolTip("This layer is not part of the composition.")
+                    print(layer.dataProvider().uri().uri())
+                    type = self.getSource(layer)
+                    
+                    #itemService.setText(str(layer.providerType()).upper())
+                    itemService.setText(type)
+                    self.setGuiForItem(itemService)
                     if layerType == QgsMapLayer.VectorLayer:
                         try:
                             layer.editingStopped.disconnect()
@@ -517,6 +531,10 @@ class Layman:
                 brush.setColor(QColor(255,17,0))
                 item.setForeground(brush)
                 item.setCheckState(0)
+                if self.locale == "cs":
+                    item.setToolTip("Tato vrstva se nevyskytuje v mapovém okně QGIS, ale je obsažena v kompozici.")
+                else:
+                    item.setToolTip("This layer does not appear in the QGIS map window, but is included in the composition.")
                 self.dlg.listWidget_layers.addItem(item)
                 self.layersWasModified()
             #print(self.compositeList[x])
@@ -580,8 +598,56 @@ class Layman:
         #        del self.layerServices[self.removeUnacceptableChars(item.text())]
         #    except:
         #        pass
-           
-            
+    def setGuiForItem(self, item):  
+        if item.text() == "GEOJSON":
+            if self.locale == "cs":
+                item.setToolTip("Vrstva načtená z lokálního souboru geojson.")
+            else:
+                item.setToolTip("Layer loaded from a local geojson file.")
+  
+        if item.text() == "SHP":
+            if self.locale == "cs":
+                item.setToolTip("Vrstva načtená z lokálního souboru SHP.")
+            else:
+                item.setToolTip("Layer loaded from a local SHP file.")
+     
+        if item.text() == "MEMORY":
+            if self.locale == "cs":
+                item.setToolTip("Vrstva uložená v paměti QGIS. Po vypnutí QGIS bude smazána.")
+            else:
+                item.setToolTip("Layer stored in QGIS memory. It will be deleted after QGIS is turned off.") 
+                
+        if item.text() == "WMS":
+            if self.locale == "cs":
+                item.setToolTip("Vrstva načtená přes službu WMS poskytující data v rasterovém formátu. Je možné tuto službu zaměnit za vektorovou službu WFS pomocí tlačítka.")
+            else:
+                item.setToolTip("A layer loaded over a WMS service that provides data in a raster format. It is possible to change this service to a WFS vector service using the button.")
+        if item.text() == "WFS":
+            if self.locale == "cs":
+                item.setToolTip("Vrstva načtená přes službu WFS poskytující data ve vektorovém formátu. Je možné tuto službu zaměnit za rasterovou službu WMS pomocí tlačítka. Změny v této vrstvě jsou ukládány na server.")
+            else:
+                item.setToolTip("A layer loaded over a WFS service that provides data in a vector format. It is possible to change this service to a WMS raster service using the button. Changes in this layer are saved to the server.")
+        if item.text() == "OGR":
+            if self.locale == "cs":
+                item.setToolTip("Vektorová vrstva načtená z lokálního souboru.")
+            else:
+                item.setToolTip("Vector layer loaded from a local file.")
+
+    def getSource(self, layer):
+        uri = layer.dataProvider().uri().uri()
+        if ".geojson" in uri:
+            return "GEOJSON"
+        elif ".shp" in uri:
+            return "SHP"
+        elif "wms" in uri:
+            return "WMS"
+        elif "wfs" in uri:
+            return "WFS"
+        elif str(layer.providerType()) == "memory":
+            return "MEMORY"
+        else:            
+            return "OGR"
+        
     def showService(self, item):
         self.dlg.radioButton_wms.setEnabled(True)
         self.dlg.radioButton_wfs.setEnabled(True)
@@ -669,9 +735,10 @@ class Layman:
                     for layer in layerList:
                         if layer.id() == self.layerIds[index][1]:
                             data = { 'name' :  self.removeUnacceptableChars(layer.name()), 'title' : str(layer.name())} 
-                            self.patchThread2(layer.name(), data, layer.id())
+                            self.patchThread2(layer.name(), data, layer.id())                            
+                            self.instance.changeLayerId(layer)
                             ## refresh formulare - staré wfs
-
+                            
                     print("dddddddddddd")
             if (item.foreground().color().green() == 18 and item.checkState() == 0):
                 item = self.dlg.listWidget_layers.item(index)
@@ -683,6 +750,7 @@ class Layman:
                     #item.setHidden(True)
                     del item
                     self.dlg.listWidget_layers.repaint()
+                    
 
 
     def duplicateLayers(self):
