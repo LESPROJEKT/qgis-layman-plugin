@@ -645,7 +645,9 @@ class Layman:
             return "WFS"
         elif str(layer.providerType()) == "memory":
             return "MEMORY"
-        else:            
+        elif str(layer.providerType()) == "gdal":
+            return "RASTER"
+        else:  
             return "OGR"
         
     def showService(self, item):
@@ -3747,7 +3749,8 @@ class Layman:
             self.compositeList.append(map)
         self.loadedInMemory = True
         #QgsMessageLog.logMessage("compositionLoaded")
-    def readMapJson(self,name, service, workspace=""):  
+    def readMapJson(self,name, service, workspace=""): 
+        self.dlg.pushButton_map.setEnabled(False)
         if QgsProject.instance().crs().authid() == 'EPSG:5514':
             if QgsProject.instance().crs().toProj() == '+proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs':
                 
@@ -3911,6 +3914,7 @@ class Layman:
 
             root = self.project.layerTreeRoot()
            # root.visibilityChanged.connect(self.changeVisibility)
+        self.dlg.pushButton_map.setEnabled(True)
         if self.wrongLayers:
             self.wrongLayers = False 
             if self.locale == "cs":
