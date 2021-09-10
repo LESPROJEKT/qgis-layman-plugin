@@ -448,6 +448,7 @@ class Layman:
             except:
                 if self.locale == "cs":                
                     QMessageBox.information(None, "Chyba připojení", "Uživatel již není příhlášen!")
+                    self.logout()
                 else:
                     QMessageBox.information(None, "Connection error", "The user is not logged in!")
                 return
@@ -6410,6 +6411,7 @@ class Layman:
                     layerName = data['layers'][x]['params']['LAYERS']
                     format = data['layers'][x]['params']['FORMAT']           
                     epsg = 'EPSG:4326'
+                    
                     try:
                         groupName = data['layers'][x]['path']
                     except:
@@ -6433,16 +6435,21 @@ class Layman:
                 if className == 'XYZ':
                     #repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
                     layerName = data['layers'][x]['params']['LAYERS']
+                  
                     try:
                         groupName = data['layers'][x]['path']
                     except:
-                        pass
+                        groupName = ""
                     format = data['layers'][x]['params']['FORMAT']           
                     epsg = 'EPSG:4326'             
                     wmsName = data['layers'][x]['params']['LAYERS']  
                     layerNameTitle = data['layers'][x]['title']
                     repairUrl = data['layers'][x]['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)
+                    if groupName != "":
+                        self.groups.append([groupName, len(data['layers']) -i])
+                    else:
+                        self.groups.append([layerNameTitle, len(data['layers']) - i])
                     threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)).start()
                     #success = self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)
                     #if not success:
@@ -6702,8 +6709,7 @@ class Layman:
             print(rlayer.ignoreExtents())
         except:
             print("ignoreExtents works only with qgis 3.10 and higher")
-            pass # pro qgis 3.10 a vys
-            
+            pass # pro qgis 3.10 a vys      
         if (rlayer.isValid()):  
             if (groupName != ''):
                 self.addWmsToGroup(groupName,rlayer, subgroupName, i)
