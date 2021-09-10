@@ -32,7 +32,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Layman - Set layer permissions</string>
+   <string>Layman - Set permissions</string>
   </property>
   <widget class="QPushButton" name="pushButton_save">
    <property name="geometry">

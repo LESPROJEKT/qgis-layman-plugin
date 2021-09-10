@@ -478,6 +478,9 @@ class Layman:
                     if serviceList[i] == 'HSLayers.Layer.WMS':
                         #itemService.setText("Layman WMS")
                         itemService.setText(str(layer.providerType()).upper())
+                    if serviceList[i] == 'XYZ':
+                        #itemService.setText("Layman WMS")
+                        itemService.setText("XYZ")
                     item.setCheckState(2)
                     if self.locale == "cs":
                         item.setToolTip("Tato vrstva je zobrazena a je součástí načtené kompozice.")
@@ -2402,18 +2405,19 @@ class Layman:
         compositionList = list()
         for x in range (0,len(self.compositeList)):
             for i in range (0,len(self.compositeList[x]['layers'])):
-                try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
-                    if (name == self.compositeList[x]['layers'][i]['params']['LAYERS']):
-                        compositionList.append(self.compositeList[x]['name'])                      
-                except:
-                    print("chyba pri parovani jmena")
-                try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
-                    #if (name == self.compositeList[x]['layers'][i]['protocol']['LAYERS']):
-                    if (name == self.compositeList[x]['layers'][i]['name']):
-                        compositionList.append(self.compositeList[x]['name'])                     
-                except:
-                    print("chyba pri parovani jmena")
-                    
+                #try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+                #    if (name == self.compositeList[x]['layers'][i]['params']['LAYERS']):
+                #        compositionList.append(self.compositeList[x]['name'])                      
+                #except:
+                #    print("chyba pri parovani jmena")
+                #try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+                #    #if (name == self.compositeList[x]['layers'][i]['protocol']['LAYERS']):
+                #    if (name == self.compositeList[x]['layers'][i]['name']):
+                #        compositionList.append(self.compositeList[x]['name'])                     
+                #except:
+                #    print("chyba pri parovani jmena")
+                if (self.removeUnacceptableChars(name) == self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title'])):
+                    compositionList.append(self.compositeList[x]['name'])     
         return compositionList
 
     def refreshCompositeList(self, new=False):
@@ -2508,7 +2512,10 @@ class Layman:
     def afterClosePermissionMapDialog(self):   
         self.dlg = self.old_dlg
         
-    def showMapPermissionsDialog(self, x, fromAddMap = False):        
+    def showMapPermissionsDialog(self, x, fromAddMap = False): 
+        if fromAddMap:
+            self.dlg.pushButton_map.setEnabled(True)
+            self.dlg.progressBar_loader.hide()
         self.old_dlg = self.dlg        
         self.run_SetMapPermission(x, fromAddMap)
     def showPermissionsDialog(self, x):        
@@ -3050,6 +3057,19 @@ class Layman:
                     print("set not saved layer to wfs")
                     self.layerServices[self.removeUnacceptableChars(layerName)] = 'OpenLayers.Layer.Vector'
                     print(self.layerServices[self.removeUnacceptableChars(layerName)])
+        if len(composition['layers']) == 0:
+            if self.dlg.radioButton_wms.isChecked():
+                item = self.dlg.listWidget_service.item(index)
+                item.setText("WMS")
+                print("set not saved layer to wms")
+                self.layerServices[self.removeUnacceptableChars(layerName)] = "HSLayers.Layer.WMS"
+                print(self.layerServices[self.removeUnacceptableChars(layerName)])
+            if self.dlg.radioButton_wfs.isChecked():
+                item = self.dlg.listWidget_service.item(index)
+                item.setText("WFS")
+                print("set not saved layer to wfs")
+                self.layerServices[self.removeUnacceptableChars(layerName)] = 'OpenLayers.Layer.Vector'
+                print(self.layerServices[self.removeUnacceptableChars(layerName)])
         if somethingChanged:
             somethingChanged = False
         
@@ -3914,7 +3934,10 @@ class Layman:
 
             root = self.project.layerTreeRoot()
            # root.visibilityChanged.connect(self.changeVisibility)
-        self.dlg.pushButton_map.setEnabled(True)
+        try:
+            self.dlg.pushButton_map.setEnabled(True)
+        except:
+            print("different dialog loaded")
         if self.wrongLayers:
             self.wrongLayers = False 
             if self.locale == "cs":
