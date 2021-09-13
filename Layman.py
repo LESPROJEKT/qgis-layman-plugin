@@ -1976,15 +1976,16 @@ class Layman:
                     QMessageBox.information(None, "Layman", "This user already exists in the list!")
                 return False
     def askForMapPermissionChanges(self,layerName, userDict, type):
+        self.failed = list()
         included = False
         for name in layerName:
             if (self.checkLayersInComopsitions(name)):
                 included = True
         if (included):
             if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Vybrané vrstvy jsou obsaženy v existujících mapových kompozicích. Chcete nastavit změny v právech i v tyto mapový kompozice?")
+                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Vybrané vrstvy jsou obsaženy v existujících mapových kompozicích. Chcete nastavit stejné práva i pro tyto dotčené kompozice?")
             else:
-                msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Selected layers are included in existing map compositions. Do you want set same permissions for these map compositions?")
+                msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Selected layers are included in existing map compositions. Do you want set same permissions for these affected map compositions?")
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
@@ -1996,6 +1997,7 @@ class Layman:
         else:
             threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type)).start()
     def askForLayerPermissionChanges(self,layerName, userDict, type):
+        self.failed = list()
         if self.locale == "cs":
             msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
         else:
@@ -2010,7 +2012,7 @@ class Layman:
             threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
 
     def updatePermissions(self,layerName, userDict, type, check=False):
-        self.failed = list()
+        
         itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
         itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
         userNamesRead = list()
@@ -2032,6 +2034,7 @@ class Layman:
                 userNamesWrite.append(userDict[pom])
         data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}
         #data = {'access_rights':  read}
+        print(data)
        # print(data)
         status = True
         for layer in layerName:
@@ -2041,7 +2044,7 @@ class Layman:
             print(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer)
             response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer, data = data,  headers = self.getAuthHeader(self.authCfg))
             print(response.content)
-            #print(response.status_code)
+            print(response.status_code)
             if (response.status_code != 200):
                 self.failed.append(layer)
                 status = False
@@ -2060,6 +2063,7 @@ class Layman:
                                 #layerList.append(self.compositeList[i]['layers'][j]['protocol']['LAYERS'])
                                 layerList.append(self.removeUnacceptableChars(self.compositeList[i]['layers'][j]['title']))
                 self.updatePermissions(layerList,userDict, "layers")
+                return
             else:
                 
                 QgsMessageLog.logMessage("permissionsDoneF")
@@ -2069,7 +2073,7 @@ class Layman:
                 compositionList = self.getCompositionsByLayer(name)
                 for comp in compositionList:
                     self.updatePermissions([comp],userDict, "maps", False)
-            
+                    return
         # konec
         #if (status):
         #    if self.locale == "cs":                
@@ -3631,7 +3635,8 @@ class Layman:
         if message[0:15] == "permissionsDone":    
             try:
                 self.dlg.progressBar_loader.hide() 
-                if (message[-1:] == "T"):
+                #if (message[-1:] == "T"):
+                if len(self.failed) == 0:
                     if self.locale == "cs":                
                         QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
                     else:
@@ -7344,9 +7349,8 @@ class Layman:
             else:
                 QMessageBox.information(None, "Error", "Layman server not respond!")
             self.disableEnvironment()
-            return
-        
-        
+            return        
+       
         try:
            # if res['message'] == 'User already reserved username.': # res['code'] == 34, code 35 je pokud již jiný uživatel má účet, který chceme registrovat
            if res['code'] == 34: # res['code'] == 34, code 35 je pokud již jiný uživatel má účet, který chceme registrovat (code 35 pravděpodobně nemůže nastat)
