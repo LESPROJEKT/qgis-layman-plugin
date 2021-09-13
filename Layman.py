@@ -7372,19 +7372,27 @@ class Layman:
                 else:
                     QMessageBox.information(None, "Error", "Oauth2 authorization was not successfull!") 
                 self.textbox.setText("Layman")
-                return
+                return False
             #self.laymanUsername = res['username']
             #else:
             #    self.laymanUsername =  user['username']
         except:
-
-            print("creating new user: " + res['username'])
-            self.laymanUsername =  res['username']
-            url = self.liferayServer.replace('https:\\','')
-            self.textbox.setText('<a href="'+self.liferayServer+"/home"'">' + url + '</a>')
-            ##self.textbox.setText("Connected to: " + self.liferayServer.replace("https:\\","").replace(".cz","").replace("http:\\","").replace("www.","").replace(".com",""))
-        
-      
+            try:
+                print("creating new user: " + res['username'])
+                self.laymanUsername =  res['username']
+                url = self.liferayServer.replace('https:\\','')
+                self.textbox.setText('<a href="'+self.liferayServer+"/home"'">' + url + '</a>')
+                ##self.textbox.setText("Connected to: " + self.liferayServer.replace("https:\\","").replace(".cz","").replace("http:\\","").replace("www.","").replace(".com",""))
+            except:
+                print("Komunikace s Liferay nefunguje")
+                
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Error", "Komunikaci se serverem nelze navázat!") 
+                else:
+                    QMessageBox.information(None, "Error", "Communication with the server cannot be established!")
+                self.logout()
+                return False
+        return True
     def checkAuthChange(self):
         i = 0
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
@@ -7417,48 +7425,48 @@ class Layman:
         self.setup_oauth(authcfg_id, self.liferayServer)
         authHeader = self.getAuthHeader(self.authCfg)
         if (authHeader):
-            self.registerUserIfNotExists()
-            threading.Thread(target=self.loadAllCompositesT).start() ## načteme kompozice do pole ve vláknu 
-            self.saveIni() 
-            self.name = self.getUserName()
+            if self.registerUserIfNotExists():
+                threading.Thread(target=self.loadAllCompositesT).start() ## načteme kompozice do pole ve vláknu 
+                self.saveIni() 
+                self.name = self.getUserName()
 
 
-             ## layman version
+                 ## layman version
             
-            url = self.URI+ "/rest/about/version"   
-            print(url)
-            r = requests.get(url = url)
-            #print (r.content)
-            try:
-                res = self.fromByteToJson(r.content)
-                print(res['about']['applications']['layman']['version'])
-                self.laymanVersion = res['about']['applications']['layman']['version']
-            except:
-                self.laymanVersion = "0.0.0"
-            ##
-            ### authconfig
-            #authcfg_id = self.client_id[-7:]
-            #if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
-            #    self.setup_oauth(self.client_id[-7:], self.liferayServer)
-            ##authconfig end
-            ## check for new version
+                url = self.URI+ "/rest/about/version"   
+                print(url)
+                r = requests.get(url = url)
+                #print (r.content)
+                try:
+                    res = self.fromByteToJson(r.content)
+                    print(res['about']['applications']['layman']['version'])
+                    self.laymanVersion = res['about']['applications']['layman']['version']
+                except:
+                    self.laymanVersion = "0.0.0"
+                ##
+                ### authconfig
+                #authcfg_id = self.client_id[-7:]
+                #if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
+                #    self.setup_oauth(self.client_id[-7:], self.liferayServer)
+                ##authconfig end
+                ## check for new version
            
-            versionCheck = self.checkVersion()
-            if versionCheck[0] == False:
-                if self.locale == "cs":
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Nová verze pluginu Layman k dispozici."), Qgis.Success, duration=15)
-                else:
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "New version of Layman plugin available."), Qgis.Success, duration=15)
+                versionCheck = self.checkVersion()
+                if versionCheck[0] == False:
+                    if self.locale == "cs":
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Nová verze pluginu Layman k dispozici."), Qgis.Success, duration=15)
+                    else:
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "New version of Layman plugin available."), Qgis.Success, duration=15)
 
-            ##
+                ##
 
-            self.authHeader = authHeader
-            self.authOptained()
-            #self.menu_Connection.setEnabled(False)
-            self.dlg.pushButton_logout.setEnabled(True)
-            self.dlg.pushButton_NoLogin.setEnabled(False)
-            self.dlg.pushButton_Connect.setEnabled(False)
-            self.dlg.close()
+                self.authHeader = authHeader
+                self.authOptained()
+                #self.menu_Connection.setEnabled(False)
+                self.dlg.pushButton_logout.setEnabled(True)
+                self.dlg.pushButton_NoLogin.setEnabled(False)
+                self.dlg.pushButton_Connect.setEnabled(False)
+                self.dlg.close()
 
   
     def download_url(self, url, save_path, chunk_size=128):
