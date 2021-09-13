@@ -1977,6 +1977,7 @@ class Layman:
                 return False
     def askForMapPermissionChanges(self,layerName, userDict, type):
         self.failed = list()
+        self.statusHelper = True
         included = False
         for name in layerName:
             if (self.checkLayersInComopsitions(name)):
@@ -1998,6 +1999,7 @@ class Layman:
             threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type)).start()
     def askForLayerPermissionChanges(self,layerName, userDict, type):
         self.failed = list()
+        self.statusHelper = True
         if self.locale == "cs":
             msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
         else:
@@ -2036,7 +2038,7 @@ class Layman:
         #data = {'access_rights':  read}
         print(data)
        # print(data)
-        status = True
+        
         for layer in layerName:
             layer = self.removeUnacceptableChars(layer)
             #print(layer)
@@ -2047,11 +2049,11 @@ class Layman:
             print(response.status_code)
             if (response.status_code != 200):
                 self.failed.append(layer)
-                status = False
+                self.statusHelper = False
         ## rekurzivni zmeny
         if (type == "maps" and check):
             
-            if status:
+            if self.statusHelper:
                 layerList = list()
                 for i in range (0,len(self.compositeList)):
                     if self.compositeList[i]['name'] == self.removeUnacceptableChars(layerName[0]):  
@@ -2086,7 +2088,7 @@ class Layman:
         #    else:
         #        QMessageBox.information(None, "Error", "Permissions was not saved!")  
         else:
-            if (status):               
+            if (self.statusHelper):               
                 QgsMessageLog.logMessage("permissionsDoneT")
             else:
                 QgsMessageLog.logMessage("permissionsDoneF")
@@ -3636,16 +3638,17 @@ class Layman:
             try:
                 self.dlg.progressBar_loader.hide() 
                 #if (message[-1:] == "T"):
-                if len(self.failed) == 0:
+                #if len(self.failed) == 0:
+                if self.statusHelper:
                     if self.locale == "cs":                
                         QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
                     else:
                         QMessageBox.information(None, "Saved", "Permissions was saved successfully.")
                 else:
                     if self.locale == "cs":
-                        QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro: " + str(self.failed).replace("[").replace("]"))               
+                        QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu/mapu: " + str(self.failed).replace("[","").replace("]",""))               
                     else:
-                        QMessageBox.information(None, "Error", "Permissions was not saved for: " + str(self.failed).replace("[").replace("]"))  
+                        QMessageBox.information(None, "Error", "Permissions was not saved for layer/map: " + str(self.failed).replace("[","").replace("]",""))  
             except:
                 print("form was killed before response")
         if message[0:8] == "imports_":
