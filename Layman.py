@@ -644,7 +644,7 @@ class Layman:
                 item.setToolTip("Vector layer loaded from a local file.")
 
     def getSource(self, layer):
-        uri = layer.dataProvider().uri().uri()
+        uri = layer.dataProvider().uri().uri()       
         if ".geojson" in uri:
             return "GEOJSON"
         elif ".shp" in uri:
@@ -656,6 +656,7 @@ class Layman:
         elif str(layer.providerType()) == "memory":
             return "MEMORY"
         elif str(layer.providerType()) == "gdal":
+            
             return "RASTER"
         else:  
             return "OGR"
@@ -664,6 +665,11 @@ class Layman:
         self.dlg.radioButton_wms.setEnabled(True)
         self.dlg.radioButton_wfs.setEnabled(True)
         print("show service")
+        layer = QgsProject.instance().mapLayersByName(item.text())[0]
+        if isinstance(layer, QgsRasterLayer):
+            self.dlg.radioButton_wfs.setEnabled(False)
+            self.dlg.radioButton_wms.setChecked(True)
+            return
         print(self.removeUnacceptableChars(item.text()),self.layerServices)
         print(self.removeUnacceptableChars(item.text()) in self.layerServices)
         if self.removeUnacceptableChars(item.text()) in self.layerServices:  
@@ -3596,14 +3602,28 @@ class Layman:
             #try:
             threadsB = set()
             for thread in threading.enumerate(): 
-                threadsB.add(thread.name)              
-            if(self.ThreadsA == threadsB):
-                self.dlg.progressBar.hide() 
-                self.dlg.label_import.hide()
+                threadsB.add(thread.name)  
+            try:                
+                if(self.ThreadsA == threadsB):
+                    self.dlg.progressBar.hide() 
+                    self.dlg.label_import.hide()
+
             
 
-            #except:
-            #    pass           
+            except:
+                pass        
+        if message[:9] == "mProgress": 
+            print("mProgress")
+            progress = int(message[9:].split(";")[0])
+            max = int(message[9:].split(";")[1])
+            prog = int((progress / max) * 100)
+            print(max, progress, prog)
+            if progress < max:
+                if (prog == 10 or prog == 20 or prog == 30 or prog == 40 or prog == 50 or prog == 60 or prog == 70 or prog == 80 or prog == 90  or prog == 100):
+                    if self.locale == "cs":            
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Nahrávání rastru: "+ str(prog) + "%"), Qgis.Success, duration=5)
+                    else:           
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Export raster: "+ str(prog) + "%"), Qgis.Success, duration=5)
         if message[:8] == "progress":
             progress = int(message[8:].split(";")[0])
             max = int(message[8:].split(";")[1])
@@ -5002,9 +5022,11 @@ class Layman:
                             self.dlg.label_progress.setText("Sucessfully exported: " +  str(0) + " / " + str(1) )
                         return
 
-                
-            if self.layersToUpload == 1:
-                QgsMessageLog.logMessage("progress"+str(i)+";"+str(resumableTotalChunks))
+            try:    
+                if self.layersToUpload == 1:
+                    QgsMessageLog.logMessage("progress"+str(i)+";"+str(resumableTotalChunks))
+            except:
+                    QgsMessageLog.logMessage("mProgress"+str(i)+";"+str(resumableTotalChunks))
              #print(layer_name)
 
         QgsMessageLog.logMessage("export")
@@ -5690,10 +5712,10 @@ class Layman:
         except:
             pass
     def addLayerToComposite(self,x):
-        if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsRasterLayer)):            
+        if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsRasterLayer)) and self.dlg.mMapLayerComboBox.currentLayer().dataProvider().uri().uri() != "":            
             print("External WMS detected")
             self.addExternalWMSToComposite(self.dlg.mMapLayerComboBox.currentLayer().name())
-        if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsVectorLayer)):
+        if (isinstance(self.dlg.mMapLayerComboBox.currentLayer(),QgsVectorLayer)) or self.dlg.mMapLayerComboBox.currentLayer().dataProvider().uri().uri() == "":
             self.dlg.pushButton.setEnabled(False)
             self.compositeListOld = copy.deepcopy(self.compositeList) ## list pred upravou pro vraceni zmen
             #layers = self.getSelectedLayers() #odkomentovat pro zapnuti nacitani vrstev z listwidgetu
@@ -5773,10 +5795,10 @@ class Layman:
         
         for layer in layersList:
             
-            if (isinstance(layer,QgsRasterLayer)):            
+            if (isinstance(layer,QgsRasterLayer)) and layer.dataProvider().uri().uri() != "":            
                 print("External WMS detected")
                 self.addExternalWMSToComposite(layer.name())
-            if (isinstance(layer,QgsVectorLayer)):     
+            if (isinstance(layer,QgsVectorLayer))  or layer.dataProvider().uri().uri() == "":     
                 
                 layers = []
                 layers.append(layer)
