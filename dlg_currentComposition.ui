@@ -67,9 +67,9 @@
   <widget class="QPushButton" name="pushButton_new">
    <property name="geometry">
     <rect>
-     <x>424</x>
+     <x>414</x>
      <y>270</y>
-     <width>171</width>
+     <width>181</width>
      <height>28</height>
     </rect>
    </property>
@@ -93,9 +93,9 @@
   <widget class="QPushButton" name="pushButton_editMeta">
    <property name="geometry">
     <rect>
-     <x>426</x>
+     <x>416</x>
      <y>70</y>
-     <width>171</width>
+     <width>181</width>
      <height>28</height>
     </rect>
    </property>
@@ -106,9 +106,9 @@
   <widget class="QPushButton" name="pushButton_save">
    <property name="geometry">
     <rect>
-     <x>426</x>
+     <x>416</x>
      <y>30</y>
-     <width>171</width>
+     <width>181</width>
      <height>28</height>
     </rect>
    </property>
@@ -123,7 +123,7 @@
    <property name="geometry">
     <rect>
      <x>426</x>
-     <y>200</y>
+     <y>230</y>
      <width>170</width>
      <height>23</height>
     </rect>
@@ -151,9 +151,9 @@
   <widget class="QPushButton" name="pushButton_delete">
    <property name="geometry">
     <rect>
-     <x>426</x>
+     <x>416</x>
      <y>110</y>
-     <width>171</width>
+     <width>181</width>
      <height>28</height>
     </rect>
    </property>
@@ -165,7 +165,7 @@
    <property name="geometry">
     <rect>
      <x>426</x>
-     <y>160</y>
+     <y>190</y>
      <width>95</width>
      <height>20</height>
     </rect>
@@ -178,7 +178,7 @@
    <property name="geometry">
     <rect>
      <x>526</x>
-     <y>160</y>
+     <y>190</y>
      <width>95</width>
      <height>20</height>
     </rect>
@@ -221,6 +221,19 @@
    </property>
    <property name="text">
     <string>Type:</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_setPermissions">
+   <property name="geometry">
+    <rect>
+     <x>416</x>
+     <y>150</y>
+     <width>181</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Set permissions</string>
    </property>
   </widget>
  </widget>

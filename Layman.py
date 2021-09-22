@@ -131,6 +131,7 @@ class Layman:
         self.compositeList = []
         self.compositeListOld = []
         self.CHUNK_SIZE = 1048576 ## s touto hodnotou pracuje layman klient (cca 1MB soubor)
+        #self.CHUNK_SIZE = 2098152 
         self.URI = None
         self.access_token = None
         self.expires_in = None
@@ -400,16 +401,18 @@ class Layman:
         self.dlg.pushButton_close.hide()
         self.dlg.pushButton_editMeta.setEnabled(False)
         self.dlg.pushButton_save.setEnabled(False)
+        self.dlg.pushButton_setPermissions.setEnabled(False)
         self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.label_readonly.hide()
         self.dlg.radioButton_wms.setChecked(True)
         self.dlg.radioButton_wfs.setChecked(False)
         self.dlg.radioButton_wfs.setEnabled(False)
-        self.dlg.radioButton_wms.setEnabled(False)
+        self.dlg.radioButton_wms.setEnabled(False)        
+        self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #3bc4ff;}#pushButton_setPermissions:disabled{background: #64818b ;}")
         self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #3bc4ff;}#pushButton_new:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.pushButton_close2.setStyleSheet("#pushButton_close2 {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close2:hover{background: #66ab27 ;}#pushButton_close2:disabled{background: #64818b ;}")
-        self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
+        self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;font-size:0.7em;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
         self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
         self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #FF8080;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #FF2020 ;}#pushButton_delete:disabled{background: #64818b ;}")
         self.dlg.listWidget_service.setStyleSheet("#listWidget_service {height:20px;}")
@@ -419,6 +422,7 @@ class Layman:
         if self.current != None:
             self.dlg.pushButton_editMeta.setEnabled(True) 
             self.dlg.pushButton_new.setEnabled(True)
+            self.dlg.pushButton_setPermissions.setEnabled(True)
             self.dlg.pushButton_close.setEnabled(True)
             self.dlg.pushButton_editMeta.setEnabled(True)
             self.dlg.pushButton_save.setEnabled(True)
@@ -431,7 +435,7 @@ class Layman:
             #self.dlg.label_loadedComposition.setText(composition['title'])
             #self.dlg.label_loadedComposition.hide()
             #self.dlg.label.hide()
-
+            self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(composition['title'], False))
             layerList = list()
             serviceList = list()
             try:
@@ -551,6 +555,7 @@ class Layman:
                     self.dlg.pushButton_close.setEnabled(False)
                     self.dlg.pushButton_save.setEnabled(False)
                     self.dlg.pushButton_delete.setEnabled(False)
+                    self.dlg.pushButton_setPermissions.setEnabled(False)
                                     
                     self.dlg.label_readonly.show()
 
@@ -568,6 +573,7 @@ class Layman:
             self.dlg.radioButton_wms.setEnabled(False)
             self.dlg.radioButton_wfs.setEnabled(False)
             self.dlg.pushButton_new.setEnabled(False)
+            self.dlg.pushButton_setPermissions.setEnabled(False)
             self.dlg.listWidget_layers.setEnabled(False)
             self.dlg.listWidget_service.setEnabled(False)
             self.dlg.pushButton_close.setEnabled(False)
@@ -1465,7 +1471,7 @@ class Layman:
         self.dlg.pushButton.setEnabled(False)
        # self.dlg.treeWidget.itemClicked.connect(self.enableButton)  
         self.dlg.treeWidget.itemPressed.connect(self.enableButtonImport)
-        self.dlg.treeWidget.itemClicked.connect(self.onItemClicked)
+        #self.dlg.treeWidget.itemClicked.connect(self.onItemClicked)
         self.dlg.treeWidget.itemSelectionChanged.connect(lambda: self.disableExport())
         self.dlg.treeWidget.setCurrentItem(self.dlg.treeWidget.topLevelItem(0),0)
         layers = QgsProject.instance().mapLayers().values()
@@ -1487,6 +1493,8 @@ class Layman:
                     mix.append(layer.name())
                 else:
                     self.dlg.treeWidget.addTopLevelItem(item)
+            if (layerType == 'raster layer'):
+                self.dlg.treeWidget.addTopLevelItem(item)
         self.dlg.setWindowModality(Qt.ApplicationModal)
 
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
@@ -2123,7 +2131,7 @@ class Layman:
    # @QtCore.pyqtSlot(QtWidgets.QTreeWidgetItem, int)
     def onItemClicked(self, it, col):     
         if (it.text(1) == 'raster layer'):
-            self.dlg.pushButton.setEnabled(False)
+            self.dlg.pushButton.setEnabled(True)
         else:
             self.dlg.pushButton.setEnabled(True)
     def setExtent(self, it, col):
@@ -2428,7 +2436,10 @@ class Layman:
         return compositionList
 
     def refreshCompositeList(self, new=False):
-        self.dlg.listWidget.clear()
+        try:
+            self.dlg.listWidget.clear()
+        except:
+            return 
         
         
         for i in range (0, len(self.compositeList)):
@@ -3566,20 +3577,41 @@ class Layman:
                     self.dlg.pushButton.setEnabled(True)
             except:
                 print("chyba")
+        if message == "unsupportedCRS":
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", "Nepodporované CRS souboru"), Qgis.Warning, duration=3)
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", "Unsupported CRS of data file"), Qgis.Warning, duration=3)
 
+
+        if message == "resetProgressbar":
+            self.dlg.progressBar.hide()
+            self.dlg.progressBar.setValue(0)
+        if message == "errorConnection":
+            if self.locale == "cs":                
+                QMessageBox.information(None, "Error", "Spojení se serverem selhalo! Vrstva nebyla nahrána.")
+            else:
+                QMessageBox.information(None, "Error", "Connection with server failed! Layer was not exported.")
         if message == "export":
-            try:
-                threadsB = set()
-                for thread in threading.enumerate(): 
-                    threadsB.add(thread.name)              
-                if(self.ThreadsA == threadsB):
-                    self.dlg.progressBar.hide() 
-                    self.dlg.label_import.hide()
-                
+            #try:
+            threadsB = set()
+            for thread in threading.enumerate(): 
+                threadsB.add(thread.name)              
+            if(self.ThreadsA == threadsB):
+                self.dlg.progressBar.hide() 
+                self.dlg.label_import.hide()
+            
 
-            except:
-                pass           
-          
+            #except:
+            #    pass           
+        if message[:8] == "progress":
+            progress = int(message[8:].split(";")[0])
+            max = int(message[8:].split(";")[1])
+            self.dlg.progressBar.setMaximum(max)
+            self.dlg.progressBar.setValue(progress)
+
+
+            pass
         if message == "exportPatch":
             try:
                 threadsB = set()
@@ -4442,9 +4474,9 @@ class Layman:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
         else:
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Metadata nebyla úspěšně upravena."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Metadata nebyla upravena."), Qgis.Warning, duration=3)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was not saved successfully."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was not saved."), Qgis.Warning, duration=3)
         
         
         
@@ -4625,7 +4657,10 @@ class Layman:
                     layers.append(l)
                     break
         isValid = True
-        pom =layers[0].getFeature(1)        
+        if (isinstance(layers[0], QgsVectorLayer)):
+            pom =layers[0].getFeature(1)  
+        else:
+            return True
         for nam in pom.fields().names():
             if (nam == ''):
                 isValid = False
@@ -4692,6 +4727,7 @@ class Layman:
         #        self.dlg.label_progress.setText("úspěšně exportováno: "+str(self.done)+" / " + str(self.batchLength) )
         #    else:
         #        self.dlg.label_progress.setText("Sucessfully exported "+str(self.done)+" / " + str(self.batchLength) )
+        self.layersToUpload = len(layers)
         for item in layers:
             print (item.text(0))
             
@@ -4796,7 +4832,182 @@ class Layman:
             QgsMessageLog.logMessage("exportPatch")
             
             #iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
+    def returnPathIfFileExists(self, path, ext, onlyExt = False):
+        print(path, ext)
+        pathWithoutExt = path.replace(ext,"")
+        ext = ext.lower()
+        if ext == ".tif" or ".tiff":
+            if os.path.exists(pathWithoutExt + ".tfw"):
+                if not onlyExt:
+                    return pathWithoutExt + ".tfw"
+                else:
+                    return ".tfw"
+            else:
+                return None
+        if ext == ".jp2":
+            if os.path.exists(pathWithoutExt + ".j2w"):
+                if not onlyExt:
+                    return pathWithoutExt + ".j2w"
+                else:
+                    return ".j2w"
+            else:
+                return None
+        if ext == ".jpg":
+            if os.path.exists(pathWithoutExt + ".jgw"):
+                if not onlyExt:
+                    return pathWithoutExt + ".jgw"
+                else:
+                    return ".jgw"
+            else:
+                return None
+        if ext == ".png":
+            if os.path.exists(pathWithoutExt + ".pgw"):
+                if not onlyExt:
+                    return pathWithoutExt + ".pgw"
+                else:
+                    return ".pgw"
+            else:
+                return None
+                
 
+    def postRasterThread(self, layer,data, q,progress, patch):
+        print(layer.name())
+        
+        layer_name = layer.name()
+        path = layer.dataProvider().dataSourceUri()
+        ext = (layer.dataProvider().dataSourceUri()[-4:])
+        files = {'file': (path, open(path, 'rb')),} 
+        if (os.path.getsize(path) > self.CHUNK_SIZE):
+            if patch:
+            #self.postInChunks(layer_name, "post")
+            #if (reqType == "patch"):
+                #url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer_name.lower().replace(" ", "_")
+                url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars(layer_name)
+                r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
+           
+        
+            #self.registerLayer(layer_name)
+            url = self.URI + "/rest/"+self.laymanUsername+"/layers"
+            name = self.removeUnacceptableChars(layer_name) 
+            ## registrovat obě vrstvy musím pokud existuje externí souory,poslat jako pole?
+            externalFile = self.returnPathIfFileExists(path,ext)
+            print(externalFile)
+            if externalFile:
+                payload = {        
+                #'file': name.lower()+ext,
+                'file': [name.lower()+ext,name.lower() + self.returnPathIfFileExists(path,ext, True)],
+                'title': name,
+                'crs': str(layer.crs().authid())
+                }    
+            else:
+                payload = {        
+                'file': name.lower()+ext,                
+                'title': name,
+                'crs': str(layer.crs().authid())
+                }    
+            
+            #if externalFile != None:
+            #    files = {'file': (externalFile, open(externalFile, 'rb')),} 
+            #    response = requests.request("POST", url,  data=payload, files = files, headers = self.getAuthHeader(self.authCfg)) 
+            #else:
+            response = requests.request("POST", url,  data=payload, headers = self.getAuthHeader(self.authCfg)) 
+            print(response.content)
+            layer_name = self.removeUnacceptableChars(layer_name)
+            filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) ## chunky se ukládají do adresáře v tempu
+        
+            if not (os.path.exists(filePath)):
+                os.mkdir(filePath)
+            #file = self.getTempPath(layer_name) 
+            if externalFile:
+                #### externi soubory
+                f = open(externalFile, 'rb')
+                externalExt = externalFile[-4:]
+                arr = []
+            
+                for piece in self.read_in_chunks(f):
+                    arr.append(piece)
+                resumableFilename = layer_name+ externalExt
+                layman_original_parameter = "file"  
+                resumableTotalChunks = len(arr)
+                #print ("resumable" + resumableFilename)
+                print(resumableTotalChunks)
+                self.processChunks(arr, resumableFilename, layman_original_parameter,resumableTotalChunks, layer_name,filePath,externalExt)
+                ###############
+            f = open(path, 'rb')
+            arr = []
+            for piece in self.read_in_chunks(f):
+                arr.append(piece)
+            #layer_name = self.removeUnacceptableChars(layer_name)
+            
+            
+            
+            resumableFilename = layer_name+ ext
+            layman_original_parameter = "file"  
+            resumableTotalChunks = len(arr)
+            #print ("resumable" + resumableFilename)
+            print(resumableTotalChunks)
+            self.processChunks(arr, resumableFilename, layman_original_parameter,resumableTotalChunks, layer_name,filePath,ext)
+            
+            #iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
+            
+        else:
+            response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
+            print(response.content)
+            res = self.fromByteToJson(response.content)
+        
+            
+            if res['code'] == 4:
+                QgsMessageLog.logMessage("unsupportedCRS")
+                QgsMessageLog.logMessage("resetProgressbar")
+                return
+        if self.layersToUpload == 1:
+            QgsMessageLog.logMessage("resetProgressbar")
+            if self.locale == "cs":
+                self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(1) + " / " + str(1) )
+            else:
+                self.dlg.label_progress.setText("Sucessfully exported: " +  str(1) + " / " + str(1) )
+        QgsMessageLog.logMessage("export")
+    def processChunks(self, arr, resumableFilename, layman_original_parameter,resumableTotalChunks, layer_name,filePath,ext ):
+        for i in range (1, len(arr)+1):  ##chunky jsou počítané od 1 proto +1  
+            failedRequest = -1
+            print("chunk" + str(i))
+            file = arr[i-1] # rozsekaná část souboru
+            resumableChunkNumber = i  # cislo casti
+            payload = {
+            'file' : "chunk"+str(i)+ ext,
+            'resumableFilename': resumableFilename,
+            'layman_original_parameter': layman_original_parameter,
+            'resumableChunkNumber': i,
+            'resumableTotalChunks': resumableTotalChunks
+            } 
+            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer_name+'/chunk'   
+            f = open(filePath + os.sep+"chunk"+str(i)+ ext, "wb")
+            f.write(bytearray(arr[i-1]))
+            f.close()              
+            files = {'file': (layer_name.lower().replace(" ", "_")+ext, open(filePath +os.sep+ "chunk"+str(i)+ext, 'rb')),}  
+            #response = requests.post(url, files = files, data=payload, headers = self.getAuthHeader(self.authCfg))
+            while failedRequest != 0:
+                try:
+                    failedRequest = 0
+                    response = requests.post(url, files = files, data=payload, headers = self.getAuthHeader(self.authCfg))
+                    print(response.content)
+                except:
+                    failedRequest = failedRequest + 1
+                    if failedRequest == 3:
+                        QgsMessageLog.logMessage("errorConnection")
+                        QgsMessageLog.logMessage("resetProgressbar")
+                        if self.locale == "cs":
+                            self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(0) + " / " + str(1) )
+                        else:
+                            self.dlg.label_progress.setText("Sucessfully exported: " +  str(0) + " / " + str(1) )
+                        return
+
+                
+            if self.layersToUpload == 1:
+                QgsMessageLog.logMessage("progress"+str(i)+";"+str(resumableTotalChunks))
+             #print(layer_name)
+
+        QgsMessageLog.logMessage("export")
     def postThread(self, layer_name,data, q,progress):
         if layer_name in self.mixedLayers:
             layers = QgsProject.instance().mapLayersByName(layer_name)  
@@ -4967,12 +5178,13 @@ class Layman:
         nameCheck = True
         validExtent = True
         layers = QgsProject.instance().mapLayersByName(layer_name)       
-        if layers[0].featureCount() == 0:
-            if self.locale == "cs":                
-                QMessageBox.information(None, "Layman import layer", "Nelze nahrát vrstvu: "+layers[0].name()+", protože neobsahuje žádný prvek!")
-            else:
-                QMessageBox.information(None, "Layman import layer", "Unable to load layer: "+layers[0].name()+", because it has no feature!")
-            return
+        if (isinstance(layers[0], QgsVectorLayer)):
+            if layers[0].featureCount() == 0:
+                if self.locale == "cs":                
+                    QMessageBox.information(None, "Layman import layer", "Nelze nahrát vrstvu: "+layers[0].name()+", protože neobsahuje žádný prvek!")
+                else:
+                    QMessageBox.information(None, "Layman import layer", "Unable to load layer: "+layers[0].name()+", because it has no feature!")
+                return
         layers[0].setName(layer_name)
         if len(layers) > 1:
             for l in layers:
@@ -5023,15 +5235,35 @@ class Layman:
                             self.dlg.progressBar.show() 
                             self.dlg.label_import.show()
                             q = self.setProcessingItem(layer_name)
-                            threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
+                            if (isinstance(layers[0], QgsVectorLayer)):
+                                threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
+                            if (isinstance(layers[0], QgsRasterLayer)): 
+                                if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
+                                    threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
+                                else:
+                                    if self.locale == "cs":
+                                        QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
+                                    else:
+                                        QMessageBox.information(None, "Layman", "Use EPSG:4326")
+                                    self.dlg.progressBar.hide()
                             #print("vrstva již existuje")
                         
                         else:
                             self.batchLength = self.batchLength - 1 
                     else:
                         q = self.setProcessingItem(layer_name)
-                        threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
-
+                        if (isinstance(layers[0], QgsVectorLayer)):
+                            threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
+                        if (isinstance(layers[0], QgsRasterLayer)): 
+                            print()
+                            if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
+                                threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
+                            else:
+                                if self.locale == "cs":
+                                    QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
+                                else:
+                                    QMessageBox.information(None, "Layman", "Use EPSG:4326")
+                                self.dlg.progressBar.hide()
                 else:
             
                     self.layerName = layer_name
@@ -5043,7 +5275,18 @@ class Layman:
                             self.dlg.label_import.show()
                         
                         q = self.setProcessingItem(layer_name)
-                        threading.Thread(target=lambda: self.postThread(layer_name,data, q,True)).start()    
+                        
+                        if (isinstance(layers[0], QgsVectorLayer)):
+                            threading.Thread(target=lambda: self.postThread(layer_name,data, q,True)).start()   
+                        if (isinstance(layers[0], QgsRasterLayer)): 
+                            if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
+                                threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, False)).start()   
+                            else:
+                                if self.locale == "cs":
+                                    QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
+                                else:
+                                    QMessageBox.information(None, "Layman", "Use EPSG:4326")
+                                self.dlg.progressBar.hide()
                     #        if response.status_code == 200:
                     #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
                     #        else:
@@ -6654,10 +6897,10 @@ class Layman:
         quri.setParam("url", url)
         print(str(quri.encodedUri()))
         rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
-        if not url.startswith(self.URI):
-            print("remove authcfg")
-            quri.removeParam("authcfg")
-            rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
+        #if not url.startswith(self.URI):
+        #    print("remove authcfg")
+        #    quri.removeParam("authcfg")
+        rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
         #print(rlayer.isValid())
         ##quri end
         #if epsg == 'EPSG:5514':
@@ -6667,7 +6910,7 @@ class Layman:
         #    #crs.createFromProj("+proj=pipeline +step +inv +proj=webmerc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +step +proj=push +v_3 +step +proj=cart +ellps=WGS84 +step +inv +proj=helmert +x=570.8 +y=85.7 +z=462.8 +rx=4.998 +ry=1.587 +rz=5.261 +s=3.56 +convention=position_vector +step +inv +proj=cart +ellps=bessel +step +proj=pop +v_3 +step +proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel")
         #    crs.createFromProj(QgsDatumTransform().datumTransformToProj(1623)) ## epsg:5514/1623
         #    rlayer.setCrs(crs)
-        rlayer = QgsRasterLayer(urlWithParams, layerNameTitle, 'wms')
+        #rlayer = QgsRasterLayer(urlWithParams, layerNameTitle, 'wms')
         try:
             print("extents")
             print(rlayer.ignoreExtents())
@@ -7417,6 +7660,7 @@ class Layman:
         print(res)
         return res['claims']['name']
     def openAuthLiferayUrl2(self):
+        self.dlg.pushButton_Connect.setEnabled(False)
         #self.authCfg = self.client_id[-7:]
         #authcfg_id = self.client_id[-7:]
         self.isAuthorized = True

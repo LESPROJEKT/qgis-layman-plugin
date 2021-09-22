@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.0
 description=Layman
-version=1.77.8
+version=1.79
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -36,6 +36,7 @@ changelog=
 	1.74 - bugs permission fixed
 	1.75 - possibility load public layers without login
 	1.77 - logout issues
+	1.78 - upload raster layers support
 # Tags are comma separated with spaces allowed
 tags=python
 
