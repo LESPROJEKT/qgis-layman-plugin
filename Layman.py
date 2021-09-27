@@ -1177,6 +1177,7 @@ class Layman:
         self.dlg.lineEdit_5.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.dlg.lineEdit_6.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.dlg.lineEdit_2.editingFinished.connect(self.checkNameCreateMap)
+        self.dlg.lineEdit_2.textEdited.connect(self.checkForChars)
         self.dlg.lineEdit_3.setText(str(ext.xMinimum()))
         self.dlg.lineEdit_4.setText(str(ext.xMaximum()))
         self.dlg.lineEdit_5.setText(str(ext.yMinimum()))
@@ -3307,6 +3308,27 @@ class Layman:
             if QgsApplication.authManager().updateAuthenticationConfig(authConfig):
                 return authcfg_id
         return None
+    def checkForSpecialChars(self, s):
+        special_characters = "!@#$%^&*()+?=,<>/"
+        numbers = "0123456789"
+        try:
+            if s[0] in numbers:
+                return True
+        except:
+            pass
+        if any(c in special_characters for c in s):
+            return True
+        else:
+            return False
+    def checkForChars(self, string):
+        if self.checkForSpecialChars(string):
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Nepodporovaný znak.")
+            else:
+                QMessageBox.information(None, "Layman", "Unsupported char.")
+        else:
+            self.dlg.pushButton_CreateComposition.setEnabled(True)
+            self.dlg.label_info.setText("")
     def checkNameCreateMap(self):
         text = self.dlg.lineEdit_2.text()
         if text != "":
