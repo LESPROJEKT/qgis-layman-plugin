@@ -490,7 +490,7 @@
     <message>
         <location filename="../dlg_ConnectionManager.ui" line="157"/>
         <source>Continue without login</source>
-        <translation>Pokračovat bez přihlášení</translation>
+        <translation>POKRAČOVAT BEZ PŘIHLÁŠENÍ</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="73"/>
