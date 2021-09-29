@@ -2005,7 +2005,7 @@ class Layman:
                 included = True
         if (included):
             if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Vybrané vrstvy jsou obsaženy v existujících mapových kompozicích. Chcete nastavit stejné práva i pro tyto dotčené kompozice?")
+                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Vybrané vrstvy jsou obsaženy v existujících mapových kompozicích. Chcete nastavit stejná práva i pro tyto dotčené kompozice?")
             else:
                 msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Selected layers are included in existing map compositions. Do you want set same permissions for these affected map compositions?")
             msgbox.addButton(QMessageBox.Yes)
@@ -3352,7 +3352,8 @@ class Layman:
                 ch = True
                 e = True ## kdyz nevraci rescode tak je to v poradku
 
-            if not ch:
+            #if not ch:
+            if False:
                 self.dlg.pushButton_CreateComposition.setEnabled(False)
                 self.dlg.label_info.show()
                 if self.locale == "cs":
@@ -6370,6 +6371,7 @@ class Layman:
         input = input.replace("í","i")
         input = input.replace("ý","y")
         input = input.replace("á","a")
+        input = input.replace("ň","n")
         input = input.replace("ó","o")
         input = input.replace("č","c")
         input = input.replace("ď","d")
