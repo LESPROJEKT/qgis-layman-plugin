@@ -72,10 +72,10 @@ import time
 from urllib.request import urlopen
 import subprocess
 import threading
-import base64
 import hashlib
 import html
 import re
+import base64
 from distutils.version import LooseVersion, StrictVersion
 import urllib.parse
 from .ogr2ogr import main
@@ -186,7 +186,7 @@ class Layman:
         #self.watcher.addPath(path)
         #self.watcher.fileChanged.connect(self.authOptained)     
         self.dependencies = True
-        if self.DPI < 1.20:
+        if self.DPI < 1.10:
             self.fontSize = "12px"
         else:
             self.fontSize = "10px"
@@ -3751,6 +3751,11 @@ class Layman:
                     self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
             except:
                 pass
+            try:
+                if self.uploaded == self.batchLength:
+                    self.dlg.progressBar.hide()
+            except:
+                pass
         if message[0:8] == "importn_":
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána "), Qgis.Warning, duration=3)
@@ -4663,6 +4668,7 @@ class Layman:
                 print("The file does not exist")
             result3 = False
             layer.saveSldStyle(sld_filename)
+            self.insertPictureToQML(layer)
             layer.saveNamedStyle(qml_filename)
     def json_exportMix(self, layer):    
     
@@ -4726,7 +4732,23 @@ class Layman:
             return False
         else:
             return True
-    
+    def insertPictureToQML(self, layer):       
+        single_symbol_renderer = layer.renderer()
+        symbols = single_symbol_renderer.symbol()
+        for symbol in symbols:
+            if isinstance(symbol, QgsSvgMarkerSymbolLayer) or isinstance(symbol, QgsRasterMarkerSymbolLayer):
+                path = symbol.path()
+                try:
+                    if os.path.exists(path):
+                        with open(path, "rb") as image_file:
+                            encoded_string = base64.b64encode(image_file.read())
+                            #print(encoded_string)    
+                        decoded =   encoded_string.decode("utf-8") 
+                        #print("base64:"  + decoded)
+                        symbol.setPath("base64:"  + decoded)  
+                        print(symbol.path())
+                except:
+                    print("binary path")
     def mergeGeojsons(self, paths, output, layerName):
         feats = list()
         #top = """
@@ -7723,6 +7745,23 @@ class Layman:
         res = self.fromByteToJson(r.content)
         print(res)
         return res['claims']['name']
+    def connectionLost(self):        
+        self.disableEnvironment()      
+        #userEndpoint = self.URI+ "/rest/current-user"    
+        #r = requests.delete(url = userEndpoint, headers = self.getAuthHeader(self.authCfg))
+        #QgsApplication.authManager().clearCachedConfig(self.authCfg)      
+        self.textbox.setText("Layman")
+        ## flush variables
+        self.loadedInMemory = False
+        #QgsApplication.authManager().clearCachedConfig("")
+        self.menu_UserInfoDialog.setEnabled(True)
+        self.laymanUsername = ""
+        self.isAuthorized = False
+        self.current = None
+        self.liferayServer = None
+        #self.menu_Connection.setEnabled(True)
+        self.compositeList = []
+        self.compositeListOld = []       
     def openAuthLiferayUrl2(self):
         self.dlg.pushButton_Connect.setEnabled(False)
         #self.authCfg = self.client_id[-7:]
@@ -7775,6 +7814,9 @@ class Layman:
                 self.dlg.pushButton_NoLogin.setEnabled(False)
                 self.dlg.pushButton_Connect.setEnabled(False)
                 self.dlg.close()
+
+                ## zjištení výpadku spojeni
+                QgsApplication.authManager().masterPasswordVerified.connect(self.connectionLost)
 
   
     def download_url(self, url, save_path, chunk_size=128):
