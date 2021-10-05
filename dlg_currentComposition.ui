@@ -45,7 +45,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>30</y>
+     <y>47</y>
      <width>211</width>
      <height>192</height>
     </rect>
@@ -81,7 +81,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>230</y>
+     <y>247</y>
      <width>211</width>
      <height>16</height>
     </rect>
@@ -122,9 +122,9 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>426</x>
+     <x>415</x>
      <y>230</y>
-     <width>170</width>
+     <width>181</width>
      <height>23</height>
     </rect>
    </property>
@@ -191,7 +191,7 @@
    <property name="geometry">
     <rect>
      <x>230</x>
-     <y>30</y>
+     <y>47</y>
      <width>161</width>
      <height>192</height>
     </rect>
@@ -201,7 +201,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>10</y>
+     <y>27</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -214,7 +214,7 @@
    <property name="geometry">
     <rect>
      <x>230</x>
-     <y>10</y>
+     <y>27</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -234,6 +234,32 @@
    </property>
    <property name="text">
     <string>Set permissions</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="checkBox_all">
+   <property name="geometry">
+    <rect>
+     <x>24</x>
+     <y>6</y>
+     <width>161</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Check all layers</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_debug">
+   <property name="geometry">
+    <rect>
+     <x>210</x>
+     <y>330</y>
+     <width>181</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Debug</string>
    </property>
   </widget>
  </widget>
