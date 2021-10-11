@@ -3732,6 +3732,8 @@ class Layman:
         if message == "readlayerjson":
             #name, service ,workspace
             self.readLayerJson2(self.params[0],self.params[1])
+        if message == "loadVector": ## slovník random
+            pass
         if message == "loadLayer"[:9]:
             if message[9:] != '':
                 for layer in self.currentLayer:
