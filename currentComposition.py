@@ -26,6 +26,12 @@ class CurrentComposition(object):
         for layer in self.composition['layers']:
             layerList.append(self.removeUnacceptableChars(layer['title']))
         return layerList
+    def isLayerInComposition(self, layerName):
+        pom = False
+        for layer in self.composition['layers']:
+            if self.removeUnacceptableChars(layer['title']) == layerName:
+                pom = True
+        return pom
     def getVisibilityForLayer(self,layerName):
         for layer in self.composition['layers']:
             if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(layer['title']):

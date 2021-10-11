@@ -94,6 +94,7 @@ from .dlg_ConnectionManager import ConnectionManagerDialog
 from .dlg_userInfo import UserInfoDialog
 from .dlg_setPermission import SetPermissionDialog
 from .dlg_currentComposition import CurrentCompositionDialog
+from .dlg_layerDecision import LayerDecisionDialog
 from .currentComposition import CurrentComposition
 
 
@@ -171,6 +172,7 @@ class Layman:
         self.selectedWorkspace = None
         self.firstStart = True
         self.isItemChanged = False
+        self.noOverrideLayers = list()
         self.processingRequest = False
         self.mixedLayers = list()
         self.DPI = self.getDPI()
@@ -189,7 +191,7 @@ class Layman:
         #self.watcher.addPath(path)
         #self.watcher.fileChanged.connect(self.authOptained)     
         self.dependencies = True
-        if self.DPI < 1.10:
+        if self.DPI < 1.00:
             self.fontSize = "12px"
         else:
             self.fontSize = "10px"
@@ -601,6 +603,26 @@ class Layman:
         self.dlg.listWidget_layers.itemClicked.connect(self.showService)
         self.dlg.listWidget_layers.itemChanged.connect(self.addService)
         self.dlg.radioButton_wms.toggled.connect(lambda: self.wms_wfs2(self.dlg.listWidget_layers.currentItem().text(), self.dlg.listWidget_layers.currentRow()))      
+
+    def run_LayerDecisionDialog(self, layersToDecision):
+        self.dlg = LayerDecisionDialog() 
+        self.dlg.show()
+        for layer in layersToDecision:
+            item = QListWidgetItem()
+            item.setText(layer)
+            item.setCheckState(0)
+            self.dlg.listWidget_layers.addItem(item)
+        self.dlg.pushButton_save.clicked.connect(lambda: self.layersToUpload())
+        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
+    def layersToUpload(self):
+        for i in range(0, self.dlg.listWidget_layers.count()):
+            item = self.dlg.listWidget_layers.item(i)
+            if item.checkState() == 0:
+                self.noOverrideLayers.append(item.text())
+        print("noOverrideLayers")
+        print(self.noOverrideLayers)
+        self.dlg = self.old_dlg
+        self.updateComposition(False)
     def addService(self, item):
         if item.checkState() == 2:
             print("new layer")
@@ -817,7 +839,54 @@ class Layman:
                 item.setForeground(QColor(0,0,0))
         print("ret:" + str(ret))            
         return ret
+    def addExistingLayerToComposition(self, title, composition, type):      
+        name = self.removeUnacceptableChars(title)
+        #response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(name), headers = self.getAuthHeader(self.authCfg))
+        #res = self.fromByteToJson(response.content)
+        #print(res)
+        #wmsUrl = res['wms']['url']
+        #wfsUrl = res['wfs']['url']
         
+        self.existLayer = False
+
+        #self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+        if (type == "wms"):
+            wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows'
+            composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+        if (type == "wfs"):
+            wfsUrl = self.URI+'/geoserver/'+self.laymanUsername+'/wfs'
+            composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wfsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+        
+    def checkIfLayersExists(self):        
+        layerListServer = list()
+        foundedOnServer = False
+        layersToDecision = list()
+        uri = self.URI + "/rest/"+self.laymanUsername+"/layers"     
+        r= requests.get(uri,headers = self.getAuthHeader(self.authCfg))
+        data = r.json()
+        #print(data)
+        for i in range(0, len(data)):
+            layerListServer.append(data[i]['name']) 
+        print(layerListServer)
+        for index in range(0, self.dlg.listWidget_layers.count()): ## find duplicity
+            item = self.dlg.listWidget_layers.item(index)           
+            print("debugg")
+            print(item.text())
+            print(self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text())))
+            print(self.instance.getLayerNamesList())
+            #return True
+            if item.checkState() == 2 and self.removeUnacceptableChars(item.text()) in layerListServer and not self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text())):
+                item.setForeground(QColor(0,191,255))
+                foundedOnServer = True
+                layersToDecision.append(item.text())
+        if foundedOnServer:
+            self.old_dlg = self.dlg
+            self.run_LayerDecisionDialog(layersToDecision)  
+            return True
+        else:
+            return False     
+                
+            
     def saveMapLayers(self):
         layerList = list()
         layerCheckedList = list()
@@ -874,12 +943,23 @@ class Layman:
                         #return
                    
         if len(layers) > 0:
+            layersFromServer = list()
+            print(layers)
             for layer in layers:
-                print(layer.name())
-                
+                print(layer.name())                
+                if layer.name() in self.noOverrideLayers:
+                    #layersFromServer.append(layer) ## nebude se nahrávat geojson, ale jen se vytvori zaznam do kompozice
+                    self.addExistingLayerToComposition(layer.name(),composition,"wms") 
+                    layers.remove(layer)
+                       
             #self.addLayerToComposite2(x, layers)
-            #threading.Thread(target=lambda: self.addLayerToComposite2(composition, layers)).start()           
-            self.addLayerToComposite2(composition, layers)
+            #threading.Thread(target=lambda: self.addLayerToComposite2(composition, layers)).start()   
+            print(layers)     
+            self.toUpload = len(layers)
+            if len(layers) == 0:
+                return
+            else:
+                self.addLayerToComposite2(composition, layers)
         
         #self.dlg.close()
         
@@ -2741,11 +2821,15 @@ class Layman:
         composition['layers'] = []
         print(serverOrder)
         for layer in layers:  
-            if layer.name() in serverOrder:
+            if self.removeUnacceptableChars(layer.name()) in serverOrder:
                 print(layer.name())
                 for lay in backup['layers']:
                     if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(lay['title']):
                         composition['layers'].append(lay)
+        if len(serverOrder) != len(composition['layers']):
+            composition = copy.deepcopy(backup)
+            print("změna pořadí selhala vracím zpět.")
+        print("order changed to:")
         print(composition['layers'])
        
 
@@ -2796,7 +2880,14 @@ class Layman:
            
 
             #print("syncOrder################") 
-    def updateComposition(self):
+    def updateComposition(self, checkD = True):
+        self.ThreadsUploadsA = set()
+        for thread in threading.enumerate(): 
+            self.ThreadsUploadsA.add(thread.name)
+        #if checkD: 
+        #    decision = self.checkIfLayersExists()
+        #    if decision:
+        #        return
         self.differentThanBefore()
         if self.duplicateLayers():
             if self.locale == "cs":
@@ -2806,7 +2897,7 @@ class Layman:
             return
         
         ## hlidani nove pridanych vrstev pro symbologii
-        self.syncOrder2(self.getLayersOrder())
+        #self.syncOrder2(self.getLayersOrder())
         composition = self.instance.getComposition()
         layerList = []
         for i in range (0, len(composition['layers'])):                        
@@ -2880,6 +2971,7 @@ class Layman:
                     self.stylesToUpdate.remove(QgsProject.instance().mapLayersByName(lay['title'])[0])
         print(composition)
         print(len(composition['layers']))
+        self.syncOrder2(self.getLayersOrder())
         self.patchMap2()
             #for layer in self.stylesToUpdate:
             #    if self.removeUnacceptableChars(layer.name()) in layerList:
@@ -3070,9 +3162,12 @@ class Layman:
         print(layerName)
         somethingChanged = False
         composition = self.instance.getComposition()
+        pom = False
         for layer in composition['layers']:
             if self.removeUnacceptableChars(layer['title']) == self.removeUnacceptableChars(layerName):
+                pom = True
                 if self.dlg.radioButton_wfs.isChecked():
+                    print("set layer to wfs")
                     item = self.dlg.listWidget_service.item(index)
                     item.setText("WFS")
                     try:
@@ -3100,10 +3195,12 @@ class Layman:
                     somethingChanged = True
 
                 if self.dlg.radioButton_wms.isChecked():
+                    print("set layer to wms")
                     item = self.dlg.listWidget_service.item(index)
                     item.setText("WMS")
                     try:
-                        name = layer['protocol']['LAYERS']
+                        #name = layer['protocol']['LAYERS']
+                        name = layer['name']
                     except: 
                         #if self.layerServices[self.removeUnacceptableChars(layer['title'])] == "HSLayers.Layer.WMS"
                         #layer['protocol']['LAYERS'] = self.removeUnacceptableChars(layerName)
@@ -3137,19 +3234,19 @@ class Layman:
                 else:
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Changing service of layer " + layerName+"."), Qgis.Success, duration=5)     
                 #self.patchMap2()
-            else:             
-                if self.dlg.radioButton_wms.isChecked():
-                    item = self.dlg.listWidget_service.item(index)
-                    item.setText("WMS")
-                    print("set not saved layer to wms")
-                    self.layerServices[self.removeUnacceptableChars(layerName)] = "HSLayers.Layer.WMS"
-                    print(self.layerServices[self.removeUnacceptableChars(layerName)])
-                if self.dlg.radioButton_wfs.isChecked():
-                    item = self.dlg.listWidget_service.item(index)
-                    item.setText("WFS")
-                    print("set not saved layer to wfs")
-                    self.layerServices[self.removeUnacceptableChars(layerName)] = 'OpenLayers.Layer.Vector'
-                    print(self.layerServices[self.removeUnacceptableChars(layerName)])
+        if not pom:             
+            if self.dlg.radioButton_wms.isChecked():
+                item = self.dlg.listWidget_service.item(index)
+                item.setText("WMS")
+                print("set not saved layer to wms")
+                self.layerServices[self.removeUnacceptableChars(layerName)] = "HSLayers.Layer.WMS"
+                print(self.layerServices[self.removeUnacceptableChars(layerName)])
+            if self.dlg.radioButton_wfs.isChecked():
+                item = self.dlg.listWidget_service.item(index)
+                item.setText("WFS")
+                print("set not saved layer to wfs")
+                self.layerServices[self.removeUnacceptableChars(layerName)] = 'OpenLayers.Layer.Vector'
+                print(self.layerServices[self.removeUnacceptableChars(layerName)])
         if len(composition['layers']) == 0:
             if self.dlg.radioButton_wms.isChecked():
                 item = self.dlg.listWidget_service.item(index)
@@ -3557,12 +3654,26 @@ class Layman:
                     print("reoder exception")
         if message == "layersUploaded":
             
-            threadsB = set()
-            print("threadsA")
-            print(self.ThreadsUploadsA)
-            while (len(threading.enumerate()) > 1):
-                time.sleep(1)
-            self.dlg.progressBar_loader.hide()
+            #threadsB = set()
+            #for thread in threading.enumerate(): 
+            #    threadsB.add(thread.name)  
+            #print("threadsA")
+            #print(self.ThreadsUploadsA)
+            #threadsB = threading.enumerate()
+            #while (len(threadsB) > 1 or self.ThreadsUploadsA != threadsB):
+            #    threadsB = set()
+            #    for thread in threading.enumerate(): 
+            #        threadsB.add(thread.name)  
+            #    time.sleep(1)
+            try:
+                print("toUpload" +str(self.toUpload) )
+                if (self.toUpload <= 1):
+                    try:
+                        self.dlg.progressBar_loader.hide()
+                    except:
+                        self.old_dlg.progressBar_loader.hide()
+            except:
+                print("different form")
         if message == "afterCompositionLoaded":
             self.afterCompositionLoaded()
         if message == "layersLoaded":
@@ -3621,15 +3732,21 @@ class Layman:
         if message == "readlayerjson":
             #name, service ,workspace
             self.readLayerJson2(self.params[0],self.params[1])
-        if message == "loadLayer":
-            
-            print("loading layer")
-            print("###############################z")
-            print(self.currentLayer)
-            print(self.currentLayer[len(self.currentLayer)-1].name())
-            print(self.currentLayer[len(self.currentLayer)-1].isValid())            
-            print("###############################z")
-            QgsProject.instance().addMapLayer(self.currentLayer[0])
+        if message == "loadLayer"[:9]:
+            if message[9:] != '':
+                for layer in self.currentLayer:
+                    print("tttttttttttttttttttttttttttt")
+                    print(layer.name() , message[9:])
+                    if layer.name() == message[9:]:
+                        QgsProject.instance().addMapLayer(layer.name())
+            else:
+                print("loading layer")
+                print("###############################z")
+                print(self.currentLayer)
+                print(self.currentLayer[len(self.currentLayer)-1].name())
+                print(self.currentLayer[len(self.currentLayer)-1].isValid())            
+                print("###############################z")
+                QgsProject.instance().addMapLayer(self.currentLayer[0])
          
             try:
                 visibility = self.instance.getVisibilityForLayer(self.currentLayer[0].name())
@@ -3735,6 +3852,11 @@ class Layman:
 
 
             pass
+        if message == "limitSize":
+            if self.locale == "cs":                
+                QMessageBox.information(None, "Upozornění", "Tato vrstva je větší než 2GB. Může být serverem odmítnuta.")
+            else:
+                QMessageBox.information(None, "Warning", "This layer is bigger than 2GB. It can be refused by server.")
         if message == "exportPatch":
             try:
                 threadsB = set()
@@ -4932,12 +5054,21 @@ class Layman:
     
         destLayer.dataProvider().addFeatures(feats)
         return destLayer
+    def setChunkSizeBigger(self):
+        self.CHUNK_SIZE = 2098152
+    def checkFileSizeLimit(self, size):
+        if size > 2000000000:
+            QgsMessageLog.logMessage("limitSize")
     def patchThread2(self, layer_name, data, id):
         self.json_export(layer_name, id)
         
         #try:
         geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
+
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
+            if os.path.getsize(geoPath) > 800000000:
+                self.checkFileSizeLimit(os.path.getsize(geoPath))
+                self.setChunkSizeBigger()
             self.postInChunks(layer_name, "patch")                          
         else:
             self.patchLayer(layer_name, data)
@@ -4960,6 +5091,9 @@ class Layman:
         geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
         #try:
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
+            if os.path.getsize(geoPath) > 800000000:
+                self.checkFileSizeLimit(os.path.getsize(geoPath))
+                self.setChunkSizeBigger()
             self.postInChunks(layer_name, "patch")                          
         else:
             self.patchLayer(layer_name, data)
@@ -4993,6 +5127,11 @@ class Layman:
                 QgsMessageLog.logMessage("importn_"+layer_name)
            ## self.writeState(1)
             QgsMessageLog.logMessage("exportPatch")
+            try:
+                self.toUpload - 1
+                QgsMessageLog.logMessage("layersUploaded")
+            except:
+                pass
             
             #iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
     def returnPathIfFileExists(self, path, ext, onlyExt = False):
@@ -5040,6 +5179,9 @@ class Layman:
         path = layer.dataProvider().dataSourceUri()
         ext = (layer.dataProvider().dataSourceUri()[-4:])
         files = {'file': (path, open(path, 'rb')),} 
+        if os.path.getsize(geoPath) > 800000000:
+            self.checkFileSizeLimit(os.path.getsize(geoPath))
+            self.setChunkSizeBigger()
         if (os.path.getsize(path) > self.CHUNK_SIZE):
             if patch:
             #self.postInChunks(layer_name, "post")
@@ -5194,6 +5336,9 @@ class Layman:
         else:
             stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
+            if os.path.getsize(geoPath) > 800000000:
+                self.checkFileSizeLimit(os.path.getsize(geoPath))
+                self.setChunkSizeBigger()
             self.postInChunks(layer_name, "post")
         else:
             if(os.path.isfile(stylePath)): ## existuje style?
@@ -5935,9 +6080,7 @@ class Layman:
                     threading.Thread(target=lambda: self.importMap(x, "add", successful) ).start()
                     #self.importMap(x, "add", successful) 
     def addLayerToComposite2(self,composition, layersList):
-        self.ThreadsUploadsA = set()
-        for thread in threading.enumerate(): 
-            self.ThreadsUploadsA.add(thread.name)
+        
         for layer in layersList:
             
             if (isinstance(layer,QgsRasterLayer)) and layer.dataProvider().uri().uri() != "":            
@@ -6902,10 +7045,12 @@ class Layman:
         #    for thread in threads:
         #        print(thread.isAlive())
             
-        #    time.sleep(3)
-        QgsMessageLog.logMessage("reorderGroups")    
         
-        QgsMessageLog.logMessage("afterCompositionLoaded")    
+        
+        
+        QgsMessageLog.logMessage("afterCompositionLoaded")  
+        
+        QgsMessageLog.logMessage("reorderGroups")    
         
      
     def Title(self, layerName):
@@ -6992,7 +7137,7 @@ class Layman:
         #if not url.startswith(self.URI):
         #    print("remove authcfg")
         #    quri.removeParam("authcfg")
-        rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
+       # rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
         #print(rlayer.isValid())
         ##quri end
         #if epsg == 'EPSG:5514':
@@ -7012,11 +7157,14 @@ class Layman:
         self.currentLayer.append(rlayer)        
         if (rlayer.isValid()):  
             if (groupName != '' or subgroupName != ''):
+                pass
                 self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path
                 #self.addWmsToGroup(groupName,rlayer, subgroupName)
             else:   
                 self.params = []
                 self.params.append(visibility)
+                #self.addWmsToGroup("",rlayer, "")
+                #QgsProject.instance().addMapLayer(rlayer,False)
                 QgsMessageLog.logMessage("loadLayer")
                 
                 #QgsProject.instance().addMapLayer(rlayer)
@@ -7117,7 +7265,8 @@ class Layman:
                 if (groupName != ''):
                     self.addWmsToGroup(groupName,vlayer, subgroupName)
                     
-                else:            
+                else:        
+                    #self.addWmsToGroup("",vlayer, "")
                     #QgsProject.instance().addMapLayer(vlayer)
                     self.currentLayer.append(vlayer)
                     print("###############################")
@@ -7126,6 +7275,7 @@ class Layman:
                     print(vlayer.isValid())
                     print("###############################")
                     #if not vlayer.name() == "poom3"
+                    #QgsMessageLog.logMessage("loadLayer"+ vlayer.name())
                     QgsMessageLog.logMessage("loadLayer")
                 #if visibility == False:
                 #    print(vlayer.id())
@@ -7279,11 +7429,14 @@ class Layman:
         print(groupName)
         root = QgsProject.instance().layerTreeRoot()
         group = root.findGroup(groupName) 
+        if groupName == "":
+            QgsProject.instance().addMapLayer(layer,False)
+            return
         if not(group):
             group = root.addGroup(groupName)           
            # group = self.reorderToTop(groupName, i)
         #####
-        time.sleep(1)
+        #time.sleep(1)
         if subgroupName == "":
             QgsProject.instance().addMapLayer(layer,False)
             group.insertChildNode(1,QgsLayerTreeLayer(layer))     
