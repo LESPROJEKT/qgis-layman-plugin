@@ -27,6 +27,7 @@ import tempfile
 import os
 import threading
 import io
+import random
 from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt, QFileSystemWatcher, QRegExp,QDir,QUrl, QByteArray , QTimer, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QRegExpValidator, QDoubleValidator, QBrush, QColor
 from PyQt5.QtWidgets import QAction, QTreeWidget,QTreeWidgetItemIterator, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem, QAbstractItemView
@@ -166,6 +167,7 @@ class Layman:
         self.changedLayer = set()
         self.project = QgsProject.instance()
         self.currentLayer = []
+        self.currentLayerDict = {}
         self.laymanVersion = None
         self.run = False
         self.isAuthorized = True
@@ -191,10 +193,7 @@ class Layman:
         #self.watcher.addPath(path)
         #self.watcher.fileChanged.connect(self.authOptained)     
         self.dependencies = True
-        if self.DPI < 1.00:
-            self.fontSize = "12px"
-        else:
-            self.fontSize = "10px"
+        self.recalculateDPI()
         if os.path.isfile(path):
 
             self.authFileTime =os.path.getmtime(path)
@@ -404,6 +403,7 @@ class Layman:
             parent=self.iface.mainWindow())
     #--------------------------------------------------------------------------
     def run_CurrentCompositionDialog(self):
+        self.recalculateDPI()
         self.modified = False
         self.dlg = CurrentCompositionDialog() 
         self.dlg.show()
@@ -605,6 +605,7 @@ class Layman:
         self.dlg.radioButton_wms.toggled.connect(lambda: self.wms_wfs2(self.dlg.listWidget_layers.currentItem().text(), self.dlg.listWidget_layers.currentRow()))      
 
     def run_LayerDecisionDialog(self, layersToDecision):
+        self.recalculateDPI()
         self.dlg = LayerDecisionDialog() 
         self.dlg.show()
         for layer in layersToDecision:
@@ -623,6 +624,12 @@ class Layman:
         print(self.noOverrideLayers)
         self.dlg = self.old_dlg
         self.updateComposition(False)
+    def recalculateDPI(self):
+        self.DPI = self.getDPI()
+        if self.DPI < 0.85:
+            self.fontSize = "12px"
+        else:
+            self.fontSize = "10px"
     def addService(self, item):
         if item.checkState() == 2:
             print("new layer")
@@ -964,6 +971,7 @@ class Layman:
         #self.dlg.close()
         
     def run_UserInfoDialog(self):
+        self.recalculateDPI()
         self.dlg = UserInfoDialog() 
         self.dlg.show()        
         self.dlg.pushButton_update.setStyleSheet("#pushButton_update {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_update:hover{background: #66ab27 ;}#pushButton_update:disabled{background: #64818b ;}")
@@ -1006,6 +1014,7 @@ class Layman:
             self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
             self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
     def run_SetMapPermission(self, mapName, fromAddMap = False):
+        self.recalculateDPI()
         self.dlg = SetPermissionDialog() 
         self.dlg.show()
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
@@ -1077,6 +1086,7 @@ class Layman:
             self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog())  
         
     def run_SetPermission(self, layerName):
+        self.recalculateDPI()
         self.dlg = SetPermissionDialog() 
         self.dlg.show()
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
@@ -1152,6 +1162,7 @@ class Layman:
         #|self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog()) 
         self.dlg.rejected.connect(lambda: self.afterClosePermissionMapDialog()) 
     def run_EditCurrentMap(self):
+        self.recalculateDPI()
         composition = self.instance.getComposition()
         self.dlg = EditMapDialog()      
         self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
@@ -1190,6 +1201,7 @@ class Layman:
         result = self.dlg.exec_()
 
     def run_EditMap(self, x):
+        self.recalculateDPI()
         self.dlg = EditMapDialog()      
         self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
@@ -1221,6 +1233,7 @@ class Layman:
         result = self.dlg.exec_()
 
     def run_DeleteLayerFromMap(self):
+        self.recalculateDPI()
         self.dlg = DeleteLayerFromMapDialog()
         self.dlg.pushButton.clicked.connect(lambda: self.deteteLayerFromComposite(self.dlg.listWidget.currentRow(),self.compositeList[self.dlg.listWidget.currentRow()]['layers'][self.dlg.listWidget_listLayers2.currentRow()]['params']['LAYERS']))
         
@@ -1252,6 +1265,7 @@ class Layman:
         if os.path.exists(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt") == False:
             open(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt", "w").close
     def run_CreateCompositeDialog(self, fromImport = False, fromCurrent = False):
+        self.recalculateDPI()
         self.dlg = CreateCompositeDialog()
         print(fromImport, fromCurrent)
         self.dlg.label_info.hide()
@@ -1308,6 +1322,7 @@ class Layman:
 
 
     def run_ImportMapDialog(self):   
+        self.recalculateDPI()
         try:
             self.timerLayer.timeout.disconnect()
         except:
@@ -1563,6 +1578,7 @@ class Layman:
        #     pass
        ## self.dlg.setEnabled(True)
     def run_DeleteMapDialog(self):
+        self.recalculateDPI()
         self.dlg = DeleteMapDialog()
         self.refreshListWidgetMaps()
         self.dlg.pushButton.setEnabled(False)
@@ -1572,6 +1588,7 @@ class Layman:
         self.dlg.show()
         result = self.dlg.exec_()
     def run_ImportLayerDialog(self):
+        self.recalculateDPI()
         self.dlg = ImportLayerDialog()
         
       #  self.dlg.pushButton.clicked.connect(lambda: self.postRequest(self.dlg.treeWidget.currentItem().text(0)))
@@ -1621,6 +1638,7 @@ class Layman:
     def setBatchLengthZero(self):
         self.batchLength = 0
     def run_login(self):
+        self.recalculateDPI()
         
         
         self.dlg = ConnectionManagerDialog()
@@ -1715,7 +1733,8 @@ class Layman:
             
         result = self.dlg.exec_()
         self.dlg.rejected.connect(lambda: self.loginReject())
-    def run_AddMapDialog(self):        
+    def run_AddMapDialog(self):
+        self.recalculateDPI()
         self.dlg = AddMapDialog()      
         
         
@@ -1943,6 +1962,7 @@ class Layman:
         QgsMessageLog.logMessage("loadMaps")
         
     def run_AddLayerDialog(self):
+        self.recalculateDPI()
         
         self.dlg = AddLayerDialog()
         self.dlg.pushButton_layerRedirect.hide()
@@ -3732,23 +3752,20 @@ class Layman:
         if message == "readlayerjson":
             #name, service ,workspace
             self.readLayerJson2(self.params[0],self.params[1])
-        if message == "loadVector": ## slovník random
-            pass
-        if message == "loadLayer"[:9]:
-            if message[9:] != '':
-                for layer in self.currentLayer:
-                    print("tttttttttttttttttttttttttttt")
-                    print(layer.name() , message[9:])
-                    if layer.name() == message[9:]:
-                        QgsProject.instance().addMapLayer(layer.name())
-            else:
-                print("loading layer")
-                print("###############################z")
-                print(self.currentLayer)
-                print(self.currentLayer[len(self.currentLayer)-1].name())
-                print(self.currentLayer[len(self.currentLayer)-1].isValid())            
-                print("###############################z")
-                QgsProject.instance().addMapLayer(self.currentLayer[0])
+        if message[:10] == "loadVector": ## slovník random            
+            num = message[10:]
+            QgsProject.instance().addMapLayer(self.currentLayerDict[num])
+
+        if message == "loadLayer":
+            
+          
+            print("loading layer")
+            print("###############################z")
+            print(self.currentLayer)
+            print(self.currentLayer[len(self.currentLayer)-1].name())
+            print(self.currentLayer[len(self.currentLayer)-1].isValid())            
+            print("###############################z")
+            QgsProject.instance().addMapLayer(self.currentLayer[0])
          
             try:
                 visibility = self.instance.getVisibilityForLayer(self.currentLayer[0].name())
@@ -4476,6 +4493,7 @@ class Layman:
             
         return layers
     def run_getLayer(self):
+        self.recalculateDPI()
         """Run method that performs all the real work"""
 
         # Create the dialog with elements (after translation) and keep reference
@@ -4941,25 +4959,47 @@ class Layman:
             return True
     def insertPictureToQML(self, layer):       
         single_symbol_renderer = layer.renderer()
-        try:
-            symbols = single_symbol_renderer.symbol()
-        except:
-            print("nevhodny typ" + str(type(single_symbol_renderer)))
-            return
-        for symbol in symbols:
-            if isinstance(symbol, QgsSvgMarkerSymbolLayer) or isinstance(symbol, QgsRasterMarkerSymbolLayer):
-                path = symbol.path()
-                try:
-                    if os.path.exists(path):
-                        with open(path, "rb") as image_file:
-                            encoded_string = base64.b64encode(image_file.read())
-                            #print(encoded_string)    
-                        decoded =   encoded_string.decode("utf-8") 
-                        #print("base64:"  + decoded)
-                        symbol.setPath("base64:"  + decoded)  
-                        print(symbol.path())
-                except:
-                    print("binary path")
+        
+        if isinstance(single_symbol_renderer, QgsCategorizedSymbolRenderer):
+            symbol  = layer.renderer().categories()
+            for i in symbol: 
+                print(i.symbol().symbolLayer(0))
+               
+                if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
+                    path = i.symbol().symbolLayer(0).path()
+                    try:
+                        if os.path.exists(path):
+                            with open(path, "rb") as image_file:
+                                encoded_string = base64.b64encode(image_file.read())
+                                #print(encoded_string)    
+                            decoded =   encoded_string.decode("utf-8") 
+                            #print("base64:"  + decoded)
+                            i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
+                            print(i.symbol().symbolLayer(0).path())
+                    except:
+                        print("binary path")
+        elif isinstance(single_symbol_renderer, QgsSingleSymbolRenderer):
+            try:
+                symbols = single_symbol_renderer.symbol()
+
+            except:
+                print("nevhodny typ" + str(type(single_symbol_renderer)))
+                return
+            for symbol in symbols:
+                if isinstance(symbol, QgsSvgMarkerSymbolLayer) or isinstance(symbol, QgsRasterMarkerSymbolLayer):
+                    path = symbol.path()
+                    try:
+                        if os.path.exists(path):
+                            with open(path, "rb") as image_file:
+                                encoded_string = base64.b64encode(image_file.read())
+                                #print(encoded_string)    
+                            decoded =   encoded_string.decode("utf-8") 
+                            #print("base64:"  + decoded)
+                            symbol.setPath("base64:"  + decoded)  
+                            print(symbol.path())
+                    except:
+                        print("binary path")
+        
     def mergeGeojsons(self, paths, output, layerName):
         feats = list()
         #top = """
@@ -7167,7 +7207,9 @@ class Layman:
                 self.params.append(visibility)
                 #self.addWmsToGroup("",rlayer, "")
                 #QgsProject.instance().addMapLayer(rlayer,False)
-                QgsMessageLog.logMessage("loadLayer")
+                rand = random.randint(0,10000)
+                QgsMessageLog.logMessage("loadVector" + str(rand))
+                #QgsMessageLog.logMessage("loadLayer")
                 
                 #QgsProject.instance().addMapLayer(rlayer)
             #if visibility == False:
@@ -7177,7 +7219,9 @@ class Layman:
             #    self.project.layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
             return True
         else:
-            QgsMessageLog.logMessage("loadLayer")
+            rand = random.randint(0,10000)
+            QgsMessageLog.logMessage("loadVector" + str(rand))
+           # QgsMessageLog.logMessage("loadLayer")
             #QgsProject.instance().addMapLayer(rlayer)
             #if self.locale == "cs":
             #    QMessageBox.information(None, "Layman", "WMS není pro vrstvu "+layerNameTitle+ " k dispozici.")
@@ -7210,7 +7254,9 @@ class Layman:
                 self.currentLayer.append(rlayer) 
                 self.params = []
                 self.params.append(visibility)
-                QgsMessageLog.logMessage("loadLayer")
+                rand = random.randint(0,10000)
+                QgsMessageLog.logMessage("loadVector" + str(rand))
+                #QgsMessageLog.logMessage("loadLayer")
                 #QgsProject.instance().addMapLayer(rlayer)
             if visibility == False:
                 QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
@@ -7271,6 +7317,8 @@ class Layman:
                     #self.addWmsToGroup("",vlayer, "")
                     #QgsProject.instance().addMapLayer(vlayer)
                     self.currentLayer.append(vlayer)
+                    rand = random.randint(0,10000)
+                    self.currentLayerDict[str(rand)] = vlayer
                     print("###############################")
                     print(self.currentLayer)
                     print(vlayer.name())
@@ -7278,7 +7326,8 @@ class Layman:
                     print("###############################")
                     #if not vlayer.name() == "poom3"
                     #QgsMessageLog.logMessage("loadLayer"+ vlayer.name())
-                    QgsMessageLog.logMessage("loadLayer")
+                    #QgsMessageLog.logMessage("loadLayer")
+                    QgsMessageLog.logMessage("loadVector" + str(rand))
                 #if visibility == False:
                 #    print(vlayer.id())
                 #    QgsProject.instance().layerTreeRoot().findLayer(vlayer.id()).setItemVisibilityChecked(False)
