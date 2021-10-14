@@ -7208,6 +7208,8 @@ class Layman:
                 #self.addWmsToGroup("",rlayer, "")
                 #QgsProject.instance().addMapLayer(rlayer,False)
                 rand = random.randint(0,10000)
+                self.currentLayerDict[str(rand)] = rlayer
+                
                 QgsMessageLog.logMessage("loadVector" + str(rand))
                 #QgsMessageLog.logMessage("loadLayer")
                 
@@ -7220,6 +7222,7 @@ class Layman:
             return True
         else:
             rand = random.randint(0,10000)
+            self.currentLayerDict[str(rand)] = rlayer
             QgsMessageLog.logMessage("loadVector" + str(rand))
            # QgsMessageLog.logMessage("loadLayer")
             #QgsProject.instance().addMapLayer(rlayer)
@@ -7255,6 +7258,7 @@ class Layman:
                 self.params = []
                 self.params.append(visibility)
                 rand = random.randint(0,10000)
+                self.currentLayerDict[str(rand)] = rlayer
                 QgsMessageLog.logMessage("loadVector" + str(rand))
                 #QgsMessageLog.logMessage("loadLayer")
                 #QgsProject.instance().addMapLayer(rlayer)
