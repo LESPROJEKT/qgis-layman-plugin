@@ -36,6 +36,10 @@ class CurrentComposition(object):
         for layer in self.composition['layers']:
             if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(layer['title']):
                 return layer['visibility']
+    def getServiceForLayer(self,layerName):
+        for layer in self.composition['layers']:
+            if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(layer['title']):
+                return layer['className']
     def isLayerId(self, id):
         if id in self.layerIds:
             return True
