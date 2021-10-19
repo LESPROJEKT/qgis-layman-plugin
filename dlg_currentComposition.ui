@@ -9,19 +9,19 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>750</width>
+    <width>850</width>
     <height>450</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>750</width>
+    <width>850</width>
     <height>450</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>750</width>
+    <width>850</width>
     <height>450</height>
    </size>
   </property>
@@ -31,7 +31,7 @@
   <widget class="QPushButton" name="pushButton_close">
    <property name="geometry">
     <rect>
-     <x>540</x>
+     <x>660</x>
      <y>70</y>
      <width>171</width>
      <height>28</height>
@@ -55,7 +55,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>330</y>
+     <y>360</y>
      <width>171</width>
      <height>28</height>
     </rect>
@@ -67,8 +67,8 @@
   <widget class="QPushButton" name="pushButton_new">
    <property name="geometry">
     <rect>
-     <x>528</x>
-     <y>270</y>
+     <x>648</x>
+     <y>303</y>
      <width>181</width>
      <height>28</height>
     </rect>
@@ -81,7 +81,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>307</y>
+     <y>337</y>
      <width>211</width>
      <height>16</height>
     </rect>
@@ -93,7 +93,7 @@
   <widget class="QPushButton" name="pushButton_editMeta">
    <property name="geometry">
     <rect>
-     <x>530</x>
+     <x>650</x>
      <y>70</y>
      <width>181</width>
      <height>28</height>
@@ -106,7 +106,7 @@
   <widget class="QPushButton" name="pushButton_save">
    <property name="geometry">
     <rect>
-     <x>530</x>
+     <x>650</x>
      <y>30</y>
      <width>181</width>
      <height>28</height>
@@ -122,7 +122,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>529</x>
+     <x>649</x>
      <y>230</y>
      <width>181</width>
      <height>23</height>
@@ -151,7 +151,7 @@
   <widget class="QPushButton" name="pushButton_delete">
    <property name="geometry">
     <rect>
-     <x>530</x>
+     <x>650</x>
      <y>110</y>
      <width>181</width>
      <height>28</height>
@@ -164,7 +164,7 @@
   <widget class="QRadioButton" name="radioButton_wms">
    <property name="geometry">
     <rect>
-     <x>540</x>
+     <x>660</x>
      <y>190</y>
      <width>95</width>
      <height>20</height>
@@ -226,7 +226,7 @@
   <widget class="QPushButton" name="pushButton_setPermissions">
    <property name="geometry">
     <rect>
-     <x>530</x>
+     <x>650</x>
      <y>150</y>
      <width>181</width>
      <height>27</height>
@@ -265,10 +265,10 @@
   <widget class="QTreeWidget" name="treeWidget_layers">
    <property name="geometry">
     <rect>
-     <x>10</x>
+     <x>20</x>
      <y>30</y>
-     <width>501</width>
-     <height>261</height>
+     <width>611</width>
+     <height>301</height>
     </rect>
    </property>
    <column>

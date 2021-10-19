@@ -83,7 +83,7 @@
         <translation>Zavřít</translation>
     </message>
     <message>
-        <location filename="../dlg_importLayer.ui" line="90"/>
+        <location filename="../dlg_currentComposition.ui" line="276"/>
         <source>Layer</source>
         <translation>Vrstva</translation>
     </message>
@@ -545,75 +545,80 @@
     <message encoding="UTF-8">
         <location filename="../dlg_addMap.ui" line="272"/>
         <source>Not logged user</source>
-    < translation> Nepřihlášený uživatel</translation>
+    <translation>Nepřihlášený uživatel</translation>
     </message>
     <message>
         <location filename="../dlg_currentComposition.ui" line="249"/>
         <source>Check all layers</source>
-        <translation>Vybrat všechny vrstvy</translation>
+        <translation>Vybrat vše</translation>
     </message>
     <message>
         <location filename="../dlg_currentComposition.ui" line="262"/>
         <source>Debug</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location filename="../dlg_currentComposition.ui" line="281"/>
+        <source>Service</source>
+        <translation>Služba</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.ui" line="286"/>
+        <source>Action</source>
+        <translation>Akce</translation>
+    </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="4412"/>
+        <location filename="../Layman.py" line="4847"/>
         <source>&amp;Layman</source>
-        <translation></translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="316"/>
+        <location filename="../Layman.py" line="317"/>
         <source>Current Row Number</source>
-        <translation></translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="322"/>
+        <location filename="../Layman.py" line="323"/>
         <source>Login</source>
-        <translation>Přihlášení</translation>
+        <translation>Přihlásit se</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="331"/>
-        <source>Save as to JSON and SLD</source>
-        <translation>Uložit jako JSON se symbologií</translation>
+        <location filename="../Layman.py" line="332"/>
+        <source>Save as to JSON and QML</source>
+        <translation>Uložit jako JSON a QML</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="340"/>
+        <location filename="../Layman.py" line="341"/>
         <source>Load from JSON</source>
         <translation>Načíst z JSON</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="349"/>
+        <location filename="../Layman.py" line="350"/>
         <source>Export layer to server</source>
         <translation>Exportovat vrstvu na server</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="356"/>
+        <location filename="../Layman.py" line="357"/>
         <source>Load layer from server</source>
         <translation>Načíst vrstvu ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="350"/>
-        <source>Manage maps</source>
-        <translation type="obsolete">Správce mapových kompozic</translation>
-    </message>
-    <message>
-        <location filename="../Layman.py" line="370"/>
+        <location filename="../Layman.py" line="371"/>
         <source>Load map from server</source>
-        <translation>načíst mapovou komopozici ze serveru</translation>
+        <translation>Načíst mapu ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="401"/>
-        <source>User info</source>
-        <translation>Uživatelské info</translation>
-    </message>
-    <message>
-        <location filename="../Layman.py" line="394"/>
+        <location filename="../Layman.py" line="395"/>
         <source>Current composition</source>
         <translation>Aktuální kompozice</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="402"/>
+        <source>User info</source>
+        <translation>Informace o uživateli</translation>
     </message>
 </context>
 </TS>

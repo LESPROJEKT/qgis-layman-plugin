@@ -419,7 +419,8 @@ class Layman:
         #self.dlg.radioButton_wms.setChecked(True)
         #self.dlg.radioButton_wfs.setChecked(False)
         #self.dlg.radioButton_wfs.setEnabled(False)
-        #self.dlg.radioButton_wms.setEnabled(False)        
+        #self.dlg.radioButton_wms.setEnabled(False)    
+        self.dlg.treeWidget_layers.header().resizeSection(0,320);    
         self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #3bc4ff;}#pushButton_setPermissions:disabled{background: #64818b ;}")
         self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #3bc4ff;}#pushButton_new:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
@@ -611,7 +612,7 @@ class Layman:
                 #        item.setText(layer + " (insufficient rights)")
                 brush = QBrush()
                 brush.setColor(QColor(255,17,0))
-                item.setForeground(brush)
+                item.setForeground(0,brush)
                 item.setCheckState(0,0)
                 if self.locale == "cs":
                     item.setToolTip(0,"Tato vrstva se nevyskytuje v mapovém okně QGIS, ale je obsažena v kompozici.")
