@@ -6955,6 +6955,11 @@ class Layman:
         layer_name = self.removeUnacceptableChars(layer_name)
         url = self.URI+'/rest/' + self.laymanUsername + "/layers/" + layer_name
         r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        res = r.json()
+        read = res['access_rights']['read']
+        write = res['access_rights']['write']
+        data['access_rights.read'] =  self.listToString(read)
+        data['access_rights.write'] = self.listToString(write)
         if r.status_code == 200:
             r = requests.delete(url, headers = self.getAuthHeader(self.authCfg))
         #r = requests.patch(url, files=files, data = data, headers = self.getAuthHeader(self.authCfg), verify=False) 
