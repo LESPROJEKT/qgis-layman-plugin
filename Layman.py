@@ -5051,8 +5051,15 @@ class Layman:
             else:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was not saved."), Qgis.Warning, duration=3)
         
-        
-        
+        self.dlg.close()
+        composition = self.instance.getComposition()
+        try:
+            if self.locale == "cs":
+                self.dlg.setWindowTitle("Kompozice: "+composition['title'])
+            else:
+                self.dlg.setWindowTitle("Composition: "+composition['title'])
+        except:
+            pass
     def saveLocalFile(self):
         
         layer = self.iface.activeLayer()       
