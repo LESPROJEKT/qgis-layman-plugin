@@ -237,7 +237,6 @@ class Layman:
             print("Directory " , tempDir ,  " Created ") 
         except FileExistsError:
             print("Directory " , tempDir ,  " already exists")
-
         
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -254,7 +253,8 @@ class Layman:
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('Layman', message)
 
-
+    def rebuildLiferayCache(self):
+        QgsApplication.authManager().rebuildCertTrustCache()
     def add_action(
         self,
         icon_path,
@@ -3773,6 +3773,7 @@ class Layman:
             authConfig.setConfig('oauth2config', json.dumps(cfgjson))
             if QgsApplication.authManager().updateAuthenticationConfig(authConfig):
                 return authcfg_id
+                
         return None
     def checkForSpecialChars(self, s):
         special_characters = "!@#$%^&*()+?=,<>/"
@@ -8343,7 +8344,11 @@ class Layman:
                 ## zjištení výpadku spojeni
                 QgsApplication.authManager().masterPasswordVerified.connect(self.connectionLost)
 
-  
+                ## liferay cache
+                self.timerLayer = QTimer()
+                self.timerLayer.setInterval(10000)
+                self.timerLayer.timeout.connect(lambda: self.rebuildLiferayCache()) 
+                self.timerLayer.start()
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
         with open(save_path, 'wb') as fd:
