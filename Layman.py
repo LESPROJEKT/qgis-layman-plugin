@@ -5521,6 +5521,12 @@ class Layman:
         
         layer_name = layer.name()
         path = layer.dataProvider().dataSourceUri()
+        basename = os.path.basename(path)
+        if basename == 'OUTPUT.tif':
+            name = self.removeUnacceptableChars(layer_name)
+            newPath = path.replace(basename, name+ ".tif")
+            shutil.copy2(path, newPath)
+            path = newPath
         ext = (layer.dataProvider().dataSourceUri()[-4:])
         files = {'file': (path, open(path, 'rb')),} 
         if os.path.getsize(path) > 800000000:
@@ -7065,7 +7071,9 @@ class Layman:
         input = input.replace("-","_")
         input = input.replace(".","_")
         input = input.replace(":","")
-        input = input.replace("/","_")        
+        input = input.replace("/","_")
+        input = input.replace("(","")
+        input = input.replace(")","")        
         input = input.replace("___","_")
         input = input.replace("__","_")
         input = re.sub(r'[?|$|.|!]',r'',input)
