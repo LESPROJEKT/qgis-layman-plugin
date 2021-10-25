@@ -478,11 +478,13 @@ class Layman:
             layersInCanvas = []
             self.layerIds = list()
             layersArr = list()
-
+            layers = self.getLayersOrder()
             for layer in layers:
                 layersArr.append(layer)
           
-            for layer in layersArr[::-1]:  ## q
+           # for layer in layersArr[::-1]:  ## q
+           # i = 0
+            for layer in layersArr:  ## q
             
                 
                 self.layerIds.append([self.removeUnacceptableChars(layer.name()), layer.id()])
@@ -499,6 +501,7 @@ class Layman:
                 print(serviceList)
                 if self.removeUnacceptableChars(layer.name()) in layerList:   
                     i = layerList.index(self.removeUnacceptableChars(layer.name()))
+                    
                     if serviceList[i] == 'OpenLayers.Layer.Vector':
                         #itemService.setText("Layman WFS")
                         #itemService.setText(str(layer.providerType()).upper())
@@ -519,6 +522,7 @@ class Layman:
                         item.setToolTip(0,"This layer is displayed and is part of the loaded composition.")
                     if layerType == QgsMapLayer.VectorLayer:
                         layer.editingStopped.connect(self.layerEditStopped)
+                   # i = i + 1                         
                 else:
                     item.setCheckState(0,0)
                     #if self.locale == "cs":
@@ -580,12 +584,21 @@ class Layman:
                             cellServices.addItems(['WMS','WFS'])
                 
                 if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
-                    cell.addItems(['No change','Overwrite geometry'])
+                    if self.locale == "cs":
+                        cell.addItems(['Beze změny','Přepsat geometrii'])
+                    else:
+                        cell.addItems(['No change','Overwrite geometry'])                        
                 else:
                     if self.checkExistingLayer(item.text(0)):
-                        cell.addItems(['No change','Add and overwrite','Add from server' ])                        
+                        if self.locale == "cs":
+                            cell.addItems(['Beze změny','Přidat a přepsat','Přidat ze serveru' ])   
+                        else:
+                            cell.addItems(['No change','Add and overwrite','Add from server' ])                                                          
                     else:
-                        cell.addItems(['No change','Add'])
+                        if self.locale == "cs":
+                            cell.addItems(['Beze změny','Přidat'])
+                        else:
+                            cell.addItems(['No change','Add'])                           
                   
                 self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
                 self.dlg.treeWidget_layers.setItemWidget(item,1, cellServices)
@@ -1105,7 +1118,7 @@ class Layman:
                 print(item)
                 layersFromServer = list()
                 print(layers)
-                if item[2] == "Add from server":
+                if item[2] == "Add from server" or item[2] == "Přidat ze serveru":
                     for layer in layers:
                         print(layer.name())                
                         #if layer.name() in self.noOverrideLayers:
@@ -1117,7 +1130,7 @@ class Layman:
                 #self.addLayerToComposite2(x, layers)
                 #threading.Thread(target=lambda: self.addLayerToComposite2(composition, layers)).start()   
                 print(item[2])
-                if item[2] == "Add and overwrite" or item[2] =='Add':
+                if item[2] == "Add and overwrite" or item[2] =='Add' or item[2] == "Přidat a přepsat" or item[2] =='Přidat':
                     for layer in layers:
                         if layer.name() == item[0]:
                             newLayers.append(layer)
@@ -7082,15 +7095,8 @@ class Layman:
                 input = input[:-1]
         except:
             print("removechars exception")
-       # iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Diacritics in name of layer was replaced."), Qgis.Success, duration=3)
-        #print("name after remove: " + input)
         return input
-    def removeUnacceptableChars2(self, input):
-        input = input.encode('utf-8')
-        input = input.hex()
-        
-       # iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Diacritics in name of layer was replaced."), Qgis.Success, duration=3)
-        return input
+  
     def test (self):
         item = self.dlgGetLayers.items.currentItem().text()
         #print( item)
