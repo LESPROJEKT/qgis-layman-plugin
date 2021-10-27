@@ -4056,6 +4056,21 @@ class Layman:
         if message[:10] == "loadVector": ## slovník random            
             num = message[10:]
             QgsProject.instance().addMapLayer(self.currentLayerDict[num])
+            
+            
+            if (isinstance(self.currentLayerDict[num], QgsVectorLayer)):
+                style = self.getStyle(self.currentLayerDict[num].name())
+                    #code = self.getSLD(layerName)
+                layerName = self.currentLayerDict[num].name()
+                if (style[0] == 200):
+                    if (style[1] == "sld"):
+                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                        self.currentLayerDict[num].loadSldStyle(tempf)
+                        self.currentLayerDict[num].triggerRepaint()
+                    if (style[1] == "qml"):
+                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                        self.currentLayerDict[num].loadNamedStyle(tempf)
+                        self.currentLayerDict[num].triggerRepaint()
 
         if message == "loadLayer":
             
@@ -6268,7 +6283,7 @@ class Layman:
             
         
         QgsMessageLog.logMessage("addRaster")
-    def getStyle(self, layer_name):
+    def getStyle(self, layer_name):        
         if self.selectedWorkspace:
             response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
         else:
@@ -7663,19 +7678,20 @@ class Layman:
                 #    QgsProject.instance().layerTreeRoot().findLayer(vlayer.id()).setItemVisibilityChecked(False)
                 ## zde bude SLD kod
                 print("tt")
-                style = self.getStyle(layerName)
-                #code = self.getSLD(layerName)
+                #style = self.getStyle(layerName)
+                ##code = self.getSLD(layerName)
                 
-                
-                if (style[0] == 200):
-                    if (style[1] == "sld"):
-                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
-                        vlayer.loadSldStyle(tempf)
-                        vlayer.triggerRepaint()
-                    if (style[1] == "qml"):
-                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
-                        vlayer.loadNamedStyle(tempf)
-                        vlayer.triggerRepaint()
+               
+                #if (style[0] == 200):
+                #    if (style[1] == "sld"):
+                #        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                #        vlayer.loadSldStyle(tempf)
+                #        vlayer.triggerRepaint()
+                #    if (style[1] == "qml"):
+                #        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                #        vlayer.loadNamedStyle(tempf)
+                #        vlayer.triggerRepaint()
+              
             else: ### cast pro slozenou geometrii
                 self.mixedLayers.append(layerName)
                 pointFeats = list()
