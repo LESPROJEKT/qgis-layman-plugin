@@ -2127,26 +2127,28 @@ class Layman:
     def loadMapsThread(self, onlyOwn):      
         print("pez")
         self.dlg.treeWidget.clear()       
-        url = self.URI+'/rest/'+self.laymanUsername+'/maps'
-        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title'      
+      
+        r = requests.get(url = url,  headers = self.getAuthHeader(self.authCfg))
         data = r.json()
+       #print(data)
         if onlyOwn and self.isAuthorized:
             for row in range(0, len(data)):  
                 item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
                 self.dlg.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("loadMaps")
         elif not self.isAuthorized:
-            url = self.URI+'/rest/maps'
-            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+            url = self.URI+'/rest/maps?order_by=title'                    
+            r = requests.get(url = url,  headers = self.getAuthHeader(self.authCfg))
             dataAll = r.json()
             permissions = ""
             for row in range(0, len(dataAll)): 
                 item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read"])
                 self.dlg.treeWidget.addTopLevelItem(item)
         else:
-            url = self.URI+'/rest/maps'
-            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-            dataAll = r.json()
+            url = self.URI+'/rest/maps?order_by=title'           
+            r = requests.get(url = url,  headers = self.getAuthHeader(self.authCfg))
+            dataAll = r.json()         
             permissions = ""
             for row in range(0, len(dataAll)):
                 if self.laymanUsername in dataAll[row]['access_rights']['read'] or "EVERYONE" in dataAll[row]['access_rights']['read']:
@@ -2157,6 +2159,7 @@ class Layman:
                     permissions = "own"
                 if permissions != "":
                     item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
+                    print(dataAll[row]['title'])
                     self.dlg.treeWidget.addTopLevelItem(item)
         QgsMessageLog.logMessage("loadMaps")
         
