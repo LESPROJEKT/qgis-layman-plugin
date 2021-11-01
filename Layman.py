@@ -571,6 +571,7 @@ class Layman:
                 #itemService.setSizeHint(QSize(0, 19))
                 #self.dlg.listWidget_service.addItem(itemService)
             iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
+     
             while iterator.value():
                 item = iterator.value()
                 print(item)
@@ -603,6 +604,7 @@ class Layman:
                 self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
                 self.dlg.treeWidget_layers.setItemWidget(item,1, cellServices)
                 
+                #cell.currentIndexChanged.connect(self.actionChanged)
                 iterator +=1               
                 self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
             print(layerList,layersInCanvas)
@@ -684,7 +686,8 @@ class Layman:
         #self.dlg.listWidget_layers.itemChanged.connect(lambda: self.layersWasModified())
         self.dlg.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())
         #self.dlg.listWidget_layers.itemChanged.connect(self.itemClick)
-        self.dlg.treeWidget_layers.itemChanged.connect(self.itemClick)
+        #self.dlg.treeWidget_layers.itemChanged.connect(self.itemClick)
+        self.dlg.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
         #self.dlg.listWidget_layers.itemClicked.connect(self.showService)
         #self.dlg.treeWidget_layers.itemClicked.connect(self.showService)
         #self.dlg.listWidget_layers.itemChanged.connect(self.addService)
@@ -716,6 +719,21 @@ class Layman:
             self.fontSize = "12px"
         else:
             self.fontSize = "10px"
+    # def actionChanged(self, index):
+    #     print("praslice")
+    #     iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
+    #     while iterator.value():
+    #         item = iterator.value()            
+    #         #self.currentSet.append([item.text(0),self.dlg.treeWidget_layers.itemWidget(item,1).currentText(),self.dlg.treeWidget_layers.itemWidget(item,2).currentText()])
+    def checkCheckbox(self, item, column):
+        print(item)
+        combobox = self.dlg.treeWidget_layers.itemWidget(item,2)
+        print(combobox.currentIndex())
+        if item.checkState(column) == 2:                   
+            combobox.setCurrentIndex(1)
+        if item.checkState(column) == 0:            
+            combobox.setCurrentIndex(0) 
+                    
     def addService(self, item):
         if item.checkState() == 2:
             print("new layer")
@@ -1028,7 +1046,7 @@ class Layman:
         layers = list()       
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         while iterator.value():
-            item = iterator.value() 
+            item = iterator.value()         
             if item.checkState(0) == 2 and  self.removeUnacceptableChars(item.text(0)) not in layerList: 
             #if item.checkState(0) == 2: 
                 if not self.checkLayerInCurrentCompositon(item.text(0)): # kdyz se nenachazi v kompozici nahravame
@@ -3136,7 +3154,8 @@ class Layman:
         
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         while iterator.value():
-            item = iterator.value()            
+            item = iterator.value()    
+            self.itemClick(item,0) ## check for subgroups        
             if item.checkState(0) == 2 and  self.removeUnacceptableChars(item.text(0)) not in layerList: 
                 print(item.text(0))
                 lay = QgsProject.instance().mapLayersByName(item.text(0))[0]
@@ -3932,9 +3951,9 @@ class Layman:
         #print(message)
         if message[0:15] == "notifyTwoGroups":
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva " + message[15:100] +" je vnořena do dvou skupin. Uložena může být pouze jedna."), Qgis.Warning, duration=7)               
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva " + message[15:100] +" je vnořena do dvou skupin. Uložena bude pouze nadřazená."), Qgis.Warning, duration=5)               
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer " + message[15:100] +" is nested in two groups. Only one can be saved."), Qgis.Warning, duration=7)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer " + message[15:100] +" is nested in two groups. Only parent group will be saved."), Qgis.Warning, duration=5)
         if message == "updateMapDone":
             self.dlg.progressBar_loader.hide()
             self.dlg.pushButton_save.setEnabled(True)
@@ -3971,11 +3990,12 @@ class Layman:
         if message == "reorderGroups":
             for g in self.groups:
                 print(g[0], g[1])
-                try:
-                    self.reorderToTop(g[0], g[1]) 
-                except:
-                    pass
-                    print("reoder exception")
+                #try:
+                self.reorderToTop(g[0], g[1]) 
+                #except:
+                #    print("reoder exception")
+                #    pass
+                    
         if message == "layersUploaded":
             
             #threadsB = set()
@@ -4056,6 +4076,21 @@ class Layman:
         if message == "readlayerjson":
             #name, service ,workspace
             self.readLayerJson2(self.params[0],self.params[1])
+        if message[:13] == "loadSymbology": ## slovník random   
+            num = message[13:] 
+            if (isinstance(self.currentLayerDict[num], QgsVectorLayer)):
+                style = self.getStyle(self.currentLayerDict[num].name())
+                    #code = self.getSLD(layerName)
+                layerName = self.currentLayerDict[num].name()
+                if (style[0] == 200):
+                    if (style[1] == "sld"):
+                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                        self.currentLayerDict[num].loadSldStyle(tempf)
+                        self.currentLayerDict[num].triggerRepaint()
+                    if (style[1] == "qml"):
+                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                        self.currentLayerDict[num].loadNamedStyle(tempf)
+                        self.currentLayerDict[num].triggerRepaint()
         if message[:10] == "loadVector": ## slovník random            
             num = message[10:]
             QgsProject.instance().addMapLayer(self.currentLayerDict[num])
@@ -7288,6 +7323,8 @@ class Layman:
             self.ThreadsA.add(thread.name)
         i=1
         self.groups = list()
+        self.groupPositions = list()
+        self.groupsSet = set()
         for x in range(len(data['layers'])- 1, -1, -1):       ## descending order     
             print("iteration")
             try:                
@@ -7373,6 +7410,7 @@ class Layman:
                     repairUrl = self.convertUrlFromHex(repairUrl)
                     if groupName != "":
                         self.groups.append([groupName, len(data['layers']) -i])
+                        self.groupPositions.append([groupName,layerNameTitle,  len(data['layers']) -i])
                     else:
                         self.groups.append([layerNameTitle, len(data['layers']) - i])
                     threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)).start()
@@ -7393,6 +7431,8 @@ class Layman:
                         groupName = ""
                     if groupName != "":
                         self.groups.append([groupName, len(data['layers']) -i])
+                        self.groupsSet.add(groupName)
+                        self.groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
                         self.groups.append([layerNameTitle, len(data['layers']) - i])
                     try: ## nove rozdeleni
@@ -7660,7 +7700,11 @@ class Layman:
            # if (True):    
                 if (groupName != ''):
                     self.addWmsToGroup(groupName,vlayer, subgroupName)
-                    
+
+                    self.currentLayer.append(vlayer)
+                    rand = random.randint(0,10000)
+                    self.currentLayerDict[str(rand)] = vlayer
+                    QgsMessageLog.logMessage("loadSymbology" + str(rand))
                 else:        
                     #self.addWmsToGroup("",vlayer, "")
                     #QgsProject.instance().addMapLayer(vlayer)
@@ -7865,14 +7909,47 @@ class Layman:
         group.insertChildNode(1000,QgsLayerTreeLayer(layer))                
         #subgroup.insertChildNode(1000,QgsLayerTreeLayer(layer))                
     def reorderToTop(self, name, i= 1000):
-        
+        print("position" + str(i))
+        print(name)
         root = QgsProject.instance().layerTreeRoot()
         for ch in root.children():
             if ch.name() == name:
                 _ch = ch.clone()
                 root.insertChildNode(i, _ch)
                 root.removeChildNode(ch)
+        #self.reorderInGroup()
         return _ch
+
+    def reorderInGroup(self):
+        from collections import OrderedDict
+        root = QgsProject.instance().layerTreeRoot()
+        for groupName in self.groupsSet:
+            group = root.findGroup(groupName)  # We are interested in group1
+            reverse_order = False
+
+            LayerNamesEnumDict=lambda listCh:{listCh[q[0]].name()+str(q[0]):q[1]
+                                               for q in enumerate(listCh)}
+            print(LayerNamesEnumDict)    
+            # group instead of root
+            mLNED = LayerNamesEnumDict(group.children())
+            print(mLNED)
+            #mLNEDkeys = OrderedDict(sorted(LayerNamesEnumDict(group.children()).items(), reverse=reverse_order)).keys()
+            #print(mLNEDkeys)
+            self.groupPosition = sorted(self.groupPositions,key=lambda x: x[2])      
+            print(self.groupPosition)
+            mLNEDkeys = list()
+            index = len(self.groupPositions) - 1          
+            for item in reversed(self.groupPositions):
+                if item[0] == groupName: 
+                    mLNEDkeys.append(item[1]+ str(index))
+                    index = index - 1
+                #mLNEDkeys = (['bod1', 'železnice0'])
+            print(mLNEDkeys)
+            print(mLNED)
+            mLNEDsorted = [mLNED[k].clone() for k in mLNEDkeys]
+            group.insertChildNodes(0,mLNEDsorted)  # group instead of root
+            for n in mLNED.values():
+                group.removeChildNode(n)  # group instead of root
     def convertUrlFromHex(self, url):
         url = url.replace('%3A',':')
         url = url.replace('%2F','/')
