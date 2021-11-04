@@ -579,8 +579,10 @@ class Layman:
                 cellServices = QComboBox() 
                 for layer in layersArr:
                     if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(item.text(0)):
-                        if isinstance(layer, QgsRasterLayer):
+                        if isinstance(layer, QgsRasterLayer) and "geoserver" in layer.dataProvider().dataSourceUri():
                             cellServices.addItems(['WMS','WFS'])
+                        if isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
+                            cellServices.addItems(['WMS'])
                         if isinstance(layer, QgsVectorLayer):
                             cellServices.addItems(['WMS','WFS'])
                 
@@ -5328,6 +5330,23 @@ class Layman:
                             print(i.symbol().symbolLayer(0).path())
                     except:
                         print("binary path")
+        elif isinstance(single_symbol_renderer, QgsRuleBasedRenderer):
+            print(type(layer.renderer()))
+            symbol  = layer.renderer().rootRule().children()
+            for i in symbol: 
+                print(i.symbol().symbolLayer(0))
+       
+                if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
+                    path = i.symbol().symbolLayer(0).path()
+            
+                    if os.path.exists(path):
+                        with open(path, "rb") as image_file:
+                            encoded_string = base64.b64encode(image_file.read())
+                            #print(encoded_string)    
+                        decoded =   encoded_string.decode("utf-8") 
+                        #print("base64:"  + decoded)
+                        i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
+                        print(i.symbol().symbolLayer(0).path())
         elif isinstance(single_symbol_renderer, QgsSingleSymbolRenderer):
             try:
                 symbols = single_symbol_renderer.symbol()
@@ -7899,14 +7918,17 @@ class Layman:
     def reorderToTop(self, name, i= 1000):
         print("position" + str(i))
         print(name)
+        _ch = ""
         root = QgsProject.instance().layerTreeRoot()
         for ch in root.children():
             if ch.name() == name:
                 _ch = ch.clone()
                 root.insertChildNode(i, _ch)
                 root.removeChildNode(ch)
-        
-        self.reorderInGroup()
+        try:
+            self.reorderInGroup()
+        except:
+            print("error in reorder group")
         
           
         return _ch
