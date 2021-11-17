@@ -5582,10 +5582,21 @@ class Layman:
             else:
                 return None
                 
+    def replaceInfiniteInSLD(self, filepath):
+        with open(filepath, 'r') as file :
+          filedata = file.read()
 
+        # Replace the target string
+        filedata = filedata.replace('"inf"', '"9999"')
+
+        # Write the file out again
+        with open(filepath, 'w') as file:
+          file.write(filedata)
     def postRasterThread(self, layer,data, q,progress, patch):
         print(layer.name())
-        
+        stylePath = self.getTempPath(self.removeUnacceptableChars(layer.name())).replace("geojson", "sld")
+        layer.saveSldStyle(stylePath)
+        self.replaceInfiniteInSLD(stylePath)
         layer_name = layer.name()
         path = layer.dataProvider().dataSourceUri()
         basename = os.path.basename(path)
@@ -5595,7 +5606,7 @@ class Layman:
             shutil.copy2(path, newPath)
             path = newPath
         ext = (layer.dataProvider().dataSourceUri()[-4:])
-        files = {'file': (path, open(path, 'rb')),} 
+        files = {'file': (path, open(path, 'rb')),'style': open(stylePath, 'rb')} 
         if os.path.getsize(path) > 800000000:
             self.checkFileSizeLimit(os.path.getsize(path))
             self.setChunkSizeBigger()
@@ -5614,12 +5625,15 @@ class Layman:
             ## registrovat obě vrstvy musím pokud existuje externí souory,poslat jako pole?
             externalFile = self.returnPathIfFileExists(path,ext)
             print(externalFile)
+
+            #files = [('file', open(geoPath, 'rb')), ('style', open(stylePath, 'rb'))]
             if externalFile:
                 payload = {        
                 #'file': name.lower()+ext,
                 'file': [name.lower()+ext,name.lower() + self.returnPathIfFileExists(path,ext, True)],
                 'title': name,
-                'crs': str(layer.crs().authid())
+                'crs': str(layer.crs().authid()),
+                'style': open(stylePath, 'rb') 
                 }    
             else:
                 payload = {        
@@ -5673,15 +5687,22 @@ class Layman:
             #iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
             
         else:
+            if patch:          
+                url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars(layer_name)
+                r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
+
             response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
             print(response.content)
             res = self.fromByteToJson(response.content)
         
-            
-            if res['code'] == 4:
-                QgsMessageLog.logMessage("unsupportedCRS")
-                QgsMessageLog.logMessage("resetProgressbar")
-                return
+            print(res)
+            try:
+                if res['code'] == 4:
+                    QgsMessageLog.logMessage("unsupportedCRS")
+                    QgsMessageLog.logMessage("resetProgressbar")
+                    return
+            except:
+                print("uuid")
         if self.layersToUpload == 1:
             QgsMessageLog.logMessage("resetProgressbar")
             if self.locale == "cs":
