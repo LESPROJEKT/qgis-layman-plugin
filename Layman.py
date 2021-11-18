@@ -6018,7 +6018,13 @@ class Layman:
                         if not auto:
                             self.dlg.progressBar.show() 
                             self.dlg.label_import.show()
-                        
+                        if auto:
+                            read = self.instance.getAllPermissions()['read']
+                            write = self.instance.getAllPermissions()['write']
+                            data['access_rights.read'] =  self.listToString(read)
+                            data['access_rights.write'] = self.listToString(write)
+                          
+                            print("dfasfsadfdddddddddddddddddd")
                         q = self.setProcessingItem(layer_name)
                         
                         if (isinstance(layers[0], QgsVectorLayer)):
@@ -6746,7 +6752,7 @@ class Layman:
             d = json.load(f)
 
         files = {'file': (jsonPath, open(jsonPath, 'rb')),} 
-        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
+        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract']} 
         print("movvvvvvvvvvvvvvvvxr")
         #response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'],headers = self.getAuthHeader(self.authCfg))
         
@@ -6775,7 +6781,17 @@ class Layman:
             d = json.load(f)
 
         files = {'file': (jsonPath, open(jsonPath, 'rb')),} 
-        data = { 'name' :  composition['name'], 'title' : composition['title'], 'description' : composition['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
+       # data = { 'name' :  composition['name'], 'title' : composition['title'], 'description' : composition['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
+        data = { 'name' :  composition['name'], 'title' : composition['title'], 'description' : composition['abstract']} 
+        
+        read = self.instance.getAllPermissions()['read']
+        write = self.instance.getAllPermissions()['write']
+        data['access_rights.read'] =  self.listToString(read)
+        data['access_rights.write'] = self.listToString(write)
+        # data['access_rights'] = self.instance.getAllPermissions()
+        
+        #except:
+        #    print("nenalezen zaznma")
         print("movvvvvvvvvvvvvvvvx")
         #response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'],headers = self.getAuthHeader(self.authCfg))
         workspace = self.instance.getWorkspace()
