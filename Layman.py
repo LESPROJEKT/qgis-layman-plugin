@@ -416,6 +416,7 @@ class Layman:
         self.dlg.label_readonly.hide()
         self.dlg.radioButton_wms.hide()
         self.dlg.radioButton_wfs.hide()
+        self.dlg.label_raster.hide() 
         #self.dlg.radioButton_wms.setChecked(True)
         #self.dlg.radioButton_wfs.setChecked(False)
         #self.dlg.radioButton_wfs.setEnabled(False)
@@ -1362,7 +1363,14 @@ class Layman:
         self.dlg.rejected.connect(lambda: self.afterCloseCurrentMapDialog()) 
         self.dlg.pushButton_save.clicked.connect(lambda: self.modifyMapNew())
         self.dlg.pushButton_range_2.clicked.connect(lambda: self.setRangeFromCanvas())
-        self.dlg.pushButton_range.clicked.connect(lambda: self.setExtentFromLayers(self.getCompositionIndexByName()))
+        self.dlg.pushButton_range.clicked.connect(lambda: self.setExtentFromLayers())
+        if self.locale == "cs":
+            self.dlg.pushButton_range.setToolTip("Získá informaci o rozsahu z wms capatibilies.")
+            self.dlg.pushButton_range_2.setToolTip("Získá informaci o rozsahu z okna QGI.")
+        else:
+            self.dlg.pushButton_range.setToolTip("Gets spatial range information from wms capatibilies.")
+            self.dlg.pushButton_range_2.setToolTip("Gets spatial range information from QGIS canvas.")
+        
         #self.dlg.rejected.connect(lambda: self.afterCloseCompositeDialog())
 
         if not self.isAuthorized:
@@ -1968,8 +1976,9 @@ class Layman:
         threading.Thread(target=lambda: self.loadMapsThread(checked)).start()       
        
         result = self.dlg.exec_()
-    def setExtentFromLayers(self, x):
-        print(self.compositeList[x])
+    def setExtentFromLayers(self):
+        
+        composition = self.instance.getComposition()
         xmin = None
         xmax = None
         ymin = None
@@ -1988,10 +1997,10 @@ class Layman:
         for name in  root.findall("./Capability/Layer/Layer/LatLonBoundingBox"):
             #print(name.tag,name.attrib, name.text)    
             renge.append(name.attrib)
-        for i in range(len(self.compositeList[x]['layers'])): 
-            className = self.compositeList[x]['layers'][i]['className']     
+        for i in range(len(composition['layers'])): 
+            className = composition['layers'][i]['className']     
             if className == 'HSLayers.Layer.WMS' or 'OpenLayers.Layer.Vector':
-                name = self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title'])
+                name = self.removeUnacceptableChars(composition['layers'][i]['title'])
             #    url = self.compositeList['layers'][x]['url']
             #if className == 'OpenLayers.Layer.Vector': 
             #    url = self.compositeList['layers'][x]['params']['LAYERS']
@@ -4170,6 +4179,15 @@ class Layman:
         if message == "resetProgressbar":
             self.dlg.progressBar.hide()
             self.dlg.progressBar.setValue(0)
+        if message == "disableProgress":
+            self.dlg.progressBar_loader.hide()
+            self.dlg.label_raster.hide() 
+        if message == "enableProgress":
+            try:
+                self.dlg.progressBar_loader.show()   
+                self.dlg.label_raster.show() 
+            except:
+                passs
         if message == "errorConnection":
             if self.locale == "cs":                
                 QMessageBox.information(None, "Error", "Spojení se serverem selhalo! Vrstva nebyla nahrána.")
@@ -5593,6 +5611,7 @@ class Layman:
         with open(filepath, 'w') as file:
           file.write(filedata)
     def postRasterThread(self, layer,data, q,progress, patch):
+        QgsMessageLog.logMessage("enableProgress")
         print(layer.name())
         stylePath = self.getTempPath(self.removeUnacceptableChars(layer.name())).replace("geojson", "sld")
         layer.saveSldStyle(stylePath)
@@ -5703,13 +5722,16 @@ class Layman:
                     return
             except:
                 print("uuid")
+
         if self.layersToUpload == 1:
             QgsMessageLog.logMessage("resetProgressbar")
             if self.locale == "cs":
                 self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(1) + " / " + str(1) )
             else:
                 self.dlg.label_progress.setText("Sucessfully exported: " +  str(1) + " / " + str(1) )
+
         QgsMessageLog.logMessage("export")
+        QgsMessageLog.logMessage("disableProgress")
     def processChunks(self, arr, resumableFilename, layman_original_parameter,resumableTotalChunks, layer_name,filePath,ext ):
         for i in range (1, len(arr)+1):  ##chunky jsou počítané od 1 proto +1  
             failedRequest = -1
@@ -5722,7 +5744,7 @@ class Layman:
             'layman_original_parameter': layman_original_parameter,
             'resumableChunkNumber': i,
             'resumableTotalChunks': resumableTotalChunks
-            } 
+            }           
             url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer_name+'/chunk'   
             f = open(filePath + os.sep+"chunk"+str(i)+ ext, "wb")
             f.write(bytearray(arr[i-1]))
@@ -5987,6 +6009,9 @@ class Layman:
                                 threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
                             if (isinstance(layers[0], QgsRasterLayer)): 
                                 if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
+                                   
+                                    
+                                  
                                     threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
                                 else:
                                     if self.locale == "cs":
@@ -6005,6 +6030,7 @@ class Layman:
                         if (isinstance(layers[0], QgsRasterLayer)): 
                           
                             if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
+                               
                                 threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
                             else:
                                 QgsMessageLog.logMessage("wrongCrs")
@@ -6031,6 +6057,7 @@ class Layman:
                             threading.Thread(target=lambda: self.postThread(layer_name,data, q,True)).start()   
                         if (isinstance(layers[0], QgsRasterLayer)): 
                             if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
+                                
                                 threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, False)).start()   
                             else:
                                 if self.locale == "cs":
@@ -6569,6 +6596,7 @@ class Layman:
                     #print (self.isLayerInComposite(x))
                     #print (layers[i].name() in self.isLayerInComposite(x))
                     #inComposite = layers[i].name() in self.isLayerInComposite(x)
+                    
                     inComposite = False
                     layerName = self.removeUnacceptableChars(layers[i].name()).lower()
                     if (self.checkExistingLayer(layers[i].name()) and inComposite):

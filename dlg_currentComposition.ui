@@ -287,6 +287,19 @@
     </property>
    </column>
   </widget>
+  <widget class="QLabel" name="label_raster">
+   <property name="geometry">
+    <rect>
+     <x>650</x>
+     <y>270</y>
+     <width>111</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Exporting raster</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
