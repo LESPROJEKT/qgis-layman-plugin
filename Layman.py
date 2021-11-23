@@ -577,6 +577,7 @@ class Layman:
                 item = iterator.value()
                 print(item)
                 cell = QComboBox()
+                cell.currentTextChanged.connect(self.comboBoxChanged)
                 cellServices = QComboBox() 
                 for layer in layersArr:
                     if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(item.text(0)):
@@ -699,7 +700,18 @@ class Layman:
         #self.dlg.treeWidget_layers.itemClicked.connect(self.showService)
         #self.dlg.listWidget_layers.itemChanged.connect(self.addService)
         #self.dlg.radioButton_wms.toggled.connect(lambda: self.wms_wfs2(self.dlg.listWidget_layers.currentItem().text(), self.dlg.listWidget_layers.currentRow()))      
-
+    def comboBoxChanged(self, text):
+        print(text)
+        iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
+        try:
+            while iterator.value():
+                item = iterator.value()    
+                if item.checkState(0) == 0 and (self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == "Add from server" or self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == "Přidat ze serveru" or self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == "Add and overwrite" or  self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == 'Přidat' or self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == "Přidat a přepsat" or self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == 'Add'  ) :            
+                    item.setCheckState(0,2)
+                
+                iterator +=1
+        except:
+            print("neni v canvasu")
     def run_LayerDecisionDialog(self, layersToDecision):
         self.recalculateDPI()
         self.dlg = LayerDecisionDialog() 
