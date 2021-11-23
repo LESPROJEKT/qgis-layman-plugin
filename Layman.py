@@ -3693,9 +3693,9 @@ class Layman:
             #print(data)
             r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
             data = r.content
-            pixmap = QPixmap(170, 170)
+            pixmap = QPixmap(200, 200)
             pixmap.loadFromData(data)
-            smaller_pixmap = pixmap.scaled(170, 170, Qt.KeepAspectRatio, Qt.FastTransformation)
+            smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
             self.dlg.label_thumbnail.setPixmap(smaller_pixmap)
             self.dlg.label_thumbnail.setAlignment(Qt.AlignCenter)
         except:
@@ -3717,9 +3717,9 @@ class Layman:
             print("thubmnailURL" + url) 
           
             data = urlopen(url).read()
-            pixmap = QPixmap(100, 100)
+            pixmap = QPixmap(200, 200)
             pixmap.loadFromData(data)
-            smaller_pixmap = pixmap.scaled(100, 100, Qt.KeepAspectRatio, Qt.FastTransformation)
+            smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
             self.dlg.label_thumbnail.setPixmap(smaller_pixmap)
            # self.dlg.label_thumbnail.setAlignment(Qt.AlignCenter)
         except:
