@@ -646,12 +646,18 @@ class Layman:
                 self.layersWasModified()
             #print(self.compositeList[x])
             #print(composition)
+            if self.laymanUsername != self.instance.getWorkspace():
+                self.dlg.pushButton_setPermissions.setEnabled(False)
+                self.dlg.pushButton_delete.setEnabled(False)
             if 'access_rights' in composition:#self.compositeList[x]:
                 #if self.laymanUsername not in self.compositeList[x]['access_rights']['write']:
+                print(self.laymanUsername, composition['access_rights']['write'])
                 if self.laymanUsername not in composition['access_rights']['write']:
                     self.dlg.listWidget_layers.setEnabled(False)
                     self.dlg.treeWidget_layers.setEnabled(False)
                     self.dlg.listWidget_service.setEnabled(False)
+                    self.dlg.pushButton_editMeta.setEnabled(False)
+                    self.dlg.pushButton_setPermissions.setEnabled(False)
                     self.dlg.pushButton_close.setEnabled(False)
                     self.dlg.pushButton_save.setEnabled(False)
                     self.dlg.pushButton_delete.setEnabled(False)
@@ -664,9 +670,11 @@ class Layman:
             elif self.laymanUsername == self.instance.getWorkspace():
                 pass
             else:
-                
+                self.dlg.pushButton_editMeta.setEnabled(False)
                 self.dlg.listWidget_layers.setEnabled(False)
                 self.dlg.listWidget_service.setEnabled(False)
+                self.dlg.pushButton_setPermissions.setEnabled(False)
+                self.dlg.pushButton_delete.setEnabled(False)
                 self.dlg.pushButton_close.setEnabled(False)
                 self.dlg.label_readonly.show()
         if not self.isAuthorized:
@@ -675,6 +683,7 @@ class Layman:
             self.dlg.pushButton_new.setEnabled(False)
             self.dlg.pushButton_setPermissions.setEnabled(False)
             self.dlg.listWidget_layers.setEnabled(False)
+            self.dlg.pushButton_editMeta.setEnabled(False)
             self.dlg.treeWidget_layers.setEnabled(False)
             self.dlg.listWidget_service.setEnabled(False)
             self.dlg.pushButton_close.setEnabled(False)
