@@ -2505,15 +2505,43 @@ class Layman:
     def setExtent(self, it, col):
         layer = QgsProject.instance().mapLayersByName(it.text(0))
         ext = layer[0].extent()
+        print(ext)
         xmin = ext.xMinimum()
         xmax = ext.xMaximum()
         ymin = ext.yMinimum()
         ymax = ext.yMaximum()
+        if QgsProject.instance().crs().authid() == 'EPSG:5514':
+            print(xmin ,xmax, ymin, ymax)
+            max = self.krovakToWgs(xmax, ymax)
+            min = self.krovakToWgs(xmin, ymin)
+            xmin = min[0]
+            xmax = max[0]
+            ymin = min[1]
+            ymax = max[1]
+        if QgsProject.instance().crs().authid() == 'EPSG:4326':  
+            max = self.wgsToKrovak(xmax, ymax)
+            min = self.wgsToKrovak(xmin, ymin)
+            xmin = min[0]
+            xmax = max[0]
+            ymin = min[1]
+            ymax = max[1]          
         self.dlg.lineEdit_3.setText(str(xmin))
         self.dlg.lineEdit_4.setText(str(xmax))
         self.dlg.lineEdit_5.setText(str(ymin))
         self.dlg.lineEdit_6.setText(str(ymax))
         self.dlg.label_4.setText("Extent of canvas: " + it.text(0))
+    def wgsToKrovak(self, x, y):  
+        src = QgsCoordinateReferenceSystem(5514)
+        dest = QgsCoordinateReferenceSystem(4326)
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        point = tform.transform(QgsPointXY(x, y))      
+        return [point.x(), point.y()] 
+    def krovakToWgs(self, x, y):  
+        src = QgsCoordinateReferenceSystem(4326)
+        dest = QgsCoordinateReferenceSystem(5514)
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        point = tform.transform(QgsPointXY(x, y))      
+        return [point.x(), point.y()]
     def selectSelectedLayer(self):
         try:
             layer = self.iface.activeLayer()
