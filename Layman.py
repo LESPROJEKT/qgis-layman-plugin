@@ -433,6 +433,7 @@ class Layman:
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))
         print(self.current)
+        
         if self.current != None:
             self.dlg.pushButton_editMeta.setEnabled(True) 
             self.dlg.pushButton_new.setEnabled(True)
@@ -3235,7 +3236,7 @@ class Layman:
         
     def updateCompositionThread(self): 
         composition = self.instance.getComposition()  
-        self.updateVisibilityInComposition()
+        
         i= 0
         for item in self.currentSet:
             service = self.instance.getServiceForLayer(item[0])
@@ -3272,6 +3273,7 @@ class Layman:
                         print("neni v poli")
         print(composition)
         print(len(composition['layers']))
+        self.updateVisibilityInComposition()
         self.syncOrder2(self.getLayersOrder())
         self.patchMap2()
             #for layer in self.stylesToUpdate:
@@ -4236,7 +4238,7 @@ class Layman:
                 self.dlg.progressBar_loader.show()   
                 self.dlg.label_raster.show() 
             except:
-                passs
+                pass
         if message == "errorConnection":
             if self.locale == "cs":                
                 QMessageBox.information(None, "Error", "Spojení se serverem selhalo! Vrstva nebyla nahrána.")
@@ -4423,6 +4425,7 @@ class Layman:
                 self.dlg.pushBuqgistton_down.setEnabled(True)
                 self.dlg.pushButton_up.setEnabled(True)
                 self.dlg.pushButton_deleteLayers.setEnabled(True)
+                self.dlg.label_raster.hide()
             except:
                 pass
             
@@ -4948,7 +4951,8 @@ class Layman:
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
-
+        authm = QgsApplication.authManager()
+        authm.clearCachedConfig(self.authCfg)
         #print "** UNLOAD Atlas"
       ## killing daemons
         #self.thread1.terminate()
@@ -5659,6 +5663,17 @@ class Layman:
         # Write the file out again
         with open(filepath, 'w') as file:
           file.write(filedata)
+
+    #def replaceNoDataInSLD(self, filepath):
+    #    with open(filepath, 'r') as file :
+    #      filedata = file.read()
+
+    #    # Replace the target string
+    #    filedata = filedata.replace('"inf"', '"9999"')
+
+    #    # Write the file out again
+    #    with open(filepath, 'w') as file:
+    #      file.write(filedata)        
     def postRasterThread(self, layer,data, q,progress, patch):
         QgsMessageLog.logMessage("enableProgress")
         print(layer.name())
@@ -6355,7 +6370,20 @@ class Layman:
             self.refreshLayerListReversed() ## mozna bude treba odstranit kvuli padum
         
         QgsMessageLog.logMessage("addRaster")
-
+    def saveXYZ(self, layer): 
+        #title = self.removeUnacceptableChars(layer.name()).lower()      
+        title = layer.name()     
+        dimension = ""
+        params = layer.dataProvider().dataSourceUri().split("&")
+        composition = self.instance.getComposition()
+        for p in params:
+            param = p.split("=")  
+            #print(p)
+            if(param[0] == "url"):
+                url = param[1] 
+        crs = layer.crs().authid()    
+        composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})    
+           
     def addExistingWMSLayerToCompositeThread2(self, title,nameInList):
         composition = self.instance.getComposition()
         print("nameInList"+ nameInList)
@@ -6625,8 +6653,11 @@ class Layman:
                     #if self.layerServices[layerName] == "HSLayers.Layer.WMS":
                     if service == 'wms':
                         if layers[i].crs().authid() == 'EPSG:4326' or layers[i].crs().authid() == 'EPSG:3857':
-                            wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows'
-                            composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+                            if self.isXYZ(layers[i].name()):
+                                self.saveXYZ(layers[i])
+                            else:
+                                wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows'
+                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                     #if (self.dlg.radioButton_wfs.isChecked()):
                     #elif self.layerServices[layerName] == "OpenLayers.Layer.Vector":
                     elif service == 'wfs':
@@ -6651,13 +6682,19 @@ class Layman:
                     if (self.checkExistingLayer(layers[i].name()) and inComposite):
                         j = self.getLayerInCompositePosition(x)
                         print("j je: " + str(j))               
-            
-                        self.postRequest(layers[i].name(), True)
-                        layerName = self.removeUnacceptableChars(layers[i].name())
+                        if self.isXYZ(layers[i].name()):
+                            #self.saveXYZ(layers[i])
+                            pass
+                        else:
+                            self.postRequest(layers[i].name(), True)
+                            layerName = self.removeUnacceptableChars(layers[i].name())
            
                     else:
-                        
-                        self.postRequest(layers[i].name(), True)
+                        if self.isXYZ(layers[i].name()):
+                            #self.saveXYZ(layers[i])
+                            pass
+                        else:
+                            self.postRequest(layers[i].name(), True)
                       #  wmsStatus = 'PENDING'
                       #  j = 0
                       #  while ((wmsStatus == 'PENDING') and (j < 10)):
@@ -7534,7 +7571,7 @@ class Layman:
                         self.groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
                         self.groups.append([layerNameTitle, len(data['layers']) - i])
-                    threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)).start()
+                    self.threads.append(threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)).start())
                     #success = self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)
                     #if not success:
                     #    notify = True
@@ -7704,7 +7741,7 @@ class Layman:
         self.currentLayer.append(rlayer)        
         if (rlayer.isValid()):  
             if (groupName != '' or subgroupName != ''):
-                pass
+                #pass
                 self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path
                 #self.addWmsToGroup(groupName,rlayer, subgroupName)
             else:   
@@ -7757,7 +7794,10 @@ class Layman:
             pass # pro qgis 3.10 a vys      
         if (rlayer.isValid()):  
             if (groupName != ''):
-                self.addWmsToGroup(groupName,rlayer, subgroupName, i)
+                self.addWmsToGroup(subgroupName,rlayer, "")
+               # self.addWmsToGroup(groupName,rlayer, subgroupName, i)
+                
+                
             else:   
                 self.currentLayer.append(rlayer) 
                 self.params = []
@@ -8029,7 +8069,7 @@ class Layman:
         QgsProject.instance().addMapLayer(layer,False)
         group.insertChildNode(1000,QgsLayerTreeLayer(layer))                
         #subgroup.insertChildNode(1000,QgsLayerTreeLayer(layer))                
-    def reorderToTop(self, name, i= 1000):
+    def reorderToTop(self, name, i= 1000):        
         print("position" + str(i))
         print(name)
         _ch = ""
