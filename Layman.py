@@ -180,6 +180,7 @@ class Layman:
         self.DPI = self.getDPI()
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
+        
        # self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.getActiveLayer())
         self.processingList = []
         self.writeState(0)
@@ -954,6 +955,51 @@ class Layman:
                     item.setForeground(QColor(0,128,0))
                 else:
                     item.setForeground(QColor(255,0,0))
+
+    def crsChanged(self):
+        print("crs changed")  
+        crs = QgsProject.instance().crs()
+  
+        if self.locale == "cs":
+            msgbox = QMessageBox(QMessageBox.Question, "Layman", "Souřadnicový systém byl změnen na: "+ str(crs.authid())+". Chcete tento souřadnicový systém zapsat do kompozice?")
+        else:
+            msgbox = QMessageBox(QMessageBox.Question, "Layman", "Coordinate system was changed to: "+ str(crs.authid())+". Do you want write it to composition?")
+        msgbox.addButton(QMessageBox.Yes)
+        msgbox.addButton(QMessageBox.No)
+        msgbox.setDefaultButton(QMessageBox.No)
+        reply = msgbox.exec()
+        if (reply == QMessageBox.Yes):    
+            composition = self.instance.getComposition()         
+            xmin = float(composition['extent'][0])
+            xmax = float(composition['extent'][2])
+            ymin = float(composition['extent'][1])
+            ymax = float(composition['extent'][3])
+            xcenter = float(composition['center'][0])
+            ycenter = float(composition['center'][1])
+            if crs.authid() == 'EPSG:5514':
+                composition['projection'] = str(crs.authid()).lower()                
+                max = self.krovakToWgs(xmax, ymax)
+                min = self.krovakToWgs(xmin, ymin)
+                center = self.krovakToWgs(xcenter, ycenter)
+                composition['extent'][0] = str(min[0])
+                composition['extent'][2] = str(max[0])
+                composition['extent'][1] = str(min[1])
+                composition['extent'][3] = str(max[1])
+                composition['center'][0] = center[0]
+                composition['center'][1] = center[1]
+            if crs.authid() == 'EPSG:4326':                
+                composition['projection'] = str(crs.authid()).lower()   
+                max = self.wgsToKrovak(xmax, ymax)
+                min = self.wgsToKrovak(xmin, ymin)
+                center = self.wgsToKrovak(xcenter, ycenter)
+                composition['extent'][0] = str(min[0])
+                composition['extent'][2] = str(max[0])
+                composition['extent'][1] = str(min[1])
+                composition['extent'][3] = str(max[1])
+                composition['center'][0] = center[0]
+                composition['center'][1] = center[1]
+        self.patchMap2()                
+
     def duplicateLayers(self):
         layerList = set()
         duplicity = list()
@@ -2706,6 +2752,10 @@ class Layman:
             self.dlg.pushButton_Connect.setEnabled(True)
         except:
             pass
+        try:
+            QgsProject.instance().crsChanged.disconnect()            
+        except:
+            print("crs changed not connected")            
         self.menu_UserInfoDialog.setEnabled(True)
         self.laymanUsername = ""
         self.isAuthorized = False
@@ -4640,7 +4690,7 @@ class Layman:
             ## konec naslouchani
 
             #self.prj=QgsProject.instance()
-        
+            QgsProject.instance().crsChanged.connect(self. crsChanged)
             self.project.removeAll.connect(self.removeSignals)
             #self.prj.layerWasAdded.connect(self.layerAdded)
             layers = self.project.mapLayers().values() ## hlidac vrstvy
