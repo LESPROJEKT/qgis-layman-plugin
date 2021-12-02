@@ -4278,8 +4278,11 @@ class Layman:
 
 
         if message == "resetProgressbar":
-            self.dlg.progressBar.hide()
-            self.dlg.progressBar.setValue(0)
+            try:
+                self.dlg.progressBar.hide()
+                self.dlg.progressBar.setValue(0)
+            except:
+                pass                  
         if message == "disableProgress":
             try:
                 self.dlg.progressBar_loader.hide()
