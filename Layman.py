@@ -4281,8 +4281,11 @@ class Layman:
             self.dlg.progressBar.hide()
             self.dlg.progressBar.setValue(0)
         if message == "disableProgress":
-            self.dlg.progressBar_loader.hide()
-            self.dlg.label_raster.hide() 
+            try:
+                self.dlg.progressBar_loader.hide()
+                self.dlg.label_raster.hide() 
+            except:
+                pass                
         if message == "enableProgress":
             try:
                 self.dlg.progressBar_loader.show()   
