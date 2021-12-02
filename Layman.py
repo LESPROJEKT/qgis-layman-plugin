@@ -545,7 +545,8 @@ class Layman:
                     if isinstance(layer, QgsRasterLayer):
                         item.setText(1, "WMS") 
                     if isinstance(layer, QgsVectorLayer):
-                        item.setText(1, "WFS") 
+                        #item.setText(1, "WFS") 
+                        item.setText(1, "WMS") 
                     #self.setGuiForItem(itemService)
                     self.setGuiForItem(item)
                     if layerType == QgsMapLayer.VectorLayer:
