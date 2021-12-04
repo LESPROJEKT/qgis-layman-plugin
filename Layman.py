@@ -875,9 +875,13 @@ class Layman:
     def itemClick(self, item, col):        
         if item.checkState(0) == 2 and self.checkIfLayerIsInMoreGroups(QgsProject.instance().mapLayersByName(item.text(0))[0]):
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena může být pouze jedna."), Qgis.Warning, duration=5)               
+                QMessageBox.information(None, "Layman", "Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena bude pouze nadřazená.")
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layer " + item.text(0) +" is nested in two groups. Only one can be saved."), Qgis.Warning, duration=5)               
+                QMessageBox.information(None, "Layman", "Layer " + item.text(0) +" is nested in two groups. Only parent group will be saved.")
+            # if self.locale == "cs":
+            #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena může být pouze jedna."), Qgis.Warning, duration=5)               
+            # else:
+            #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layer " + item.text(0) +" is nested in two groups. Only one can be saved."), Qgis.Warning, duration=5)               
             #if self.locale == "cs":
             #    self.dlg.label_info.setText("Vrstva " + item.text() +" je vnořena do dvou skupin. Uložena může být pouze jedna.")
             #else:
@@ -2257,6 +2261,8 @@ class Layman:
         self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
         self.dlg.pushButton.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WMS"))
         self.dlg.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WFS"))
+        self.dlg.pushButton_urlWms.clicked.connect(lambda: self.copyLayerUrl(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1),"wms"))
+        self.dlg.pushButton_urlWfs.clicked.connect(lambda: self.copyLayerUrl(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1),"wfs"))
         if not self.isAuthorized:
             self.dlg.label_noUser.show()
             self.dlg.checkBox_own.setEnabled(False)
@@ -2276,7 +2282,8 @@ class Layman:
         self.dlg.pushButton_wfs.setStyleSheet("#pushButton_wfs {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_wfs:hover{background: #66ab27 ;}#pushButton_wfs:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-        
+        self.dlg.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #66ab27 ;}#pushButton_urlWms:disabled{background: #64818b ;}")
+        self.dlg.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #66ab27 ;}#pushButton_urlWfs:disabled{background: #64818b ;}")
         self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
         self.threadLayers.start()
         self.dlg.checkBox_own.stateChanged.connect(self.loadLayersThread)
@@ -2726,6 +2733,15 @@ class Layman:
             for row in reader: # each row is a list
                 results.append(row)
         return results
+    def copyLayerUrl(self, name, workspace, service):
+        url = self.URI+'/rest/'+workspace+'/layers/'+name 
+        response = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        res = self.fromByteToJson(response.content)
+        if res == None:
+            return
+        print(res)
+        df=pd.DataFrame([res[service]['url']])
+        df.to_clipboard(index=False,header=False)    
     def setReg(self, str):
         registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
         if self.locale == "cs":
@@ -4041,9 +4057,13 @@ class Layman:
         #print(message)
         if message[0:15] == "notifyTwoGroups":
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva " + message[15:100] +" je vnořena do dvou skupin. Uložena bude pouze nadřazená."), Qgis.Warning, duration=5)               
+                QMessageBox.information(None, "Layman", "Vrstva " + message[15:100] +" je vnořena do dvou skupin. Uložena bude pouze nadřazená.")
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer " + message[15:100] +" is nested in two groups. Only parent group will be saved."), Qgis.Warning, duration=5)
+                QMessageBox.information(None, "Layman", "Layer " + message[15:100] +" is nested in two groups. Only parent group will be saved.")
+            # if self.locale == "cs":
+            #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva " + message[15:100] +" je vnořena do dvou skupin. Uložena bude pouze nadřazená."), Qgis.Warning, duration=5)               
+            # else:
+            #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer " + message[15:100] +" is nested in two groups. Only parent group will be saved."), Qgis.Warning, duration=5)
         if message == "updateMapDone":
             self.dlg.progressBar_loader.hide()
             self.dlg.pushButton_save.setEnabled(True)
