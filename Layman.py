@@ -2239,6 +2239,8 @@ class Layman:
         self.dlg = AddLayerDialog()
         self.dlg.pushButton_layerRedirect.hide()
         self.dlg.pushButton_layerRedirect.setEnabled(False)
+        self.dlg.pushButton_urlWfs.setEnabled(False)
+        self.dlg.pushButton_urlWms.setEnabled(False)
         self.dlg.pushButton.setEnabled(False)
         self.dlg.pushButton_wfs.setEnabled(False)
         self.dlg.pushButton_delete.setEnabled(False)
@@ -2593,7 +2595,10 @@ class Layman:
         self.dlg.lineEdit_4.setText(str(xmax))
         self.dlg.lineEdit_5.setText(str(ymin))
         self.dlg.lineEdit_6.setText(str(ymax))
-        self.dlg.label_4.setText("Extent of canvas: " + it.text(0))
+        if self.locale == "cs":
+            self.dlg.label_4.setText("Rozsah vrstvy: " + it.text(0))
+        else:
+            self.dlg.label_4.setText("Extent of layer: " + it.text(0))
     def wgsToKrovak(self, x, y):  
         src = QgsCoordinateReferenceSystem(5514)
         dest = QgsCoordinateReferenceSystem(4326)
@@ -2653,6 +2658,8 @@ class Layman:
         
     def enableDeleteButton(self, item, col):
         self.dlg.pushButton.setEnabled(True)
+        self.dlg.pushButton_urlWfs.setEnabled(True)
+        self.dlg.pushButton_urlWms.setEnabled(True)
         self.dlg.pushButton_wfs.setEnabled(True)
         self.dlg.pushButton_layerRedirect.setEnabled(True)
         self.dlg.pushButton_delete.setEnabled(True)
@@ -2734,7 +2741,7 @@ class Layman:
                 results.append(row)
         return results
     def copyLayerUrl(self, name, workspace, service):
-        url = self.URI+'/rest/'+workspace+'/layers/'+name 
+        url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(name) 
         response = requests.get(url, headers = self.getAuthHeader(self.authCfg))
         res = self.fromByteToJson(response.content)
         if res == None:
