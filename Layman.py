@@ -5738,7 +5738,8 @@ class Layman:
         pathWithoutExt = path.replace(ext,"")
         ext = ext.lower()
         if ext == ".tif" or ".tiff":
-            if os.path.exists(pathWithoutExt + ".tfw"):
+            if os.path.exists(pathWithoutExt + ".tfw") or os.path.exists(pathWithoutExt + ".TFW"):
+                print("external file detected")
                 if not onlyExt:
                     return pathWithoutExt + ".tfw"
                 else:
@@ -5793,6 +5794,7 @@ class Layman:
     #      file.write(filedata)        
     def postRasterThread(self, layer,data, q,progress, patch):
         QgsMessageLog.logMessage("enableProgress")
+        data['crs'] = 'EPSG:4326'
         print(layer.name())
         stylePath = self.getTempPath(self.removeUnacceptableChars(layer.name())).replace("geojson", "sld")
         layer.saveSldStyle(stylePath)
@@ -5810,6 +5812,8 @@ class Layman:
         if os.path.getsize(path) > 800000000:
             self.checkFileSizeLimit(os.path.getsize(path))
             self.setChunkSizeBigger()
+        externalFile = self.returnPathIfFileExists(path,ext)
+        print(externalFile)
         if (os.path.getsize(path) > self.CHUNK_SIZE):
             if patch:
             #self.postInChunks(layer_name, "post")
@@ -5823,8 +5827,7 @@ class Layman:
             url = self.URI + "/rest/"+self.laymanUsername+"/layers"
             name = self.removeUnacceptableChars(layer_name) 
             ## registrovat obě vrstvy musím pokud existuje externí souory,poslat jako pole?
-            externalFile = self.returnPathIfFileExists(path,ext)
-            print(externalFile)
+            
 
             #files = [('file', open(geoPath, 'rb')), ('style', open(stylePath, 'rb'))]
             if externalFile:
@@ -5887,10 +5890,38 @@ class Layman:
             #iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
             
         else:
+            #name = self.removeUnacceptableChars(layer_name) 
+            #if externalFile:
+            #    payload = {        
+            #    #'file': name.lower()+ext,
+            #    'file': [name.lower()+ext,name.lower() + self.returnPathIfFileExists(path,ext, True)],
+            #    'title': name,
+            #    'crs': str(layer.crs().authid()),
+            #    'style': open(stylePath, 'rb') 
+            #    }    
+            #else:
+            #    payload = {        
+            #    'file': name.lower()+ext,                
+            #    'title': name,
+            #    'crs': str(layer.crs().authid())
+            #    }    
+
             if patch:          
                 url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars(layer_name)
                 r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
-
+            if externalFile:               
+               
+          
+                zipPath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) + os.sep +self.removeUnacceptableChars(layer_name)+".zip"
+                zipObj = ZipFile(zipPath, 'w')
+                # Add multiple files to the zip              
+                
+                zipObj.write(externalFile, os.path.basename(externalFile))
+                zipObj.write(path,os.path.basename(path))
+                zipObj.close()
+                files = {'file': (zipPath, open(zipPath, 'rb')),'style': open(stylePath, 'rb')} 
+           
+            data['crs'] = 'EPSG:4326'
             response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
             print(response.content)
             res = self.fromByteToJson(response.content)
@@ -7376,13 +7407,14 @@ class Layman:
         if not r:
             return
         data = r.json()
+        #print(data)
 
         
         pom = set()
         for x in range(len(data)):
             pom.add((data[x]['name']))
         layerName = layerName.replace(" ", "_").lower()
-        
+        #print(layerName)
         if (layerName in pom):
             return True
         else:
