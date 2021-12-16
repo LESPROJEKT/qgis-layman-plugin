@@ -3911,32 +3911,58 @@ class Layman:
         #"username": "",
         #"version": 1
         #}
-        
-        cfgjson = {
-        "accessMethod": 0,
-        "apiKey": "",
-        "clientId": self.client_id,
-        "clientSecret": self.client_secret,
-        "configType": 1,
-        "description": "",
-        "grantFlow": 0,
-        "id": "esa2024",
-        "name": "auth",
-        "objectName": "",
-        "password": "",
-        "persistToken": False,
-        "queryPairs": {
-        },
-        "redirectPort": 7070,
-        "redirectUrl": "client/oauthn2-liferay/callback",
-        "refreshTokenUrl": "",
-        "requestTimeout": 60,
-        "requestUrl": self.liferayServer + "/o/oauth2/authorize", 
-        "scope": "",
-        "tokenUrl": self.liferayServer + "/o/oauth2/token",
-        "username": "",
-        "version": 1
-        }
+        if authcfg_id != '7f22y3f': ## prozatím pro test toto id ma wagtail
+            cfgjson = {
+            "accessMethod": 0,
+            "apiKey": "",
+            "clientId": self.client_id,
+            "clientSecret": self.client_secret,
+            "configType": 1,
+            "description": "",
+            "grantFlow": 0,
+            "id": "esa2024",
+            "name": "auth",
+            "objectName": "",
+            "password": "",
+            "persistToken": False,
+            "queryPairs": {
+            },
+            "redirectPort": 7070,
+            "redirectUrl": "client/oauthn2-liferay/callback",
+            "refreshTokenUrl": "",
+            "requestTimeout": 60,
+            "requestUrl": self.liferayServer + "/o/oauth2/authorize", 
+            "scope": "",
+            "tokenUrl": self.liferayServer + "/o/oauth2/token",
+            "username": "",
+            "version": 1
+            }
+        else:
+            cfgjson = {
+            "accessMethod": 0,
+            "apiKey": "",
+            "clientId": self.client_id,
+            "clientSecret": self.client_secret,
+            "configType": 1,
+            "description": "",
+            "grantFlow": 0,
+            "id": "esa2024",
+            "name": "auth",
+            "objectName": "",
+            "password": "",
+            "persistToken": False,
+            "queryPairs": {
+            },
+            "redirectPort": 7070,
+            "redirectUrl": "client/oauthn2-liferay/callback",
+            "refreshTokenUrl": "",
+            "requestTimeout": 60,
+            "requestUrl": self.liferayServer + "/o/authorize", 
+            "scope": "",
+            "tokenUrl": self.liferayServer + "/o/token/",
+            "username": "",
+            "version": 1
+            }
 
         if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
             authConfig = QgsAuthMethodConfig('OAuth2')
