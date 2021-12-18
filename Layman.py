@@ -2284,8 +2284,8 @@ class Layman:
         self.dlg.pushButton_wfs.setStyleSheet("#pushButton_wfs {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_wfs:hover{background: #66ab27 ;}#pushButton_wfs:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-        self.dlg.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #66ab27 ;}#pushButton_urlWms:disabled{background: #64818b ;}")
-        self.dlg.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #66ab27 ;}#pushButton_urlWfs:disabled{background: #64818b ;}")
+        self.dlg.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #999999 ;}#pushButton_urlWms:disabled{background: #999999 ;}")
+        self.dlg.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #999999 ;}#pushButton_urlWfs:disabled{background: #999999 ;}")
         self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
         self.threadLayers.start()
         self.dlg.checkBox_own.stateChanged.connect(self.loadLayersThread)
@@ -2777,8 +2777,22 @@ class Layman:
         if res == None:
             return
         print(res)
-        df=pd.DataFrame([res[service]['url']])
-        df.to_clipboard(index=False,header=False)    
+        try:
+            df=pd.DataFrame([res[service]['url']])
+            df.to_clipboard(index=False,header=False)    
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL uloženo do schránky."), Qgis.Success, duration=3)               
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL saved to clipboard."), Qgis.Success, duration=3)
+        except:
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL nebylo uloženo do schránky."), Qgis.Warning, duration=3)               
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL was not saved to clipboard."), Qgis.Warning, duration=3)
+            
+        
+        
+        
     def setReg(self, str):
         registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
         if self.locale == "cs":
@@ -4550,12 +4564,38 @@ class Layman:
             #except:
             #    pass
         if message == "wrongCrs":
-            self.dlg.progressBar_loader.hide()
+            try:
+                self.dlg.progressBar.hide()
+            except:
+                pass
+
+            try:
+                self.dlg.progressBar_loader.hide()
+            except:
+                pass
             if self.locale == "cs":
                 QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
             else:
                 QMessageBox.information(None, "Layman", "Use EPSG:4326")
             
+        if message == "BmpNotSupported":
+            try:
+                self.dlg.progressBar.hide()
+            except:
+                pass
+
+            try:
+                self.dlg.progressBar_loader.hide()
+            except:
+                pass
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Formát rastru BMP není podporován.")
+            else:
+                QMessageBox.information(None, "Layman", "Raster format BMP is not supported.")
+            try:
+                self.dlg.progressBar.hide()
+            except:
+                pass
         if message == "path added":
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Parametr path byl modifikován."), Qgis.Success, duration=3)
@@ -6247,16 +6287,13 @@ class Layman:
                                 threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
                             if (isinstance(layers[0], QgsRasterLayer)): 
                                 if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
-                                   
-                                    
-                                  
-                                    threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
-                                else:
-                                    if self.locale == "cs":
-                                        QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
+                                    ext = layers[0].dataProvider().dataSourceUri()[-4:]
+                                    if ext.lower() != ".bmp": 
+                                        threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
                                     else:
-                                        QMessageBox.information(None, "Layman", "Use EPSG:4326")
-                                    self.dlg.progressBar.hide()
+                                        QgsMessageLog.logMessage("BmpNotSupported")
+                                else:
+                                    QgsMessageLog.logMessage("wrongCrs")
                             #print("vrstva již existuje")
                         
                         else:
@@ -6268,8 +6305,11 @@ class Layman:
                         if (isinstance(layers[0], QgsRasterLayer)): 
                           
                             if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
-                               
-                                threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
+                                ext = layers[0].dataProvider().dataSourceUri()[-4:]
+                                if ext.lower() != ".bmp":
+                                    threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
+                                else:
+                                    QgsMessageLog.logMessage("BmpNotSupported")  
                             else:
                                 QgsMessageLog.logMessage("wrongCrs")
                                 
@@ -6295,14 +6335,14 @@ class Layman:
                             threading.Thread(target=lambda: self.postThread(layer_name,data, q,True)).start()   
                         if (isinstance(layers[0], QgsRasterLayer)): 
                             if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
-                                
-                                threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, False)).start()   
-                            else:
-                                if self.locale == "cs":
-                                    QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
+                                ext = layers[0].dataProvider().dataSourceUri()[-4:]
+                                if ext.lower() != ".bmp":
+                                    threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, False)).start()   
+
                                 else:
-                                    QMessageBox.information(None, "Layman", "Use EPSG:4326")
-                                self.dlg.progressBar.hide()
+                                    QgsMessageLog.logMessage("BmpNotSupported")
+                            else:
+                                QgsMessageLog.logMessage("wrongCrs")
                     #        if response.status_code == 200:
                     #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
                     #        else:

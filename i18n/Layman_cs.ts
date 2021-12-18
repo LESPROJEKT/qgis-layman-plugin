@@ -567,26 +567,36 @@
         <source>Action</source>
         <translation>Akce</translation>
     </message>
-    <message encoding="UTF-8">
+    <message>
         <location filename="../dlg_addMap.ui" line="272"/>
         <source>Anonymous</source>
-        <translation>Nepřihlášený uživatel</translation>
+        <translation type="obsolete">Nepřihlášený uživatel</translation>
     </message>
     <message>
         <location filename="../dlg_addLayer.ui" line="275"/>
         <source>Get URL</source>
-        <translation>URL Vrstvy</translation>
+        <translation type="obsolete">URL Vrstvy</translation>
     </message>
     <message>
         <location filename="../dlg_currentComposition.ui" line="300"/>
         <source>Exporting raster</source>
         <translation>Export rastru</translation>
     </message>
+    <message encoding="UTF-8">
+        <location filename="../dlg_addMap.ui" line="272"/>
+        <source>Nepřihlášený uživatel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dlg_addLayer.ui" line="275"/>
+        <source>Layer URL (copy to clipboard)</source>
+        <translation>URL vrstvy (uložit do schránky)</translation>
+    </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="5047"/>
+        <location filename="../Layman.py" line="5154"/>
         <source>&amp;Layman</source>
         <translation type="unfinished"></translation>
     </message>
