@@ -4563,6 +4563,11 @@ class Layman:
             #        self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
             #except:
             #    pass
+        if message == "wrongName":
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Nepodporovaný znak v názvu.")
+            else:
+                QMessageBox.information(None, "Layman", "Unsupported char in name.")
         if message == "wrongCrs":
             try:
                 self.dlg.progressBar.hide()
@@ -6203,6 +6208,12 @@ class Layman:
         for x in range (0, len(self.compositeList)):
             if self.removeUnacceptableChars(self.compositeList[x]['title']) == self.removeUnacceptableChars(current):
                 return x
+    def checkPossibleChars(self, layername):
+        unacceptable = "/*+-%!?:><&@#'"
+        for ch in layername:
+            if ch in unacceptable:
+                return False
+        return True
 
     def readDimFromCapatibilites(self, url, name):
         r = requests.get(url + "?service=wms&request=GetCapabilities")
@@ -6249,8 +6260,10 @@ class Layman:
             else:
                 QMessageBox.information(None, "Layman", "Number in first character is not allowed.")
             nameCheck = False
+        if not self.checkPossibleChars(layer_name):
+            QgsMessageLog.logMessage("wrongName")
+            return
         
-     
 
 
         #if not self.checkWgsExtent(layers[0]):
