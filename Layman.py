@@ -5913,14 +5913,14 @@ class Layman:
                 payload = {        
                 'file': name.lower()+ext,                
                 'title': name,
-                'crs': str(layer.crs().authid())
+                'crs': str(layer.crs().authid())                
                 }    
-            
+            files = {'style': open(stylePath, 'rb')} 
             #if externalFile != None:
             #    files = {'file': (externalFile, open(externalFile, 'rb')),} 
             #    response = requests.request("POST", url,  data=payload, files = files, headers = self.getAuthHeader(self.authCfg)) 
             #else:
-            response = requests.request("POST", url,  data=payload, headers = self.getAuthHeader(self.authCfg)) 
+            response = requests.request("POST", url, files=files,  data=payload, headers = self.getAuthHeader(self.authCfg)) 
             print(response.content)
             layer_name = self.removeUnacceptableChars(layer_name)
             filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) ## chunky se ukládají do adresáře v tempu
