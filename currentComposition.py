@@ -85,12 +85,6 @@ class CurrentComposition(object):
         if self.user in data['access_rights']['read'] or "EVERYONE" in data['access_rights']['read']:
             print("r")
             return "r"     
-
-    def getAllPermissions(self):
-        url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name     
-        r = requests.get(url = url, headers = self.header)
-        data = r.json()
-        return data['access_rights']
     def removeUnacceptableChars(self, input):
         input = input.lower()
         input = input.replace("ř","r")
