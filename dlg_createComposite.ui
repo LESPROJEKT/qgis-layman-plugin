@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>650</width>
+    <width>600</width>
     <height>380</height>
    </rect>
   </property>
@@ -21,13 +21,13 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>650</width>
+    <width>600</width>
     <height>380</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>650</width>
+    <width>600</width>
     <height>380</height>
    </size>
   </property>
@@ -37,8 +37,8 @@
   <widget class="QPushButton" name="pushButton_CreateComposition">
    <property name="geometry">
     <rect>
-     <x>287</x>
-     <y>340</y>
+     <x>256</x>
+     <y>303</y>
      <width>141</width>
      <height>27</height>
     </rect>
@@ -50,8 +50,8 @@
   <widget class="QPushButton" name="pushButton_close">
    <property name="geometry">
     <rect>
-     <x>449</x>
-     <y>340</y>
+     <x>416</x>
+     <y>303</y>
      <width>151</width>
      <height>28</height>
     </rect>
@@ -63,7 +63,7 @@
   <widget class="QTreeWidget" name="treeWidget">
    <property name="geometry">
     <rect>
-     <x>288</x>
+     <x>256</x>
      <y>46</y>
      <width>311</width>
      <height>241</height>
@@ -78,7 +78,7 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>290</x>
+     <x>256</x>
      <y>17</y>
      <width>311</width>
      <height>16</height>
@@ -266,7 +266,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>300</y>
+     <y>330</y>
      <width>321</width>
      <height>31</height>
     </rect>
@@ -279,7 +279,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>340</y>
+     <y>303</y>
      <width>141</width>
      <height>27</height>
     </rect>
