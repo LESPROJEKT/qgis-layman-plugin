@@ -4700,15 +4700,7 @@ class Layman:
         #QgsMessageLog.logMessage("compositionLoaded")
     def readMapJson(self,name, service, workspace=""): 
         self.dlg.pushButton_map.setEnabled(False)
-        if QgsProject.instance().crs().authid() == 'EPSG:5514':
-            if QgsProject.instance().crs().toProj() == '+proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs':
-                
-                if self.locale == "cs":
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Používáte EPSG: 5514. Doporučujeme používat tranformaci 5514-1623"), Qgis.Success, duration=10)
-                #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Pro vrstvy v tomto projektu lze nastavit přesnější tranformace. Chcete tuto tranformaci nastavit?")
-                   # QMessageBox.information(None, "Layman", "Používáte EPSG: 5514. Doporučujeme používat tranformaci 5514-1623")
-                else:
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "You are using EPSG: 5514. We recommend using the transformation 5514-1623 "), Qgis.Success, duration=10)
+        
                 #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "More accurate transformations can be set for layers in this project. Do you want to set up this transformation?")
                 #msgbox.addButton(QMessageBox.Yes)
                 #msgbox.addButton(QMessageBox.No)
@@ -4746,9 +4738,19 @@ class Layman:
                 projection = data['projection'].replace("epsg:","")
                 crs=QgsCoordinateReferenceSystem(int(projection))
                 QgsProject.instance().setCrs(crs)
+            
             except:
                 print("parameter projection was not found")
-
+        
+            if QgsProject.instance().crs().authid() == 'EPSG:5514':
+                if QgsProject.instance().crs().toProj() == '+proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs':
+                
+                    if self.locale == "cs":
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Používáte EPSG: 5514. Doporučujeme používat tranformaci 5514-1623"), Qgis.Success, duration=10)
+                    #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Pro vrstvy v tomto projektu lze nastavit přesnější tranformace. Chcete tuto tranformaci nastavit?")
+                       # QMessageBox.information(None, "Layman", "Používáte EPSG: 5514. Doporučujeme používat tranformaci 5514-1623")
+                    else:
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "You are using EPSG: 5514. We recommend using the transformation 5514-1623 "), Qgis.Success, duration=10)
         else:
             print("workspace nepredan")
         try:
@@ -5262,7 +5264,8 @@ class Layman:
 
 
     def getEmptyComposite(self, compositeName, compositeTitle):        
-        compositeEPSG  = "epsg:4326"        
+       # compositeEPSG  = "epsg:4326"   
+        compositeEPSG = QgsProject.instance().crs().authid().lower()
         if (self.dlg.lineEdit_3.text() == "" or self.dlg.lineEdit_4.text() == "" or self.dlg.lineEdit_5.text() == "" or self.dlg.lineEdit_6.text() == ""):
            ext = iface.mapCanvas().extent() 
            ext = (self.tranformExtent(ext))
@@ -6997,16 +7000,19 @@ class Layman:
         self.processingRequest = False
     def removeRastersWithoutCrs(self, layers):
         unacceptableLayers = list()
+        pom = 0
         for layer in layers:
             if isinstance(layer, QgsRasterLayer):
                 if layer.crs().authid() not in ['EPSG:4326','EPSG:3857']:
+                    pom = pom + 1
                     unacceptableLayers.append(layer.name())
                     print(set(layers))
                     print(set([layer]))
                     layers = (set(layers)- set([layer]))
                     print(layers)
-        toOutput = "\n".join(unacceptableLayers)
-        QgsMessageLog.logMessage("wrongCrss" + toOutput)
+        if pom > 0 :
+            toOutput = "\n".join(unacceptableLayers)
+            QgsMessageLog.logMessage("wrongCrss" + toOutput)
         return layers
 
 
