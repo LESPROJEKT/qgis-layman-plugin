@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>360</height>
+    <height>320</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -22,7 +22,7 @@
   <property name="minimumSize">
    <size>
     <width>400</width>
-    <height>360</height>
+    <height>320</height>
    </size>
   </property>
   <property name="maximumSize">
@@ -48,7 +48,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>312</y>
+     <y>277</y>
      <width>171</width>
      <height>27</height>
     </rect>
@@ -61,7 +61,7 @@
    <property name="geometry">
     <rect>
      <x>220</x>
-     <y>312</y>
+     <y>277</y>
      <width>171</width>
      <height>28</height>
     </rect>
@@ -102,9 +102,9 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>130</x>
+     <x>10</x>
      <y>230</y>
-     <width>191</width>
+     <width>171</width>
      <height>23</height>
     </rect>
    </property>
@@ -118,7 +118,7 @@
   <widget class="QLabel" name="label_import">
    <property name="geometry">
     <rect>
-     <x>10</x>
+     <x>-140</x>
      <y>237</y>
      <width>141</width>
      <height>10</height>
@@ -131,8 +131,8 @@
   <widget class="QLabel" name="label_progress">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>280</y>
+     <x>220</x>
+     <y>234</y>
      <width>371</width>
      <height>16</height>
     </rect>

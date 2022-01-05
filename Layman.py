@@ -2141,6 +2141,7 @@ class Layman:
         self.dlg.pushButton_Connect.setEnabled(False)
         self.menu_UserInfoDialog.setEnabled(True)
         self.menu_AddMapDialog.setEnabled(True)    
+        threading.Thread(target=lambda: self.fillCompositionDict()).start()
         self.dlg.close()
     def rememberValueLayer(self, value):
         ## 2 true, 0 false
@@ -2191,8 +2192,10 @@ class Layman:
             self.compositionDict[dataAll[row]['name']] = dataAll[row]['title']
         #print(self.compositionDict)
     def getNameByTitle(self, val):
+        print(self.compositionDict)
         for key, value in self.compositionDict.items():
              if val == value:
+                 print(key)
                  return key         
     def loadMapsThread(self, onlyOwn):      
         print("pez")
@@ -4243,8 +4246,7 @@ class Layman:
                 self.dlg.progressBar.hide() 
             except:
                 pass
-        if message == "showLoader":
-            print("shod")
+        if message == "showLoader":            
             try:
                 self.dlg.progressBar_loader.show()
             except:
@@ -4698,7 +4700,7 @@ class Layman:
             self.compositeList.append(map)
         self.loadedInMemory = True
         #QgsMessageLog.logMessage("compositionLoaded")
-    def readMapJson(self,name, service, workspace=""): 
+    def readMapJson(self,name, service, workspace=""):         
         self.dlg.pushButton_map.setEnabled(False)
         
                 #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "More accurate transformations can be set for layers in this project. Do you want to set up this transformation?")
@@ -4714,6 +4716,7 @@ class Layman:
         self.params.append(name)
         self.params.append(service)
         self.params.append(workspace)
+     
         QgsMessageLog.logMessage("readmapjson")
     def readMapJson2(self,name, service, workspace=""):
         #self.dlg.progressBar_loader.show() 
@@ -4728,6 +4731,8 @@ class Layman:
             except:
                 print("signal crsChanged was not connected")
             self.selectedWorkspace = workspace
+            print(workspace)
+            print(name)
             url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'  
             print(url)
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
@@ -8894,7 +8899,7 @@ class Layman:
                 self.dlg.pushButton_NoLogin.setEnabled(False)
                 self.dlg.pushButton_Connect.setEnabled(False)
                 self.dlg.close()
-                threading.Thread(target=lambda: self.fillCompositionDict()).start()
+                
                 ## zjištení výpadku spojeni
                 QgsApplication.authManager().masterPasswordVerified.connect(self.connectionLost)
 
@@ -8903,6 +8908,7 @@ class Layman:
                 self.timerLayer.setInterval(10000)
                 self.timerLayer.timeout.connect(lambda: self.rebuildLiferayCache()) 
                 self.timerLayer.start()
+                threading.Thread(target=lambda: self.fillCompositionDict()).start()
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
         with open(save_path, 'wb') as fd:
