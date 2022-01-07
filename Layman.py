@@ -316,7 +316,7 @@ class Layman:
         self.textbox.setText("Layman")
 
         ################ end usericon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'login.png'
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'login.png'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_1.svg'
         self.menu_Connection = self.add_action(
             icon_path,
             text=self.tr(u'Login'),
@@ -325,7 +325,7 @@ class Layman:
             parent=self.iface.mainWindow())
 
 
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'save.png'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_2.svg'
         self.menu_saveLocalFile = self.add_action(
             icon_path,
             text=self.tr(u'Save as to JSON and SLD'),
@@ -364,7 +364,7 @@ class Layman:
         #    callback=self.run_ImportMapDialog,
         #    enabled_flag=False,
         #    parent=self.iface.mainWindow())  
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'download_map.png'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_3.svg'
         self.menu_AddMapDialog = self.add_action(
             icon_path,
             text=self.tr(u'Load map from server'),
@@ -395,7 +395,7 @@ class Layman:
             callback=self.run_CurrentCompositionDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow()) 
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'account.svg'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_4.svg'
         self.menu_UserInfoDialog = self.add_action(
             icon_path,
             text=self.tr(u'User info'),
@@ -1847,7 +1847,10 @@ class Layman:
       #  self.dlg.pushButton.clicked.connect(lambda: self.postRequest(self.dlg.treeWidget.currentItem().text(0)))
 
         self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))
-       
+        if self.locale == "cs":
+            self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 0")
+        else:
+            self.dlg.label_progress.setText("Sucessfully exported: 0 / 0")
         self.dlg.progressBar.hide() 
         self.dlg.label_import.hide()
         self.dlg.pushButton.setEnabled(False)
@@ -4592,7 +4595,7 @@ class Layman:
             if self.locale == "cs":
                 QMessageBox.information(None, "Layman", "Použijte EPSG:4326 pro vrstvy:" + "\n" + message[9:])
             else:
-                QMessageBox.information(None, "Layman", "Use EPSG:4326 for layers" + "\n" +  message[9:])
+                QMessageBox.information(None, "Layman", "Use EPSG:4326 for layers:" + "\n" +  message[9:])
         if message == "BmpNotSupported":
             try:
                 self.dlg.progressBar.hide()
@@ -5695,7 +5698,7 @@ class Layman:
         self.uploaded = 0
         self.batchLength = len(layers)
         if self.locale == "cs":
-            self.dlg.label_progress.setText("úspěšně exportováno: 0 / " + str(len(layers)) )
+            self.dlg.label_progress.setText("Úspěšně exportováno: 0 / " + str(len(layers)) )
         else:
             self.dlg.label_progress.setText("Sucessfully exported 0 / " + str(len(layers)) )
         #else:
@@ -7005,8 +7008,13 @@ class Layman:
         self.processingRequest = False
     def removeRastersWithoutCrs(self, layers):
         unacceptableLayers = list()
+        nonValid = list()
         pom = 0
         for layer in layers:
+            if not layer.isValid():
+                nonValid.append(layer.name())
+                layers = (set(layers)- set([layer]))
+                pom = pom + 1
             if isinstance(layer, QgsRasterLayer):
                 if layer.crs().authid() not in ['EPSG:4326','EPSG:3857']:
                     pom = pom + 1
@@ -7015,8 +7023,14 @@ class Layman:
                     print(set([layer]))
                     layers = (set(layers)- set([layer]))
                     print(layers)
+
         if pom > 0 :
-            toOutput = "\n".join(unacceptableLayers)
+            toOutput = "\n".join(unacceptableLayers)        
+            if len(nonValid) > 0:
+                if self.locale == "cs":
+                    toOutput = toOutput + "\n" + "Nevalidní vrstvy:" + "\n" + "\n".join(nonValid) 
+                else:
+                    toOutput = toOutput + "\n"+ "\n" + "Non valid layers:" + "\n" + "\n".join(nonValid) 
             QgsMessageLog.logMessage("wrongCrss" + toOutput)
         return layers
 
