@@ -593,7 +593,7 @@ class Layman:
                 
                 if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
                     if self.locale == "cs":
-                        cell.addItems(['Beze změny','Přepsat geometrii'])
+                        cell.addItems(['Beze změny','Přepsat data'])
                     else:
                         cell.addItems(['No change','Overwrite geometry'])                        
                 else:
@@ -667,6 +667,7 @@ class Layman:
                     self.dlg.pushButton_setPermissions.setEnabled(False)
                                     
                     self.dlg.label_readonly.show()
+                    
 
                 else:
                     self.dlg.label_readonly.hide()           
@@ -679,6 +680,7 @@ class Layman:
                 self.dlg.pushButton_setPermissions.setEnabled(False)
                 self.dlg.pushButton_delete.setEnabled(False)
                 self.dlg.pushButton_close.setEnabled(False)
+                self.dlg.pushButton_save.setEnabled(False)
                 self.dlg.label_readonly.show()
         if not self.isAuthorized:
             #self.dlg.radioButton_wms.setEnabled(False)
@@ -964,7 +966,7 @@ class Layman:
     def crsChanged(self):
         print("crs changed")  
         crs = QgsProject.instance().crs()
-  
+        print(crs.authid())
         if self.locale == "cs":
             msgbox = QMessageBox(QMessageBox.Question, "Layman", "Souřadnicový systém byl změnen na: "+ str(crs.authid())+". Chcete tento souřadnicový systém zapsat do kompozice?")
         else:
@@ -1003,7 +1005,8 @@ class Layman:
                 composition['extent'][3] = str(max[1])
                 composition['center'][0] = center[0]
                 composition['center'][1] = center[1]
-        self.patchMap2()                
+            self.patchMap2()                
+        QgsProject.instance().setCrs(crs)
 
     def duplicateLayers(self):
         layerList = set()
@@ -1151,7 +1154,7 @@ class Layman:
             elif item.checkState(0) == 2 and  self.removeUnacceptableChars(item.text(0))  in layerList: 
                 for it in self.currentSet:
                     print(it[2], it[0], item.text(0))
-                    if (it[2] =='Overwrite geometry'  or it[2] == "Přepsat geometrii") and it[0] == item.text(0):
+                    if (it[2] =='Overwrite geometry'  or it[2] == "Přepsat data") and it[0] == item.text(0):
                         layer = QgsProject.instance().mapLayersByName(item.text(0))[0]                              
                         if layer.type() == QgsMapLayer.VectorLayer:                
                             self.postRequest(layer.name(), True)
@@ -2004,6 +2007,8 @@ class Layman:
         self.dlg.treeWidget.itemClicked.connect(self.enableButton)
         self.dlg.treeWidget.itemClicked.connect(self.enableLoadMapButtons)
         self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
+        self.dlg.treeWidget.setColumnWidth(0, 300)
+        self.dlg.treeWidget.setColumnWidth(2, 80)
         self.dlg.label_noUser.hide()
         
 
@@ -2279,6 +2284,8 @@ class Layman:
         self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
         self.dlg.treeWidget.itemClicked.connect(self.showThumbnail)
         self.dlg.filter.valueChanged.connect(self.filterResults)
+        self.dlg.treeWidget.setColumnWidth(0, 300)
+        self.dlg.treeWidget.setColumnWidth(2, 80)
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         #self.dlg.setWindowModality(Qt.ApplicationModal)
         self.dlg.checkBox_own.stateChanged.connect(self.rememberValueLayer)
@@ -4742,13 +4749,13 @@ class Layman:
             data = r.json()
             self.instance = CurrentComposition(self.URI, name, workspace, self.getAuthHeader(self.authCfg),self.laymanUsername)
             self.instance.setComposition(data)
-            try:
-                projection = data['projection'].replace("epsg:","")
-                crs=QgsCoordinateReferenceSystem(int(projection))
-                QgsProject.instance().setCrs(crs)
+            #try:
+            #    projection = data['projection'].replace("epsg:","")
+            #    crs=QgsCoordinateReferenceSystem(int(projection))
+            #    QgsProject.instance().setCrs(crs)
             
-            except:
-                print("parameter projection was not found")
+            #except:
+            #    print("parameter projection was not found")
         
             if QgsProject.instance().crs().authid() == 'EPSG:5514':
                 if QgsProject.instance().crs().toProj() == '+proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs':
@@ -4857,6 +4864,17 @@ class Layman:
             ## konec naslouchani
 
             #self.prj=QgsProject.instance()
+            composition = self.instance.getComposition()
+            try:
+                projection = composition['projection'].replace("epsg:","")
+                crs=QgsCoordinateReferenceSystem(int(projection))
+                QgsProject.instance().setCrs(crs)
+                print(QgsProject.instance().crs().authid())
+                layers = QgsProject.instance().mapLayers().values()    
+                for layer in layers:
+                    layer.setCrs(crs)
+            except:
+                print("parameter projection was not found")
             QgsProject.instance().crsChanged.connect(self. crsChanged)
             self.project.removeAll.connect(self.removeSignals)
             #self.prj.layerWasAdded.connect(self.layerAdded)

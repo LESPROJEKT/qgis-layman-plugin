@@ -420,7 +420,7 @@
     <message>
         <location filename="../dlg_addMap.ui" line="79"/>
         <source>Workspace</source>
-        <translation type="unfinished"></translation>
+        <translation>Pracovní prostor</translation>
     </message>
     <message>
         <location filename="../dlg_addMap.ui" line="84"/>
