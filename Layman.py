@@ -1006,7 +1006,7 @@ class Layman:
                 composition['center'][0] = center[0]
                 composition['center'][1] = center[1]
             self.patchMap2()                
-        QgsProject.instance().setCrs(crs)
+        #QgsProject.instance().setCrs(crs)
 
     def duplicateLayers(self):
         layerList = set()
@@ -4749,13 +4749,13 @@ class Layman:
             data = r.json()
             self.instance = CurrentComposition(self.URI, name, workspace, self.getAuthHeader(self.authCfg),self.laymanUsername)
             self.instance.setComposition(data)
-            #try:
-            #    projection = data['projection'].replace("epsg:","")
-            #    crs=QgsCoordinateReferenceSystem(int(projection))
-            #    QgsProject.instance().setCrs(crs)
+            try:
+                projection = data['projection'].replace("epsg:","")
+                crs=QgsCoordinateReferenceSystem(int(projection))
+                QgsProject.instance().setCrs(crs)
             
-            #except:
-            #    print("parameter projection was not found")
+            except:
+                print("parameter projection was not found")
         
             if QgsProject.instance().crs().authid() == 'EPSG:5514':
                 if QgsProject.instance().crs().toProj() == '+proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs':
@@ -4768,11 +4768,11 @@ class Layman:
                         iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "You are using EPSG: 5514. We recommend using the transformation 5514-1623 "), Qgis.Success, duration=10)
         else:
             print("workspace nepredan")
-        try:
-            self.timerLayer.timeout.disconnect()
-            print("sync order vypinani")
-        except:
-            print("sync order vypinani")
+        #try:
+        #    self.timerLayer.timeout.disconnect()
+        #    print("sync order vypinani")
+        #except:
+        #    print("sync order vypinani")
         self.readMapJsonThread(name,service)
         #self.params = list()
         #self.params.append(name)
@@ -4871,6 +4871,13 @@ class Layman:
                 QgsProject.instance().setCrs(crs)
                 print(QgsProject.instance().crs().authid())
                 layers = QgsProject.instance().mapLayers().values()    
+                #wkt = 'PROJCRS["S-JTSK / Krovak", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak (Greenwich)", METHOD["Krovak", ID["EPSG",9819]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["southing (X)",south, ORDER[1], LENGTHUNIT["metre",1]], AXIS["westing (Y)",west, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5513]]'
+                wkt = 'PROJCRS["S-JTSK / Krovak East North", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak East North (Greenwich)", METHOD["Krovak (North Orientated)", ID["EPSG",1041]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["easting (X)",east, ORDER[1], LENGTHUNIT["metre",1]], AXIS["northing (Y)",north, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5514]]'
+                crs = QgsCoordinateReferenceSystem(wkt) 
+                #crs = QgsCoordinateReferenceSystem() 
+                #crs.createFromProj("+proj=pipeline +step +inv +proj=webmerc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +step +proj=push +v_3 +step +proj=cart +ellps=WGS84 +step +inv +proj=helmert +x=570.8 +y=85.7 +z=462.8 +rx=4.998 +ry=1.587 +rz=5.261 +s=3.56 +convention=position_vector +step +inv +proj=cart +ellps=bessel +step +proj=pop +v_3 +step +proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel")
+                #crs.createFromProj(QgsDatumTransform().datumTransformToProj(1623)) ## epsg:5514/1623
+          
                 for layer in layers:
                     layer.setCrs(crs)
             except:
@@ -7774,7 +7781,7 @@ class Layman:
                 QMessageBox.information(None, "Layman", "Map composition is corrupted!")
             return
         #self.loadservice3(data)
-        
+        #QTimer.singleShot(1, lambda: self.loadservice3(data))
         self.service3 = threading.Thread(target=lambda: self.loadservice3(data))
         self.service3.start()
        
@@ -7810,6 +7817,7 @@ class Layman:
             if className == 'HSLayers.Layer.WMS':
                 layerName = data['layers'][x]['params']['LAYERS']
                 self.layerServices[layerName] = 'HSLayers.Layer.WMS'
+            
             if className == 'OpenLayers.Layer.Vector' or className == 'Vector': 
                 print(data['layers'][x])
                 try:
@@ -7828,6 +7836,7 @@ class Layman:
             except:
                 print("wrong format of composition")
                 return
+            
             if self.checkLayerOnLayman(layerName):
                 #QgsMessageLog.logMessage("showLoader")                
                 #threading.Thread(target=lambda: self.loadservice3(data,className,x,layerName, visibility, groupName, subgroupName, timeDimension)).start()
@@ -7860,6 +7869,7 @@ class Layman:
                     #if not success:
                     #    notify = True
             
+               #☺ if False:
                 if className == 'XYZ':
                     #repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
                     layerName = data['layers'][x]['params']['LAYERS']
@@ -8103,18 +8113,20 @@ class Layman:
             pass # pro qgis 3.10 a vys      
         if (rlayer.isValid()):  
             if (groupName != ''):
+                
                 self.addWmsToGroup(subgroupName,rlayer, "")
                # self.addWmsToGroup(groupName,rlayer, subgroupName, i)
                 
                 
-            else:   
+            else:  
+                return
                 self.currentLayer.append(rlayer) 
                 self.params = []
                 self.params.append(visibility)
                 rand = random.randint(0,10000)
                 self.currentLayerDict[str(rand)] = rlayer
                 QgsMessageLog.logMessage("loadVector" + str(rand))
-                #QgsMessageLog.logMessage("loadLayer")
+               # QgsMessageLog.logMessage("loadLayer")
                 #QgsProject.instance().addMapLayer(rlayer)
             if visibility == False:
                 QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
