@@ -7132,7 +7132,8 @@ class Layman:
             d = json.load(f)        
         files = {'file': (tempFile, open(tempFile, 'rb')),} 
         #data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract']} 
-        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
+        #data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
+        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername,   'access_rights.write': self.laymanUsername} 
         
         response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
         if (response.status_code == 200):
@@ -8119,13 +8120,21 @@ class Layman:
                 
                 
             else:  
-                return
-                self.currentLayer.append(rlayer) 
                 self.params = []
                 self.params.append(visibility)
+                #self.addWmsToGroup("",rlayer, "")
+                #QgsProject.instance().addMapLayer(rlayer,False)
                 rand = random.randint(0,10000)
                 self.currentLayerDict[str(rand)] = rlayer
+                
                 QgsMessageLog.logMessage("loadVector" + str(rand))
+                #return
+                #self.currentLayer.append(rlayer) 
+                #self.params = []
+                #self.params.append(visibility)
+                #rand = random.randint(0,10000)
+                #self.currentLayerDict[str(rand)] = rlayer
+                #QgsMessageLog.logMessage("loadVector" + str(rand))
                # QgsMessageLog.logMessage("loadLayer")
                 #QgsProject.instance().addMapLayer(rlayer)
             if visibility == False:
