@@ -5561,6 +5561,7 @@ class Layman:
             layer.saveSldStyle(sld_filename)
             self.insertPictureToQML(layer)
             layer.saveNamedStyle(qml_filename)
+            self.insertBinaryToQml(layer, qml_filename)
     def json_exportMix(self, layer):    
     
         filePath = self.getTempPath(self.removeUnacceptableChars(layer.name() + str(layer.geometryType())).lower())  
@@ -5623,6 +5624,40 @@ class Layman:
             return False
         else:
             return True
+
+    def insertBinaryToQml(self,layer, stylePath):
+        single_symbol_renderer = layer.renderer()
+        #stylePath = r"C:\Users\Honza\Downloads\xxx\out.qml"
+        layer.saveNamedStyle(stylePath)
+        if isinstance(single_symbol_renderer, QgsCategorizedSymbolRenderer):
+            #print(single_symbol_renderer.embeddedRenderer())
+            symbol  = layer.renderer().categories()
+            for i in symbol: 
+                #print(i.symbol().symbolLayer(0))
+        
+                if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
+                    path = i.symbol().symbolLayer(0).path()  
+                    print(type(i.symbol().symbolLayer(0).subSymbol() ))       
+                    if os.path.exists(path):
+                        with open(path, "rb") as image_file:
+                            encoded_string = base64.b64encode(image_file.read())
+                            #print(encoded_string)    
+                        path2 = i.symbol().symbolLayer(0).path()          
+                        decoded =   encoded_string.decode("utf-8") 
+                        path3 = ("base64:"  + decoded)
+                        #i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
+                
+                        #print(i.symbol().symbolLayer(0).path())
+                
+                        print(path2)
+                        print(path3)
+                        with open(stylePath, 'r') as file :
+                            filedata = file.read()
+       
+                        filedata = filedata.replace(path2, path3)
+
+                        with open(stylePath, 'w') as file:
+                            file.write(filedata)
     def insertPictureToQML(self, layer):       
         single_symbol_renderer = layer.renderer()
         
