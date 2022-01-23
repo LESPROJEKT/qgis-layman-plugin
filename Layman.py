@@ -356,14 +356,7 @@ class Layman:
             text=self.tr(u'Load layer from server'),
             callback=self.run_AddLayerDialog,
             enabled_flag=False,
-            parent=self.iface.mainWindow()) 
-        #icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'upload-map.png'
-        #self.menu_ImportMapDialog = self.add_action(
-        #    icon_path,
-        #    text=self.tr(u'Manage maps'),
-        #    callback=self.run_ImportMapDialog,
-        #    enabled_flag=False,
-        #    parent=self.iface.mainWindow())  
+            parent=self.iface.mainWindow())        
         icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_3.svg'
         self.menu_AddMapDialog = self.add_action(
             icon_path,
@@ -371,22 +364,6 @@ class Layman:
             callback=self.run_AddMapDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow())   
-        
-        
-        #icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'delete.png'
-        #self.menu_DeleteMapDialog = self.add_action(
-        #    icon_path,
-        #    text=self.tr(u'Delete map'),
-        #    callback=self.run_DeleteMapDialog,
-        #    enabled_flag=False,
-        #    parent=self.iface.mainWindow())  
-        #icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'globus.png'
-        #self.menu_CreateCompositeDialog = self.add_action(
-        #    icon_path,
-        #    text=self.tr(u'Create map'),
-        #    callback=self.run_CreateCompositeDialog,
-        #    enabled_flag=False,
-        #    parent=self.iface.mainWindow())
         
         icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'map.png'
         self.menu_CurrentCompositionDialog = self.add_action(
@@ -1220,6 +1197,8 @@ class Layman:
             if item[0] == layerName:
                 return item[1]
     def run_UserInfoDialog(self):
+        print(self.liferayServer)
+        print(self.laymanUsername)
         self.recalculateDPI()
         self.dlg = UserInfoDialog() 
         self.dlg.show()        
@@ -1227,7 +1206,8 @@ class Layman:
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         print(self.liferayServer)
-        if self.liferayServer != None:
+        print(self.liferayServer != None and self.laymanUsername != "")
+        if self.liferayServer != None and self.laymanUsername != "":
             userEndpoint = self.URI + "/rest/current-user"
             r = requests.get(url = userEndpoint,  headers = self.getAuthHeader(self.authCfg))
             res = r.text
@@ -1261,7 +1241,7 @@ class Layman:
                 self.dlg.label_5.hide()
                 self.dlg.pushButton_update.setEnabled(False)            
             self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
-            self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
+        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
     def run_SetMapPermission(self, mapName, fromAddMap = False):
         self.recalculateDPI()
         self.dlg = SetPermissionDialog() 
@@ -2812,10 +2792,11 @@ class Layman:
             self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
         else:
             self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
-    def loginReject(self):
+    def loginReject(self):        
+        
         if self.dlg.pushButton_Continue.isEnabled():
             self.getToken()
-        else:
+        else:            
             self.dlg.close()
     def logout(self):
         self.disableEnvironment()
@@ -4710,7 +4691,17 @@ class Layman:
             self.compositeList.append(map)
         self.loadedInMemory = True
         #QgsMessageLog.logMessage("compositionLoaded")
-    def readMapJson(self,name, service, workspace=""):         
+    def readMapJson(self,name, service, workspace=""):       
+        url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'  
+        print(url)
+        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        data = r.json()
+        projection = data['projection'].replace("epsg:","")
+        crs=QgsCoordinateReferenceSystem(int(projection))
+        QgsProject.instance().setCrs(crs)
+
+        
+
         self.dlg.pushButton_map.setEnabled(False)
         
                 #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "More accurate transformations can be set for layers in this project. Do you want to set up this transformation?")
@@ -4749,14 +4740,14 @@ class Layman:
             data = r.json()
             self.instance = CurrentComposition(self.URI, name, workspace, self.getAuthHeader(self.authCfg),self.laymanUsername)
             self.instance.setComposition(data)
-            try:
-                projection = data['projection'].replace("epsg:","")
-                crs=QgsCoordinateReferenceSystem(int(projection))
-                QgsProject.instance().setCrs(crs)
+            #try:
+            #    projection = data['projection'].replace("epsg:","")
+            #    crs=QgsCoordinateReferenceSystem(int(projection))
+            #    QgsProject.instance().setCrs(crs)
             
-            except:
-                print("parameter projection was not found")
-        
+            #except:
+            #    print("parameter projection was not found")
+            
             if QgsProject.instance().crs().authid() == 'EPSG:5514':
                 if QgsProject.instance().crs().toProj() == '+proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs':
                 
