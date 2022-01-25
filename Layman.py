@@ -4699,9 +4699,9 @@ class Layman:
         projection = data['projection'].replace("epsg:","")
         crs=QgsCoordinateReferenceSystem(int(projection))
         QgsProject.instance().setCrs(crs)
-
-        
-
+        #canvas = iface.mapCanvas()     
+        #rect = QgsRectangle(float(data['extent'][0]),float(data['extent'][1]),float(data['extent'][2]),float(data['extent'][3]))
+        #canvas.setExtent(rect)
         self.dlg.pushButton_map.setEnabled(False)
         
                 #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "More accurate transformations can be set for layers in this project. Do you want to set up this transformation?")
@@ -5320,7 +5320,7 @@ class Layman:
         center = tform.transform(QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()))
         abstract = self.dlg.lineEdit_7.text()        
         comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(xmin),str(ymin),str(xmax),str(ymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
-        #print(comp)
+        print(comp)
         
        ## iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + compositeName + " byla úspešně vytvořena."), Qgis.Success, duration=3)
         return comp
@@ -5652,6 +5652,26 @@ class Layman:
 
                         with open(stylePath, 'w') as file:
                             file.write(filedata)
+                if isinstance(i.symbol().symbolLayer(0), QgsMarkerLineSymbolLayer):
+                    path = i.symbol().symbolLayer(0).subSymbol().symbolLayer(0).path()
+        
+                    if os.path.exists(path):
+                        with open(path, "rb") as image_file:
+                            encoded_string = base64.b64encode(image_file.read())
+                            #print(encoded_string)    
+                        path2 = i.symbol().symbolLayer(0).subSymbol().symbolLayer(0).path()
+                        decoded =   encoded_string.decode("utf-8") 
+                        #print("base64:"  + decoded)
+                        #i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
+                        path3 = ("base64:"  + decoded)
+                        with open(stylePath, 'r') as file :
+                            filedata = file.read()
+       
+                        filedata = filedata.replace(path2, path3)
+
+                        with open(stylePath, 'w') as file:
+                            file.write(filedata)
+   
         elif isinstance(single_symbol_renderer, QgsRuleBasedRenderer):
             print(type(layer.renderer()))
             symbol  = layer.renderer().rootRule().children()
@@ -5669,7 +5689,7 @@ class Layman:
                         decoded =   encoded_string.decode("utf-8") 
                         #print("base64:"  + decoded)
                         #i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
-                        path3 = i.symbol().symbolLayer(0).path()
+                        path3 = ("base64:"  + decoded)
                         with open(stylePath, 'r') as file :
                             filedata = file.read()
        
