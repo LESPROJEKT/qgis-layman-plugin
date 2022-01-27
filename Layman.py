@@ -4697,8 +4697,9 @@ class Layman:
         r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
         data = r.json()
         projection = data['projection'].replace("epsg:","")
-        crs=QgsCoordinateReferenceSystem(int(projection))
-        QgsProject.instance().setCrs(crs)
+        if projection != "":
+            crs=QgsCoordinateReferenceSystem(int(projection))
+            QgsProject.instance().setCrs(crs)
         #canvas = iface.mapCanvas()     
         #rect = QgsRectangle(float(data['extent'][0]),float(data['extent'][1]),float(data['extent'][2]),float(data['extent'][3]))
         #canvas.setExtent(rect)
@@ -8729,7 +8730,8 @@ class Layman:
         self.menu_CurrentCompositionDialog.setEnabled(True)
         
         #self.textbox.setText("Layman: Logged user")
-    def getAuthHeader(self, authCfg):    
+    def getAuthHeader(self, authCfg):  
+        print(self.isAuthorized)
         if self.isAuthorized:
             config = QgsAuthMethodConfig()
             url = QUrl(self.URI+ "/rest/current-user")
@@ -8957,7 +8959,8 @@ class Layman:
         res = self.fromByteToJson(r.content)
         print(res)
         return res['claims']['name']
-    def connectionLost(self):        
+    def connectionLost(self):      
+        print("connection lost")
         self.disableEnvironment()      
         #userEndpoint = self.URI+ "/rest/current-user"    
         #r = requests.delete(url = userEndpoint, headers = self.getAuthHeader(self.authCfg))
@@ -8981,8 +8984,9 @@ class Layman:
         self.isAuthorized = True
         authcfg_id = self.authCfg
         #if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
-        self.setup_oauth(authcfg_id, self.liferayServer)
+        print(self.setup_oauth(authcfg_id, self.liferayServer))
         authHeader = self.getAuthHeader(self.authCfg)
+        print(authHeader)
         if (authHeader):
             if self.registerUserIfNotExists():
                 #threading.Thread(target=self.loadAllCompositesT).start() ## načteme kompozice do pole ve vláknu 
@@ -9028,7 +9032,7 @@ class Layman:
                 self.dlg.close()
                 
                 ## zjištení výpadku spojeni
-                QgsApplication.authManager().masterPasswordVerified.connect(self.connectionLost)
+                #QgsApplication.authManager().masterPasswordVerified.connect(self.connectionLost)
 
                 ## liferay cache
                 self.timerLayer = QTimer()
