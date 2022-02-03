@@ -5632,46 +5632,79 @@ class Layman:
         
                 if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
                     path = i.symbol().symbolLayer(0).path()  
-                    print(type(i.symbol().symbolLayer(0).subSymbol() ))       
-                    if os.path.exists(path):
-                        with open(path, "rb") as image_file:
-                            encoded_string = base64.b64encode(image_file.read())
-                            #print(encoded_string)    
-                        path2 = i.symbol().symbolLayer(0).path()          
-                        decoded =   encoded_string.decode("utf-8") 
-                        path3 = ("base64:"  + decoded)
-                        #i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
+                    print(type(i.symbol().symbolLayer(0).subSymbol() )) 
+                    if path[:4] != "base":
+                        if os.path.exists(path):
+                            with open(path, "rb") as image_file:
+                                encoded_string = base64.b64encode(image_file.read())
+                                #print(encoded_string)    
+                            path2 = i.symbol().symbolLayer(0).path()          
+                            decoded =   encoded_string.decode("utf-8") 
+                            path3 = ("base64:"  + decoded)
+                            #i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
                 
-                        #print(i.symbol().symbolLayer(0).path())
+                            #print(i.symbol().symbolLayer(0).path())
                 
-                        print(path2)
-                        print(path3)
-                        with open(stylePath, 'r') as file :
-                            filedata = file.read()
+                            print(path2)
+                            print(path3)
+                            with open(stylePath, 'r') as file :
+                                filedata = file.read()
        
-                        filedata = filedata.replace(path2, path3)
+                            filedata = filedata.replace(path2, path3)
 
-                        with open(stylePath, 'w') as file:
-                            file.write(filedata)
-                if isinstance(i.symbol().symbolLayer(0), QgsMarkerLineSymbolLayer):
-                    path = i.symbol().symbolLayer(0).subSymbol().symbolLayer(0).path()
+                            with open(stylePath, 'w') as file:
+                                file.write(filedata)
+                j = 0
+                pom = True
         
-                    if os.path.exists(path):
-                        with open(path, "rb") as image_file:
-                            encoded_string = base64.b64encode(image_file.read())
-                            #print(encoded_string)    
-                        path2 = i.symbol().symbolLayer(0).subSymbol().symbolLayer(0).path()
-                        decoded =   encoded_string.decode("utf-8") 
-                        #print("base64:"  + decoded)
-                        #i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
-                        path3 = ("base64:"  + decoded)
-                        with open(stylePath, 'r') as file :
-                            filedata = file.read()
-       
-                        filedata = filedata.replace(path2, path3)
+                while pom:
+                    #print(i.symbol().symbolLayer(j))
+                    if isinstance(i.symbol().symbolLayer(j), QgsMarkerLineSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
+                
+                        path = (i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path())
+                        #print(path)   
+                        if path[:4] != "base":
+                            if os.path.exists(path):
+                                with open(path, "rb") as image_file:
+                                    encoded_string = base64.b64encode(image_file.read())
+                                    #print(encoded_string)    
+                                path = i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path()         
+                                decoded =   encoded_string.decode("utf-8") 
+                                path2 = ("base64:"  + decoded)
+                                #i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
+                                #print(path2)
+                                #print(i.symbol().symbolLayer(0).path())
+                                with open(stylePath, 'r') as file :
+                                    filedata = file.read()
+                           
+                                filedata = filedata.replace(path, path2)
 
-                        with open(stylePath, 'w') as file:
-                            file.write(filedata)
+                                with open(stylePath, 'w') as file:
+                                    file.write(filedata)
+                    j = j +1
+                    try:
+                        i.symbol().symbolLayer(j).subSymbol
+                    except:
+                        pom = False
+                #if isinstance(i.symbol().symbolLayer(0), QgsMarkerLineSymbolLayer):
+                #    path = i.symbol().symbolLayer(0).subSymbol().symbolLayer(0).path()
+        
+                #    if os.path.exists(path):
+                #        with open(path, "rb") as image_file:
+                #            encoded_string = base64.b64encode(image_file.read())
+                #            #print(encoded_string)    
+                #        path2 = i.symbol().symbolLayer(0).subSymbol().symbolLayer(0).path()
+                #        decoded =   encoded_string.decode("utf-8") 
+                #        #print("base64:"  + decoded)
+                #        #i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
+                #        path3 = ("base64:"  + decoded)
+                #        with open(stylePath, 'r') as file :
+                #            filedata = file.read()
+       
+                #        filedata = filedata.replace(path2, path3)
+
+                #        with open(stylePath, 'w') as file:
+                #            file.write(filedata)
    
         elif isinstance(single_symbol_renderer, QgsRuleBasedRenderer):
             print(type(layer.renderer()))
