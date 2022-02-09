@@ -1898,7 +1898,10 @@ class Layman:
         
         for i in range (0,len(servers)):
           #  print(servers[i][0])
-            self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
+            if i == len(servers) - 1: ## vyjimka pro alias na test server bude ostraneno
+                self.dlg.comboBox_server.addItem("test HUB")
+            else:
+                self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
 
         self.setServers(servers, 0) ## nastavujeme prvni server 
         self.dlg.comboBox_server.currentIndexChanged.connect(lambda: self.setServers(servers, self.dlg.comboBox_server.currentIndex()))
