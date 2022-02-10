@@ -1898,12 +1898,13 @@ class Layman:
         
         for i in range (0,len(servers)):
           #  print(servers[i][0])
+            
             if i == len(servers) - 1: ## vyjimka pro alias na test server bude ostraneno
                 self.dlg.comboBox_server.addItem("test HUB")
             else:
                 self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
-
-        self.setServers(servers, 0) ## nastavujeme prvni server 
+        if self.laymanUsername == "":
+            self.setServers(servers, 0) ## nastavujeme prvni server 
         self.dlg.comboBox_server.currentIndexChanged.connect(lambda: self.setServers(servers, self.dlg.comboBox_server.currentIndex()))
         if (os.path.isfile(os.getenv("HOME") + os.sep + ".layman" + os.sep +'layman_user.INI')):
             config = self.loadIni()
@@ -1915,8 +1916,12 @@ class Layman:
             
             for i in range (0, self.dlg.comboBox_server.count()):                
                 #print(self.dlg.comboBox_server.itemText(i))
-                if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
-                    self.dlg.comboBox_server.setCurrentIndex(i)
+                print(self.authCfg)
+                if self.authCfg == "a67e5fd":
+                    self.dlg.comboBox_server.setCurrentIndex(len(servers) - 1)
+                else:
+                    if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
+                        self.dlg.comboBox_server.setCurrentIndex(i)
             #self.dlg.lineEdit_AgriID.setText(config['DEFAULT']['id']) 
             #self.dlg.lineEdit_server.setText(config['DEFAULT']['server']) 
            # self.dlg.lineEdit_serverLayman.setText(config['DEFAULT']['layman']) 
