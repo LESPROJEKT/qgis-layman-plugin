@@ -2607,7 +2607,7 @@ class Layman:
         xmax = ext.xMaximum()
         ymin = ext.yMinimum()
         ymax = ext.yMaximum()
-        if QgsProject.instance().crs().authid() == 'EPSG:5514':
+        if QgsProject.instance().crs().authid() == 'EPSG:5514' and layer[0].crs().authid() == 'EPSG:4326':
             print(xmin ,xmax, ymin, ymax)
             max = self.krovakToWgs(xmax, ymax)
             min = self.krovakToWgs(xmin, ymin)
@@ -2615,7 +2615,7 @@ class Layman:
             xmax = max[0]
             ymin = min[1]
             ymax = max[1]
-        if QgsProject.instance().crs().authid() == 'EPSG:4326':  
+        if QgsProject.instance().crs().authid() == 'EPSG:4326' and layer[0].crs().authid() == 'EPSG:5514':  
             max = self.wgsToKrovak(xmax, ymax)
             min = self.wgsToKrovak(xmin, ymin)
             xmin = min[0]
