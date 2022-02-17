@@ -178,6 +178,7 @@ class Layman:
         self.processingRequest = False
         self.mixedLayers = list()
         self.DPI = self.getDPI()
+        self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514']
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
         
@@ -6036,7 +6037,9 @@ class Layman:
     #      file.write(filedata)        
     def postRasterThread(self, layer,data, q,progress, patch):
         QgsMessageLog.logMessage("enableProgress")
-        data['crs'] = 'EPSG:4326'
+
+        #data['crs'] = 'EPSG:4326'
+        data['crs'] = layer.crs().authid()
         print(layer.name())
         stylePath = self.getTempPath(self.removeUnacceptableChars(layer.name())).replace("geojson", "sld")
         layer.saveSldStyle(stylePath)
@@ -6470,7 +6473,7 @@ class Layman:
                             if (isinstance(layers[0], QgsVectorLayer)):
                                 threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
                             if (isinstance(layers[0], QgsRasterLayer)): 
-                                if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
+                                if layers[0].crs().authid() in self.supportedEPSG:
                                     ext = layers[0].dataProvider().dataSourceUri()[-4:]
                                     if ext.lower() != ".bmp": 
                                         threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
@@ -6488,7 +6491,7 @@ class Layman:
                             threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
                         if (isinstance(layers[0], QgsRasterLayer)): 
                           
-                            if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
+                            if layers[0].crs().authid()  in self.supportedEPSG:
                                 ext = layers[0].dataProvider().dataSourceUri()[-4:]
                                 if ext.lower() != ".bmp":
                                     threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
@@ -6518,7 +6521,7 @@ class Layman:
                         if (isinstance(layers[0], QgsVectorLayer)):
                             threading.Thread(target=lambda: self.postThread(layer_name,data, q,True)).start()   
                         if (isinstance(layers[0], QgsRasterLayer)): 
-                            if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
+                            if layers[0].crs().authid()  in self.supportedEPSG:
                                 ext = layers[0].dataProvider().dataSourceUri()[-4:]
                                 if ext.lower() != ".bmp":
                                     threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, False)).start()   
