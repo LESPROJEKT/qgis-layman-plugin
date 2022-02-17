@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
+    <width>900</width>
     <height>500</height>
    </rect>
   </property>
@@ -21,13 +21,13 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>800</width>
+    <width>900</width>
     <height>500</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>800</width>
+    <width>900</width>
     <height>500</height>
    </size>
   </property>
@@ -52,7 +52,7 @@
     <rect>
      <x>20</x>
      <y>70</y>
-     <width>541</width>
+     <width>631</width>
      <height>371</height>
     </rect>
    </property>
@@ -74,11 +74,16 @@
      <string>Permissions</string>
     </property>
    </column>
+   <column>
+    <property name="text">
+     <string>EPSG</string>
+    </property>
+   </column>
   </widget>
   <widget class="QPushButton" name="pushButton_close">
    <property name="geometry">
     <rect>
-     <x>581</x>
+     <x>671</x>
      <y>356</y>
      <width>200</width>
      <height>25</height>
@@ -91,7 +96,7 @@
   <widget class="QLabel" name="label_thumbnail">
    <property name="geometry">
     <rect>
-     <x>582</x>
+     <x>672</x>
      <y>70</y>
      <width>200</width>
      <height>197</height>
@@ -107,7 +112,7 @@
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>583</x>
+     <x>673</x>
      <y>40</y>
      <width>141</width>
      <height>13</height>
@@ -120,7 +125,7 @@
   <widget class="QPushButton" name="pushButton_layerRedirect">
    <property name="geometry">
     <rect>
-     <x>810</x>
+     <x>920</x>
      <y>260</y>
      <width>141</width>
      <height>27</height>
@@ -133,7 +138,7 @@
   <widget class="QPushButton" name="pushButton_wfs">
    <property name="geometry">
     <rect>
-     <x>390</x>
+     <x>480</x>
      <y>450</y>
      <width>170</width>
      <height>27</height>
@@ -146,7 +151,7 @@
   <widget class="QPushButton" name="pushButton_delete">
    <property name="geometry">
     <rect>
-     <x>581</x>
+     <x>671</x>
      <y>323</y>
      <width>200</width>
      <height>25</height>
@@ -159,7 +164,7 @@
   <widget class="QLabel" name="label_loading">
    <property name="geometry">
     <rect>
-     <x>810</x>
+     <x>920</x>
      <y>264</y>
      <width>141</width>
      <height>16</height>
@@ -175,7 +180,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>582</x>
+     <x>672</x>
      <y>390</y>
      <width>201</width>
      <height>20</height>
@@ -191,7 +196,7 @@
   <widget class="QPushButton" name="pushButton_setPermissions">
    <property name="geometry">
     <rect>
-     <x>581</x>
+     <x>671</x>
      <y>290</y>
      <width>201</width>
      <height>24</height>
@@ -219,7 +224,7 @@
     <rect>
      <x>80</x>
      <y>39</y>
-     <width>481</width>
+     <width>571</width>
      <height>24</height>
     </rect>
    </property>
@@ -252,7 +257,7 @@
   <widget class="QLabel" name="label_noUser">
    <property name="geometry">
     <rect>
-     <x>439</x>
+     <x>520</x>
      <y>13</y>
      <width>131</width>
      <height>20</height>
@@ -265,7 +270,7 @@
   <widget class="QGroupBox" name="groupBox">
    <property name="geometry">
     <rect>
-     <x>581</x>
+     <x>671</x>
      <y>417</y>
      <width>200</width>
      <height>61</height>

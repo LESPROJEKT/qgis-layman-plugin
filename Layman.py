@@ -2331,8 +2331,12 @@ class Layman:
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
             data = r.json()
             if onlyOwn:
-                for row in range(0, len(data)):              
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
+                for row in range(0, len(data)):     
+                    print(data[row]['native_crs'])
+                    if "native_crs" in data[row]:
+                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
+                    else:
+                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
                     self.dlg.treeWidget.addTopLevelItem(item)
                 QgsMessageLog.logMessage("layersLoaded")
             else:
@@ -2348,7 +2352,10 @@ class Layman:
                     if dataAll[row] in data:
                         permissions = "own"
                     if permissions != "":
-                        item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
+                        if "native_crs" in dataAll[row]:
+                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs']])
+                        else:
+                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
                         self.dlg.treeWidget.addTopLevelItem(item)
                 QgsMessageLog.logMessage("layersLoaded")
         else:
@@ -2361,7 +2368,10 @@ class Layman:
                     permissions = "read"
                 if "EVERYONE" in data[row]['access_rights']['write']:
                     permissions = "write"
-                item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions])
+                if "native_crs" in dataAll[row]:
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs']])
+                else:
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions])
                 self.dlg.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("layersLoaded")
     def addExternalWMSToComposite(self, name):
