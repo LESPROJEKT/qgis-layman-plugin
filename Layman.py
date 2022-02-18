@@ -2204,7 +2204,10 @@ class Layman:
        #print(data)
         if onlyOwn and self.isAuthorized:
             for row in range(0, len(data)):  
-                item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
+                if "native_crs" in data[row]:
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", data[row]['native_crs']])
+                else:
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
                 self.dlg.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("loadMaps")
         elif not self.isAuthorized:
@@ -2213,7 +2216,10 @@ class Layman:
             dataAll = r.json()
             permissions = ""
             for row in range(0, len(dataAll)): 
-                item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read"])
+                if "native_crs" in dataAll[row]:
+                    item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read", dataAll[row]['native_crs']])
+                else:
+                    item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read"])
                 self.dlg.treeWidget.addTopLevelItem(item)
         else:
             url = self.URI+'/rest/maps?order_by=title'           
@@ -2228,7 +2234,10 @@ class Layman:
                 if dataAll[row] in data:
                     permissions = "own"
                 if permissions != "":
-                    item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
+                    if "native_crs" in dataAll[row]:
+                        item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions, dataAll[row]['native_crs']])
+                    else:
+                        item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
                     print(dataAll[row]['title'])
                     self.dlg.treeWidget.addTopLevelItem(item)
         QgsMessageLog.logMessage("loadMaps")
