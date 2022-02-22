@@ -177,6 +177,8 @@ class Layman:
         self.noOverrideLayers = list()
         self.processingRequest = False
         self.mixedLayers = list()
+        self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
+        self.schemaVersion = "2.0.0"
         self.DPI = self.getDPI()
         self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514']
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
@@ -1115,7 +1117,8 @@ class Layman:
                 #if True: # kdyz se nenachazi v kompozici nahravame
                     layer = QgsProject.instance().mapLayersByName(item.text(0))[0]                  
                     if (isinstance(layer, QgsVectorLayer)):
-                        if layer.featureCount() > 0:
+                        #if layer.featureCount() > 0:
+                        if True:
                             layerType = layer.type()                    
                             if layerType == QgsMapLayer.VectorLayer:
                                 layer.editingStopped.connect(self.layerEditStopped) 
@@ -1221,7 +1224,8 @@ class Layman:
                 self.dlg.label_agrihub.setText(res['claims']['email'])
             else:
                 self.dlg.label_layman.setText("Anonymous")
-            self.dlg.label_server.setText(self.liferayServer)
+            #self.dlg.label_server.setText(self.liferayServer)
+            self.dlg.label_server.setText(self.URI)
             
             self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
             self.dlg.label_version.setText(self.getVersion())
@@ -5322,33 +5326,42 @@ class Layman:
     def getEmptyComposite(self, compositeName, compositeTitle):        
        # compositeEPSG  = "epsg:4326"   
         compositeEPSG = QgsProject.instance().crs().authid().lower()
-        if (self.dlg.lineEdit_3.text() == "" or self.dlg.lineEdit_4.text() == "" or self.dlg.lineEdit_5.text() == "" or self.dlg.lineEdit_6.text() == ""):
-           ext = iface.mapCanvas().extent() 
-           ext = (self.tranformExtent(ext))
-           xmin = ext.xMinimum()
-           xmax = ext.xMaximum()
-           ymin = ext.yMinimum()
-           ymax = ext.yMaximum()
-           print(ymax)
-        else:   
-           xmin = self.dlg.lineEdit_3.text()
-           xmax = self.dlg.lineEdit_4.text()
-           ymin = self.dlg.lineEdit_5.text()
-           ymax = self.dlg.lineEdit_6.text()  
-           src = QgsProject.instance().crs()
-           dest = QgsCoordinateReferenceSystem(4326)
-           tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
-           #print(xmax,ymax)
-           #print(xmin,ymin)
-           max = tform.transform(QgsPointXY(float(xmax),float(ymax)))
-           min = tform.transform(QgsPointXY(float(xmin),float(ymin)))
-           xmin = min.x()
-           xmax = max.x()
-           ymin = min.y()
-           ymax = max.y()
-        center = tform.transform(QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()))
-        abstract = self.dlg.lineEdit_7.text()        
-        comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(xmin),str(ymin),str(xmax),str(ymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
+        ext = iface.mapCanvas().extent() 
+        xmin = ext.xMinimum()
+        xmax = ext.xMaximum()
+        ymin = ext.yMinimum()
+        ymax = ext.yMaximum()
+        #if (self.dlg.lineEdit_3.text() == "" or self.dlg.lineEdit_4.text() == "" or self.dlg.lineEdit_5.text() == "" or self.dlg.lineEdit_6.text() == ""):
+        #   ext = iface.mapCanvas().extent() 
+        #   #ext = (self.tranformExtent(ext))
+        #   xmin = ext.xMinimum()
+        #   xmax = ext.xMaximum()
+        #   ymin = ext.yMinimum()
+        #   ymax = ext.yMaximum()
+        
+        #else:   
+        #   xmin = self.dlg.lineEdit_3.text()
+        #   xmax = self.dlg.lineEdit_4.text()
+        #   ymin = self.dlg.lineEdit_5.text()
+        #   ymax = self.dlg.lineEdit_6.text()  
+        #   src = QgsProject.instance().crs()
+        #   dest = QgsCoordinateReferenceSystem(4326)
+        #   tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        #   #print(xmax,ymax)
+        #   #print(xmin,ymin)
+        #   max = tform.transform(QgsPointXY(float(xmax),float(ymax)))
+        #   min = tform.transform(QgsPointXY(float(xmin),float(ymin)))
+        #   xmin = min.x()
+        #   xmax = max.x()
+        #   ymin = min.y()
+        #   ymax = max.y()
+        #center = tform.transform(QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()))
+        center = QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y())
+        abstract = self.dlg.lineEdit_7.text()  
+        self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
+        self.schemaVersion = "2.0.0"
+        #comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(xmin),str(ymin),str(xmax),str(ymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
+        comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"describedBy": self.schemaURl,"schema_version": self.schemaVersion,"nativeExtent": [xmin,ymin,xmax,ymax],"extent":[xmin,ymin,xmax,ymax],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
         print(comp)
         
        ## iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + compositeName + " byla úspešně vytvořena."), Qgis.Success, duration=3)
@@ -5565,7 +5578,8 @@ class Layman:
                 os.remove(layer_filename)
             else:
                 print("The file does not exist")
-            parameter = {'INPUT': layer, 'TARGET_CRS': 'EPSG:4326', 'OUTPUT': layer_filename}
+            epsg = layer.crs().authid()
+            parameter = {'INPUT': layer, 'TARGET_CRS': epsg, 'OUTPUT': layer_filename}
             print(processing.run('qgis:reprojectlayer', parameter))
             ## transforma test
           #  result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(layer, layer_filename, "utf-8", crs, ogr_driver_name) # export jsonu do souboru
@@ -6430,13 +6444,13 @@ class Layman:
         nameCheck = True
         validExtent = True
         layers = QgsProject.instance().mapLayersByName(layer_name)       
-        if (isinstance(layers[0], QgsVectorLayer)):
-            if layers[0].featureCount() == 0:
-                if self.locale == "cs":                
-                    QMessageBox.information(None, "Layman import layer", "Nelze nahrát vrstvu: "+layers[0].name()+", protože neobsahuje žádný prvek!")
-                else:
-                    QMessageBox.information(None, "Layman import layer", "Unable to load layer: "+layers[0].name()+", because it has no feature!")
-                return
+        #if (isinstance(layers[0], QgsVectorLayer)):
+        #    if layers[0].featureCount() == 0:
+        #        if self.locale == "cs":                
+        #            QMessageBox.information(None, "Layman import layer", "Nelze nahrát vrstvu: "+layers[0].name()+", protože neobsahuje žádný prvek!")
+        #        else:
+        #            QMessageBox.information(None, "Layman import layer", "Unable to load layer: "+layers[0].name()+", because it has no feature!")
+        #        return
         layers[0].setName(layer_name)
         if len(layers) > 1:
             for l in layers:
@@ -7179,7 +7193,7 @@ class Layman:
                 layers = (set(layers)- set([layer]))
                 pom = pom + 1
             if isinstance(layer, QgsRasterLayer):
-                if layer.crs().authid() not in ['EPSG:4326','EPSG:3857']:
+                if layer.crs().authid() not in self.supportedEPSG:
                     pom = pom + 1
                     unacceptableLayers.append(layer.name())
                     print(set(layers))
@@ -7274,6 +7288,7 @@ class Layman:
         data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername,   'access_rights.write': self.laymanUsername} 
         
         response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
+        print(response.content)
         if (response.status_code == 200):
             if self.locale == "cs":
             #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
@@ -9098,10 +9113,10 @@ class Layman:
                 #QgsApplication.authManager().masterPasswordVerified.connect(self.connectionLost)
 
                 ## liferay cache
-                self.timerLayer = QTimer()
-                self.timerLayer.setInterval(10000)
-                self.timerLayer.timeout.connect(lambda: self.rebuildLiferayCache()) 
-                self.timerLayer.start()
+                #self.timerLayer = QTimer()
+                #self.timerLayer.setInterval(10000)
+                #self.timerLayer.timeout.connect(lambda: self.rebuildLiferayCache()) 
+                #self.timerLayer.start()
                 threading.Thread(target=lambda: self.fillCompositionDict()).start()
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
