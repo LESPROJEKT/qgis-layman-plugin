@@ -180,7 +180,7 @@ class Layman:
         self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
         self.schemaVersion = "2.0.0"
         self.DPI = self.getDPI()
-        self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514']
+        self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
         
@@ -1532,6 +1532,10 @@ class Layman:
         self.dlg.lineEdit_6.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.dlg.lineEdit_2.editingFinished.connect(self.checkNameCreateMap)
         self.dlg.lineEdit_2.textEdited.connect(self.checkForChars)
+
+        projectPath = QgsProject.instance().fileName()
+        projectName = os.path.basename(projectPath).split(".")[0]
+        self.dlg.lineEdit_2.setText(projectName)
         self.dlg.lineEdit_3.setText(str(ext.xMinimum()))
         self.dlg.lineEdit_4.setText(str(ext.xMaximum()))
         self.dlg.lineEdit_5.setText(str(ext.yMinimum()))
@@ -5361,7 +5365,10 @@ class Layman:
         self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
         self.schemaVersion = "2.0.0"
         #comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(xmin),str(ymin),str(xmax),str(ymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
-        comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"describedBy": self.schemaURl,"schema_version": self.schemaVersion,"nativeExtent": [xmin,ymin,xmax,ymax],"extent":[xmin,ymin,xmax,ymax],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.16.0"):
+            comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"describedBy": self.schemaURl,"schema_version": self.schemaVersion,"nativeExtent": [xmin,ymin,xmax,ymax],"extent":[xmin,ymin,xmax,ymax],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
+        else:
+            comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(xmin),str(ymin),str(xmax),str(ymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
         print(comp)
         
        ## iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + compositeName + " byla úspešně vytvořena."), Qgis.Success, duration=3)
@@ -6519,6 +6526,7 @@ class Layman:
                         else:
                             self.batchLength = self.batchLength - 1 
                     else:
+                       
                         q = self.setProcessingItem(layer_name)
                         if (isinstance(layers[0], QgsVectorLayer)):
                             threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
@@ -7060,6 +7068,8 @@ class Layman:
                     #self.importMap(x, "add", successful) 
     def addLayerToComposite2(self,composition, layersList):
         layersList = self.removeRastersWithoutCrs(layersList)
+        print(layersList)
+        
         for layer in layersList:
             
             if (isinstance(layer,QgsRasterLayer)) and layer.dataProvider().uri().uri() != "":            
@@ -7086,13 +7096,16 @@ class Layman:
                     layerName = self.removeUnacceptableChars(layers[i].name()).lower()
                     #if self.layerServices[layerName] == "HSLayers.Layer.WMS":
                     if service == 'wms':
-
-                        if layers[i].crs().authid() == 'EPSG:4326' or layers[i].crs().authid() == 'EPSG:3857':
+                        print(layers[i].crs().authid())
+                        print(layers[i].crs().authid() in self.supportedEPSG)
+                        print("xx")
+                        if layers[i].crs().authid() in self.supportedEPSG:
                             if self.isXYZ(layers[i].name()):
                                 self.saveXYZ(layers[i])
                             else:
                                 wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows'
                                 composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+                                print(composition)
                     #if (self.dlg.radioButton_wfs.isChecked()):
                     #elif self.layerServices[layerName] == "OpenLayers.Layer.Vector":
                     elif service == 'wfs':
