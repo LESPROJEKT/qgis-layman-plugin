@@ -2349,7 +2349,7 @@ class Layman:
             data = r.json()
             if onlyOwn:
                 for row in range(0, len(data)):     
-                    print(data[row]['native_crs'])
+                    #print(data[row]['native_crs'])
                     if "native_crs" in data[row]:
                         item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
                     else:
