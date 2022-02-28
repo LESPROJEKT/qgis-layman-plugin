@@ -443,9 +443,10 @@ class Layman:
                 pass
             #for i in range (0, len(self.compositeList[x]['layers'])):    
             print(composition)  
-            try:
+            try:               
                 len(composition['layers'])               
             except:
+                self.logout()
                 if self.locale == "cs":                
                     QMessageBox.information(None, "Chyba připojení", "Uživatel již není příhlášen!")
                     self.logout()
