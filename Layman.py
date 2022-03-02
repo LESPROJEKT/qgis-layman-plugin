@@ -1538,8 +1538,18 @@ class Layman:
         self.dlg.lineEdit_2.textEdited.connect(self.checkForChars)
 
         projectPath = QgsProject.instance().fileName()
-        projectName = os.path.basename(projectPath).split(".")[0]
-        self.dlg.lineEdit_2.setText(projectName)
+        if projectPath != "":
+            projectName = os.path.basename(projectPath).split(".")[0]
+            if projectName[0] in ["0","1","2","3","4","5","6","7","8","9"]:
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Message", "Není povoleno číslo v prvník znaku titulku! Není možné předvyplnit název.")
+                else:
+                    QMessageBox.information(None, "Message", "Number in first character of title is not allowed! Title can not be prefilled.")            
+            else:
+                self.dlg.lineEdit_2.setText(projectName)
+       
+        
+        
         self.dlg.lineEdit_3.setText(str(ext.xMinimum()))
         self.dlg.lineEdit_4.setText(str(ext.xMaximum()))
         self.dlg.lineEdit_5.setText(str(ext.yMinimum()))
@@ -7585,6 +7595,12 @@ class Layman:
     
     def createComposite(self, name, title, setCurrent = False):
       #  if (name == "" or title == ""):
+        if title[0] in ["0","1","2","3","4","5","6","7","8","9"]:
+            if self.locale == "cs":
+                QMessageBox.information(None, "Message", "Není povoleno číslo v prvník znaku titulku!")
+            else:
+                QMessageBox.information(None, "Message", "Number in first character of title is not allowed!")
+            return
         if (title == ""):
             if self.locale == "cs":
                 QMessageBox.information(None, "Message", "Není vyplněn titulek!")
