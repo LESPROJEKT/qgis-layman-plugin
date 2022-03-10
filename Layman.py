@@ -3969,7 +3969,7 @@ class Layman:
         #"username": "",
         #"version": 1
         #}
-        if authcfg_id != '7f22y3f' or authcfg_id != '7f22y3d': ## prozatím pro test toto id ma wagtail
+        if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d': ## prozatím pro test toto id ma wagtail
             cfgjson = {
             "accessMethod": 0,
             "apiKey": "",
