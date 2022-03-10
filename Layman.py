@@ -176,6 +176,7 @@ class Layman:
         self.isItemChanged = False
         self.noOverrideLayers = list()
         self.processingRequest = False
+        self.crsOld = 'EPSG:4326'
         self.mixedLayers = list()
         self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
         self.schemaVersion = "2.0.0"
@@ -414,8 +415,17 @@ class Layman:
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))
         print(self.current)
-        
+        ## pokud je jiný projekt je kompozice vynulovana
         if self.current != None:
+            self.instance.refreshComposition()
+            composition = self.instance.getComposition()
+            if composition['title'] != QgsProject.instance().title():
+                self.current = None
+        ##
+        if self.current != None:
+            self.instance.refreshComposition()
+            composition = self.instance.getComposition()
+            
             self.dlg.pushButton_editMeta.setEnabled(True) 
             self.dlg.pushButton_new.setEnabled(True)
             self.dlg.pushButton_setPermissions.setEnabled(True)
@@ -426,8 +436,7 @@ class Layman:
             #self.dlg.radioButton_wms.setEnabled(False)
             #self.dlg.radioButton_wfs.setEnabled(False)
             #x = self.getCompositionIndexByName()
-            self.instance.refreshComposition()
-            composition = self.instance.getComposition()
+            
             #self.dlg.label_loadedComposition.setText(composition['title'])
             #self.dlg.label_loadedComposition.hide()
             #self.dlg.label.hide()
@@ -947,47 +956,49 @@ class Layman:
     def crsChanged(self):
         print("crs changed")  
         crs = QgsProject.instance().crs()
-        print(crs.authid())
-        if self.locale == "cs":
-            msgbox = QMessageBox(QMessageBox.Question, "Layman", "Souřadnicový systém byl změnen na: "+ str(crs.authid())+". Chcete tento souřadnicový systém zapsat do kompozice?")
-        else:
-            msgbox = QMessageBox(QMessageBox.Question, "Layman", "Coordinate system was changed to: "+ str(crs.authid())+". Do you want write it to composition?")
-        msgbox.addButton(QMessageBox.Yes)
-        msgbox.addButton(QMessageBox.No)
-        msgbox.setDefaultButton(QMessageBox.No)
-        reply = msgbox.exec()
-        if (reply == QMessageBox.Yes):    
-            composition = self.instance.getComposition()         
-            xmin = float(composition['extent'][0])
-            xmax = float(composition['extent'][2])
-            ymin = float(composition['extent'][1])
-            ymax = float(composition['extent'][3])
-            xcenter = float(composition['center'][0])
-            ycenter = float(composition['center'][1])
-            if crs.authid() == 'EPSG:5514':
-                composition['projection'] = str(crs.authid()).lower()                
-                max = self.krovakToWgs(xmax, ymax)
-                min = self.krovakToWgs(xmin, ymin)
-                center = self.krovakToWgs(xcenter, ycenter)
-                composition['extent'][0] = str(min[0])
-                composition['extent'][2] = str(max[0])
-                composition['extent'][1] = str(min[1])
-                composition['extent'][3] = str(max[1])
-                composition['center'][0] = center[0]
-                composition['center'][1] = center[1]
-            if crs.authid() == 'EPSG:4326':                
-                composition['projection'] = str(crs.authid()).lower()   
-                max = self.wgsToKrovak(xmax, ymax)
-                min = self.wgsToKrovak(xmin, ymin)
-                center = self.wgsToKrovak(xcenter, ycenter)
-                composition['extent'][0] = str(min[0])
-                composition['extent'][2] = str(max[0])
-                composition['extent'][1] = str(min[1])
-                composition['extent'][3] = str(max[1])
-                composition['center'][0] = center[0]
-                composition['center'][1] = center[1]
-            self.patchMap2()                
-        #QgsProject.instance().setCrs(crs)
+        if  self.crsOld != crs.authid() and self.current != None:
+            self.crsOld = crs.authid()
+            print(crs.authid())
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Souřadnicový systém byl změnen na: "+ str(crs.authid())+". Chcete tento souřadnicový systém zapsat do kompozice?")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Coordinate system was changed to: "+ str(crs.authid())+". Do you want write it to composition?")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.Yes):    
+                composition = self.instance.getComposition()         
+                xmin = float(composition['extent'][0])
+                xmax = float(composition['extent'][2])
+                ymin = float(composition['extent'][1])
+                ymax = float(composition['extent'][3])
+                xcenter = float(composition['center'][0])
+                ycenter = float(composition['center'][1])
+                if crs.authid() == 'EPSG:5514':
+                    composition['projection'] = str(crs.authid()).lower()                
+                    max = self.krovakToWgs(xmax, ymax)
+                    min = self.krovakToWgs(xmin, ymin)
+                    center = self.krovakToWgs(xcenter, ycenter)
+                    composition['extent'][0] = str(min[0])
+                    composition['extent'][2] = str(max[0])
+                    composition['extent'][1] = str(min[1])
+                    composition['extent'][3] = str(max[1])
+                    composition['center'][0] = center[0]
+                    composition['center'][1] = center[1]
+                if crs.authid() == 'EPSG:4326':                
+                    composition['projection'] = str(crs.authid()).lower()   
+                    max = self.wgsToKrovak(xmax, ymax)
+                    min = self.wgsToKrovak(xmin, ymin)
+                    center = self.wgsToKrovak(xcenter, ycenter)
+                    composition['extent'][0] = str(min[0])
+                    composition['extent'][2] = str(max[0])
+                    composition['extent'][1] = str(min[1])
+                    composition['extent'][3] = str(max[1])
+                    composition['center'][0] = center[0]
+                    composition['center'][1] = center[1]
+                self.patchMap2()                
+            #QgsProject.instance().setCrs(crs)
 
     def duplicateLayers(self):
         layerList = set()
@@ -4750,6 +4761,7 @@ class Layman:
         if projection != "":
             crs=QgsCoordinateReferenceSystem(int(projection))
             QgsProject.instance().setCrs(crs)
+        QgsProject.instance().setTitle(data['title'])
         #canvas = iface.mapCanvas()     
         #rect = QgsRectangle(float(data['extent'][0]),float(data['extent'][1]),float(data['extent'][2]),float(data['extent'][3]))
         #canvas.setExtent(rect)
@@ -4927,6 +4939,7 @@ class Layman:
                     layer.setCrs(crs)
             except:
                 print("parameter projection was not found")
+            
             QgsProject.instance().crsChanged.connect(self. crsChanged)
             self.project.removeAll.connect(self.removeSignals)
             #self.prj.layerWasAdded.connect(self.layerAdded)
@@ -7630,6 +7643,7 @@ class Layman:
                 self.compositionDict[name] = title
                 ## sync start
                 prj = QgsProject().instance()
+                QgsProject().instance().setTitle(title)
                 root = prj.layerTreeRoot()
                 print("xxxxxx")
                 print(root)
