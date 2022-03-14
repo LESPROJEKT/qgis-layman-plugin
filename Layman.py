@@ -4752,7 +4752,8 @@ class Layman:
             self.compositeList.append(map)
         self.loadedInMemory = True
         #QgsMessageLog.logMessage("compositionLoaded")
-    def readMapJson(self,name, service, workspace=""):       
+    def readMapJson(self,name, service, workspace=""):    
+        QgsProject.instance().setTitle(name)
         url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'  
         print(url)
         r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
@@ -4761,7 +4762,8 @@ class Layman:
         if projection != "":
             crs=QgsCoordinateReferenceSystem(int(projection))
             QgsProject.instance().setCrs(crs)
-        QgsProject.instance().setTitle(data['title'])
+      
+        
         #canvas = iface.mapCanvas()     
         #rect = QgsRectangle(float(data['extent'][0]),float(data['extent'][1]),float(data['extent'][2]),float(data['extent'][3]))
         #canvas.setExtent(rect)
@@ -4888,6 +4890,7 @@ class Layman:
                 reply = msgbox.exec()
                 if (reply == QMessageBox.Yes):
                     iface.newProject()
+                    QgsProject.instance().setTitle(data['title'])
 
                     self.loadService2(data,service, name)
                 else:
