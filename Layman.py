@@ -4569,6 +4569,34 @@ class Layman:
                         QMessageBox.information(None, "Error", "Permissions was not saved for layer/map: " + str(self.failed).replace("[","").replace("]",""))  
             except:
                 print("form was killed before response")
+        if message[0:8] == "importl_":
+            try:
+                self.progressColor(message[8:100], True)
+            except:
+                pass
+            if self.locale == "cs":               
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána, protože je příliž velká."), Qgis.Warning, duration=3)
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not successfully imported because is too large"), Qgis.Warning, duration=3)
+            done = 0
+        
+            for i in range (0, len(self.processingList)):
+                if self.processingList[i][2] == 1:                    
+                    self.processingList[i][2] = 2
+                   # print(self.processingList)
+                    done = done + 1
+            try:
+                if self.locale == "cs":
+                    self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+                else:
+                    self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+            except:
+                pass
+            try:
+                if self.uploaded == self.batchLength:
+                    self.dlg.progressBar.hide()
+            except:
+                pass
         if message[0:8] == "imports_":
             try:
                 self.progressColor(message[8:100], True)
@@ -6337,7 +6365,9 @@ class Layman:
     
 
             response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
-          
+            print(response.content)
+            status = response.status_code
+            print(status)
         #time.sleep(1.5)
         if progress:
 
@@ -6350,7 +6380,10 @@ class Layman:
                 except:
                     pass
                 QgsMessageLog.logMessage("imports_"+layer_name)
+            elif (status == 413):
+                QgsMessageLog.logMessage("importl_"+layer_name)
             else:
+                
                 QgsMessageLog.logMessage("importn_"+layer_name)
             self.importedLayer = layer_name
             self.processingList[q][2] = 1
