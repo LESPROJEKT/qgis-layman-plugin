@@ -2865,9 +2865,9 @@ class Layman:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL saved to clipboard."), Qgis.Success, duration=3)
         except:
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL nebylo uloženo do schránky."), Qgis.Warning, duration=3)               
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL nebylo uloženo do schránky."), Qgis.Warning)               
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL was not saved to clipboard."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL was not saved to clipboard."), Qgis.Warning)
             
         
         
@@ -4238,9 +4238,9 @@ class Layman:
             
         if message == "errConnection":
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)               
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)               
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
             try:
                 self.dlg.progressBar_loader.hide() 
             except:
@@ -4258,9 +4258,9 @@ class Layman:
                 self.menu_ImportMapDialog.setEnabled(True) 
             except:
                 if self.locale == "cs":
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice nebyly nahrány!"), Qgis.Warning, duration=3)               
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice nebyly nahrány!"), Qgis.Warning)               
                 else:
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Compositions was not loaded!"), Qgis.Warning, duration=3)
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Compositions was not loaded!"), Qgis.Warning)
         if message == "reorderGroups":
             for thread in self.threads:
                 try:
@@ -4419,16 +4419,16 @@ class Layman:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Composition was changed"), Qgis.Success, duration=3)
         if message == "patchMapN":
             if self.locale == "cs":            
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice nebyla upravena"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice nebyla upravena"), Qgis.Warning)
             else:           
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Error: Composition was not changed"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Error: Composition was not changed"), Qgis.Warning)
         if message == "layerDeleteFromCompositeWrong":
             if self.locale == "cs":
             
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrsta v kompozici nebyla úspěšně smazána."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrsta v kompozici nebyla úspěšně smazána."), Qgis.Warning)
             else:
            
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer in composition was not successfully deleted."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer in composition was not successfully deleted."), Qgis.Warning)
         if message == "refreshComposite":
             try:
                 self.refreshCompositeList()        ## pouze pro import Form     
@@ -4456,9 +4456,9 @@ class Layman:
                 print("chyba")
         if message == "unsupportedCRS":
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", "Nepodporované CRS souboru"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", "Nepodporované CRS souboru"), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", "Unsupported CRS of data file"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", "Unsupported CRS of data file"), Qgis.Warning)
 
 
         if message == "resetProgressbar":
@@ -4600,9 +4600,9 @@ class Layman:
             except:
                 pass
             if self.locale == "cs":               
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána, protože je příliž velká."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána, protože je příliž velká."), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not successfully imported because is too large"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not successfully imported because is too large"), Qgis.Warning)
             done = 0
         
             for i in range (0, len(self.processingList)):
@@ -4656,9 +4656,9 @@ class Layman:
             except:
                 pass
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána "), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána "), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not imported successfully"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not imported successfully"), Qgis.Warning)
             done = 0
         
             for i in range (0, len(self.processingList)):
@@ -4760,9 +4760,9 @@ class Layman:
             #self.refreshLayerListReversed()
         if message == "wrongLoaded": 
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva není k dispozici!"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva není k dispozici!"), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer is not available!"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer is not available!"), Qgis.Warning)
     def loadAllComposites(self):
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'
         
@@ -4770,17 +4770,17 @@ class Layman:
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
         except:
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)               
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)               
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
         try:
             data = r.json()  
             
         except:
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)               
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)               
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
             return
         for i in data:
            # print(i['name'])
@@ -4790,9 +4790,9 @@ class Layman:
                 map = r.json()
             except:
                 if self.locale == "cs":
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)              
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)              
                 else:
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
             self.compositeList.append (map)
         self.loadedInMemory = True
     def loadAllCompositesT(self):
@@ -5120,10 +5120,10 @@ class Layman:
         else:
             if self.locale == "cs":
             #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně smazána."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně smazána."), Qgis.Warning)
             else:
             #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)
        # self.refreshMapList()            
         self.refreshListWidgetMaps() ## pro treewidget
         
@@ -5150,10 +5150,10 @@ class Layman:
             else:
                 if self.locale == "cs":
                 #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + composition['name'] + " nebyla úspešně smazána."), Qgis.Warning, duration=3)
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + composition['name'] + " nebyla úspešně smazána."), Qgis.Warning)
                 else:
                 #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was not sucessfully deleted."), Qgis.Warning, duration=3)
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was not sucessfully deleted."), Qgis.Warning)
           
             self.instance = None
             self.current = None
@@ -5185,10 +5185,10 @@ class Layman:
             else:
                 if self.locale == "cs":
                 #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně smazána."), Qgis.Warning, duration=3)
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně smazána."), Qgis.Warning)
                 else:
                 #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning, duration=3)
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)
                   
             try:
                 del (self.compositeList[x]) 
@@ -5554,9 +5554,9 @@ class Layman:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
         else:
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Metadata nebyla upravena."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Metadata nebyla upravena."), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was not saved."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was not saved."), Qgis.Warning)
         
         self.dlg.close()
         composition = self.instance.getComposition()
@@ -6685,7 +6685,7 @@ class Layman:
                     #        if response.status_code == 200:
                     #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
                     #        else:
-                    #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was not imported."), Qgis.Warning, duration=3)
+                    #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was not imported."), Qgis.Warning)
                     else:
                         if self.locale == "cs":
                             QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
@@ -7423,10 +7423,10 @@ class Layman:
         else:
             if self.locale == "cs":
             #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " nebyla úspešně vytvořena."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " nebyla úspešně vytvořena."), Qgis.Warning)
             else:
             #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully created."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully created."), Qgis.Warning)
         #print(response.content)
 
 
@@ -7589,9 +7589,9 @@ class Layman:
                         iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was sucessfully modified."), Qgis.Success, duration=3)
                 else:
                     if self.locale == "cs":             
-                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " nebyla úspešně změněna."), Qgis.Warning, duration=3)
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " nebyla úspešně změněna."), Qgis.Warning)
                     else:          
-                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully modified."), Qgis.Warning, duration=3)
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully modified."), Qgis.Warning)
                 if (self.dlg.windowTitle() != "Manage Maps"):
                     self.dlg.show()
                 return
