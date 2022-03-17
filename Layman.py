@@ -419,8 +419,10 @@ class Layman:
         if self.current != None:
             self.instance.refreshComposition()
             composition = self.instance.getComposition()
+           
             if composition['title'] != QgsProject.instance().title():
                 self.current = None
+       
         ##
         if self.current != None:
             self.instance.refreshComposition()
@@ -955,6 +957,7 @@ class Layman:
 
     def crsChanged(self):
         print("crs changed")  
+        #QApplication.instance().processEvents()   
         crs = QgsProject.instance().crs()
         if  self.crsOld != crs.authid() and self.current != None:
             self.crsOld = crs.authid()
@@ -977,29 +980,51 @@ class Layman:
                 ycenter = float(composition['center'][1])
                 if crs.authid() == 'EPSG:5514':
                     composition['projection'] = str(crs.authid()).lower()                
-                    max = self.krovakToWgs(xmax, ymax)
-                    min = self.krovakToWgs(xmin, ymin)
-                    center = self.krovakToWgs(xcenter, ycenter)
-                    composition['extent'][0] = str(min[0])
-                    composition['extent'][2] = str(max[0])
-                    composition['extent'][1] = str(min[1])
-                    composition['extent'][3] = str(max[1])
-                    composition['center'][0] = center[0]
-                    composition['center'][1] = center[1]
+                    #max = self.krovakToWgs(xmax, ymax)
+                    #min = self.krovakToWgs(xmin, ymin)
+                    #center = self.krovakToWgs(xcenter, ycenter)
+                    #composition['extent'][0] = str(min[0])
+                    #composition['extent'][2] = str(max[0])
+                    #composition['extent'][1] = str(min[1])
+                    #composition['extent'][3] = str(max[1])
+                    #composition['center'][0] = center[0]
+                    #composition['center'][1] = center[1]
                 if crs.authid() == 'EPSG:4326':                
                     composition['projection'] = str(crs.authid()).lower()   
-                    max = self.wgsToKrovak(xmax, ymax)
-                    min = self.wgsToKrovak(xmin, ymin)
-                    center = self.wgsToKrovak(xcenter, ycenter)
-                    composition['extent'][0] = str(min[0])
-                    composition['extent'][2] = str(max[0])
-                    composition['extent'][1] = str(min[1])
-                    composition['extent'][3] = str(max[1])
-                    composition['center'][0] = center[0]
-                    composition['center'][1] = center[1]
-                self.patchMap2()                
-            #QgsProject.instance().setCrs(crs)
+                    #max = self.wgsToKrovak(xmax, ymax)
+                    #min = self.wgsToKrovak(xmin, ymin)
+                    #center = self.wgsToKrovak(xcenter, ycenter)
+                    #composition['extent'][0] = str(min[0])
+                    #composition['extent'][2] = str(max[0])
+                    #composition['extent'][1] = str(min[1])
+                    #composition['extent'][3] = str(max[1])
+                    #composition['center'][0] = center[0]
+                    #composition['center'][1] = center[1]
+                self.patchMap2()   
+            #layers = QgsProject.instance().mapLayers().values()    
+         
+            #for layer in layers:
+            #    layer.setCrs(crs)                
+            #self.change_map_canvas(crs)
+           # QTimer.singleShot(10, self.set_project_crs)    ,
+           # provést refresh pro všechny vrstvy         
+           
+    def set_project_crs(self):
+        # Set CRS to EPSG:4326
+        QApplication.instance().processEvents()
+        print("pessss")
+        QgsProject.instance().setCrs(QgsCoordinateReferenceSystem(self.crsOld))
+    def change_map_canvas(self, crs):
+        #iface.newProject(False)
+        
+        crs = QgsCoordinateReferenceSystem(crs)
 
+
+        #l = get_google_layer()
+        #QgsProject.instance().addMapLayer(l)
+        QApplication.instance().processEvents()
+
+        QgsProject.instance().setCrs(crs)
     def duplicateLayers(self):
         layerList = set()
         duplicity = list()
@@ -4362,7 +4387,7 @@ class Layman:
                         tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
                         self.currentLayerDict[num].loadNamedStyle(tempf)
                         self.currentLayerDict[num].triggerRepaint()
-
+            
         if message == "loadLayer":
             
           
@@ -4654,6 +4679,20 @@ class Layman:
                 QMessageBox.information(None, "Layman", "Nepodporovaný znak v názvu.")
             else:
                 QMessageBox.information(None, "Layman", "Unsupported char in name.")
+        if message == "invalid":
+            try:
+                self.dlg.progressBar.hide()
+            except:
+                pass
+
+            try:
+                self.dlg.progressBar_loader.hide()
+            except:
+                pass
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Vrstva není validní!")
+            else:
+                QMessageBox.information(None, "Layman", "Layer is invalid!")
         if message == "wrongCrs":
             try:
                 self.dlg.progressBar.hide()
@@ -4786,12 +4825,17 @@ class Layman:
         print(url)
         r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
         data = r.json()
+        try:
+            QgsProject.instance().crsChanged.disconnect() 
+        except:
+            print("signal crsChanged was not connected")
         projection = data['projection'].replace("epsg:","")
         if projection != "":
             crs=QgsCoordinateReferenceSystem(int(projection))
+            
             QgsProject.instance().setCrs(crs)
-      
-        
+            QgsProject.instance().crsChanged.connect(self.crsChanged)
+             
         #canvas = iface.mapCanvas()     
         #rect = QgsRectangle(float(data['extent'][0]),float(data['extent'][1]),float(data['extent'][2]),float(data['extent'][3]))
         #canvas.setExtent(rect)
@@ -4820,10 +4864,7 @@ class Layman:
         #name = self.removeUnacceptableChars(name)
         self.current = name
         if workspace != "":### nactemdef loadData(self,name):
-            try:
-                QgsProject.instance().crsChanged.disconnect() 
-            except:
-                print("signal crsChanged was not connected")
+            
             self.selectedWorkspace = workspace
             print(workspace)
             print(name)
@@ -4909,9 +4950,9 @@ class Layman:
             layers = QgsProject.instance().mapLayers()
             if len(layers) > 0:
                 if self.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v novém projektu QGIS? Pokud ne, kompozice se sloučí se stávajícím mapovým obsahem.")
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.")
                 else:
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open composition in new QGIS project? If not, composition merge with the actual map content.")
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content.")
                 msgbox.addButton(QMessageBox.Yes)
                 msgbox.addButton(QMessageBox.No)
                 msgbox.setDefaultButton(QMessageBox.No)
@@ -4953,7 +4994,7 @@ class Layman:
             try:
                 projection = composition['projection'].replace("epsg:","")
                 crs=QgsCoordinateReferenceSystem(int(projection))
-                QgsProject.instance().setCrs(crs)
+               # QgsProject.instance().setCrs(crs)
                 print(QgsProject.instance().crs().authid())
                 layers = QgsProject.instance().mapLayers().values()    
                 #wkt = 'PROJCRS["S-JTSK / Krovak", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak (Greenwich)", METHOD["Krovak", ID["EPSG",9819]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["southing (X)",south, ORDER[1], LENGTHUNIT["metre",1]], AXIS["westing (Y)",west, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5513]]'
@@ -4971,7 +5012,7 @@ class Layman:
             except:
                 print("parameter projection was not found")
             
-            QgsProject.instance().crsChanged.connect(self. crsChanged)
+           # QgsProject.instance().crsChanged.connect(self.crsChanged)
             self.project.removeAll.connect(self.removeSignals)
             #self.prj.layerWasAdded.connect(self.layerAdded)
             layers = self.project.mapLayers().values() ## hlidac vrstvy
@@ -6576,14 +6617,17 @@ class Layman:
                             if (isinstance(layers[0], QgsVectorLayer)):
                                 threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
                             if (isinstance(layers[0], QgsRasterLayer)): 
-                                if layers[0].crs().authid() in self.supportedEPSG:
-                                    ext = layers[0].dataProvider().dataSourceUri()[-4:]
-                                    if ext.lower() != ".bmp": 
-                                        threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
+                                if layers[0].isValid():
+                                    if layers[0].crs().authid() in self.supportedEPSG:
+                                        ext = layers[0].dataProvider().dataSourceUri()[-4:]
+                                        if ext.lower() != ".bmp": 
+                                            threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
+                                        else:
+                                            QgsMessageLog.logMessage("BmpNotSupported")
                                     else:
-                                        QgsMessageLog.logMessage("BmpNotSupported")
+                                        QgsMessageLog.logMessage("wrongCrs")
                                 else:
-                                    QgsMessageLog.logMessage("wrongCrs")
+                                    QgsMessageLog.logMessage("invalid")
                             #print("vrstva již existuje")
                         
                         else:
@@ -6594,16 +6638,17 @@ class Layman:
                         if (isinstance(layers[0], QgsVectorLayer)):
                             threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
                         if (isinstance(layers[0], QgsRasterLayer)): 
-                          
-                            if layers[0].crs().authid()  in self.supportedEPSG:
-                                ext = layers[0].dataProvider().dataSourceUri()[-4:]
-                                if ext.lower() != ".bmp":
-                                    threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
+                            if layers[0].isValid():
+                                if layers[0].crs().authid()  in self.supportedEPSG:
+                                    ext = layers[0].dataProvider().dataSourceUri()[-4:]
+                                    if ext.lower() != ".bmp":
+                                        threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
+                                    else:
+                                        QgsMessageLog.logMessage("BmpNotSupported")  
                                 else:
-                                    QgsMessageLog.logMessage("BmpNotSupported")  
+                                    QgsMessageLog.logMessage("wrongCrs")
                             else:
-                                QgsMessageLog.logMessage("wrongCrs")
-                                
+                                QgsMessageLog.logMessage("invalid")    
                 else:
             
                     self.layerName = layer_name
@@ -6625,15 +6670,18 @@ class Layman:
                         if (isinstance(layers[0], QgsVectorLayer)):
                             threading.Thread(target=lambda: self.postThread(layer_name,data, q,True)).start()   
                         if (isinstance(layers[0], QgsRasterLayer)): 
-                            if layers[0].crs().authid()  in self.supportedEPSG:
-                                ext = layers[0].dataProvider().dataSourceUri()[-4:]
-                                if ext.lower() != ".bmp":
-                                    threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, False)).start()   
+                            if layers[0].isValid():
+                                if layers[0].crs().authid()  in self.supportedEPSG:
+                                    ext = layers[0].dataProvider().dataSourceUri()[-4:]
+                                    if ext.lower() != ".bmp":
+                                        threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, False)).start()   
 
+                                    else:
+                                        QgsMessageLog.logMessage("BmpNotSupported")
                                 else:
-                                    QgsMessageLog.logMessage("BmpNotSupported")
+                                    QgsMessageLog.logMessage("wrongCrs")
                             else:
-                                QgsMessageLog.logMessage("wrongCrs")
+                                QgsMessageLog.logMessage("invalid")
                     #        if response.status_code == 200:
                     #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
                     #        else:
