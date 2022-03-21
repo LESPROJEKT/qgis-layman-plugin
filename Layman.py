@@ -163,6 +163,7 @@ class Layman:
         self.initFiles()
         self.layerServices = {}
         self.compositionDict = {}
+        self.crsChangedConnect = False
         self.current = None
         self.changedLayer = set()
         self.project = QgsProject.instance()
@@ -956,58 +957,61 @@ class Layman:
                     item.setForeground(QColor(255,0,0))
 
     def crsChanged(self):
-        print("crs changed")  
-        #QApplication.instance().processEvents()   
-        crs = QgsProject.instance().crs()
-        if  self.crsOld != crs.authid() and self.current != None:
-            self.crsOld = crs.authid()
-            print(crs.authid())
-            if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Souřadnicový systém byl změnen na: "+ str(crs.authid())+". Chcete tento souřadnicový systém zapsat do kompozice?")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Coordinate system was changed to: "+ str(crs.authid())+". Do you want write it to composition?")
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            reply = msgbox.exec()
-            if (reply == QMessageBox.Yes):    
-                composition = self.instance.getComposition()         
-                xmin = float(composition['extent'][0])
-                xmax = float(composition['extent'][2])
-                ymin = float(composition['extent'][1])
-                ymax = float(composition['extent'][3])
-                xcenter = float(composition['center'][0])
-                ycenter = float(composition['center'][1])
-                if crs.authid() == 'EPSG:5514':
-                    composition['projection'] = str(crs.authid()).lower()                
-                    #max = self.krovakToWgs(xmax, ymax)
-                    #min = self.krovakToWgs(xmin, ymin)
-                    #center = self.krovakToWgs(xcenter, ycenter)
-                    #composition['extent'][0] = str(min[0])
-                    #composition['extent'][2] = str(max[0])
-                    #composition['extent'][1] = str(min[1])
-                    #composition['extent'][3] = str(max[1])
-                    #composition['center'][0] = center[0]
-                    #composition['center'][1] = center[1]
-                if crs.authid() == 'EPSG:4326':                
-                    composition['projection'] = str(crs.authid()).lower()   
-                    #max = self.wgsToKrovak(xmax, ymax)
-                    #min = self.wgsToKrovak(xmin, ymin)
-                    #center = self.wgsToKrovak(xcenter, ycenter)
-                    #composition['extent'][0] = str(min[0])
-                    #composition['extent'][2] = str(max[0])
-                    #composition['extent'][1] = str(min[1])
-                    #composition['extent'][3] = str(max[1])
-                    #composition['center'][0] = center[0]
-                    #composition['center'][1] = center[1]
-                self.patchMap2()   
-            #layers = QgsProject.instance().mapLayers().values()    
+        print("pes")
+        print(self.crsChangedConnect)
+        if self.crsChangedConnect == True:
+            print("crs changed")  
+            #QApplication.instance().processEvents()   
+            crs = QgsProject.instance().crs()
+            if  self.crsOld != crs.authid() and self.current != None:
+                self.crsOld = crs.authid()
+                print(crs.authid())
+                if self.locale == "cs":
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Souřadnicový systém byl změnen na: "+ str(crs.authid())+". Chcete tento souřadnicový systém zapsat do kompozice?")
+                else:
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Coordinate system was changed to: "+ str(crs.authid())+". Do you want write it to composition?")
+                msgbox.addButton(QMessageBox.Yes)
+                msgbox.addButton(QMessageBox.No)
+                msgbox.setDefaultButton(QMessageBox.No)
+                reply = msgbox.exec()
+                if (reply == QMessageBox.Yes):    
+                    composition = self.instance.getComposition()         
+                    xmin = float(composition['extent'][0])
+                    xmax = float(composition['extent'][2])
+                    ymin = float(composition['extent'][1])
+                    ymax = float(composition['extent'][3])
+                    xcenter = float(composition['center'][0])
+                    ycenter = float(composition['center'][1])
+                    if crs.authid() == 'EPSG:5514':
+                        composition['projection'] = str(crs.authid()).lower()                
+                        #max = self.krovakToWgs(xmax, ymax)
+                        #min = self.krovakToWgs(xmin, ymin)
+                        #center = self.krovakToWgs(xcenter, ycenter)
+                        #composition['extent'][0] = str(min[0])
+                        #composition['extent'][2] = str(max[0])
+                        #composition['extent'][1] = str(min[1])
+                        #composition['extent'][3] = str(max[1])
+                        #composition['center'][0] = center[0]
+                        #composition['center'][1] = center[1]
+                    if crs.authid() == 'EPSG:4326':                
+                        composition['projection'] = str(crs.authid()).lower()   
+                        #max = self.wgsToKrovak(xmax, ymax)
+                        #min = self.wgsToKrovak(xmin, ymin)
+                        #center = self.wgsToKrovak(xcenter, ycenter)
+                        #composition['extent'][0] = str(min[0])
+                        #composition['extent'][2] = str(max[0])
+                        #composition['extent'][1] = str(min[1])
+                        #composition['extent'][3] = str(max[1])
+                        #composition['center'][0] = center[0]
+                        #composition['center'][1] = center[1]
+                    self.patchMap2()   
+                #layers = QgsProject.instance().mapLayers().values()    
          
-            #for layer in layers:
-            #    layer.setCrs(crs)                
-            #self.change_map_canvas(crs)
-           # QTimer.singleShot(10, self.set_project_crs)    ,
-           # provést refresh pro všechny vrstvy         
+                #for layer in layers:
+                #    layer.setCrs(crs)                
+                #self.change_map_canvas(crs)
+               # QTimer.singleShot(10, self.set_project_crs)    ,
+               # provést refresh pro všechny vrstvy         
            
     def set_project_crs(self):
         # Set CRS to EPSG:4326
@@ -2058,6 +2062,7 @@ class Layman:
         self.dlg.treeWidget.setColumnWidth(2, 80)
         self.dlg.label_noUser.hide()
         
+            
 
         self.dlg.pushButton.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WMS'))
         self.dlg.pushButton_mapWFS.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WFS'))
@@ -4183,7 +4188,7 @@ class Layman:
                     QgsMessageLog.logMessage("wrongLoaded")
                     return
                 format = 'png'
-                epsg = 'EPSG:4326' 
+                epsg = 'EPSG:5514' 
                 timeDimension = {}
                 groupName=""
                 subgroup=""
@@ -4328,6 +4333,11 @@ class Layman:
                 self.dlg.progressBar_loader.show()
             except:
                 pass
+        if message == "disconnectCrsChanged":
+            try:
+                QgsProject.instance().crsChanged.disconnect() 
+            except:
+                print("signal crsChanged was not connected")
         if message == "readmapjson":
             #name, service
             #threading.Thread(target=lambda: self.readMapJson2(self.params[0],self.params[1],self.params[2])).start()
@@ -4825,17 +4835,26 @@ class Layman:
         print(url)
         r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
         data = r.json()
-        try:
-            QgsProject.instance().crsChanged.disconnect() 
-        except:
-            print("signal crsChanged was not connected")
+        
+       # QgsMessageLog.logMessage("disconnectCrsChanged")
+        #try:
+        #    QgsProject.instance().crsChanged.disconnect() 
+        #except:
+        #    print("signal crsChanged was not connected")
         projection = data['projection'].replace("epsg:","")
         if projection != "":
             crs=QgsCoordinateReferenceSystem(int(projection))
             
-            QgsProject.instance().setCrs(crs)
-            QgsProject.instance().crsChanged.connect(self.crsChanged)
-             
+            
+            if self.crsChangedConnect == False:
+                QgsProject.instance().setCrs(crs)
+                QgsProject.instance().crsChanged.connect(self.crsChanged)
+                self.crsChangedConnect = True
+            else:
+                self.crsChangedConnect = False
+                QgsProject.instance().setCrs(crs)
+                self.crsChangedConnect = True
+                 
         #canvas = iface.mapCanvas()     
         #rect = QgsRectangle(float(data['extent'][0]),float(data['extent'][1]),float(data['extent'][2]),float(data['extent'][3]))
         #canvas.setExtent(rect)
@@ -4948,6 +4967,7 @@ class Layman:
             ## rozvetveni zdali chce uzivatel otevrit kompozici v novem projektu
             #layers = iface.mapCanvas().layers() ## pokud neexistuej vrstva otazka nema smysl
             layers = QgsProject.instance().mapLayers()
+            
             if len(layers) > 0:
                 if self.locale == "cs":
                     msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.")
@@ -4959,6 +4979,13 @@ class Layman:
                 reply = msgbox.exec()
                 if (reply == QMessageBox.Yes):
                     iface.newProject()
+                    projection = data['projection'].replace("epsg:","")        
+                    crs=QgsCoordinateReferenceSystem(int(projection))
+            
+            
+                    self.crsChangedConnect = False
+                    QgsProject.instance().setCrs(crs)                   
+                    self.crsChangedConnect = True
                     QgsProject.instance().setTitle(data['title'])
 
                     self.loadService2(data,service, name)
@@ -4991,26 +5018,26 @@ class Layman:
 
             #self.prj=QgsProject.instance()
             composition = self.instance.getComposition()
-            try:
-                projection = composition['projection'].replace("epsg:","")
-                crs=QgsCoordinateReferenceSystem(int(projection))
-               # QgsProject.instance().setCrs(crs)
-                print(QgsProject.instance().crs().authid())
-                layers = QgsProject.instance().mapLayers().values()    
-                #wkt = 'PROJCRS["S-JTSK / Krovak", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak (Greenwich)", METHOD["Krovak", ID["EPSG",9819]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["southing (X)",south, ORDER[1], LENGTHUNIT["metre",1]], AXIS["westing (Y)",west, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5513]]'
-                if crs == 5514:
-                    wkt = 'PROJCRS["S-JTSK / Krovak East North", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak East North (Greenwich)", METHOD["Krovak (North Orientated)", ID["EPSG",1041]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["easting (X)",east, ORDER[1], LENGTHUNIT["metre",1]], AXIS["northing (Y)",north, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5514]]'
-                if crs == 4326:
-                    wkt = 'GEOGCRS["WGS 84",   DATUM["World Geodetic System 1984", ELLIPSOID["WGS 84",6378137,298.257223563, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]],    CS[ellipsoidal,2],        AXIS["geodetic latitude (Lat)",north,            ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east, ORDER[2], ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["unknown"], AREA["World"], BBOX[-90,-180,90,180]], ID["EPSG",4326]]'
-                crs = QgsCoordinateReferenceSystem(wkt) 
-                #crs = QgsCoordinateReferenceSystem() 
-                #crs.createFromProj("+proj=pipeline +step +inv +proj=webmerc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +step +proj=push +v_3 +step +proj=cart +ellps=WGS84 +step +inv +proj=helmert +x=570.8 +y=85.7 +z=462.8 +rx=4.998 +ry=1.587 +rz=5.261 +s=3.56 +convention=position_vector +step +inv +proj=cart +ellps=bessel +step +proj=pop +v_3 +step +proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel")
-                #crs.createFromProj(QgsDatumTransform().datumTransformToProj(1623)) ## epsg:5514/1623
+            #try:
+            #    projection = composition['projection'].replace("epsg:","")
+            #    crs=QgsCoordinateReferenceSystem(int(projection))
+            #   # QgsProject.instance().setCrs(crs)
+            #    print(QgsProject.instance().crs().authid())
+            #    layers = QgsProject.instance().mapLayers().values()    
+            #    #wkt = 'PROJCRS["S-JTSK / Krovak", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak (Greenwich)", METHOD["Krovak", ID["EPSG",9819]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["southing (X)",south, ORDER[1], LENGTHUNIT["metre",1]], AXIS["westing (Y)",west, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5513]]'
+            #    if crs == 5514:
+            #        wkt = 'PROJCRS["S-JTSK / Krovak East North", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak East North (Greenwich)", METHOD["Krovak (North Orientated)", ID["EPSG",1041]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["easting (X)",east, ORDER[1], LENGTHUNIT["metre",1]], AXIS["northing (Y)",north, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5514]]'
+            #    if crs == 4326:
+            #        wkt = 'GEOGCRS["WGS 84",   DATUM["World Geodetic System 1984", ELLIPSOID["WGS 84",6378137,298.257223563, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]],    CS[ellipsoidal,2],        AXIS["geodetic latitude (Lat)",north,            ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east, ORDER[2], ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["unknown"], AREA["World"], BBOX[-90,-180,90,180]], ID["EPSG",4326]]'
+            #    crs = QgsCoordinateReferenceSystem(wkt) 
+            #    #crs = QgsCoordinateReferenceSystem() 
+            #    #crs.createFromProj("+proj=pipeline +step +inv +proj=webmerc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +step +proj=push +v_3 +step +proj=cart +ellps=WGS84 +step +inv +proj=helmert +x=570.8 +y=85.7 +z=462.8 +rx=4.998 +ry=1.587 +rz=5.261 +s=3.56 +convention=position_vector +step +inv +proj=cart +ellps=bessel +step +proj=pop +v_3 +step +proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel")
+            #    #crs.createFromProj(QgsDatumTransform().datumTransformToProj(1623)) ## epsg:5514/1623
           
-                for layer in layers:
-                    layer.setCrs(crs)
-            except:
-                print("parameter projection was not found")
+            #    for layer in layers:
+            #        layer.setCrs(crs)
+            #except:
+            #    print("parameter projection was not found")
             
            # QgsProject.instance().crsChanged.connect(self.crsChanged)
             self.project.removeAll.connect(self.removeSignals)
@@ -8067,6 +8094,7 @@ class Layman:
             return
         #self.loadservice3(data)
         #QTimer.singleShot(1, lambda: self.loadservice3(data))
+        
         self.service3 = threading.Thread(target=lambda: self.loadservice3(data))
         self.service3.start()
        
