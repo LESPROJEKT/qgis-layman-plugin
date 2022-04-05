@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.0
 description=Layman
-version=1.87.0
+version=1.87.1
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -43,6 +43,7 @@ changelog=
 	1.83 - possibility get WMS/WFS url from Layman layers
 	1.85 - support for other coordinate systems
 	1.86 - bugs fixes
+	1.87 - micka catalogue
 # Tags are comma separated with spaces allowed
 tags=python
 

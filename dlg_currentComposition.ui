@@ -287,6 +287,19 @@
     <string>Exporting raster</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="pushButton_qfield">
+   <property name="geometry">
+    <rect>
+     <x>640</x>
+     <y>350</y>
+     <width>181</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Export to QField</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

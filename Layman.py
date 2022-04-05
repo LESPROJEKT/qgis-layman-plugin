@@ -32,7 +32,7 @@ from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt,
 from PyQt5.QtGui import QIcon, QPixmap, QRegExpValidator, QDoubleValidator, QBrush, QColor
 from PyQt5.QtWidgets import QAction, QTreeWidget,QTreeWidgetItemIterator, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem, QAbstractItemView,QComboBox
 from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
-from .qfield.cloud_api import CloudNetworkAccessManager
+#from .qfield.cloud_api import CloudNetworkAccessManager
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -103,7 +103,7 @@ from .dlg_setPermission import SetPermissionDialog
 from .dlg_currentComposition import CurrentCompositionDialog
 from .dlg_layerDecision import LayerDecisionDialog
 from .currentComposition import CurrentComposition
-from .dlg_LoginQfield import LoginQfieldDialog
+#from .dlg_LoginQfield import LoginQfieldDialog
 
 
 
@@ -440,6 +440,7 @@ class Layman:
                 self.current = None
        
         ##
+        self.dlg.pushButton_qfield.hide()
         self.dlg.pushButton_qfield.clicked.connect(self.qfieldLogin)
         if self.current != None:
             self.instance.refreshComposition()
