@@ -2072,6 +2072,10 @@ class Layman:
     def run_AddMickaDialog(self):
         self.dlg = AddMickaDialog()
         self.dlg.show()
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_map.setStyleSheet("#pushButton_map {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_map:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_search.setStyleSheet("#pushButton_search {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_search:hover{background: #66ab27 ;}")
+
         QgsMessageLog.logMessage("disableProgressBar") 
         threading.Thread(target=lambda: self.loadMickaMaps()).start()
         self.dlg.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
@@ -2447,26 +2451,29 @@ class Layman:
         self.dlg.progressBar_loader.show() 
         self.dlg.treeWidget.clear() 
         #query = "pozemko"
+        uri = self.URI.replace("/client", "")
         #url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27service%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
         if query == "":
-            #url = self.URI + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"
-            url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"
+            url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"
+           # url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"
         else:
             print("query")
-            #url = self.URI + "/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
-            url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
+            url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
+            #url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
             print(url)
+        print(url)
         r = requests.get(url = url)
-        
+        print(r.content)
         self.mickaRet = r.json()
 
        
         for record in self.mickaRet['records']:
        
            # print(res['records'][2]['id'])
-            item = QTreeWidgetItem([record['title']])
-            self.dlg.treeWidget.addTopLevelItem(item)
-        #except:
+            if "title" in record:
+                item = QTreeWidgetItem([record['title']])
+                self.dlg.treeWidget.addTopLevelItem(item)
+            #except:
         #    print("nevyhovující záznam")
         QgsMessageLog.logMessage("disableProgressBar") 
     def loadMapsThread(self, onlyOwn):      
