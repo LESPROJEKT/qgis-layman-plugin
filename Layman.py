@@ -1350,11 +1350,16 @@ class Layman:
         else:            
             self.dlg.comboBox_users.addItem('EVERYONE')
         for i in range (0, userCount):
+            if res[i]['name'] != "":
+                name = res[i]['name']
+            else:
+                name = res[i]['screen_name']
+            print(name)
             #print(res[i]['name'])
             #print(res[i]['username'])
-            usersDict[res[i]['name']] = res[i]['username'] 
-            usersDictReversed[res[i]['username']] = res[i]['name'] 
-            self.dlg.comboBox_users.addItem(res[i]['name']  + ' , ' + res[i]['username'])
+            usersDict[name] = res[i]['username'] 
+            usersDictReversed[res[i]['username']] = name 
+            self.dlg.comboBox_users.addItem(name  + ' , ' + res[i]['username'])
         ##nabit listView
         mapName = self.removeUnacceptableChars(mapName)
         uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName
@@ -1417,6 +1422,7 @@ class Layman:
         res = self.fromByteToJson(r.content)
         print(r.content)
         userCount = len(res)
+        print(r.content)
         ##nabit combobox
         if self.locale == "cs":
             self.dlg.comboBox_users.addItem('VŠICHNI')
@@ -1424,11 +1430,16 @@ class Layman:
             self.dlg.comboBox_users.addItem('EVERYONE')
         for i in range (0, userCount):
             #print(res[i]['name'])
+            if res[i]['name'] != "":
+                name = res[i]['name']
+            else:
+                name = res[i]['screen_name']
+            print(name)
             #print(res[i]['username'])
-            usersDict[res[i]['name']] = res[i]['username'] 
-            usersDictReversed[res[i]['username']] = res[i]['name'] 
+            usersDict[name] = res[i]['username'] 
+            usersDictReversed[res[i]['username']] = name 
             if (res[i]['name'] != self.laymanUsername):
-                self.dlg.comboBox_users.addItem(res[i]['name'] + ' , ' + res[i]['username'] )
+                self.dlg.comboBox_users.addItem(name + ' , ' + res[i]['username'] )
         ##nabit listView
         print(len(layerName))
         if (len(layerName) == 1):            
