@@ -378,6 +378,7 @@ class Layman:
             callback=self.run_AddMapDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow())   
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'micka.png'
         self.menu_AddMickaDialog = self.add_action(
             icon_path,
             text=self.tr(u'Load map from server'),
@@ -430,18 +431,30 @@ class Layman:
         self.dlg.listWidget_service.setStyleSheet("#listWidget_service {height:20px;}")
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))
+        print("current")
         print(self.current)
         ## pokud je jiný projekt je kompozice vynulovana
         if self.current != None:
             self.instance.refreshComposition()
             composition = self.instance.getComposition()
-            print(composition['title'], QgsProject.instance().title())
-            if self.strip_accents(composition['title']) != QgsProject.instance().title():
-                self.current = None
+            try:
+                print(composition['title'], QgsProject.instance().title()) 
+                print(composition['title'] == QgsProject.instance().title()) 
+                print(self.strip_accents(composition['title']))
+                if self.strip_accents(composition['title']) != self.strip_accents(QgsProject.instance().title()):
+                    self.current = None
+            except:    
+               print("problem se sparovanim kompozice")
+               self.current = None 
+    
        
         ##
+        print("test")
+        print(self.current)
         self.dlg.pushButton_qfield.hide()
         self.dlg.pushButton_qfield.clicked.connect(self.qfieldLogin)
+        print("current2")
+        print(self.current)
         if self.current != None:
             self.instance.refreshComposition()
             composition = self.instance.getComposition()
@@ -470,7 +483,7 @@ class Layman:
                 else:
                     self.dlg.setWindowTitle("Composition: "+composition['title'])
             except:
-                pass
+                print("titulek nenačten")
             #for i in range (0, len(self.compositeList[x]['layers'])):    
             print(composition)  
             try:               
@@ -2096,6 +2109,7 @@ class Layman:
         self.dlg.pushButton_stepLeft.clicked.connect(lambda: self.goLeft())
         self.dlg.pushButton_stepRight.clicked.connect(lambda: self.goRight())
         self.dlg.pushButton_search.clicked.connect(lambda: self.mickaSearch())
+        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
     def goLeft(self):
         if self.cataloguePosition > 30:
             self.cataloguePosition = self.cataloguePosition - 20
@@ -7474,20 +7488,20 @@ class Layman:
                             if self.isXYZ(layers[i].name()):
                                 self.saveXYZ(layers[i])
                             else:
-                                wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows'
+                                wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'_wms/ows'
                                 composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                                 print(composition)
                     #if (self.dlg.radioButton_wfs.isChecked()):
                     #elif self.layerServices[layerName] == "OpenLayers.Layer.Vector":
                     elif service == 'wfs':
-                        wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'/wfs'
+                        wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'/wfs'
                         styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ str(layerName) + "/style"
                         
                         composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
                         
 
                     else:
-                        wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows'
+                        wmsUrl = self.URI.replace("/client", "") +'/geoserver/'+self.laymanUsername+'_wms/ows'
                         composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                     successful = successful + 1 
                 print("saving layer records to composition")                
@@ -7973,7 +7987,7 @@ class Layman:
             try:
                 self.refreshCompositeList(True)
             except:
-                pass
+                print("err")
             if setCurrent:
                 self.current = name
                 self.selectedWorkspace = self.laymanUsername
@@ -8017,7 +8031,7 @@ class Layman:
                 root = QgsProject.instance().layerTreeRoot()
                # root.visibilityChanged.connect(self.changeVisibility)
                 ##
-
+                QgsProject.instance().setTitle(title)
                 self.afterCloseNewMapDialog()
         
     
