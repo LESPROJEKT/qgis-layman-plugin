@@ -2485,7 +2485,8 @@ class Layman:
            # url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"
         else:
             print("query")
-            url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
+            #url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
+            url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
             #url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
             print(url)
         print(url)
