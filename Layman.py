@@ -2174,7 +2174,8 @@ class Layman:
                                 QgsProject.instance().addMapLayer(rlayer)
                             print(rlayer.isValid()) 
                             loaded = True
-                        if "OGC:WFS" in protocol and not loaded:
+                        
+                        elif "OGC:WFS" in protocol and not loaded:
                             r = url.split("/")
                             acc = (r[len(r)-2])
                             print("load wfs")
@@ -2195,6 +2196,16 @@ class Layman:
                             if (rlayer.isValid()):
                                 QgsProject.instance().addMapLayer(vlayer)
                             loaded = True
+                        else: ## pro vrstvy v bordelu
+                            if "wms" in url.lower():
+                                urlWithParams = self.getWmsUrl(url, epsg)
+                                print(urlWithParams)
+                                rlayer = QgsRasterLayer(urlWithParams, title, 'wms')
+                                if (rlayer.isValid()):
+                                    QgsProject.instance().addMapLayer(rlayer)
+                                print(rlayer.isValid()) 
+                                loaded = True
+
                    # print(url)
                 else:
                     print("online not found")
