@@ -2197,14 +2197,15 @@ class Layman:
                                 QgsProject.instance().addMapLayer(vlayer)
                             loaded = True
                         else: ## pro vrstvy v bordelu
-                            if "wms" in url.lower():
+                            if "wms" in url.lower()  and not loaded:
                                 urlWithParams = self.getWmsUrl(url, epsg)
                                 print(urlWithParams)
                                 rlayer = QgsRasterLayer(urlWithParams, title, 'wms')
                                 if (rlayer.isValid()):
                                     QgsProject.instance().addMapLayer(rlayer)
+                                    loaded = True
                                 print(rlayer.isValid()) 
-                                loaded = True
+                                
 
                    # print(url)
                 else:
@@ -4269,7 +4270,7 @@ class Layman:
         #"username": "",
         #"version": 1
         #}
-        if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e': ## prozatím pro test toto id ma wagtail
+        if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e' and authcfg_id != '7f22y3g': ## prozatím pro test toto id ma wagtail
             cfgjson = {
             "accessMethod": 0,
             "apiKey": "",
