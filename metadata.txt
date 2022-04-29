@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.0
 description=Layman
-version=1.87.9
+version=1.81.4
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -39,11 +39,6 @@ changelog=
 	1.78 - upload raster layers support
 	1.79 - upload raster layers to composition
 	1.80 - support external raster, vector symbology
-	1.82 - new environment for current composition
-	1.83 - possibility get WMS/WFS url from Layman layers
-	1.85 - support for other coordinate systems
-	1.86 - bugs fixes
-	1.87 - micka catalogue
 # Tags are comma separated with spaces allowed
 tags=python
 
