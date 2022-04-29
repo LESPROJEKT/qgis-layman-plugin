@@ -32,6 +32,9 @@ from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt,
 from PyQt5.QtGui import QIcon, QPixmap, QRegExpValidator, QDoubleValidator, QBrush, QColor
 from PyQt5.QtWidgets import QAction, QTreeWidget,QTreeWidgetItemIterator, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem, QAbstractItemView,QComboBox
 from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
+from PyQt5 import QtWidgets
+#from .qfield.cloud_api import CloudNetworkAccessManager
+
 # Initialize Qt resources from file resources.py
 from .resources import *
 import re
@@ -63,6 +66,8 @@ import platform
 import os
 import qgis.utils
 import qgis.gui
+import unicodedata
+
 from qgis.gui import QgsMapCanvas
 from qgis.core import QgsApplication
 from qgis.utils import iface
@@ -76,6 +81,7 @@ import subprocess
 import threading
 import hashlib
 import html
+from owslib.wms import WebMapService
 import re
 import base64
 from distutils.version import LooseVersion, StrictVersion
@@ -88,6 +94,7 @@ from .dlg_deleteMap import DeleteMapDialog
 from .dlg_importLayer import ImportLayerDialog
 from .dlg_addLayer import AddLayerDialog
 from .dlg_addMap import AddMapDialog
+from .dlg_addMicka import AddMickaDialog
 from .dlg_createComposite import CreateCompositeDialog
 from .dlg_deleteLayerFromMap import DeleteLayerFromMapDialog
 from .dlg_editMap import EditMapDialog
@@ -97,6 +104,7 @@ from .dlg_setPermission import SetPermissionDialog
 from .dlg_currentComposition import CurrentCompositionDialog
 from .dlg_layerDecision import LayerDecisionDialog
 from .currentComposition import CurrentComposition
+#from .dlg_LoginQfield import LoginQfieldDialog
 
 
 
@@ -159,10 +167,12 @@ class Layman:
         self.done = 0
         self.name = ""
         self.millis = 0
+        self.cataloguePosition = 1
         self.version = "1.0.0"
         self.initFiles()
         self.layerServices = {}
         self.compositionDict = {}
+        self.crsChangedConnect = False
         self.current = None
         self.changedLayer = set()
         self.project = QgsProject.instance()
@@ -176,10 +186,16 @@ class Layman:
         self.isItemChanged = False
         self.noOverrideLayers = list()
         self.processingRequest = False
+        self.mickaRet = None
+        self.crsOld = 'EPSG:4326'
         self.mixedLayers = list()
+        self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
+        self.schemaVersion = "2.0.0"
         self.DPI = self.getDPI()
+        self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
+        
        # self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.getActiveLayer())
         self.processingList = []
         self.writeState(0)
@@ -315,7 +331,7 @@ class Layman:
         self.textbox.setText("Layman")
 
         ################ end usericon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'login.png'
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'login.png'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_1.svg'
         self.menu_Connection = self.add_action(
             icon_path,
             text=self.tr(u'Login'),
@@ -324,7 +340,7 @@ class Layman:
             parent=self.iface.mainWindow())
 
 
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'save.png'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_2.svg'
         self.menu_saveLocalFile = self.add_action(
             icon_path,
             text=self.tr(u'Save as to JSON and SLD'),
@@ -355,37 +371,21 @@ class Layman:
             text=self.tr(u'Load layer from server'),
             callback=self.run_AddLayerDialog,
             enabled_flag=False,
-            parent=self.iface.mainWindow()) 
-        #icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'upload-map.png'
-        #self.menu_ImportMapDialog = self.add_action(
-        #    icon_path,
-        #    text=self.tr(u'Manage maps'),
-        #    callback=self.run_ImportMapDialog,
-        #    enabled_flag=False,
-        #    parent=self.iface.mainWindow())  
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'download_map.png'
+            parent=self.iface.mainWindow())        
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_3.svg'
         self.menu_AddMapDialog = self.add_action(
             icon_path,
             text=self.tr(u'Load map from server'),
             callback=self.run_AddMapDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow())   
-        
-        
-        #icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'delete.png'
-        #self.menu_DeleteMapDialog = self.add_action(
-        #    icon_path,
-        #    text=self.tr(u'Delete map'),
-        #    callback=self.run_DeleteMapDialog,
-        #    enabled_flag=False,
-        #    parent=self.iface.mainWindow())  
-        #icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'globus.png'
-        #self.menu_CreateCompositeDialog = self.add_action(
-        #    icon_path,
-        #    text=self.tr(u'Create map'),
-        #    callback=self.run_CreateCompositeDialog,
-        #    enabled_flag=False,
-        #    parent=self.iface.mainWindow())
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'micka.png'
+        self.menu_AddMickaDialog = self.add_action(
+            icon_path,
+            text=self.tr(u'Load map from server'),
+            callback=self.run_AddMickaDialog,
+            enabled_flag=False,
+            parent=self.iface.mainWindow()) 
         
         icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'map.png'
         self.menu_CurrentCompositionDialog = self.add_action(
@@ -394,7 +394,7 @@ class Layman:
             callback=self.run_CurrentCompositionDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow()) 
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'account.svg'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_4.svg'
         self.menu_UserInfoDialog = self.add_action(
             icon_path,
             text=self.tr(u'User info'),
@@ -416,6 +416,7 @@ class Layman:
         self.dlg.label_readonly.hide()
         self.dlg.radioButton_wms.hide()
         self.dlg.radioButton_wfs.hide()
+        self.dlg.label_raster.hide() 
         #self.dlg.radioButton_wms.setChecked(True)
         #self.dlg.radioButton_wfs.setChecked(False)
         #self.dlg.radioButton_wfs.setEnabled(False)
@@ -431,8 +432,34 @@ class Layman:
         self.dlg.listWidget_service.setStyleSheet("#listWidget_service {height:20px;}")
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))
+        print("current")
+        print(self.current)
+        ## pokud je jiný projekt je kompozice vynulovana
+        if self.current != None:
+            self.instance.refreshComposition()
+            composition = self.instance.getComposition()
+            try:
+                print(composition['title'], QgsProject.instance().title()) 
+                print(composition['title'] == QgsProject.instance().title()) 
+                print(self.strip_accents(composition['title']))
+                if self.strip_accents(composition['title']) != self.strip_accents(QgsProject.instance().title()):
+                    self.current = None
+            except:    
+               print("problem se sparovanim kompozice")
+               self.current = None 
+    
+       
+        ##
+        print("test")
+        print(self.current)
+        self.dlg.pushButton_qfield.hide()
+        self.dlg.pushButton_qfield.clicked.connect(self.qfieldLogin)
+        print("current2")
         print(self.current)
         if self.current != None:
+            self.instance.refreshComposition()
+            composition = self.instance.getComposition()
+            
             self.dlg.pushButton_editMeta.setEnabled(True) 
             self.dlg.pushButton_new.setEnabled(True)
             self.dlg.pushButton_setPermissions.setEnabled(True)
@@ -443,12 +470,12 @@ class Layman:
             #self.dlg.radioButton_wms.setEnabled(False)
             #self.dlg.radioButton_wfs.setEnabled(False)
             #x = self.getCompositionIndexByName()
-            self.instance.refreshComposition()
-            composition = self.instance.getComposition()
+            
             #self.dlg.label_loadedComposition.setText(composition['title'])
             #self.dlg.label_loadedComposition.hide()
             #self.dlg.label.hide()
             self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(composition['title'], False))
+            
             layerList = list()
             serviceList = list()
             try:
@@ -457,12 +484,13 @@ class Layman:
                 else:
                     self.dlg.setWindowTitle("Composition: "+composition['title'])
             except:
-                pass
+                print("titulek nenačten")
             #for i in range (0, len(self.compositeList[x]['layers'])):    
             print(composition)  
-            try:
+            try:               
                 len(composition['layers'])               
             except:
+                self.logout()
                 if self.locale == "cs":                
                     QMessageBox.information(None, "Chyba připojení", "Uživatel již není příhlášen!")
                     self.logout()
@@ -542,7 +570,8 @@ class Layman:
                     if isinstance(layer, QgsRasterLayer):
                         item.setText(1, "WMS") 
                     if isinstance(layer, QgsVectorLayer):
-                        item.setText(1, "WFS") 
+                        #item.setText(1, "WFS") 
+                        item.setText(1, "WMS") 
                     #self.setGuiForItem(itemService)
                     self.setGuiForItem(item)
                     if layerType == QgsMapLayer.VectorLayer:
@@ -571,21 +600,25 @@ class Layman:
                 #itemService.setSizeHint(QSize(0, 19))
                 #self.dlg.listWidget_service.addItem(itemService)
             iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
+     
             while iterator.value():
                 item = iterator.value()
                 print(item)
                 cell = QComboBox()
+                cell.currentTextChanged.connect(self.comboBoxChanged)
                 cellServices = QComboBox() 
                 for layer in layersArr:
                     if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(item.text(0)):
-                        if isinstance(layer, QgsRasterLayer):
+                        if isinstance(layer, QgsRasterLayer) and "geoserver" in layer.dataProvider().dataSourceUri():
+                            cellServices.addItems(['WMS','WFS'])
+                        if isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
                             cellServices.addItems(['WMS'])
                         if isinstance(layer, QgsVectorLayer):
                             cellServices.addItems(['WMS','WFS'])
                 
                 if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
                     if self.locale == "cs":
-                        cell.addItems(['Beze změny','Přepsat geometrii'])
+                        cell.addItems(['Beze změny','Přepsat data'])
                     else:
                         cell.addItems(['No change','Overwrite geometry'])                        
                 else:
@@ -603,6 +636,7 @@ class Layman:
                 self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
                 self.dlg.treeWidget_layers.setItemWidget(item,1, cellServices)
                 
+                #cell.currentIndexChanged.connect(self.actionChanged)
                 iterator +=1               
                 self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
             print(layerList,layersInCanvas)
@@ -616,8 +650,12 @@ class Layman:
                 #if  layer not in self.unloadedLayers:
                 if self.locale == "cs":
                     item.setText(0,layer + " (Smazána z projektu)")
+                    item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+                    item.setData(0, QtCore.Qt.CheckStateRole, None)
                 else:
                     item.setText(0, layer + " (Removed from canvas)")
+                    item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+                    item.setData(0, QtCore.Qt.CheckStateRole, None)
                 #else:
                 #    if self.locale == "cs":
                 #        item.setText(layer + " (Nedostatečná práva)")
@@ -636,28 +674,38 @@ class Layman:
                 self.layersWasModified()
             #print(self.compositeList[x])
             #print(composition)
+            if self.laymanUsername != self.instance.getWorkspace():
+                self.dlg.pushButton_setPermissions.setEnabled(False)
+                self.dlg.pushButton_delete.setEnabled(False)
             if 'access_rights' in composition:#self.compositeList[x]:
                 #if self.laymanUsername not in self.compositeList[x]['access_rights']['write']:
+                print(self.laymanUsername, composition['access_rights']['write'])
                 if self.laymanUsername not in composition['access_rights']['write']:
                     self.dlg.listWidget_layers.setEnabled(False)
                     self.dlg.treeWidget_layers.setEnabled(False)
                     self.dlg.listWidget_service.setEnabled(False)
+                    self.dlg.pushButton_editMeta.setEnabled(False)
+                    self.dlg.pushButton_setPermissions.setEnabled(False)
                     self.dlg.pushButton_close.setEnabled(False)
                     self.dlg.pushButton_save.setEnabled(False)
                     self.dlg.pushButton_delete.setEnabled(False)
                     self.dlg.pushButton_setPermissions.setEnabled(False)
                                     
                     self.dlg.label_readonly.show()
+                    
 
                 else:
                     self.dlg.label_readonly.hide()           
             elif self.laymanUsername == self.instance.getWorkspace():
                 pass
             else:
-                
+                self.dlg.pushButton_editMeta.setEnabled(False)
                 self.dlg.listWidget_layers.setEnabled(False)
                 self.dlg.listWidget_service.setEnabled(False)
+                self.dlg.pushButton_setPermissions.setEnabled(False)
+                self.dlg.pushButton_delete.setEnabled(False)
                 self.dlg.pushButton_close.setEnabled(False)
+                self.dlg.pushButton_save.setEnabled(False)
                 self.dlg.label_readonly.show()
         if not self.isAuthorized:
             #self.dlg.radioButton_wms.setEnabled(False)
@@ -665,6 +713,7 @@ class Layman:
             self.dlg.pushButton_new.setEnabled(False)
             self.dlg.pushButton_setPermissions.setEnabled(False)
             self.dlg.listWidget_layers.setEnabled(False)
+            self.dlg.pushButton_editMeta.setEnabled(False)
             self.dlg.treeWidget_layers.setEnabled(False)
             self.dlg.listWidget_service.setEnabled(False)
             self.dlg.pushButton_close.setEnabled(False)
@@ -672,8 +721,8 @@ class Layman:
             self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog(None))
         self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers())
-        self.dlg.pushButton_debug.hide()
-        self.dlg.pushButton_debug.clicked.connect(lambda: self.compositionToClipboard())
+        #self.dlg.pushButton_debug.hide()
+        #self.dlg.pushButton_debug.clicked.connect(lambda: self.compositionToClipboard())
         
         self.dlg.pushButton_close2.clicked.connect(lambda: self.dlg.close())
         self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
@@ -684,12 +733,24 @@ class Layman:
         #self.dlg.listWidget_layers.itemChanged.connect(lambda: self.layersWasModified())
         self.dlg.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())
         #self.dlg.listWidget_layers.itemChanged.connect(self.itemClick)
-        self.dlg.treeWidget_layers.itemChanged.connect(self.itemClick)
+        #self.dlg.treeWidget_layers.itemChanged.connect(self.itemClick)
+        self.dlg.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
         #self.dlg.listWidget_layers.itemClicked.connect(self.showService)
         #self.dlg.treeWidget_layers.itemClicked.connect(self.showService)
         #self.dlg.listWidget_layers.itemChanged.connect(self.addService)
         #self.dlg.radioButton_wms.toggled.connect(lambda: self.wms_wfs2(self.dlg.listWidget_layers.currentItem().text(), self.dlg.listWidget_layers.currentRow()))      
-
+    def comboBoxChanged(self, text):
+        print(text)
+        iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
+        try:
+            while iterator.value():
+                item = iterator.value()    
+                if item.checkState(0) == 0 and (self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == "Add from server" or self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == "Přidat ze serveru" or self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == "Add and overwrite" or  self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == 'Přidat' or self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == "Přidat a přepsat" or self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == 'Add'  ) :            
+                    item.setCheckState(0,2)
+                
+                iterator +=1
+        except:
+            print("neni v canvasu")
     def run_LayerDecisionDialog(self, layersToDecision):
         self.recalculateDPI()
         self.dlg = LayerDecisionDialog() 
@@ -716,6 +777,22 @@ class Layman:
             self.fontSize = "12px"
         else:
             self.fontSize = "10px"
+    # def actionChanged(self, index):
+    #     print("praslice")
+    #     iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
+    #     while iterator.value():
+    #         item = iterator.value()            
+    #         #self.currentSet.append([item.text(0),self.dlg.treeWidget_layers.itemWidget(item,1).currentText(),self.dlg.treeWidget_layers.itemWidget(item,2).currentText()])
+    def checkCheckbox(self, item, column):
+        print(item)        
+        combobox = self.dlg.treeWidget_layers.itemWidget(item,2)
+        if combobox is not None:
+            print(combobox.currentIndex())
+            if item.checkState(column) == 2:                   
+                combobox.setCurrentIndex(1)
+            if item.checkState(column) == 0:            
+                combobox.setCurrentIndex(0) 
+                    
     def addService(self, item):
         if item.checkState() == 2:
             print("new layer")
@@ -825,9 +902,13 @@ class Layman:
     def itemClick(self, item, col):        
         if item.checkState(0) == 2 and self.checkIfLayerIsInMoreGroups(QgsProject.instance().mapLayersByName(item.text(0))[0]):
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena může být pouze jedna."), Qgis.Warning, duration=5)               
+                QMessageBox.information(None, "Layman", "Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena bude pouze nadřazená.")
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layer " + item.text(0) +" is nested in two groups. Only one can be saved."), Qgis.Warning, duration=5)               
+                QMessageBox.information(None, "Layman", "Layer " + item.text(0) +" is nested in two groups. Only parent group will be saved.")
+            # if self.locale == "cs":
+            #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena může být pouze jedna."), Qgis.Warning, duration=5)               
+            # else:
+            #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layer " + item.text(0) +" is nested in two groups. Only one can be saved."), Qgis.Warning, duration=5)               
             #if self.locale == "cs":
             #    self.dlg.label_info.setText("Vrstva " + item.text() +" je vnořena do dvou skupin. Uložena může být pouze jedna.")
             #else:
@@ -906,6 +987,88 @@ class Layman:
                     item.setForeground(QColor(0,128,0))
                 else:
                     item.setForeground(QColor(255,0,0))
+
+    def run_QfieldLoginDialog(self):
+        self.dlg2 = LoginQfieldDialog() 
+        self.dlg2.show()
+
+        #self.dlg.pushButton_Connect.clicked.connect(pass)
+    def qfieldLogin(self):
+        self.run_QfieldLoginDialog()  
+
+    def crsChanged(self):
+        print("pes")
+        print(self.crsChangedConnect)
+        if self.crsChangedConnect == True:
+            print("crs changed")  
+            #QApplication.instance().processEvents()   
+            crs = QgsProject.instance().crs()
+            if  self.crsOld != crs.authid() and self.current != None:
+                self.crsOld = crs.authid()
+                print(crs.authid())
+                if self.locale == "cs":
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Souřadnicový systém byl změnen na: "+ str(crs.authid())+". Chcete tento souřadnicový systém zapsat do kompozice?")
+                else:
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Coordinate system was changed to: "+ str(crs.authid())+". Do you want write it to composition?")
+                msgbox.addButton(QMessageBox.Yes)
+                msgbox.addButton(QMessageBox.No)
+                msgbox.setDefaultButton(QMessageBox.No)
+                reply = msgbox.exec()
+                if (reply == QMessageBox.Yes):    
+                    composition = self.instance.getComposition()         
+                    xmin = float(composition['extent'][0])
+                    xmax = float(composition['extent'][2])
+                    ymin = float(composition['extent'][1])
+                    ymax = float(composition['extent'][3])
+                    xcenter = float(composition['center'][0])
+                    ycenter = float(composition['center'][1])
+                    if crs.authid() == 'EPSG:5514':
+                        composition['projection'] = str(crs.authid()).lower()                
+                        #max = self.krovakToWgs(xmax, ymax)
+                        #min = self.krovakToWgs(xmin, ymin)
+                        #center = self.krovakToWgs(xcenter, ycenter)
+                        #composition['extent'][0] = str(min[0])
+                        #composition['extent'][2] = str(max[0])
+                        #composition['extent'][1] = str(min[1])
+                        #composition['extent'][3] = str(max[1])
+                        #composition['center'][0] = center[0]
+                        #composition['center'][1] = center[1]
+                    if crs.authid() == 'EPSG:4326':                
+                        composition['projection'] = str(crs.authid()).lower()   
+                        #max = self.wgsToKrovak(xmax, ymax)
+                        #min = self.wgsToKrovak(xmin, ymin)
+                        #center = self.wgsToKrovak(xcenter, ycenter)
+                        #composition['extent'][0] = str(min[0])
+                        #composition['extent'][2] = str(max[0])
+                        #composition['extent'][1] = str(min[1])
+                        #composition['extent'][3] = str(max[1])
+                        #composition['center'][0] = center[0]
+                        #composition['center'][1] = center[1]
+                    self.patchMap2()   
+                #layers = QgsProject.instance().mapLayers().values()    
+         
+                #for layer in layers:
+                #    layer.setCrs(crs)                
+                #self.change_map_canvas(crs)
+               # QTimer.singleShot(10, self.set_project_crs)    ,
+               # provést refresh pro všechny vrstvy         
+           
+    def set_project_crs(self):
+        # Set CRS to EPSG:4326
+        QApplication.instance().processEvents()
+        print("pessss")
+        QgsProject.instance().setCrs(QgsCoordinateReferenceSystem(self.crsOld))
+    def change_map_canvas(self, crs):
+        #iface.newProject(False)
+        
+        crs = QgsCoordinateReferenceSystem(crs)
+
+
+        #l = get_google_layer()
+        #QgsProject.instance().addMapLayer(l)
+        QApplication.instance().processEvents()
+
+        QgsProject.instance().setCrs(crs)
     def duplicateLayers(self):
         layerList = set()
         duplicity = list()
@@ -1028,14 +1191,15 @@ class Layman:
         layers = list()       
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         while iterator.value():
-            item = iterator.value() 
+            item = iterator.value()         
             if item.checkState(0) == 2 and  self.removeUnacceptableChars(item.text(0)) not in layerList: 
             #if item.checkState(0) == 2: 
                 if not self.checkLayerInCurrentCompositon(item.text(0)): # kdyz se nenachazi v kompozici nahravame
                 #if True: # kdyz se nenachazi v kompozici nahravame
                     layer = QgsProject.instance().mapLayersByName(item.text(0))[0]                  
                     if (isinstance(layer, QgsVectorLayer)):
-                        if layer.featureCount() > 0:
+                        #if layer.featureCount() > 0:
+                        if True:
                             layerType = layer.type()                    
                             if layerType == QgsMapLayer.VectorLayer:
                                 layer.editingStopped.connect(self.layerEditStopped) 
@@ -1052,7 +1216,7 @@ class Layman:
             elif item.checkState(0) == 2 and  self.removeUnacceptableChars(item.text(0))  in layerList: 
                 for it in self.currentSet:
                     print(it[2], it[0], item.text(0))
-                    if it[2] =='Overwrite geometry' and it[0] == item.text(0):
+                    if (it[2] =='Overwrite geometry'  or it[2] == "Přepsat data") and it[0] == item.text(0):
                         layer = QgsProject.instance().mapLayersByName(item.text(0))[0]                              
                         if layer.type() == QgsMapLayer.VectorLayer:                
                             self.postRequest(layer.name(), True)
@@ -1071,44 +1235,7 @@ class Layman:
                         pom = pom + 1
 
             iterator +=1
-        #for index in range(0, self.dlg.listWidget_layers.count()):
-        #    item = self.dlg.listWidget_layers.item(index)
-            #if item.checkState() == 2 and  self.removeUnacceptableChars(item.text()) not in layerList: 
-            #    if not self.checkLayerInCurrentCompositon(item.text()): # kdyz se nenachazi v kompozici nahravame
-            #        layer = QgsProject.instance().mapLayersByName(item.text())[0]                  
-            #        if (isinstance(layer, QgsVectorLayer)):
-            #            if layer.featureCount() > 0:
-            #                layerType = layer.type()                    
-            #                if layerType == QgsMapLayer.VectorLayer:
-            #                    layer.editingStopped.connect(self.layerEditStopped) 
-            #                layers.append(layer)
-            #            else:
-            #                if self.locale == "cs":                
-            #                    QMessageBox.information(None, "Layman import layer", "Nelze nahrát vrstvu: "+layer.name()+", protože neobsahuje žádný prvek!")
-            #                else:
-            #                    QMessageBox.information(None, "Layman import layer", "Unable to load layer: "+layer.name()+", because it has no feature!")
-            #        else:
-            #            layers.append(layer)
-            #        #self.addLayerToComposite2(x, layer)
-                    
-                    
-            #elif item.checkState() == 0 and item.text() not in layerCheckedList:  ## může být zaškrnut i jinde, pak nemažem
-            #    print(len(composition['layers']))
-            #    pom = 0
-            #    for i in range (0, len(composition['layers'])): 
-            #        i = i - pom
-            #        print("deleting")
-            #        print(item.text())
-            #        print(i)
-            #        #print(self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title']),self.removeUnacceptableChars(item.text()))
-                    
-            #        if self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(item.text().split(" (")[0]):                    
-            #            del composition['layers'][i]
-            #            pom = pom + 1
-                 
-                        #threading.Thread(target=lambda: self.patchMap2()).start()
-                        #self.patchMap2()
-                        #return
+     
                    
         if len(layers) > 0:
             print("test upload layers")
@@ -1155,6 +1282,8 @@ class Layman:
             if item[0] == layerName:
                 return item[1]
     def run_UserInfoDialog(self):
+        print(self.liferayServer)
+        print(self.laymanUsername)
         self.recalculateDPI()
         self.dlg = UserInfoDialog() 
         self.dlg.show()        
@@ -1162,7 +1291,8 @@ class Layman:
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         print(self.liferayServer)
-        if self.liferayServer != None:
+        print(self.liferayServer != None and self.laymanUsername != "")
+        if self.liferayServer != None and self.laymanUsername != "":
             userEndpoint = self.URI + "/rest/current-user"
             r = requests.get(url = userEndpoint,  headers = self.getAuthHeader(self.authCfg))
             res = r.text
@@ -1175,7 +1305,8 @@ class Layman:
                 self.dlg.label_agrihub.setText(res['claims']['email'])
             else:
                 self.dlg.label_layman.setText("Anonymous")
-            self.dlg.label_server.setText(self.liferayServer)
+            #self.dlg.label_server.setText(self.liferayServer)
+            self.dlg.label_server.setText(self.URI)
             
             self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
             self.dlg.label_version.setText(self.getVersion())
@@ -1196,7 +1327,7 @@ class Layman:
                 self.dlg.label_5.hide()
                 self.dlg.pushButton_update.setEnabled(False)            
             self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
-            self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
+        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
     def run_SetMapPermission(self, mapName, fromAddMap = False):
         self.recalculateDPI()
         self.dlg = SetPermissionDialog() 
@@ -1213,8 +1344,15 @@ class Layman:
         self.dlg.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
         self.dlg.pushButton_removeRead.setEnabled(False)
         self.dlg.pushButton_removeWrite.setEnabled(False)
+        ## combobox full text part
+        self.dlg.comboBox_users.setEditable(True)
+        self.dlg.comboBox_users.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+        self.dlg.comboBox_users.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+        ##
+
         uri = self.URI + "/rest/users"
         usersDict = dict()
+
         if self.locale == "cs":
             usersDict['EVERYONE'] = 'VŠICHNI'
         else:
@@ -1233,11 +1371,16 @@ class Layman:
         else:            
             self.dlg.comboBox_users.addItem('EVERYONE')
         for i in range (0, userCount):
+            if res[i]['name'] != "":
+                name = res[i]['name']
+            else:
+                name = res[i]['screen_name']
+            print(name)
             #print(res[i]['name'])
             #print(res[i]['username'])
-            usersDict[res[i]['name']] = res[i]['username'] 
-            usersDictReversed[res[i]['username']] = res[i]['name'] 
-            self.dlg.comboBox_users.addItem(res[i]['name']  + ' , ' + res[i]['username'])
+            usersDict[name] = res[i]['username'] 
+            usersDictReversed[res[i]['username']] = name 
+            self.dlg.comboBox_users.addItem(name  + ' , ' + res[i]['username'])
         ##nabit listView
         mapName = self.removeUnacceptableChars(mapName)
         uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName
@@ -1285,6 +1428,11 @@ class Layman:
         self.dlg.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
         self.dlg.pushButton_removeRead.setEnabled(False)
         self.dlg.pushButton_removeWrite.setEnabled(False)
+        ## combobox full text part
+        self.dlg.comboBox_users.setEditable(True)
+        self.dlg.comboBox_users.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+        self.dlg.comboBox_users.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+        ##
         uri = self.URI + "/rest/users"
         usersDict = dict()
         if self.locale == "cs":
@@ -1300,6 +1448,7 @@ class Layman:
         res = self.fromByteToJson(r.content)
         print(r.content)
         userCount = len(res)
+        print(r.content)
         ##nabit combobox
         if self.locale == "cs":
             self.dlg.comboBox_users.addItem('VŠICHNI')
@@ -1307,11 +1456,16 @@ class Layman:
             self.dlg.comboBox_users.addItem('EVERYONE')
         for i in range (0, userCount):
             #print(res[i]['name'])
+            if res[i]['name'] != "":
+                name = res[i]['name']
+            else:
+                name = res[i]['screen_name']
+            print(name)
             #print(res[i]['username'])
-            usersDict[res[i]['name']] = res[i]['username'] 
-            usersDictReversed[res[i]['username']] = res[i]['name'] 
+            usersDict[name] = res[i]['username'] 
+            usersDictReversed[res[i]['username']] = name 
             if (res[i]['name'] != self.laymanUsername):
-                self.dlg.comboBox_users.addItem(res[i]['name'] + ' , ' + res[i]['username'] )
+                self.dlg.comboBox_users.addItem(name + ' , ' + res[i]['username'] )
         ##nabit listView
         print(len(layerName))
         if (len(layerName) == 1):            
@@ -1363,10 +1517,13 @@ class Layman:
         self.dlg.lineEdit_units.setText(composition['units'])
         self.dlg.lineEdit_scale.setText(str(composition['scale']))
         self.dlg.lineEdit_user.setText(composition['user']['name'])
-        self.dlg.lineEdit_xmin.setText(composition['extent'][0])
-        self.dlg.lineEdit_xmax.setText(composition['extent'][2])
-        self.dlg.lineEdit_ymin.setText(composition['extent'][1])
-        self.dlg.lineEdit_ymax.setText(composition['extent'][3])
+        self.dlg.lineEdit_xmin.setText(str(composition['extent'][0]))
+        self.dlg.lineEdit_xmax.setText(str(composition['extent'][2]))
+        self.dlg.lineEdit_ymin.setText(str(composition['extent'][1]))
+        self.dlg.lineEdit_ymax.setText(str(composition['extent'][3]))
+        self.dlg.lineEdit_epsg.setEnabled(False)
+        if 'projection' in composition:
+            self.dlg.lineEdit_epsg.setText(composition['projection'].replace("epsg:",""))     
         self.dlg.lineEdit_xmin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.dlg.lineEdit_xmax.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.dlg.lineEdit_ymin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
@@ -1374,7 +1531,14 @@ class Layman:
         self.dlg.rejected.connect(lambda: self.afterCloseCurrentMapDialog()) 
         self.dlg.pushButton_save.clicked.connect(lambda: self.modifyMapNew())
         self.dlg.pushButton_range_2.clicked.connect(lambda: self.setRangeFromCanvas())
-        self.dlg.pushButton_range.clicked.connect(lambda: self.setExtentFromLayers(self.getCompositionIndexByName()))
+        self.dlg.pushButton_range.clicked.connect(lambda: self.setExtentFromLayers())
+        if self.locale == "cs":
+            self.dlg.pushButton_range.setToolTip("Získá informaci o rozsahu z wms capatibilies.")
+            self.dlg.pushButton_range_2.setToolTip("Získá informaci o rozsahu z okna QGI.")
+        else:
+            self.dlg.pushButton_range.setToolTip("Gets spatial range information from wms capatibilies.")
+            self.dlg.pushButton_range_2.setToolTip("Gets spatial range information from QGIS canvas.")
+        
         #self.dlg.rejected.connect(lambda: self.afterCloseCompositeDialog())
 
         if not self.isAuthorized:
@@ -1475,6 +1639,20 @@ class Layman:
         self.dlg.lineEdit_6.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.dlg.lineEdit_2.editingFinished.connect(self.checkNameCreateMap)
         self.dlg.lineEdit_2.textEdited.connect(self.checkForChars)
+
+        projectPath = QgsProject.instance().fileName()
+        if projectPath != "":
+            projectName = os.path.basename(projectPath).split(".")[0]
+            if projectName[0] in ["0","1","2","3","4","5","6","7","8","9"]:
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Message", "Není povoleno číslo v prvník znaku titulku! Není možné předvyplnit název.")
+                else:
+                    QMessageBox.information(None, "Message", "Number in first character of title is not allowed! Title can not be prefilled.")            
+            else:
+                self.dlg.lineEdit_2.setText(projectName)
+       
+        
+        
         self.dlg.lineEdit_3.setText(str(ext.xMinimum()))
         self.dlg.lineEdit_4.setText(str(ext.xMaximum()))
         self.dlg.lineEdit_5.setText(str(ext.yMinimum()))
@@ -1778,7 +1956,10 @@ class Layman:
       #  self.dlg.pushButton.clicked.connect(lambda: self.postRequest(self.dlg.treeWidget.currentItem().text(0)))
 
         self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))
-       
+        if self.locale == "cs":
+            self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 0")
+        else:
+            self.dlg.label_progress.setText("Sucessfully exported: 0 / 0")
         self.dlg.progressBar.hide() 
         self.dlg.label_import.hide()
         self.dlg.pushButton.setEnabled(False)
@@ -1843,9 +2024,13 @@ class Layman:
         
         for i in range (0,len(servers)):
           #  print(servers[i][0])
-            self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
-
-        self.setServers(servers, 0) ## nastavujeme prvni server 
+            
+            if i == len(servers) - 1: ## vyjimka pro alias na test server bude ostraneno
+                self.dlg.comboBox_server.addItem("test HUB")
+            else:
+                self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
+        if self.laymanUsername == "":
+            self.setServers(servers, 0) ## nastavujeme prvni server 
         self.dlg.comboBox_server.currentIndexChanged.connect(lambda: self.setServers(servers, self.dlg.comboBox_server.currentIndex()))
         if (os.path.isfile(os.getenv("HOME") + os.sep + ".layman" + os.sep +'layman_user.INI')):
             config = self.loadIni()
@@ -1857,8 +2042,12 @@ class Layman:
             
             for i in range (0, self.dlg.comboBox_server.count()):                
                 #print(self.dlg.comboBox_server.itemText(i))
-                if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
-                    self.dlg.comboBox_server.setCurrentIndex(i)
+                print(self.authCfg)
+                if self.authCfg == "a67e5fd":
+                    self.dlg.comboBox_server.setCurrentIndex(len(servers) - 1)
+                else:
+                    if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
+                        self.dlg.comboBox_server.setCurrentIndex(i)
             #self.dlg.lineEdit_AgriID.setText(config['DEFAULT']['id']) 
             #self.dlg.lineEdit_server.setText(config['DEFAULT']['server']) 
            # self.dlg.lineEdit_serverLayman.setText(config['DEFAULT']['layman']) 
@@ -1917,6 +2106,185 @@ class Layman:
             
         result = self.dlg.exec_()
         self.dlg.rejected.connect(lambda: self.loginReject())
+    def run_AddMickaDialog(self):
+        self.dlg = AddMickaDialog()
+        self.dlg.show()
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_map.setStyleSheet("#pushButton_map {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_map:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_search.setStyleSheet("#pushButton_search {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_search:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_stepRight.setStyleSheet("#pushButton_stepRight {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_stepRight:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_stepLeft.setStyleSheet("#pushButton_stepLeft {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_stepLeft:hover{background: #66ab27 ;}")
+
+        QgsMessageLog.logMessage("disableProgressBar") 
+        threading.Thread(target=lambda: self.loadMickaMaps()).start()
+        self.dlg.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
+        self.dlg.pushButton_map.clicked.connect(lambda: self.loadLayersMicka(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.indexOfTopLevelItem(self.dlg.treeWidget.currentItem())))
+        self.dlg.pushButton_stepLeft.clicked.connect(lambda: self.goLeft())
+        self.dlg.pushButton_stepRight.clicked.connect(lambda: self.goRight())
+        self.dlg.pushButton_search.clicked.connect(lambda: self.mickaSearch())
+        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
+    def goLeft(self):
+        if self.cataloguePosition > 30:
+            self.cataloguePosition = self.cataloguePosition - 20
+            threading.Thread(target=lambda: self.loadMickaMaps()).start()
+        else:
+            if self.locale == "cs":                
+                QMessageBox.information(None, "Layman", "Není možné listovat doleva!")
+            else:
+                QMessageBox.information(None, "Layman", "Not possible page to left!")
+    def goRight(self):
+        if self.cataloguePosition < 500:
+            print(self.cataloguePosition)
+            self.cataloguePosition = self.cataloguePosition + 20
+            #self.loadMickaMaps()
+            threading.Thread(target=lambda: self.loadMickaMaps()).start()
+        else:
+            if self.locale == "cs":                
+                QMessageBox.information(None, "Layman", "Není možné listovat doprava!")
+            else:
+                QMessageBox.information(None, "Layman", "Not possible page to right!")  
+    def mickaSearch(self):
+        query = self.dlg.lineEdit_search.text()
+        #print(query)
+        threading.Thread(target=lambda: self.loadMickaMaps(query)).start()
+    def loadLayersMicka(self, name, row):
+        #print(row)
+        #print(len(self.mickaRet))
+        #print(self.mickaRet)
+        epsg = list()
+        if "crs" in self.mickaRet['records'][row]:
+            for record in  self.mickaRet['records'][row]['crs']:
+                epsg.append(record['code'])
+        #    print(epsg)    
+        #if not "online" in self.mickaRet['records'][row]:
+        #    print(record)
+        #    print(row)
+        #    if self.locale == "cs":                
+        #        QMessageBox.information(None, "Layman", "Tato komopozice nemá WMS/WFS záznam!")
+        #    else:
+        #        QMessageBox.information(None, "Layman", "No WMS/WFS record found!")
+        #    return
+        if 'operatesOn' in self.mickaRet['records'][row]:
+            for record in  self.mickaRet['records'][row]['operatesOn']:
+                if "title" in record:
+                    title = record['title']
+                else:
+                    title = "without title"
+                
+                loaded = False
+                if "online" in record:
+                    for online in record['online']:
+                        protocol = online['protocolText']
+                        url = online['url']
+                        #url = online['protocolUri']
+                       
+                        if "OGC:WMS" in protocol and not loaded:
+                            print("load wms")
+                            urlWithParams = self.getWmsUrl(url, epsg)
+                            print(urlWithParams)
+                            rlayer = QgsRasterLayer(urlWithParams, title, 'wms')
+                            if (rlayer.isValid()):
+                                QgsProject.instance().addMapLayer(rlayer)
+                            print(rlayer.isValid()) 
+                            loaded = True
+                        
+                        elif "OGC:WFS" in protocol and not loaded:
+                            r = url.split("/")
+                            acc = (r[len(r)-2])
+                            print("load wfs")
+                            if "REQUEST" in url:
+                                layers = (url.split("LAYERS=")[1].lower())                        
+                            quri = QgsDataSourceUri()        
+                            quri.setParam("srsname", epsg[0])
+                            quri.setParam("typename", acc+":"+layers)
+                            quri.setParam("restrictToRequestBBOX", "1")
+                            quri.setParam("pagingEnabled", "true")
+                            quri.setParam("version", "auto")
+                            quri.setParam("request", "GetFeature")
+                            quri.setParam("service", "WFS")                       
+                            quri.setParam("url", url)     
+                            vlayer = QgsVectorLayer(url+"?" + str(quri.encodedUri(), "utf-8"), layers, "WFS")
+                            print("validity WFS")
+                            print(vlayer.isValid()) 
+                            if (rlayer.isValid()):
+                                QgsProject.instance().addMapLayer(vlayer)
+                            loaded = True
+                        else: ## pro vrstvy v bordelu
+                            if "wms" in url.lower()  and not loaded:
+                                urlWithParams = self.getWmsUrl(url, epsg)
+                                print(urlWithParams)
+                                rlayer = QgsRasterLayer(urlWithParams, title, 'wms')
+                                if (rlayer.isValid()):
+                                    QgsProject.instance().addMapLayer(rlayer)
+                                    loaded = True
+                                print(rlayer.isValid()) 
+                                
+
+                   # print(url)
+                else:
+                    print("online not found")
+        else:
+            print("neni vrstva")
+        QgsMessageLog.logMessage("disableProgressBar") 
+    def getWmsUrl(self, url, epsg):
+        #print(url)       
+        url = url.replace("%2F", "/").replace("%3A",":")
+        try:
+            wms = WebMapService(url)
+        except:
+            url = ""
+       # print(wms.identification.title)
+       # print(list(wms.contents))
+        founded = False
+        for e in epsg:
+            if not founded:
+                if "5514" in e:
+                    epsg = "EPSG:5514"
+                    founded = True
+                elif "4326" in e:
+                    epsg = "EPSG:4326"   
+                    founded = True
+                elif "3857" in e:
+                    epsg = "EPSG:3857" 
+                    founded = True
+                elif "102067" in e:
+                    epsg = "EPSG:102067"
+                    founded = True
+                elif "32634" in e:
+                    epsg = "EPSG:32634"
+                    founded = True
+                elif "32633" in e:
+                    epsg = "EPSG:32633"  
+                    founded = True
+                elif "3034" in e:
+                    epsg = "EPSG:3034"  
+                    founded = True
+                elif "3035" in e:
+                    epsg = "EPSG:3035" 
+                    founded = True
+                elif "305" in e:
+                    epsg = "EPSG:305"      
+                    founded = True
+                else:
+                    epsg = "EPSG:4326"
+                    founded = True
+        if len(epsg) == 0:
+            epsg = "EPSG:4326"
+        
+        #layerName = self.parseWMSlayers(str(list(wms.contents)))
+        #print(layerName)
+        if "REQUEST" in url:
+            if "LAYERS=" in url:
+                layers = (url.split("LAYERS=")[1].lower())
+            else:
+                layers = self.parseWMSlayers(str(list(wms.contents)))
+            url = (url.split("?")[0])
+            urlWithParams = 'contextualWMSLegend=0&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layers+'&styles=&url=' + url
+        else:
+            layerName = self.parseWMSlayers(str(list(wms.contents)))
+            urlWithParams = 'contextualWMSLegend=0&crs='+epsg+'&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url.split("?")[0]
+        #urlWithParams = 'contextualWMSLegend=0&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url
+        return urlWithParams.replace("'","")
     def run_AddMapDialog(self):
         self.recalculateDPI()
         self.dlg = AddMapDialog()      
@@ -1932,8 +2300,11 @@ class Layman:
         self.dlg.treeWidget.itemClicked.connect(self.enableButton)
         self.dlg.treeWidget.itemClicked.connect(self.enableLoadMapButtons)
         self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
+        self.dlg.treeWidget.setColumnWidth(0, 300)
+        self.dlg.treeWidget.setColumnWidth(2, 80)
         self.dlg.label_noUser.hide()
         
+            
 
         self.dlg.pushButton.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WMS'))
         self.dlg.pushButton_mapWFS.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WFS'))
@@ -1980,8 +2351,9 @@ class Layman:
         threading.Thread(target=lambda: self.loadMapsThread(checked)).start()       
        
         result = self.dlg.exec_()
-    def setExtentFromLayers(self, x):
-        print(self.compositeList[x])
+    def setExtentFromLayers(self):
+        
+        composition = self.instance.getComposition()
         xmin = None
         xmax = None
         ymin = None
@@ -2000,10 +2372,10 @@ class Layman:
         for name in  root.findall("./Capability/Layer/Layer/LatLonBoundingBox"):
             #print(name.tag,name.attrib, name.text)    
             renge.append(name.attrib)
-        for i in range(len(self.compositeList[x]['layers'])): 
-            className = self.compositeList[x]['layers'][i]['className']     
+        for i in range(len(composition['layers'])): 
+            className = composition['layers'][i]['className']     
             if className == 'HSLayers.Layer.WMS' or 'OpenLayers.Layer.Vector':
-                name = self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title'])
+                name = self.removeUnacceptableChars(composition['layers'][i]['title'])
             #    url = self.compositeList['layers'][x]['url']
             #if className == 'OpenLayers.Layer.Vector': 
             #    url = self.compositeList['layers'][x]['params']['LAYERS']
@@ -2071,6 +2443,7 @@ class Layman:
         self.dlg.pushButton_Connect.setEnabled(False)
         self.menu_UserInfoDialog.setEnabled(True)
         self.menu_AddMapDialog.setEnabled(True)    
+        threading.Thread(target=lambda: self.fillCompositionDict()).start()
         self.dlg.close()
     def rememberValueLayer(self, value):
         ## 2 true, 0 false
@@ -2121,32 +2494,72 @@ class Layman:
             self.compositionDict[dataAll[row]['name']] = dataAll[row]['title']
         #print(self.compositionDict)
     def getNameByTitle(self, val):
+        print(self.compositionDict)
         for key, value in self.compositionDict.items():
              if val == value:
-                 return key         
+                 print(key)
+                 return key 
+    def loadMickaMaps(self, query = ""):  
+        self.dlg.progressBar_loader.show() 
+        self.dlg.treeWidget.clear() 
+        #query = "pozemko"
+        uri = self.URI.replace("/client", "")
+        #url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27service%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
+        if query == "":
+            url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"
+           # url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"
+        else:
+            print("query")
+            #url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
+            url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
+            #url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
+            print(url)
+        print(url)
+        r = requests.get(url = url)
+        print(r.content)
+        self.mickaRet = r.json()
+
+       
+        for record in self.mickaRet['records']:
+       
+           # print(res['records'][2]['id'])
+            if "title" in record:
+                item = QTreeWidgetItem([record['title']])
+                self.dlg.treeWidget.addTopLevelItem(item)
+            #except:
+        #    print("nevyhovující záznam")
+        QgsMessageLog.logMessage("disableProgressBar") 
     def loadMapsThread(self, onlyOwn):      
         print("pez")
         self.dlg.treeWidget.clear()       
-        url = self.URI+'/rest/'+self.laymanUsername+'/maps'
-        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title'      
+      
+        r = requests.get(url = url,  headers = self.getAuthHeader(self.authCfg))
         data = r.json()
+       #print(data)
         if onlyOwn and self.isAuthorized:
             for row in range(0, len(data)):  
-                item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
+                if "native_crs" in data[row]:
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", data[row]['native_crs']])
+                else:
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
                 self.dlg.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("loadMaps")
         elif not self.isAuthorized:
-            url = self.URI+'/rest/maps'
-            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+            url = self.URI+'/rest/maps?order_by=title'                    
+            r = requests.get(url = url,  headers = self.getAuthHeader(self.authCfg))
             dataAll = r.json()
             permissions = ""
             for row in range(0, len(dataAll)): 
-                item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read"])
+                if "native_crs" in dataAll[row]:
+                    item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read", dataAll[row]['native_crs']])
+                else:
+                    item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read"])
                 self.dlg.treeWidget.addTopLevelItem(item)
         else:
-            url = self.URI+'/rest/maps'
-            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-            dataAll = r.json()
+            url = self.URI+'/rest/maps?order_by=title'           
+            r = requests.get(url = url,  headers = self.getAuthHeader(self.authCfg))
+            dataAll = r.json()         
             permissions = ""
             for row in range(0, len(dataAll)):
                 if self.laymanUsername in dataAll[row]['access_rights']['read'] or "EVERYONE" in dataAll[row]['access_rights']['read']:
@@ -2156,7 +2569,11 @@ class Layman:
                 if dataAll[row] in data:
                     permissions = "own"
                 if permissions != "":
-                    item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
+                    if "native_crs" in dataAll[row]:
+                        item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions, dataAll[row]['native_crs']])
+                    else:
+                        item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
+                    print(dataAll[row]['title'])
                     self.dlg.treeWidget.addTopLevelItem(item)
         QgsMessageLog.logMessage("loadMaps")
         
@@ -2166,6 +2583,8 @@ class Layman:
         self.dlg = AddLayerDialog()
         self.dlg.pushButton_layerRedirect.hide()
         self.dlg.pushButton_layerRedirect.setEnabled(False)
+        self.dlg.pushButton_urlWfs.setEnabled(False)
+        self.dlg.pushButton_urlWms.setEnabled(False)
         self.dlg.pushButton.setEnabled(False)
         self.dlg.pushButton_wfs.setEnabled(False)
         self.dlg.pushButton_delete.setEnabled(False)
@@ -2188,6 +2607,8 @@ class Layman:
         self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
         self.dlg.pushButton.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WMS"))
         self.dlg.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WFS"))
+        self.dlg.pushButton_urlWms.clicked.connect(lambda: self.copyLayerUrl(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1),"wms"))
+        self.dlg.pushButton_urlWfs.clicked.connect(lambda: self.copyLayerUrl(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1),"wfs"))
         if not self.isAuthorized:
             self.dlg.label_noUser.show()
             self.dlg.checkBox_own.setEnabled(False)
@@ -2196,6 +2617,8 @@ class Layman:
         self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
         self.dlg.treeWidget.itemClicked.connect(self.showThumbnail)
         self.dlg.filter.valueChanged.connect(self.filterResults)
+        self.dlg.treeWidget.setColumnWidth(0, 300)
+        self.dlg.treeWidget.setColumnWidth(2, 80)
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         #self.dlg.setWindowModality(Qt.ApplicationModal)
         self.dlg.checkBox_own.stateChanged.connect(self.rememberValueLayer)
@@ -2207,7 +2630,8 @@ class Layman:
         self.dlg.pushButton_wfs.setStyleSheet("#pushButton_wfs {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_wfs:hover{background: #66ab27 ;}#pushButton_wfs:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-        
+        self.dlg.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #707070 ;}#pushButton_urlWms:disabled{background: #999999 ;}")
+        self.dlg.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #707070 ;}#pushButton_urlWfs:disabled{background: #999999 ;}")
         self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
         self.threadLayers.start()
         self.dlg.checkBox_own.stateChanged.connect(self.loadLayersThread)
@@ -2251,8 +2675,12 @@ class Layman:
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
             data = r.json()
             if onlyOwn:
-                for row in range(0, len(data)):              
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
+                for row in range(0, len(data)):     
+                    #print(data[row]['native_crs'])
+                    if "native_crs" in data[row]:
+                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
+                    else:
+                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
                     self.dlg.treeWidget.addTopLevelItem(item)
                 QgsMessageLog.logMessage("layersLoaded")
             else:
@@ -2268,7 +2696,10 @@ class Layman:
                     if dataAll[row] in data:
                         permissions = "own"
                     if permissions != "":
-                        item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
+                        if "native_crs" in dataAll[row]:
+                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs']])
+                        else:
+                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
                         self.dlg.treeWidget.addTopLevelItem(item)
                 QgsMessageLog.logMessage("layersLoaded")
         else:
@@ -2281,7 +2712,10 @@ class Layman:
                     permissions = "read"
                 if "EVERYONE" in data[row]['access_rights']['write']:
                     permissions = "write"
-                item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions])
+                if "native_crs" in dataAll[row]:
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs']])
+                else:
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions])
                 self.dlg.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("layersLoaded")
     def addExternalWMSToComposite(self, name):
@@ -2316,29 +2750,33 @@ class Layman:
         itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
         print(itemsTextListWrite)
         print(self.dlg.comboBox_users.currentText().split(' , ')[0])
-        if type == "read":
-            if ((self.dlg.comboBox_users.currentText().split(' , ')[0] not in itemsTextListRead)):
+        allItems = [self.dlg.comboBox_users.itemText(i) for i in range(self.dlg.comboBox_users.count())]
+        #print(allItems)
+        #print(self.dlg.comboBox_users.currentText())
+        if self.dlg.comboBox_users.currentText() in allItems:
+            if type == "read":
+                if ((self.dlg.comboBox_users.currentText().split(' , ')[0] not in itemsTextListRead)):
             
-                self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
-                return True
-            else:
-                print("xx")
-                if self.locale == "cs":                
-                    QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
+                    self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                    return True
                 else:
-                    QMessageBox.information(None, "Layman", "This user already exists in the list!")
-                return False
-        else:
-            if ((self.dlg.comboBox_users.currentText().split(' , ')[0] not in itemsTextListWrite) and type == "write"):
-              #  self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
-                return True
+                    print("xx")
+                    if self.locale == "cs":                
+                        QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
+                    else:
+                        QMessageBox.information(None, "Layman", "This user already exists in the list!")
+                    return False
             else:
-                print("yy")
-                if self.locale == "cs":                
-                    QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
+                if ((self.dlg.comboBox_users.currentText().split(' , ')[0] not in itemsTextListWrite) and type == "write"):
+                  #  self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                    return True
                 else:
-                    QMessageBox.information(None, "Layman", "This user already exists in the list!")
-                return False
+                    print("yy")
+                    if self.locale == "cs":                
+                        QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
+                    else:
+                        QMessageBox.information(None, "Layman", "This user already exists in the list!")
+                    return False
     def askForMapPermissionChanges(self,layerName, userDict, type):
         self.failed = list()
         self.statusHelper = True
@@ -2373,10 +2811,40 @@ class Layman:
         msgbox.setDefaultButton(QMessageBox.No)
         reply = msgbox.exec()
         if (reply == QMessageBox.Yes):
-            threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, True)).start()
+            #threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, True)).start()
+            threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
+            threading.Thread(target=lambda: self.updateAllLayersPermission(userDict)).start()
         else:
             threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
-
+    def updateAllLayersPermission(self, userDict):
+        composition = self.instance.getComposition()
+        itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
+        userNamesRead = list()
+        for pom in itemsTextListRead:
+           # print(pom)
+            if pom == "VŠICHNI":      
+                
+                userNamesRead.append("EVERYONE")
+            #print(pom)
+            else:
+                userNamesRead.append(userDict[pom])
+        userNamesWrite = list()
+        #userNamesWrite.append(self.laymanUsername)
+        for pom in itemsTextListWrite:
+            if pom == "VŠICHNI":
+                userNamesWrite.append("EVERYONE")
+            else:
+                userNamesWrite.append(userDict[pom])
+        data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}
+        for layer in composition['layers']:
+            print(layer)
+            if (layer['className'] == 'OpenLayers.Layer.Vector'):
+                name = layer['protocol']['LAYERS']
+            if (layer['className'] == 'HSLayers.Layer.WMS'):
+                name = layer['params']['LAYERS']
+            response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.getAuthHeader(self.authCfg))
+            print(response.content)
     def updatePermissions(self,layerName, userDict, type, check=False):
         
         itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
@@ -2493,15 +2961,46 @@ class Layman:
     def setExtent(self, it, col):
         layer = QgsProject.instance().mapLayersByName(it.text(0))
         ext = layer[0].extent()
+        print(ext)
         xmin = ext.xMinimum()
         xmax = ext.xMaximum()
         ymin = ext.yMinimum()
         ymax = ext.yMaximum()
+        if QgsProject.instance().crs().authid() == 'EPSG:5514' and layer[0].crs().authid() == 'EPSG:4326':
+            print(xmin ,xmax, ymin, ymax)
+            max = self.krovakToWgs(xmax, ymax)
+            min = self.krovakToWgs(xmin, ymin)
+            xmin = min[0]
+            xmax = max[0]
+            ymin = min[1]
+            ymax = max[1]
+        if QgsProject.instance().crs().authid() == 'EPSG:4326' and layer[0].crs().authid() == 'EPSG:5514':  
+            max = self.wgsToKrovak(xmax, ymax)
+            min = self.wgsToKrovak(xmin, ymin)
+            xmin = min[0]
+            xmax = max[0]
+            ymin = min[1]
+            ymax = max[1]          
         self.dlg.lineEdit_3.setText(str(xmin))
         self.dlg.lineEdit_4.setText(str(xmax))
         self.dlg.lineEdit_5.setText(str(ymin))
         self.dlg.lineEdit_6.setText(str(ymax))
-        self.dlg.label_4.setText("Extent of canvas: " + it.text(0))
+        if self.locale == "cs":
+            self.dlg.label_4.setText("Rozsah vrstvy: " + it.text(0))
+        else:
+            self.dlg.label_4.setText("Extent of layer: " + it.text(0))
+    def wgsToKrovak(self, x, y):  
+        src = QgsCoordinateReferenceSystem(5514)
+        dest = QgsCoordinateReferenceSystem(4326)
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        point = tform.transform(QgsPointXY(x, y))      
+        return [point.x(), point.y()] 
+    def krovakToWgs(self, x, y):  
+        src = QgsCoordinateReferenceSystem(4326)
+        dest = QgsCoordinateReferenceSystem(5514)
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        point = tform.transform(QgsPointXY(x, y))      
+        return [point.x(), point.y()]
     def selectSelectedLayer(self):
         try:
             layer = self.iface.activeLayer()
@@ -2549,6 +3048,8 @@ class Layman:
         
     def enableDeleteButton(self, item, col):
         self.dlg.pushButton.setEnabled(True)
+        self.dlg.pushButton_urlWfs.setEnabled(True)
+        self.dlg.pushButton_urlWms.setEnabled(True)
         self.dlg.pushButton_wfs.setEnabled(True)
         self.dlg.pushButton_layerRedirect.setEnabled(True)
         self.dlg.pushButton_delete.setEnabled(True)
@@ -2629,16 +3130,40 @@ class Layman:
             for row in reader: # each row is a list
                 results.append(row)
         return results
+    def copyLayerUrl(self, name, workspace, service):
+        url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(name) 
+        response = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        res = self.fromByteToJson(response.content)
+        if res == None:
+            return
+        print(res)
+        try:
+            df=pd.DataFrame([res[service]['url']])
+            df.to_clipboard(index=False,header=False)    
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL uloženo do schránky."), Qgis.Success, duration=3)               
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL saved to clipboard."), Qgis.Success, duration=3)
+        except:
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL nebylo uloženo do schránky."), Qgis.Warning)               
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL was not saved to clipboard."), Qgis.Warning)
+            
+        
+        
+        
     def setReg(self, str):
         registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
         if self.locale == "cs":
             self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
         else:
             self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
-    def loginReject(self):
+    def loginReject(self):        
+        
         if self.dlg.pushButton_Continue.isEnabled():
             self.getToken()
-        else:
+        else:            
             self.dlg.close()
     def logout(self):
         self.disableEnvironment()
@@ -2656,6 +3181,10 @@ class Layman:
             self.dlg.pushButton_Connect.setEnabled(True)
         except:
             pass
+        try:
+            QgsProject.instance().crsChanged.disconnect()            
+        except:
+            print("crs changed not connected")            
         self.menu_UserInfoDialog.setEnabled(True)
         self.laymanUsername = ""
         self.isAuthorized = False
@@ -2669,6 +3198,7 @@ class Layman:
         self.menu_saveLocalFile.setEnabled(False)
         self.menu_loadJson.setEnabled(False)
         self.menu_ImportLayerDialog.setEnabled(False)
+        self.menu_AddMickaDialog.setEnabled(False)
         self.menu_AddLayerDialog.setEnabled(False) 
         self.menu_AddMapDialog.setEnabled(False)       
         self.menu_ImportLayerDialog.setEnabled(False)
@@ -3102,10 +3632,13 @@ class Layman:
     def updateComposition(self, checkD = True):
         self.currentSet = list()
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
-        while iterator.value():
-            item = iterator.value()            
-            self.currentSet.append([item.text(0),self.dlg.treeWidget_layers.itemWidget(item,1).currentText(),self.dlg.treeWidget_layers.itemWidget(item,2).currentText()])
-            iterator +=1
+        try:
+            while iterator.value():
+                item = iterator.value()                
+                self.currentSet.append([item.text(0),self.dlg.treeWidget_layers.itemWidget(item,1).currentText(),self.dlg.treeWidget_layers.itemWidget(item,2).currentText()])
+                iterator +=1
+        except:
+            print("neni v canvasu")
         print(self.currentSet)
         self.ThreadsUploadsA = set()
         for thread in threading.enumerate(): 
@@ -3133,7 +3666,8 @@ class Layman:
         
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         while iterator.value():
-            item = iterator.value()            
+            item = iterator.value()    
+            self.itemClick(item,0) ## check for subgroups        
             if item.checkState(0) == 2 and  self.removeUnacceptableChars(item.text(0)) not in layerList: 
                 print(item.text(0))
                 lay = QgsProject.instance().mapLayersByName(item.text(0))[0]
@@ -3182,7 +3716,7 @@ class Layman:
         
     def updateCompositionThread(self): 
         composition = self.instance.getComposition()  
-        self.updateVisibilityInComposition()
+        
         i= 0
         for item in self.currentSet:
             service = self.instance.getServiceForLayer(item[0])
@@ -3213,9 +3747,13 @@ class Layman:
                         self.updateLayerStyle(lay['title'], lay['workspace'])
                     except:
                         self.updateLayerStyle(lay['title'], self.laymanUsername) ## pokud je starší typ kompozice
-                    self.stylesToUpdate.remove(QgsProject.instance().mapLayersByName(lay['title'])[0])
+                    try:
+                        self.stylesToUpdate.remove(QgsProject.instance().mapLayersByName(lay['title'])[0])
+                    except:
+                        print("neni v poli")
         print(composition)
         print(len(composition['layers']))
+        self.updateVisibilityInComposition()
         self.syncOrder2(self.getLayersOrder())
         self.patchMap2()
             #for layer in self.stylesToUpdate:
@@ -3410,6 +3948,8 @@ class Layman:
                     print("set layer to wfs")                    
                     #item = self.dlg.treeWidget_layers.topLevelItem(index)
                     #item.setText(1, "WFS")
+                    styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ self.removeUnacceptableChars(layerName) + "/style"
+                    composition['style'] = styleUrl
                     try:
                         name = layer['params']['LAYERS']  
                     except:
@@ -3438,6 +3978,7 @@ class Layman:
                     print("set layer to wms")
                     #item = self.dlg.treeWidget_layers.topLevelItem(index)
                     #item.setText("WMS")
+                    composition['style'] = ''
                     try:
                         #name = layer['protocol']['LAYERS']
                         name = layer['name']
@@ -3669,25 +4210,26 @@ class Layman:
             pixmap.loadFromData(data)
             smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
             self.dlg.label_thumbnail.setPixmap(smaller_pixmap)
-            self.dlg.labelmessage_thumbnail.setAlignment(Qt.AlignCenter)
+            self.dlg.label_thumbnail.setAlignment(Qt.AlignCenter)
         except:
             self.dlg.label_thumbnail.setText('  Unable to load thumbnail.')
     def showSmallThumbnail(self, it):
         try:
             layer = it.text(0) ##pro QTreeWidget
+            workspace = it.text(1)
         except:
             layer = it.text()##pro listWidget
         try:
             layer = self.removeUnacceptableChars(layer)
-            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer+'/thumbnail'
+            url = self.URI+'/rest/'+workspace+'/layers/'+layer+'/thumbnail'
             print("thubmnailURL" + url)
             #data = urlopen(url).read()
             #print(data)
             r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
             data = r.content
-            pixmap = QPixmap(170, 170)
+            pixmap = QPixmap(200, 200)
             pixmap.loadFromData(data)
-            smaller_pixmap = pixmap.scaled(170, 170, Qt.KeepAspectRatio, Qt.FastTransformation)
+            smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
             self.dlg.label_thumbnail.setPixmap(smaller_pixmap)
             self.dlg.label_thumbnail.setAlignment(Qt.AlignCenter)
         except:
@@ -3699,17 +4241,19 @@ class Layman:
     def showThumbnailMap2(self, it):
         try:
             map = it.text(0) ##pro QTreeWidget
+            workspace = it.text(1)
         except:
             map = it.text()##pro listWidget
         
         try:
             map = self.removeUnacceptableChars(str(map))
-            url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+str(map).lower()+'/thumbnail'    
+            url = self.URI+'/rest/'+workspace+'/maps/'+str(map).lower()+'/thumbnail'   
+            print("thubmnailURL" + url) 
           
             data = urlopen(url).read()
-            pixmap = QPixmap(100, 100)
+            pixmap = QPixmap(200, 200)
             pixmap.loadFromData(data)
-            smaller_pixmap = pixmap.scaled(100, 100, Qt.KeepAspectRatio, Qt.FastTransformation)
+            smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
             self.dlg.label_thumbnail.setPixmap(smaller_pixmap)
            # self.dlg.label_thumbnail.setAlignment(Qt.AlignCenter)
         except:
@@ -3743,32 +4287,58 @@ class Layman:
         #"username": "",
         #"version": 1
         #}
-        
-        cfgjson = {
-        "accessMethod": 0,
-        "apiKey": "",
-        "clientId": self.client_id,
-        "clientSecret": self.client_secret,
-        "configType": 1,
-        "description": "",
-        "grantFlow": 0,
-        "id": "esa2024",
-        "name": "auth",
-        "objectName": "",
-        "password": "",
-        "persistToken": False,
-        "queryPairs": {
-        },
-        "redirectPort": 7070,
-        "redirectUrl": "client/oauthn2-liferay/callback",
-        "refreshTokenUrl": "",
-        "requestTimeout": 60,
-        "requestUrl": self.liferayServer + "/o/oauth2/authorize", 
-        "scope": "",
-        "tokenUrl": self.liferayServer + "/o/oauth2/token",
-        "username": "",
-        "version": 1
-        }
+        if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e' and authcfg_id != '7f22y3g': ## prozatím pro test toto id ma wagtail
+            cfgjson = {
+            "accessMethod": 0,
+            "apiKey": "",
+            "clientId": self.client_id,
+            "clientSecret": self.client_secret,
+            "configType": 1,
+            "description": "",
+            "grantFlow": 0,
+            "id": "esa2024",
+            "name": "auth",
+            "objectName": "",
+            "password": "",
+            "persistToken": False,
+            "queryPairs": {
+            },
+            "redirectPort": 7070,
+            "redirectUrl": "client/oauthn2-liferay/callback",
+            "refreshTokenUrl": "",
+            "requestTimeout": 60,
+            "requestUrl": self.liferayServer + "/o/oauth2/authorize", 
+            "scope": "",
+            "tokenUrl": self.liferayServer + "/o/oauth2/token",
+            "username": "",
+            "version": 1
+            }
+        else:
+            cfgjson = {
+            "accessMethod": 0,
+            "apiKey": "",
+            "clientId": self.client_id,
+            "clientSecret": self.client_secret,
+            "configType": 1,
+            "description": "",
+            "grantFlow": 0,
+            "id": "esa2024",
+            "name": "auth",
+            "objectName": "",
+            "password": "",
+            "persistToken": False,
+            "queryPairs": {
+            },
+            "redirectPort": 7070,
+            "redirectUrl": "client/oauthn2-liferay/callback",
+            "refreshTokenUrl": "",
+            "requestTimeout": 60,
+            "requestUrl": self.liferayServer + "/o/authorize", 
+            "scope": "",
+            "tokenUrl": self.liferayServer + "/o/token/",
+            "username": "",
+            "version": 1
+            }
 
         if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
             authConfig = QgsAuthMethodConfig('OAuth2')
@@ -3895,7 +4465,7 @@ class Layman:
                     QgsMessageLog.logMessage("wrongLoaded")
                     return
                 format = 'png'
-                epsg = 'EPSG:4326' 
+                epsg = 'EPSG:5514' 
                 timeDimension = {}
                 groupName=""
                 subgroup=""
@@ -3929,9 +4499,13 @@ class Layman:
         #print(message)
         if message[0:15] == "notifyTwoGroups":
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva " + message[15:100] +" je vnořena do dvou skupin. Uložena může být pouze jedna."), Qgis.Warning, duration=7)               
+                QMessageBox.information(None, "Layman", "Vrstva " + message[15:100] +" je vnořena do dvou skupin. Uložena bude pouze nadřazená.")
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer " + message[15:100] +" is nested in two groups. Only one can be saved."), Qgis.Warning, duration=7)
+                QMessageBox.information(None, "Layman", "Layer " + message[15:100] +" is nested in two groups. Only parent group will be saved.")
+            # if self.locale == "cs":
+            #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrstva " + message[15:100] +" je vnořena do dvou skupin. Uložena bude pouze nadřazená."), Qgis.Warning, duration=5)               
+            # else:
+            #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer " + message[15:100] +" is nested in two groups. Only parent group will be saved."), Qgis.Warning, duration=5)
         if message == "updateMapDone":
             self.dlg.progressBar_loader.hide()
             self.dlg.pushButton_save.setEnabled(True)
@@ -3939,12 +4513,16 @@ class Layman:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Změny v kompozici byly uloženy."), Qgis.Success, duration=3)               
             else:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Changes in composition were saved."), Qgis.Success, duration=3)
+            try:
+                self.dlg.label_raster.hide() 
+            except:
+                pass
             
         if message == "errConnection":
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)               
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)               
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
             try:
                 self.dlg.progressBar_loader.hide() 
             except:
@@ -3962,17 +4540,23 @@ class Layman:
                 self.menu_ImportMapDialog.setEnabled(True) 
             except:
                 if self.locale == "cs":
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice nebyly nahrány!"), Qgis.Warning, duration=3)               
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice nebyly nahrány!"), Qgis.Warning)               
                 else:
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Compositions was not loaded!"), Qgis.Warning, duration=3)
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Compositions was not loaded!"), Qgis.Warning)
         if message == "reorderGroups":
-            for g in self.groups:
-                print(g[0], g[1])
+            for thread in self.threads:
                 try:
-                    self.reorderToTop(g[0], g[1]) 
+                    thread.join()
                 except:
                     pass
-                    print("reoder exception")
+            for g in self.groups:
+                print(g[0], g[1])
+                #try:
+                self.reorderToTop(g[0], g[1]) 
+                #except:
+                #    print("reoder exception")
+                #    pass
+                    
         if message == "layersUploaded":
             
             #threadsB = set()
@@ -4021,12 +4605,16 @@ class Layman:
                 self.dlg.progressBar.hide() 
             except:
                 pass
-        if message == "showLoader":
-            print("shod")
+        if message == "showLoader":            
             try:
                 self.dlg.progressBar_loader.show()
             except:
                 pass
+        if message == "disconnectCrsChanged":
+            try:
+                QgsProject.instance().crsChanged.disconnect() 
+            except:
+                print("signal crsChanged was not connected")
         if message == "readmapjson":
             #name, service
             #threading.Thread(target=lambda: self.readMapJson2(self.params[0],self.params[1],self.params[2])).start()
@@ -4053,10 +4641,40 @@ class Layman:
         if message == "readlayerjson":
             #name, service ,workspace
             self.readLayerJson2(self.params[0],self.params[1])
+        if message[:13] == "loadSymbology": ## slovník random   
+            num = message[13:] 
+            if (isinstance(self.currentLayerDict[num], QgsVectorLayer)):
+                style = self.getStyle(self.currentLayerDict[num].name())
+                    #code = self.getSLD(layerName)
+                layerName = self.currentLayerDict[num].name()
+                if (style[0] == 200):
+                    if (style[1] == "sld"):
+                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                        self.currentLayerDict[num].loadSldStyle(tempf)
+                        self.currentLayerDict[num].triggerRepaint()
+                    if (style[1] == "qml"):
+                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                        self.currentLayerDict[num].loadNamedStyle(tempf)
+                        self.currentLayerDict[num].triggerRepaint()
         if message[:10] == "loadVector": ## slovník random            
             num = message[10:]
             QgsProject.instance().addMapLayer(self.currentLayerDict[num])
-
+            
+            
+            if (isinstance(self.currentLayerDict[num], QgsVectorLayer)):
+                style = self.getStyle(self.currentLayerDict[num].name())
+                    #code = self.getSLD(layerName)
+                layerName = self.currentLayerDict[num].name()
+                if (style[0] == 200):
+                    if (style[1] == "sld"):
+                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                        self.currentLayerDict[num].loadSldStyle(tempf)
+                        self.currentLayerDict[num].triggerRepaint()
+                    if (style[1] == "qml"):
+                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                        self.currentLayerDict[num].loadNamedStyle(tempf)
+                        self.currentLayerDict[num].triggerRepaint()
+            
         if message == "loadLayer":
             
           
@@ -4088,16 +4706,16 @@ class Layman:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Composition was changed"), Qgis.Success, duration=3)
         if message == "patchMapN":
             if self.locale == "cs":            
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice nebyla upravena"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice nebyla upravena"), Qgis.Warning)
             else:           
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Error: Composition was not changed"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Error: Composition was not changed"), Qgis.Warning)
         if message == "layerDeleteFromCompositeWrong":
             if self.locale == "cs":
             
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrsta v kompozici nebyla úspěšně smazána."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrsta v kompozici nebyla úspěšně smazána."), Qgis.Warning)
             else:
            
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer in composition was not successfully deleted."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer in composition was not successfully deleted."), Qgis.Warning)
         if message == "refreshComposite":
             try:
                 self.refreshCompositeList()        ## pouze pro import Form     
@@ -4125,14 +4743,29 @@ class Layman:
                 print("chyba")
         if message == "unsupportedCRS":
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", "Nepodporované CRS souboru"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", "Nepodporované CRS souboru"), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", "Unsupported CRS of data file"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", "Unsupported CRS of data file"), Qgis.Warning)
 
 
         if message == "resetProgressbar":
-            self.dlg.progressBar.hide()
-            self.dlg.progressBar.setValue(0)
+            try:
+                self.dlg.progressBar.hide()
+                self.dlg.progressBar.setValue(0)
+            except:
+                pass                  
+        if message == "disableProgress":
+            try:
+                self.dlg.progressBar_loader.hide()
+                self.dlg.label_raster.hide() 
+            except:
+                pass                
+        if message == "enableProgress":
+            try:
+                self.dlg.progressBar_loader.show()   
+                self.dlg.label_raster.show() 
+            except:
+                pass
         if message == "errorConnection":
             if self.locale == "cs":                
                 QMessageBox.information(None, "Error", "Spojení se serverem selhalo! Vrstva nebyla nahrána.")
@@ -4248,6 +4881,34 @@ class Layman:
                         QMessageBox.information(None, "Error", "Permissions was not saved for layer/map: " + str(self.failed).replace("[","").replace("]",""))  
             except:
                 print("form was killed before response")
+        if message[0:8] == "importl_":
+            try:
+                self.progressColor(message[8:100], True)
+            except:
+                pass
+            if self.locale == "cs":               
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána, protože je příliž velká."), Qgis.Warning)
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not successfully imported because is too large"), Qgis.Warning)
+            done = 0
+        
+            for i in range (0, len(self.processingList)):
+                if self.processingList[i][2] == 1:                    
+                    self.processingList[i][2] = 2
+                   # print(self.processingList)
+                    done = done + 1
+            try:
+                if self.locale == "cs":
+                    self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+                else:
+                    self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+            except:
+                pass
+            try:
+                if self.uploaded == self.batchLength:
+                    self.dlg.progressBar.hide()
+            except:
+                pass
         if message[0:8] == "imports_":
             try:
                 self.progressColor(message[8:100], True)
@@ -4282,9 +4943,9 @@ class Layman:
             except:
                 pass
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána "), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána "), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not imported successfully"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not imported successfully"), Qgis.Warning)
             done = 0
         
             for i in range (0, len(self.processingList)):
@@ -4300,13 +4961,62 @@ class Layman:
             #        self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
             #except:
             #    pass
+        if message == "wrongName":
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Nepodporovaný znak v názvu.")
+            else:
+                QMessageBox.information(None, "Layman", "Unsupported char in name.")
+        if message == "invalid":
+            try:
+                self.dlg.progressBar.hide()
+            except:
+                pass
+
+            try:
+                self.dlg.progressBar_loader.hide()
+            except:
+                pass
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Vrstva není validní!")
+            else:
+                QMessageBox.information(None, "Layman", "Layer is invalid!")
         if message == "wrongCrs":
-            self.dlg.progressBar_loader.hide()
+            try:
+                self.dlg.progressBar.hide()
+            except:
+                pass
+
+            try:
+                self.dlg.progressBar_loader.hide()
+            except:
+                pass
             if self.locale == "cs":
                 QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
             else:
                 QMessageBox.information(None, "Layman", "Use EPSG:4326")
-            
+        if message[:9] == "wrongCrss":
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Použijte EPSG:4326 pro vrstvy:" + "\n" + message[9:])
+            else:
+                QMessageBox.information(None, "Layman", "Use EPSG:4326 for layers:" + "\n" +  message[9:])
+        if message == "BmpNotSupported":
+            try:
+                self.dlg.progressBar.hide()
+            except:
+                pass
+
+            try:
+                self.dlg.progressBar_loader.hide()
+            except:
+                pass
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Formát rastru BMP není podporován.")
+            else:
+                QMessageBox.information(None, "Layman", "Raster format BMP is not supported.")
+            try:
+                self.dlg.progressBar.hide()
+            except:
+                pass
         if message == "path added":
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Parametr path byl modifikován."), Qgis.Success, duration=3)
@@ -4319,6 +5029,7 @@ class Layman:
                 self.dlg.pushBuqgistton_down.setEnabled(True)
                 self.dlg.pushButton_up.setEnabled(True)
                 self.dlg.pushButton_deleteLayers.setEnabled(True)
+                self.dlg.label_raster.hide()
             except:
                 pass
             
@@ -4336,9 +5047,9 @@ class Layman:
             #self.refreshLayerListReversed()
         if message == "wrongLoaded": 
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva není k dispozici!"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva není k dispozici!"), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer is not available!"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer is not available!"), Qgis.Warning)
     def loadAllComposites(self):
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'
         
@@ -4346,17 +5057,17 @@ class Layman:
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
         except:
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)               
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)               
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
         try:
             data = r.json()  
             
         except:
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)               
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)               
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
             return
         for i in data:
            # print(i['name'])
@@ -4366,9 +5077,9 @@ class Layman:
                 map = r.json()
             except:
                 if self.locale == "cs":
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning, duration=3)              
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)              
                 else:
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning, duration=3)
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
             self.compositeList.append (map)
         self.loadedInMemory = True
     def loadAllCompositesT(self):
@@ -4395,17 +5106,37 @@ class Layman:
             self.compositeList.append(map)
         self.loadedInMemory = True
         #QgsMessageLog.logMessage("compositionLoaded")
-    def readMapJson(self,name, service, workspace=""): 
+    def readMapJson(self,name, service, workspace=""):    
+        QgsProject.instance().setTitle(name)
+        url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'  
+        print(url)
+        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        data = r.json()
+        
+       # QgsMessageLog.logMessage("disconnectCrsChanged")
+        #try:
+        #    QgsProject.instance().crsChanged.disconnect() 
+        #except:
+        #    print("signal crsChanged was not connected")
+        projection = data['projection'].replace("epsg:","")
+        if projection != "":
+            crs=QgsCoordinateReferenceSystem(int(projection))
+            
+            
+            if self.crsChangedConnect == False:
+                QgsProject.instance().setCrs(crs)
+                QgsProject.instance().crsChanged.connect(self.crsChanged)
+                self.crsChangedConnect = True
+            else:
+                self.crsChangedConnect = False
+                QgsProject.instance().setCrs(crs)
+                self.crsChangedConnect = True
+                 
+        #canvas = iface.mapCanvas()     
+        #rect = QgsRectangle(float(data['extent'][0]),float(data['extent'][1]),float(data['extent'][2]),float(data['extent'][3]))
+        #canvas.setExtent(rect)
         self.dlg.pushButton_map.setEnabled(False)
-        if QgsProject.instance().crs().authid() == 'EPSG:5514':
-            if QgsProject.instance().crs().toProj() == '+proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs':
-                
-                if self.locale == "cs":
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Používáte EPSG: 5514. Doporučujeme používat tranformaci 5514-1623"), Qgis.Success, duration=10)
-                #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Pro vrstvy v tomto projektu lze nastavit přesnější tranformace. Chcete tuto tranformaci nastavit?")
-                   # QMessageBox.information(None, "Layman", "Používáte EPSG: 5514. Doporučujeme používat tranformaci 5514-1623")
-                else:
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "You are using EPSG: 5514. We recommend using the transformation 5514-1623 "), Qgis.Success, duration=10)
+        
                 #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "More accurate transformations can be set for layers in this project. Do you want to set up this transformation?")
                 #msgbox.addButton(QMessageBox.Yes)
                 #msgbox.addButton(QMessageBox.No)
@@ -4419,6 +5150,7 @@ class Layman:
         self.params.append(name)
         self.params.append(service)
         self.params.append(workspace)
+     
         QgsMessageLog.logMessage("readmapjson")
     def readMapJson2(self,name, service, workspace=""):
         #self.dlg.progressBar_loader.show() 
@@ -4428,20 +5160,40 @@ class Layman:
         #name = self.removeUnacceptableChars(name)
         self.current = name
         if workspace != "":### nactemdef loadData(self,name):
+            
             self.selectedWorkspace = workspace
+            print(workspace)
+            print(name)
             url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'  
             print(url)
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
             data = r.json()
             self.instance = CurrentComposition(self.URI, name, workspace, self.getAuthHeader(self.authCfg),self.laymanUsername)
             self.instance.setComposition(data)
+            #try:
+            #    projection = data['projection'].replace("epsg:","")
+            #    crs=QgsCoordinateReferenceSystem(int(projection))
+            #    QgsProject.instance().setCrs(crs)
+            
+            #except:
+            #    print("parameter projection was not found")
+            
+            if QgsProject.instance().crs().authid() == 'EPSG:5514':
+                if QgsProject.instance().crs().toProj() == '+proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs':
+                
+                    if self.locale == "cs":
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Používáte EPSG: 5514. Doporučujeme používat tranformaci 5514-1623"), Qgis.Success, duration=10)
+                    #    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Pro vrstvy v tomto projektu lze nastavit přesnější tranformace. Chcete tuto tranformaci nastavit?")
+                       # QMessageBox.information(None, "Layman", "Používáte EPSG: 5514. Doporučujeme používat tranformaci 5514-1623")
+                    else:
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "You are using EPSG: 5514. We recommend using the transformation 5514-1623 "), Qgis.Success, duration=10)
         else:
             print("workspace nepredan")
-        try:
-            self.timerLayer.timeout.disconnect()
-            print("sync order vypinani")
-        except:
-            print("sync order vypinani")
+        #try:
+        #    self.timerLayer.timeout.disconnect()
+        #    print("sync order vypinani")
+        #except:
+        #    print("sync order vypinani")
         self.readMapJsonThread(name,service)
         #self.params = list()
         #self.params.append(name)
@@ -4492,17 +5244,26 @@ class Layman:
             ## rozvetveni zdali chce uzivatel otevrit kompozici v novem projektu
             #layers = iface.mapCanvas().layers() ## pokud neexistuej vrstva otazka nema smysl
             layers = QgsProject.instance().mapLayers()
+            
             if len(layers) > 0:
                 if self.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v novém projektu QGIS? Pokud ne, kompozice se sloučí se stávajícím mapovým obsahem.")
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.")
                 else:
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open composition in new QGIS project? If not, composition merge with the actual map content.")
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content.")
                 msgbox.addButton(QMessageBox.Yes)
                 msgbox.addButton(QMessageBox.No)
                 msgbox.setDefaultButton(QMessageBox.No)
                 reply = msgbox.exec()
                 if (reply == QMessageBox.Yes):
                     iface.newProject()
+                    projection = data['projection'].replace("epsg:","")        
+                    crs=QgsCoordinateReferenceSystem(int(projection))
+            
+            
+                    self.crsChangedConnect = False
+                    QgsProject.instance().setCrs(crs)                   
+                    self.crsChangedConnect = True
+                    QgsProject.instance().setTitle(data['title'])
 
                     self.loadService2(data,service, name)
                 else:
@@ -4533,7 +5294,29 @@ class Layman:
             ## konec naslouchani
 
             #self.prj=QgsProject.instance()
-        
+            composition = self.instance.getComposition()
+            #try:
+            #    projection = composition['projection'].replace("epsg:","")
+            #    crs=QgsCoordinateReferenceSystem(int(projection))
+            #   # QgsProject.instance().setCrs(crs)
+            #    print(QgsProject.instance().crs().authid())
+            #    layers = QgsProject.instance().mapLayers().values()    
+            #    #wkt = 'PROJCRS["S-JTSK / Krovak", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak (Greenwich)", METHOD["Krovak", ID["EPSG",9819]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["southing (X)",south, ORDER[1], LENGTHUNIT["metre",1]], AXIS["westing (Y)",west, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5513]]'
+            #    if crs == 5514:
+            #        wkt = 'PROJCRS["S-JTSK / Krovak East North", BASEGEOGCRS["S-JTSK", DATUM["System of the Unified Trigonometrical Cadastral Network", ELLIPSOID["Bessel 1841",6377397.155,299.1528128, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]], ID["EPSG",4156]], CONVERSION["Krovak East North (Greenwich)", METHOD["Krovak (North Orientated)", ID["EPSG",1041]], PARAMETER["Latitude of projection centre",49.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8811]], PARAMETER["Longitude of origin",24.8333333333333, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8833]], PARAMETER["Co-latitude of cone axis",30.2881397527778, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",1036]], PARAMETER["Latitude of pseudo standard parallel",78.5, ANGLEUNIT["degree",0.0174532925199433], ID["EPSG",8818]], PARAMETER["Scale factor on pseudo standard parallel",0.9999, SCALEUNIT["unity",1], ID["EPSG",8819]], PARAMETER["False easting",0, LENGTHUNIT["metre",1], ID["EPSG",8806]], PARAMETER["False northing",0, LENGTHUNIT["metre",1], ID["EPSG",8807]]], CS[Cartesian,2], AXIS["easting (X)",east, ORDER[1], LENGTHUNIT["metre",1]], AXIS["northing (Y)",north, ORDER[2], LENGTHUNIT["metre",1]], USAGE[ SCOPE["unknown"], AREA["Europe - Czechoslovakia"], BBOX[47.73,12.09,51.06,22.56]], ID["EPSG",5514]]'
+            #    if crs == 4326:
+            #        wkt = 'GEOGCRS["WGS 84",   DATUM["World Geodetic System 1984", ELLIPSOID["WGS 84",6378137,298.257223563, LENGTHUNIT["metre",1]]], PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]],    CS[ellipsoidal,2],        AXIS["geodetic latitude (Lat)",north,            ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east, ORDER[2], ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["unknown"], AREA["World"], BBOX[-90,-180,90,180]], ID["EPSG",4326]]'
+            #    crs = QgsCoordinateReferenceSystem(wkt) 
+            #    #crs = QgsCoordinateReferenceSystem() 
+            #    #crs.createFromProj("+proj=pipeline +step +inv +proj=webmerc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +step +proj=push +v_3 +step +proj=cart +ellps=WGS84 +step +inv +proj=helmert +x=570.8 +y=85.7 +z=462.8 +rx=4.998 +ry=1.587 +rz=5.261 +s=3.56 +convention=position_vector +step +inv +proj=cart +ellps=bessel +step +proj=pop +v_3 +step +proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel")
+            #    #crs.createFromProj(QgsDatumTransform().datumTransformToProj(1623)) ## epsg:5514/1623
+          
+            #    for layer in layers:
+            #        layer.setCrs(crs)
+            #except:
+            #    print("parameter projection was not found")
+            
+           # QgsProject.instance().crsChanged.connect(self.crsChanged)
             self.project.removeAll.connect(self.removeSignals)
             #self.prj.layerWasAdded.connect(self.layerAdded)
             layers = self.project.mapLayers().values() ## hlidac vrstvy
@@ -4641,10 +5424,10 @@ class Layman:
         else:
             if self.locale == "cs":
             #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně smazána."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně smazána."), Qgis.Warning)
             else:
             #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)
        # self.refreshMapList()            
         self.refreshListWidgetMaps() ## pro treewidget
         
@@ -4671,10 +5454,10 @@ class Layman:
             else:
                 if self.locale == "cs":
                 #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + composition['name'] + " nebyla úspešně smazána."), Qgis.Warning, duration=3)
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + composition['name'] + " nebyla úspešně smazána."), Qgis.Warning)
                 else:
                 #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was not sucessfully deleted."), Qgis.Warning, duration=3)
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was not sucessfully deleted."), Qgis.Warning)
           
             self.instance = None
             self.current = None
@@ -4706,10 +5489,10 @@ class Layman:
             else:
                 if self.locale == "cs":
                 #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně smazána."), Qgis.Warning, duration=3)
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla úspešně smazána."), Qgis.Warning)
                 else:
                 #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning, duration=3)
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)
                   
             try:
                 del (self.compositeList[x]) 
@@ -4844,7 +5627,8 @@ class Layman:
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
-
+        authm = QgsApplication.authManager()
+        authm.clearCachedConfig(self.authCfg)
         #print "** UNLOAD Atlas"
       ## killing daemons
         #self.thread1.terminate()
@@ -4892,15 +5676,19 @@ class Layman:
         self.dlg.lineEdit_6.setText(str(ext.yMaximum()))
 
     def setWritePermissionList(self):
-        if self.checkAddedItemDuplicity("write"):
-            itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
-            if (self.dlg.comboBox_users.currentText().split(' , ')[0] in itemsTextListRead):
-                self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
-                print("1")
-            else:
-                self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
-                self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
-                print("2")
+        allItems = [self.dlg.comboBox_users.itemText(i) for i in range(self.dlg.comboBox_users.count())]
+        #print(allItems)
+        #print(self.dlg.comboBox_users.currentText())
+        if self.dlg.comboBox_users.currentText() in allItems:
+            if self.checkAddedItemDuplicity("write"):
+                itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
+                if (self.dlg.comboBox_users.currentText().split(' , ')[0] in itemsTextListRead):
+                    self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                    print("1")
+                else:
+                    self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                    self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                    print("2")
     def removeWritePermissionList(self):
         self.deleteItem(self.dlg.listWidget_read.currentItem().text())
         self.dlg.listWidget_read.removeItemWidget(self.dlg.listWidget_read.takeItem(self.dlg.listWidget_read.currentRow()))
@@ -4947,35 +5735,66 @@ class Layman:
 
 
     def getEmptyComposite(self, compositeName, compositeTitle):        
-        compositeEPSG  = "epsg:4326"        
-        if (self.dlg.lineEdit_3.text() == "" or self.dlg.lineEdit_4.text() == "" or self.dlg.lineEdit_5.text() == "" or self.dlg.lineEdit_6.text() == ""):
-           ext = iface.mapCanvas().extent() 
-           ext = (self.tranformExtent(ext))
-           xmin = ext.xMinimum()
-           xmax = ext.xMaximum()
-           ymin = ext.yMinimum()
-           ymax = ext.yMaximum()
-           print(ymax)
-        else:   
-           xmin = self.dlg.lineEdit_3.text()
-           xmax = self.dlg.lineEdit_4.text()
-           ymin = self.dlg.lineEdit_5.text()
-           ymax = self.dlg.lineEdit_6.text()  
-           src = QgsProject.instance().crs()
-           dest = QgsCoordinateReferenceSystem(4326)
-           tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
-           #print(xmax,ymax)
-           #print(xmin,ymin)
-           max = tform.transform(QgsPointXY(float(xmax),float(ymax)))
-           min = tform.transform(QgsPointXY(float(xmin),float(ymin)))
-           xmin = min.x()
-           xmax = max.x()
-           ymin = min.y()
-           ymax = max.y()
-        center = tform.transform(QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()))
-        abstract = self.dlg.lineEdit_7.text()        
-        comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(xmin),str(ymin),str(xmax),str(ymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
-        #print(comp)
+       # compositeEPSG  = "epsg:4326"   
+        compositeEPSG = QgsProject.instance().crs().authid().lower()
+        ## nativeExtent is project extent
+        ext = iface.mapCanvas().extent() 
+        xmin = ext.xMinimum()
+        xmax = ext.xMaximum()
+        ymin = ext.yMinimum()
+        ymax = ext.yMaximum()
+
+        ## convert to extent
+        if QgsProject.instance().crs().authid() != "4326":
+            src = QgsProject.instance().crs()
+            dest = QgsCoordinateReferenceSystem(4326)
+            tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+            max = tform.transform(QgsPointXY(float(xmax),float(ymax)))
+            min = tform.transform(QgsPointXY(float(xmin),float(ymin)))
+            exmin = min.x()
+            exmax = max.x()
+            eymin = min.y()
+            eymax = max.y()
+        else:
+            exmin = xmin
+            exmax = xmax
+            eymin = ymin
+            eymax = ymax
+        #if (self.dlg.lineEdit_3.text() == "" or self.dlg.lineEdit_4.text() == "" or self.dlg.lineEdit_5.text() == "" or self.dlg.lineEdit_6.text() == ""):
+        #   ext = iface.mapCanvas().extent() 
+        #   #ext = (self.tranformExtent(ext))
+        #   xmin = ext.xMinimum()
+        #   xmax = ext.xMaximum()
+        #   ymin = ext.yMinimum()
+        #   ymax = ext.yMaximum()
+        
+        #else:   
+        #   xmin = self.dlg.lineEdit_3.text()
+        #   xmax = self.dlg.lineEdit_4.text()
+        #   ymin = self.dlg.lineEdit_5.text()
+        #   ymax = self.dlg.lineEdit_6.text()  
+        #   src = QgsProject.instance().crs()
+        #   dest = QgsCoordinateReferenceSystem(4326)
+        #   tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        #   #print(xmax,ymax)
+        #   #print(xmin,ymin)
+        #   max = tform.transform(QgsPointXY(float(xmax),float(ymax)))
+        #   min = tform.transform(QgsPointXY(float(xmin),float(ymin)))
+        #   xmin = min.x()
+        #   xmax = max.x()
+        #   ymin = min.y()
+        #   ymax = max.y()
+        #center = tform.transform(QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()))
+        center = QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y())
+        abstract = self.dlg.lineEdit_7.text()  
+        self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
+        self.schemaVersion = "2.0.0"
+        #comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(xmin),str(ymin),str(xmax),str(ymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.16.0"):
+            comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"describedBy": self.schemaURl,"schema_version": self.schemaVersion,"nativeExtent": [xmin,ymin,xmax,ymax],"extent":[exmin,eymin,exmax,eymax],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
+        else:
+            comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(exmin),str(eymin),str(exmax),str(eymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
+        print(comp)
         
        ## iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + compositeName + " byla úspešně vytvořena."), Qgis.Success, duration=3)
         return comp
@@ -5061,9 +5880,9 @@ class Layman:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
         else:
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Metadata nebyla upravena."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Metadata nebyla upravena."), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was not saved."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was not saved."), Qgis.Warning)
         
         self.dlg.close()
         composition = self.instance.getComposition()
@@ -5191,7 +6010,8 @@ class Layman:
                 os.remove(layer_filename)
             else:
                 print("The file does not exist")
-            parameter = {'INPUT': layer, 'TARGET_CRS': 'EPSG:4326', 'OUTPUT': layer_filename}
+            epsg = layer.crs().authid()
+            parameter = {'INPUT': layer, 'TARGET_CRS': epsg, 'OUTPUT': layer_filename}
             print(processing.run('qgis:reprojectlayer', parameter))
             ## transforma test
           #  result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(layer, layer_filename, "utf-8", crs, ogr_driver_name) # export jsonu do souboru
@@ -5210,6 +6030,7 @@ class Layman:
             layer.saveSldStyle(sld_filename)
             self.insertPictureToQML(layer)
             layer.saveNamedStyle(qml_filename)
+            self.insertBinaryToQml(layer, qml_filename)
     def json_exportMix(self, layer):    
     
         filePath = self.getTempPath(self.removeUnacceptableChars(layer.name() + str(layer.geometryType())).lower())  
@@ -5272,6 +6093,118 @@ class Layman:
             return False
         else:
             return True
+
+    def insertBinaryToQml(self,layer, stylePath):
+        single_symbol_renderer = layer.renderer()
+        #stylePath = r"C:\Users\Honza\Downloads\xxx\out.qml"
+        layer.saveNamedStyle(stylePath)
+        if isinstance(single_symbol_renderer, QgsCategorizedSymbolRenderer):
+            #print(single_symbol_renderer.embeddedRenderer())
+            symbol  = layer.renderer().categories()
+            for i in symbol: 
+                #print(i.symbol().symbolLayer(0))
+        
+                if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
+                    path = i.symbol().symbolLayer(0).path()  
+                    print(type(i.symbol().symbolLayer(0).subSymbol() )) 
+                    if path[:4] != "base":
+                        if os.path.exists(path):
+                            with open(path, "rb") as image_file:
+                                encoded_string = base64.b64encode(image_file.read())
+                                #print(encoded_string)    
+                            path2 = i.symbol().symbolLayer(0).path()          
+                            decoded =   encoded_string.decode("utf-8") 
+                            path3 = ("base64:"  + decoded)
+                            #i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
+                
+                            #print(i.symbol().symbolLayer(0).path())
+                
+                            print(path2)
+                            print(path3)
+                            with open(stylePath, 'r') as file :
+                                filedata = file.read()
+       
+                            filedata = filedata.replace(path2, path3)
+
+                            with open(stylePath, 'w') as file:
+                                file.write(filedata)
+                j = 0
+                pom = True
+        
+                while pom:
+                    #print(i.symbol().symbolLayer(j))
+                    if isinstance(i.symbol().symbolLayer(j), QgsMarkerLineSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
+                
+                        path = (i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path())
+                        #print(path)   
+                        if path[:4] != "base":
+                            if os.path.exists(path):
+                                with open(path, "rb") as image_file:
+                                    encoded_string = base64.b64encode(image_file.read())
+                                    #print(encoded_string)    
+                                path = i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path()         
+                                decoded =   encoded_string.decode("utf-8") 
+                                path2 = ("base64:"  + decoded)
+                                #i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
+                                #print(path2)
+                                #print(i.symbol().symbolLayer(0).path())
+                                with open(stylePath, 'r') as file :
+                                    filedata = file.read()
+                           
+                                filedata = filedata.replace(path, path2)
+
+                                with open(stylePath, 'w') as file:
+                                    file.write(filedata)
+                    j = j +1
+                    try:
+                        i.symbol().symbolLayer(j).subSymbol
+                    except:
+                        pom = False
+                #if isinstance(i.symbol().symbolLayer(0), QgsMarkerLineSymbolLayer):
+                #    path = i.symbol().symbolLayer(0).subSymbol().symbolLayer(0).path()
+        
+                #    if os.path.exists(path):
+                #        with open(path, "rb") as image_file:
+                #            encoded_string = base64.b64encode(image_file.read())
+                #            #print(encoded_string)    
+                #        path2 = i.symbol().symbolLayer(0).subSymbol().symbolLayer(0).path()
+                #        decoded =   encoded_string.decode("utf-8") 
+                #        #print("base64:"  + decoded)
+                #        #i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
+                #        path3 = ("base64:"  + decoded)
+                #        with open(stylePath, 'r') as file :
+                #            filedata = file.read()
+       
+                #        filedata = filedata.replace(path2, path3)
+
+                #        with open(stylePath, 'w') as file:
+                #            file.write(filedata)
+   
+        elif isinstance(single_symbol_renderer, QgsRuleBasedRenderer):
+            print(type(layer.renderer()))
+            symbol  = layer.renderer().rootRule().children()
+            for i in symbol: 
+                print(i.symbol().symbolLayer(0))
+        
+                if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
+                    path = i.symbol().symbolLayer(0).path()
+        
+                    if os.path.exists(path):
+                        with open(path, "rb") as image_file:
+                            encoded_string = base64.b64encode(image_file.read())
+                            #print(encoded_string)    
+                        path2 = i.symbol().symbolLayer(0).path()   
+                        decoded =   encoded_string.decode("utf-8") 
+                        #print("base64:"  + decoded)
+                        #i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
+                        path3 = ("base64:"  + decoded)
+                        with open(stylePath, 'r') as file :
+                            filedata = file.read()
+       
+                        filedata = filedata.replace(path2, path3)
+
+                        with open(stylePath, 'w') as file:
+                            file.write(filedata)
     def insertPictureToQML(self, layer):       
         single_symbol_renderer = layer.renderer()
         
@@ -5293,6 +6226,23 @@ class Layman:
                             print(i.symbol().symbolLayer(0).path())
                     except:
                         print("binary path")
+        elif isinstance(single_symbol_renderer, QgsRuleBasedRenderer):
+            print(type(layer.renderer()))
+            symbol  = layer.renderer().rootRule().children()
+            for i in symbol: 
+                print(i.symbol().symbolLayer(0))
+       
+                if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
+                    path = i.symbol().symbolLayer(0).path()
+            
+                    if os.path.exists(path):
+                        with open(path, "rb") as image_file:
+                            encoded_string = base64.b64encode(image_file.read())
+                            #print(encoded_string)    
+                        decoded =   encoded_string.decode("utf-8") 
+                        #print("base64:"  + decoded)
+                        i.symbol().symbolLayer(0).setPath("base64:"  + decoded)  
+                        print(i.symbol().symbolLayer(0).path())
         elif isinstance(single_symbol_renderer, QgsSingleSymbolRenderer):
             try:
                 symbols = single_symbol_renderer.symbol()
@@ -5355,7 +6305,7 @@ class Layman:
         self.uploaded = 0
         self.batchLength = len(layers)
         if self.locale == "cs":
-            self.dlg.label_progress.setText("úspěšně exportováno: 0 / " + str(len(layers)) )
+            self.dlg.label_progress.setText("Úspěšně exportováno: 0 / " + str(len(layers)) )
         else:
             self.dlg.label_progress.setText("Sucessfully exported 0 / " + str(len(layers)) )
         #else:
@@ -5496,7 +6446,8 @@ class Layman:
         pathWithoutExt = path.replace(ext,"")
         ext = ext.lower()
         if ext == ".tif" or ".tiff":
-            if os.path.exists(pathWithoutExt + ".tfw"):
+            if os.path.exists(pathWithoutExt + ".tfw") or os.path.exists(pathWithoutExt + ".TFW"):
+                print("external file detected")
                 if not onlyExt:
                     return pathWithoutExt + ".tfw"
                 else:
@@ -5528,10 +6479,36 @@ class Layman:
             else:
                 return None
                 
+    def replaceInfiniteInSLD(self, filepath):
+        with open(filepath, 'r') as file :
+          filedata = file.read()
 
+        # Replace the target string
+        filedata = filedata.replace('"inf"', '"9999"')
+
+        # Write the file out again
+        with open(filepath, 'w') as file:
+          file.write(filedata)
+
+    #def replaceNoDataInSLD(self, filepath):
+    #    with open(filepath, 'r') as file :
+    #      filedata = file.read()
+
+    #    # Replace the target string
+    #    filedata = filedata.replace('"inf"', '"9999"')
+
+    #    # Write the file out again
+    #    with open(filepath, 'w') as file:
+    #      file.write(filedata)        
     def postRasterThread(self, layer,data, q,progress, patch):
+        QgsMessageLog.logMessage("enableProgress")
+
+        #data['crs'] = 'EPSG:4326'
+        data['crs'] = layer.crs().authid()
         print(layer.name())
-        
+        stylePath = self.getTempPath(self.removeUnacceptableChars(layer.name())).replace("geojson", "sld")
+        layer.saveSldStyle(stylePath)
+        self.replaceInfiniteInSLD(stylePath)
         layer_name = layer.name()
         path = layer.dataProvider().dataSourceUri()
         basename = os.path.basename(path)
@@ -5541,10 +6518,12 @@ class Layman:
             shutil.copy2(path, newPath)
             path = newPath
         ext = (layer.dataProvider().dataSourceUri()[-4:])
-        files = {'file': (path, open(path, 'rb')),} 
+        files = {'file': (path, open(path, 'rb')),'style': open(stylePath, 'rb')} 
         if os.path.getsize(path) > 800000000:
             self.checkFileSizeLimit(os.path.getsize(path))
             self.setChunkSizeBigger()
+        externalFile = self.returnPathIfFileExists(path,ext)
+        print(externalFile)
         if (os.path.getsize(path) > self.CHUNK_SIZE):
             if patch:
             #self.postInChunks(layer_name, "post")
@@ -5558,27 +6537,29 @@ class Layman:
             url = self.URI + "/rest/"+self.laymanUsername+"/layers"
             name = self.removeUnacceptableChars(layer_name) 
             ## registrovat obě vrstvy musím pokud existuje externí souory,poslat jako pole?
-            externalFile = self.returnPathIfFileExists(path,ext)
-            print(externalFile)
+            
+
+            #files = [('file', open(geoPath, 'rb')), ('style', open(stylePath, 'rb'))]
             if externalFile:
                 payload = {        
                 #'file': name.lower()+ext,
                 'file': [name.lower()+ext,name.lower() + self.returnPathIfFileExists(path,ext, True)],
                 'title': name,
-                'crs': str(layer.crs().authid())
+                'crs': str(layer.crs().authid()),
+                'style': open(stylePath, 'rb') 
                 }    
             else:
                 payload = {        
                 'file': name.lower()+ext,                
                 'title': name,
-                'crs': str(layer.crs().authid())
+                'crs': str(layer.crs().authid())                
                 }    
-            
+            files = {'style': open(stylePath, 'rb')} 
             #if externalFile != None:
             #    files = {'file': (externalFile, open(externalFile, 'rb')),} 
             #    response = requests.request("POST", url,  data=payload, files = files, headers = self.getAuthHeader(self.authCfg)) 
             #else:
-            response = requests.request("POST", url,  data=payload, headers = self.getAuthHeader(self.authCfg)) 
+            response = requests.request("POST", url, files=files,  data=payload, headers = self.getAuthHeader(self.authCfg)) 
             print(response.content)
             layer_name = self.removeUnacceptableChars(layer_name)
             filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) ## chunky se ukládají do adresáře v tempu
@@ -5619,22 +6600,60 @@ class Layman:
             #iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
             
         else:
+            #name = self.removeUnacceptableChars(layer_name) 
+            #if externalFile:
+            #    payload = {        
+            #    #'file': name.lower()+ext,
+            #    'file': [name.lower()+ext,name.lower() + self.returnPathIfFileExists(path,ext, True)],
+            #    'title': name,
+            #    'crs': str(layer.crs().authid()),
+            #    'style': open(stylePath, 'rb') 
+            #    }    
+            #else:
+            #    payload = {        
+            #    'file': name.lower()+ext,                
+            #    'title': name,
+            #    'crs': str(layer.crs().authid())
+            #    }    
+
+            if patch:          
+                url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars(layer_name)
+                r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
+            if externalFile:               
+               
+          
+                zipPath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) + os.sep +self.removeUnacceptableChars(layer_name)+".zip"
+                zipObj = ZipFile(zipPath, 'w')
+                # Add multiple files to the zip              
+                
+                zipObj.write(externalFile, os.path.basename(externalFile))
+                zipObj.write(path,os.path.basename(path))
+                zipObj.close()
+                files = {'file': (zipPath, open(zipPath, 'rb')),'style': open(stylePath, 'rb')} 
+           
+            data['crs'] = 'EPSG:4326'
             response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
             print(response.content)
             res = self.fromByteToJson(response.content)
         
-            
-            if res['code'] == 4:
-                QgsMessageLog.logMessage("unsupportedCRS")
-                QgsMessageLog.logMessage("resetProgressbar")
-                return
+            print(res)
+            try:
+                if res['code'] == 4:
+                    QgsMessageLog.logMessage("unsupportedCRS")
+                    QgsMessageLog.logMessage("resetProgressbar")
+                    return
+            except:
+                print("uuid")
+
         if self.layersToUpload == 1:
             QgsMessageLog.logMessage("resetProgressbar")
             if self.locale == "cs":
                 self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(1) + " / " + str(1) )
             else:
                 self.dlg.label_progress.setText("Sucessfully exported: " +  str(1) + " / " + str(1) )
+
         QgsMessageLog.logMessage("export")
+        QgsMessageLog.logMessage("disableProgress")
     def processChunks(self, arr, resumableFilename, layman_original_parameter,resumableTotalChunks, layer_name,filePath,ext ):
         for i in range (1, len(arr)+1):  ##chunky jsou počítané od 1 proto +1  
             failedRequest = -1
@@ -5647,7 +6666,7 @@ class Layman:
             'layman_original_parameter': layman_original_parameter,
             'resumableChunkNumber': i,
             'resumableTotalChunks': resumableTotalChunks
-            } 
+            }           
             url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer_name+'/chunk'   
             f = open(filePath + os.sep+"chunk"+str(i)+ ext, "wb")
             f.write(bytearray(arr[i-1]))
@@ -5713,7 +6732,9 @@ class Layman:
     
 
             response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
-          
+            print(response.content)
+            status = response.status_code
+            print(status)
         #time.sleep(1.5)
         if progress:
 
@@ -5726,7 +6747,10 @@ class Layman:
                 except:
                     pass
                 QgsMessageLog.logMessage("imports_"+layer_name)
+            elif (status == 413):
+                QgsMessageLog.logMessage("importl_"+layer_name)
             else:
+                
                 QgsMessageLog.logMessage("importn_"+layer_name)
             self.importedLayer = layer_name
             self.processingList[q][2] = 1
@@ -5828,6 +6852,12 @@ class Layman:
         for x in range (0, len(self.compositeList)):
             if self.removeUnacceptableChars(self.compositeList[x]['title']) == self.removeUnacceptableChars(current):
                 return x
+    def checkPossibleChars(self, layername):
+        unacceptable = "/*+-%!?:><&@#'"
+        for ch in layername:
+            if ch in unacceptable:
+                return False
+        return True
 
     def readDimFromCapatibilites(self, url, name):
         r = requests.get(url + "?service=wms&request=GetCapabilities")
@@ -5851,13 +6881,13 @@ class Layman:
         nameCheck = True
         validExtent = True
         layers = QgsProject.instance().mapLayersByName(layer_name)       
-        if (isinstance(layers[0], QgsVectorLayer)):
-            if layers[0].featureCount() == 0:
-                if self.locale == "cs":                
-                    QMessageBox.information(None, "Layman import layer", "Nelze nahrát vrstvu: "+layers[0].name()+", protože neobsahuje žádný prvek!")
-                else:
-                    QMessageBox.information(None, "Layman import layer", "Unable to load layer: "+layers[0].name()+", because it has no feature!")
-                return
+        #if (isinstance(layers[0], QgsVectorLayer)):
+        #    if layers[0].featureCount() == 0:
+        #        if self.locale == "cs":                
+        #            QMessageBox.information(None, "Layman import layer", "Nelze nahrát vrstvu: "+layers[0].name()+", protože neobsahuje žádný prvek!")
+        #        else:
+        #            QMessageBox.information(None, "Layman import layer", "Unable to load layer: "+layers[0].name()+", because it has no feature!")
+        #        return
         layers[0].setName(layer_name)
         if len(layers) > 1:
             for l in layers:
@@ -5874,8 +6904,10 @@ class Layman:
             else:
                 QMessageBox.information(None, "Layman", "Number in first character is not allowed.")
             nameCheck = False
+        if not self.checkPossibleChars(layer_name):
+            QgsMessageLog.logMessage("wrongName")
+            return
         
-     
 
 
         #if not self.checkWgsExtent(layers[0]):
@@ -5911,29 +6943,38 @@ class Layman:
                             if (isinstance(layers[0], QgsVectorLayer)):
                                 threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
                             if (isinstance(layers[0], QgsRasterLayer)): 
-                                if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
-                                    threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
-                                else:
-                                    if self.locale == "cs":
-                                        QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
+                                if layers[0].isValid():
+                                    if layers[0].crs().authid() in self.supportedEPSG:
+                                        ext = layers[0].dataProvider().dataSourceUri()[-4:]
+                                        if ext.lower() != ".bmp": 
+                                            threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
+                                        else:
+                                            QgsMessageLog.logMessage("BmpNotSupported")
                                     else:
-                                        QMessageBox.information(None, "Layman", "Use EPSG:4326")
-                                    self.dlg.progressBar.hide()
+                                        QgsMessageLog.logMessage("wrongCrs")
+                                else:
+                                    QgsMessageLog.logMessage("invalid")
                             #print("vrstva již existuje")
                         
                         else:
                             self.batchLength = self.batchLength - 1 
                     else:
+                       
                         q = self.setProcessingItem(layer_name)
                         if (isinstance(layers[0], QgsVectorLayer)):
                             threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
                         if (isinstance(layers[0], QgsRasterLayer)): 
-                          
-                            if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
-                                threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
+                            if layers[0].isValid():
+                                if layers[0].crs().authid()  in self.supportedEPSG:
+                                    ext = layers[0].dataProvider().dataSourceUri()[-4:]
+                                    if ext.lower() != ".bmp":
+                                        threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()   
+                                    else:
+                                        QgsMessageLog.logMessage("BmpNotSupported")  
+                                else:
+                                    QgsMessageLog.logMessage("wrongCrs")
                             else:
-                                QgsMessageLog.logMessage("wrongCrs")
-                                
+                                QgsMessageLog.logMessage("invalid")    
                 else:
             
                     self.layerName = layer_name
@@ -5943,24 +6984,34 @@ class Layman:
                         if not auto:
                             self.dlg.progressBar.show() 
                             self.dlg.label_import.show()
-                        
+                        if auto:
+                            read = self.instance.getAllPermissions()['read']
+                            write = self.instance.getAllPermissions()['write']
+                            data['access_rights.read'] =  self.listToString(read)
+                            data['access_rights.write'] = self.listToString(write)
+                          
+                            print("dfasfsadfdddddddddddddddddd")
                         q = self.setProcessingItem(layer_name)
                         
                         if (isinstance(layers[0], QgsVectorLayer)):
                             threading.Thread(target=lambda: self.postThread(layer_name,data, q,True)).start()   
                         if (isinstance(layers[0], QgsRasterLayer)): 
-                            if layers[0].crs().authid() == 'EPSG:4326' or layers[0].crs().authid() == 'EPSG:3857':
-                                threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, False)).start()   
-                            else:
-                                if self.locale == "cs":
-                                    QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
+                            if layers[0].isValid():
+                                if layers[0].crs().authid()  in self.supportedEPSG:
+                                    ext = layers[0].dataProvider().dataSourceUri()[-4:]
+                                    if ext.lower() != ".bmp":
+                                        threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, False)).start()   
+
+                                    else:
+                                        QgsMessageLog.logMessage("BmpNotSupported")
                                 else:
-                                    QMessageBox.information(None, "Layman", "Use EPSG:4326")
-                                self.dlg.progressBar.hide()
+                                    QgsMessageLog.logMessage("wrongCrs")
+                            else:
+                                QgsMessageLog.logMessage("invalid")
                     #        if response.status_code == 200:
                     #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was imported successfully."), Qgis.Success, duration=3)
                     #        else:
-                    #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was not imported."), Qgis.Warning, duration=3)
+                    #            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer  " + layer_name + " was not imported."), Qgis.Warning)
                     else:
                         if self.locale == "cs":
                             QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
@@ -6198,7 +7249,20 @@ class Layman:
             self.refreshLayerListReversed() ## mozna bude treba odstranit kvuli padum
         
         QgsMessageLog.logMessage("addRaster")
-
+    def saveXYZ(self, layer): 
+        #title = self.removeUnacceptableChars(layer.name()).lower()      
+        title = layer.name()     
+        dimension = ""
+        params = layer.dataProvider().dataSourceUri().split("&")
+        composition = self.instance.getComposition()
+        for p in params:
+            param = p.split("=")  
+            #print(p)
+            if(param[0] == "url"):
+                url = param[1] 
+        crs = layer.crs().authid()    
+        composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})    
+           
     def addExistingWMSLayerToCompositeThread2(self, title,nameInList):
         composition = self.instance.getComposition()
         print("nameInList"+ nameInList)
@@ -6440,6 +7504,8 @@ class Layman:
                     threading.Thread(target=lambda: self.importMap(x, "add", successful) ).start()
                     #self.importMap(x, "add", successful) 
     def addLayerToComposite2(self,composition, layersList):
+        layersList = self.removeRastersWithoutCrs(layersList)
+        print(layersList)
         
         for layer in layersList:
             
@@ -6457,7 +7523,7 @@ class Layman:
                 if path == 'root':
                     path = ""
                 
-                   
+                
                 #print("path " + str(path))
                 for i in range (0, len(layers)):
                     for item in self.currentSet: 
@@ -6467,18 +7533,28 @@ class Layman:
                     layerName = self.removeUnacceptableChars(layers[i].name()).lower()
                     #if self.layerServices[layerName] == "HSLayers.Layer.WMS":
                     if service == 'wms':
-                        if layers[i].crs().authid() == 'EPSG:4326' or layers[i].crs().authid() == 'EPSG:3857':
-                            wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows'
-                            composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+                        print(layers[i].crs().authid())
+                        print(layers[i].crs().authid() in self.supportedEPSG)
+                        print("xx")
+                        if layers[i].crs().authid() in self.supportedEPSG:
+                            if self.isXYZ(layers[i].name()):
+                                self.saveXYZ(layers[i])
+                            else:
+                                wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'_wms/ows'
+                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+                                print(composition)
                     #if (self.dlg.radioButton_wfs.isChecked()):
                     #elif self.layerServices[layerName] == "OpenLayers.Layer.Vector":
                     elif service == 'wfs':
-                        wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'/wfs'
-                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
-                    
+                        wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'/wfs'
+                        styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ str(layerName) + "/style"
+                        
+                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        
+
                     else:
-                        wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows'
-                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+                        wmsUrl = self.URI.replace("/client", "") +'/geoserver/'+self.laymanUsername+'_wms/ows'
+                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                     successful = successful + 1 
                 print("saving layer records to composition")                
              
@@ -6488,18 +7564,25 @@ class Layman:
                     #print (self.isLayerInComposite(x))
                     #print (layers[i].name() in self.isLayerInComposite(x))
                     #inComposite = layers[i].name() in self.isLayerInComposite(x)
+                    
                     inComposite = False
                     layerName = self.removeUnacceptableChars(layers[i].name()).lower()
                     if (self.checkExistingLayer(layers[i].name()) and inComposite):
                         j = self.getLayerInCompositePosition(x)
                         print("j je: " + str(j))               
-            
-                        self.postRequest(layers[i].name(), True)
-                        layerName = self.removeUnacceptableChars(layers[i].name())
+                        if self.isXYZ(layers[i].name()):
+                            #self.saveXYZ(layers[i])
+                            pass
+                        else:
+                            self.postRequest(layers[i].name(), True)
+                            layerName = self.removeUnacceptableChars(layers[i].name())
            
                     else:
-                        
-                        self.postRequest(layers[i].name(), True)
+                        if self.isXYZ(layers[i].name()):
+                            #self.saveXYZ(layers[i])
+                            pass
+                        else:
+                            self.postRequest(layers[i].name(), True)
                       #  wmsStatus = 'PENDING'
                       #  j = 0
                       #  while ((wmsStatus == 'PENDING') and (j < 10)):
@@ -6550,6 +7633,35 @@ class Layman:
                         #threading.Thread(target=lambda: self.importMap(x, "add", successful) ).start()
                         #self.importMap(x, "add", successful) 
         self.processingRequest = False
+    def removeRastersWithoutCrs(self, layers):
+        unacceptableLayers = list()
+        nonValid = list()
+        pom = 0
+        for layer in layers:
+            if not layer.isValid():
+                nonValid.append(layer.name())
+                layers = (set(layers)- set([layer]))
+                pom = pom + 1
+            if isinstance(layer, QgsRasterLayer):
+                if layer.crs().authid() not in self.supportedEPSG:
+                    pom = pom + 1
+                    unacceptableLayers.append(layer.name())
+                    print(set(layers))
+                    print(set([layer]))
+                    layers = (set(layers)- set([layer]))
+                    print(layers)
+
+        if pom > 0 :
+            toOutput = "\n".join(unacceptableLayers)        
+            if len(nonValid) > 0:
+                if self.locale == "cs":
+                    toOutput = toOutput + "\n" + "Nevalidní vrstvy:" + "\n" + "\n".join(nonValid) 
+                else:
+                    toOutput = toOutput + "\n"+ "\n" + "Non valid layers:" + "\n" + "\n".join(nonValid) 
+            QgsMessageLog.logMessage("wrongCrss" + toOutput)
+        return layers
+
+
     def getProgressBarStep(self, count):
         return (100/count)
 
@@ -6622,9 +7734,11 @@ class Layman:
             d = json.load(f)        
         files = {'file': (tempFile, open(tempFile, 'rb')),} 
         #data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract']} 
-        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
+        #data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
+        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername,   'access_rights.write': self.laymanUsername} 
         
         response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
+        print(response.content)
         if (response.status_code == 200):
             if self.locale == "cs":
             #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
@@ -6635,10 +7749,10 @@ class Layman:
         else:
             if self.locale == "cs":
             #    QMessageBox.information(None, "Message", "Kompozice byla úspěsně smazána.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " nebyla úspešně vytvořena."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " nebyla úspešně vytvořena."), Qgis.Warning)
             else:
             #    QMessageBox.information(None, "Message", "Composition deleted sucessfully.")
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully created."), Qgis.Warning, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully created."), Qgis.Warning)
         #print(response.content)
 
 
@@ -6671,7 +7785,7 @@ class Layman:
             d = json.load(f)
 
         files = {'file': (jsonPath, open(jsonPath, 'rb')),} 
-        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
+        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract']} 
         print("movvvvvvvvvvvvvvvvxr")
         #response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'],headers = self.getAuthHeader(self.authCfg))
         
@@ -6700,7 +7814,17 @@ class Layman:
             d = json.load(f)
 
         files = {'file': (jsonPath, open(jsonPath, 'rb')),} 
-        data = { 'name' :  composition['name'], 'title' : composition['title'], 'description' : composition['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
+       # data = { 'name' :  composition['name'], 'title' : composition['title'], 'description' : composition['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername} 
+        data = { 'name' :  composition['name'], 'title' : composition['title'], 'description' : composition['abstract']} 
+        
+        read = self.instance.getAllPermissions()['read']
+        write = self.instance.getAllPermissions()['write']
+        data['access_rights.read'] =  self.listToString(read)
+        data['access_rights.write'] = self.listToString(write)
+        # data['access_rights'] = self.instance.getAllPermissions()
+        
+        #except:
+        #    print("nenalezen zaznma")
         print("movvvvvvvvvvvvvvvvx")
         #response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'],headers = self.getAuthHeader(self.authCfg))
         workspace = self.instance.getWorkspace()
@@ -6791,9 +7915,9 @@ class Layman:
                         iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was sucessfully modified."), Qgis.Success, duration=3)
                 else:
                     if self.locale == "cs":             
-                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " nebyla úspešně změněna."), Qgis.Warning, duration=3)
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " nebyla úspešně změněna."), Qgis.Warning)
                     else:          
-                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully modified."), Qgis.Warning, duration=3)
+                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully modified."), Qgis.Warning)
                 if (self.dlg.windowTitle() != "Manage Maps"):
                     self.dlg.show()
                 return
@@ -6894,6 +8018,12 @@ class Layman:
     
     def createComposite(self, name, title, setCurrent = False):
       #  if (name == "" or title == ""):
+        if title[0] in ["0","1","2","3","4","5","6","7","8","9"]:
+            if self.locale == "cs":
+                QMessageBox.information(None, "Message", "Není povoleno číslo v prvník znaku titulku!")
+            else:
+                QMessageBox.information(None, "Message", "Number in first character of title is not allowed!")
+            return
         if (title == ""):
             if self.locale == "cs":
                 QMessageBox.information(None, "Message", "Není vyplněn titulek!")
@@ -6909,7 +8039,7 @@ class Layman:
             try:
                 self.refreshCompositeList(True)
             except:
-                pass
+                print("err")
             if setCurrent:
                 self.current = name
                 self.selectedWorkspace = self.laymanUsername
@@ -6923,6 +8053,7 @@ class Layman:
                 self.compositionDict[name] = title
                 ## sync start
                 prj = QgsProject().instance()
+                QgsProject().instance().setTitle(title)
                 root = prj.layerTreeRoot()
                 print("xxxxxx")
                 print(root)
@@ -6952,7 +8083,7 @@ class Layman:
                 root = QgsProject.instance().layerTreeRoot()
                # root.visibilityChanged.connect(self.changeVisibility)
                 ##
-
+                QgsProject.instance().setTitle(title)
                 self.afterCloseNewMapDialog()
         
     
@@ -7051,13 +8182,14 @@ class Layman:
         if not r:
             return
         data = r.json()
+        #print(data)
 
         
         pom = set()
         for x in range(len(data)):
             pom.add((data[x]['name']))
         layerName = layerName.replace(" ", "_").lower()
-        
+        #print(layerName)
         if (layerName in pom):
             return True
         else:
@@ -7260,16 +8392,22 @@ class Layman:
                 QMessageBox.information(None, "Layman", "Map composition is corrupted!")
             return
         #self.loadservice3(data)
-        threading.Thread(target=lambda: self.loadservice3(data)).start()
+        #QTimer.singleShot(1, lambda: self.loadservice3(data))
+        
+        self.service3 = threading.Thread(target=lambda: self.loadservice3(data))
+        self.service3.start()
        
     def loadservice3(self, data):
         groupName = ''
-        threads = list()
+        self.threads = list()
+        
         self.ThreadsA = set()
         for thread in threading.enumerate(): 
             self.ThreadsA.add(thread.name)
         i=1
         self.groups = list()
+        self.groupPositions = list()
+        self.groupsSet = set()
         for x in range(len(data['layers'])- 1, -1, -1):       ## descending order     
             print("iteration")
             try:                
@@ -7291,6 +8429,7 @@ class Layman:
             if className == 'HSLayers.Layer.WMS':
                 layerName = data['layers'][x]['params']['LAYERS']
                 self.layerServices[layerName] = 'HSLayers.Layer.WMS'
+            
             if className == 'OpenLayers.Layer.Vector' or className == 'Vector': 
                 print(data['layers'][x])
                 try:
@@ -7309,6 +8448,7 @@ class Layman:
             except:
                 print("wrong format of composition")
                 return
+            
             if self.checkLayerOnLayman(layerName):
                 #QgsMessageLog.logMessage("showLoader")                
                 #threading.Thread(target=lambda: self.loadservice3(data,className,x,layerName, visibility, groupName, subgroupName, timeDimension)).start()
@@ -7331,14 +8471,17 @@ class Layman:
                     
                     if groupName != "":
                         self.groups.append([groupName, len(data['layers']) - i])
+                        self.groupsSet.add(groupName)
+                        self.groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
                         self.groups.append([layerNameTitle, len(data['layers']) - i])
                     #self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName,"","")
-                    threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility)).start())
+                    self.threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility)).start())
                     #success = self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility)
                     #if not success:
                     #    notify = True
             
+               #☺ if False:
                 if className == 'XYZ':
                     #repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
                     layerName = data['layers'][x]['params']['LAYERS']
@@ -7355,9 +8498,11 @@ class Layman:
                     repairUrl = self.convertUrlFromHex(repairUrl)
                     if groupName != "":
                         self.groups.append([groupName, len(data['layers']) -i])
+                        self.groupsSet.add(groupName)
+                        self.groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
                         self.groups.append([layerNameTitle, len(data['layers']) - i])
-                    threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)).start()
+                    self.threads.append(threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)).start())
                     #success = self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)
                     #if not success:
                     #    notify = True
@@ -7375,19 +8520,21 @@ class Layman:
                         groupName = ""
                     if groupName != "":
                         self.groups.append([groupName, len(data['layers']) -i])
+                        self.groupsSet.add(groupName)
+                        self.groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
                         self.groups.append([layerNameTitle, len(data['layers']) - i])
                     try: ## nove rozdeleni
                 
                         if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
                     
-                            threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start())
+                            self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start())
                             #success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
                             #if not success:
                             #    notify = True
                     except:
                         print("tst")
-                        threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start())
+                        self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start())
                         #success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
                         #if not success:
                         #    notify = True
@@ -7447,7 +8594,8 @@ class Layman:
 
             for i in range(0, len(s)-1):
                 res = res + "&styles"
-            return res.replace("_","")
+            #return res.replace("_","")
+            return res
         else:
             return layerString
  
@@ -7525,7 +8673,7 @@ class Layman:
         self.currentLayer.append(rlayer)        
         if (rlayer.isValid()):  
             if (groupName != '' or subgroupName != ''):
-                pass
+                #pass
                 self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path
                 #self.addWmsToGroup(groupName,rlayer, subgroupName)
             else:   
@@ -7578,15 +8726,28 @@ class Layman:
             pass # pro qgis 3.10 a vys      
         if (rlayer.isValid()):  
             if (groupName != ''):
-                self.addWmsToGroup(groupName,rlayer, subgroupName, i)
-            else:   
-                self.currentLayer.append(rlayer) 
+                
+                self.addWmsToGroup(subgroupName,rlayer, "")
+               # self.addWmsToGroup(groupName,rlayer, subgroupName, i)
+                
+                
+            else:  
                 self.params = []
                 self.params.append(visibility)
+                #self.addWmsToGroup("",rlayer, "")
+                #QgsProject.instance().addMapLayer(rlayer,False)
                 rand = random.randint(0,10000)
                 self.currentLayerDict[str(rand)] = rlayer
+                
                 QgsMessageLog.logMessage("loadVector" + str(rand))
-                #QgsMessageLog.logMessage("loadLayer")
+                #return
+                #self.currentLayer.append(rlayer) 
+                #self.params = []
+                #self.params.append(visibility)
+                #rand = random.randint(0,10000)
+                #self.currentLayerDict[str(rand)] = rlayer
+                #QgsMessageLog.logMessage("loadVector" + str(rand))
+               # QgsMessageLog.logMessage("loadLayer")
                 #QgsProject.instance().addMapLayer(rlayer)
             if visibility == False:
                 QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
@@ -7642,7 +8803,11 @@ class Layman:
            # if (True):    
                 if (groupName != ''):
                     self.addWmsToGroup(groupName,vlayer, subgroupName)
-                    
+
+                    self.currentLayer.append(vlayer)
+                    rand = random.randint(0,10000)
+                    self.currentLayerDict[str(rand)] = vlayer
+                    QgsMessageLog.logMessage("loadSymbology" + str(rand))
                 else:        
                     #self.addWmsToGroup("",vlayer, "")
                     #QgsProject.instance().addMapLayer(vlayer)
@@ -7663,19 +8828,20 @@ class Layman:
                 #    QgsProject.instance().layerTreeRoot().findLayer(vlayer.id()).setItemVisibilityChecked(False)
                 ## zde bude SLD kod
                 print("tt")
-                style = self.getStyle(layerName)
-                #code = self.getSLD(layerName)
+                #style = self.getStyle(layerName)
+                ##code = self.getSLD(layerName)
                 
-                
-                if (style[0] == 200):
-                    if (style[1] == "sld"):
-                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
-                        vlayer.loadSldStyle(tempf)
-                        vlayer.triggerRepaint()
-                    if (style[1] == "qml"):
-                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
-                        vlayer.loadNamedStyle(tempf)
-                        vlayer.triggerRepaint()
+               
+                #if (style[0] == 200):
+                #    if (style[1] == "sld"):
+                #        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                #        vlayer.loadSldStyle(tempf)
+                #        vlayer.triggerRepaint()
+                #    if (style[1] == "qml"):
+                #        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                #        vlayer.loadNamedStyle(tempf)
+                #        vlayer.triggerRepaint()
+              
             else: ### cast pro slozenou geometrii
                 self.mixedLayers.append(layerName)
                 pointFeats = list()
@@ -7845,15 +9011,59 @@ class Layman:
         QgsProject.instance().addMapLayer(layer,False)
         group.insertChildNode(1000,QgsLayerTreeLayer(layer))                
         #subgroup.insertChildNode(1000,QgsLayerTreeLayer(layer))                
-    def reorderToTop(self, name, i= 1000):
-        
+    def reorderToTop(self, name, i= 1000):        
+        print("position" + str(i))
+        print(name)
+        _ch = ""
         root = QgsProject.instance().layerTreeRoot()
         for ch in root.children():
             if ch.name() == name:
                 _ch = ch.clone()
                 root.insertChildNode(i, _ch)
                 root.removeChildNode(ch)
+        try:
+            self.reorderInGroup()
+        except:
+            print("error in reorder group")
+        
+          
         return _ch
+
+    def reorderInGroup(self):
+        from collections import OrderedDict
+        root = QgsProject.instance().layerTreeRoot()
+        for groupName in self.groupsSet:
+            group = root.findGroup(groupName)  # We are interested in group1
+            reverse_order = False
+
+            LayerNamesEnumDict=lambda listCh:{listCh[q[0]].name()+str(q[0]):q[1]
+                                               for q in enumerate(listCh)}
+            print(LayerNamesEnumDict)    
+            # group instead of root
+            mLNED = LayerNamesEnumDict(group.children())
+            print(mLNED)
+            mLNEDkeys = OrderedDict(sorted(LayerNamesEnumDict(group.children()).items(), reverse=reverse_order)).keys()
+            #print(mLNEDkeys)
+            self.groupPosition = sorted(self.groupPositions,key=lambda x: x[2])      
+            print(self.groupPosition)
+            #mLNEDkeys = list()
+            #print(mLNEDkeys)
+            #index = len(self.groupPositions) - 1          
+            arr = list()
+            for item in reversed(self.groupPositions):
+                if item[0] == groupName: 
+                    res = [x for x in mLNEDkeys if re.search(item[1], x)]
+                   # mLNEDkeys.append(item[1]+ str(index))
+                    arr.append(str(res).replace("]","").replace("[","").replace("'",""))
+
+                    #index = index - 1
+                #mLNEDkeys = (['bod1', 'železnice0'])
+            print(arr)
+            print(mLNED)
+            mLNEDsorted = [mLNED[k].clone() for k in arr]
+            group.insertChildNodes(0,mLNEDsorted)  # group instead of root
+            for n in mLNED.values():
+                group.removeChildNode(n)  # group instead of root
     def convertUrlFromHex(self, url):
         url = url.replace('%3A',':')
         url = url.replace('%2F','/')
@@ -8047,6 +9257,7 @@ class Layman:
         self.menu_saveLocalFile.setEnabled(False)
         self.menu_loadJson.setEnabled(True)
         self.menu_ImportLayerDialog.setEnabled(True)
+        self.menu_AddMickaDialog.setEnabled(True)
         self.menu_AddLayerDialog.setEnabled(True) 
         self.menu_AddMapDialog.setEnabled(True)       
         self.menu_ImportLayerDialog.setEnabled(True)
@@ -8057,7 +9268,8 @@ class Layman:
         self.menu_CurrentCompositionDialog.setEnabled(True)
         
         #self.textbox.setText("Layman: Logged user")
-    def getAuthHeader(self, authCfg):    
+    def getAuthHeader(self, authCfg):  
+        print(self.isAuthorized)
         if self.isAuthorized:
             config = QgsAuthMethodConfig()
             url = QUrl(self.URI+ "/rest/current-user")
@@ -8192,6 +9404,9 @@ class Layman:
             ret = ret + i      
         print(ret)
         return ret
+    def strip_accents(self, s):
+        text = ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
+        return text.lower()
     def registerUserIfNotExists(self):
         print(self.URI)            
         userEndpoint = self.URI+ "/rest/current-user"   
@@ -8285,7 +9500,8 @@ class Layman:
         res = self.fromByteToJson(r.content)
         print(res)
         return res['claims']['name']
-    def connectionLost(self):        
+    def connectionLost(self):      
+        print("connection lost")
         self.disableEnvironment()      
         #userEndpoint = self.URI+ "/rest/current-user"    
         #r = requests.delete(url = userEndpoint, headers = self.getAuthHeader(self.authCfg))
@@ -8309,8 +9525,9 @@ class Layman:
         self.isAuthorized = True
         authcfg_id = self.authCfg
         #if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
-        self.setup_oauth(authcfg_id, self.liferayServer)
+        print(self.setup_oauth(authcfg_id, self.liferayServer))
         authHeader = self.getAuthHeader(self.authCfg)
+        print(authHeader)
         if (authHeader):
             if self.registerUserIfNotExists():
                 #threading.Thread(target=self.loadAllCompositesT).start() ## načteme kompozice do pole ve vláknu 
@@ -8354,15 +9571,16 @@ class Layman:
                 self.dlg.pushButton_NoLogin.setEnabled(False)
                 self.dlg.pushButton_Connect.setEnabled(False)
                 self.dlg.close()
-                threading.Thread(target=lambda: self.fillCompositionDict()).start()
+                
                 ## zjištení výpadku spojeni
-                QgsApplication.authManager().masterPasswordVerified.connect(self.connectionLost)
+                #QgsApplication.authManager().masterPasswordVerified.connect(self.connectionLost)
 
                 ## liferay cache
-                self.timerLayer = QTimer()
-                self.timerLayer.setInterval(10000)
-                self.timerLayer.timeout.connect(lambda: self.rebuildLiferayCache()) 
-                self.timerLayer.start()
+                #self.timerLayer = QTimer()
+                #self.timerLayer.setInterval(10000)
+                #self.timerLayer.timeout.connect(lambda: self.rebuildLiferayCache()) 
+                #self.timerLayer.start()
+                threading.Thread(target=lambda: self.fillCompositionDict()).start()
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
         with open(save_path, 'wb') as fd:
