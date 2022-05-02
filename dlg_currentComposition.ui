@@ -300,6 +300,19 @@
     <string>Export to QField</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="pushButton_copyUrl">
+   <property name="geometry">
+    <rect>
+     <x>449</x>
+     <y>353</y>
+     <width>181</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Copy URL</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

@@ -429,6 +429,7 @@ class Layman:
         self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
         self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
         self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #FF8080;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #FF2020 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        self.dlg.pushButton_copyUrl.setStyleSheet("#pushButton_copyUrl {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_copyUrl:hover{background: #66ab27 ;}#pushButton_copyUrl:disabled{background: #64818b ;}")
         self.dlg.listWidget_service.setStyleSheet("#listWidget_service {height:20px;}")
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))
@@ -475,7 +476,7 @@ class Layman:
             #self.dlg.label_loadedComposition.hide()
             #self.dlg.label.hide()
             self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(composition['title'], False))
-            
+            self.dlg.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl())
             layerList = list()
             serviceList = list()
             try:
@@ -720,6 +721,7 @@ class Layman:
             self.dlg.pushButton_save.setEnabled(False)
             self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog(None))
+        
         self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers())
         #self.dlg.pushButton_debug.hide()
         #self.dlg.pushButton_debug.clicked.connect(lambda: self.compositionToClipboard())
@@ -751,6 +753,21 @@ class Layman:
                 iterator +=1
         except:
             print("neni v canvasu")
+    def copyCompositionUrl(self):
+        url = self.instance.getUrl()
+        print(url)
+        try:
+            df=pd.DataFrame([url])
+            df.to_clipboard(index=False,header=False)    
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL uloženo do schránky."), Qgis.Success, duration=3)               
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL saved to clipboard."), Qgis.Success, duration=3)
+        except:
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL nebylo uloženo do schránky."), Qgis.Warning)               
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL was not saved to clipboard."), Qgis.Warning)
     def run_LayerDecisionDialog(self, layersToDecision):
         self.recalculateDPI()
         self.dlg = LayerDecisionDialog() 

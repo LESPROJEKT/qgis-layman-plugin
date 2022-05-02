@@ -55,7 +55,8 @@ class CurrentComposition(object):
         for layer in self.composition['layers']:
             layerList.append(layer)
         return layerList
-    
+    def getUrl(self):
+        return self.URI+'/rest/'+self.workspace+'/maps/'+self.name+'/file'
     def setIds(self, layers):
         for layer in layers:
             self.layerIds.append(layer.id())
