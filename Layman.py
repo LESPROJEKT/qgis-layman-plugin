@@ -640,6 +640,7 @@ class Layman:
                 #cell.currentIndexChanged.connect(self.actionChanged)
                 iterator +=1               
                 self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
+          
             print(layerList,layersInCanvas)
             notActive = set(layerList) - set(layersInCanvas)
             print("notActive")
@@ -806,7 +807,10 @@ class Layman:
         if combobox is not None:
             print(combobox.currentIndex())
             if item.checkState(column) == 2:                   
-                combobox.setCurrentIndex(1)
+                try:
+                    combobox.setCurrentIndex(2)
+                except:
+                    combobox.setCurrentIndex(1)
             if item.checkState(column) == 0:            
                 combobox.setCurrentIndex(0) 
                     
@@ -9125,9 +9129,9 @@ class Layman:
         file.close()
     def notifySuccess(self):
         if self.locale == "cs":
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Vrstva "+str(self.importedLayer)+" byla úspěšně importována."), Qgis.Success, duration=3)
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Vrstva "+str(self.importedLayer)+" byla úspěšně exportována."), Qgis.Success, duration=3)
         else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer "+str(self.importedLayer)+" was imported successfully."), Qgis.Success, duration=3)
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer "+str(self.importedLayer)+" was exported successfully."), Qgis.Success, duration=3)
 
     def read_in_chunks(self, file_object): ## cca 1MB chunk převzato z laymana test klienta
         chunk_size=self.CHUNK_SIZE
