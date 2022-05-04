@@ -1995,21 +1995,22 @@ class Layman:
             if (layer.type() == QgsMapLayer.VectorLayer):
                 layerType = 'vector layer'
             else:
-                layerType = 'raster layer'            
-            item = QTreeWidgetItem([layer.name(), layerType]) 
-           # print(layer.name())
-            #print(self.mixedLayers)
-            #print(mix)
-            if (layerType == 'vector layer'):
-                if (layer.name() in self.mixedLayers and layer.name() in mix):
-                    pass
-                elif (layer.name() in self.mixedLayers and layer.name() not in mix):
+                layerType = 'raster layer'  
+            if layer.providerType() != "wms":
+                item = QTreeWidgetItem([layer.name(), layerType]) 
+               # print(layer.name())
+                #print(self.mixedLayers)
+                #print(mix)
+                if (layerType == 'vector layer'):
+                    if (layer.name() in self.mixedLayers and layer.name() in mix):
+                        pass
+                    elif (layer.name() in self.mixedLayers and layer.name() not in mix):
+                        self.dlg.treeWidget.addTopLevelItem(item)
+                        mix.append(layer.name())
+                    else:
+                        self.dlg.treeWidget.addTopLevelItem(item)
+                if (layerType == 'raster layer'):
                     self.dlg.treeWidget.addTopLevelItem(item)
-                    mix.append(layer.name())
-                else:
-                    self.dlg.treeWidget.addTopLevelItem(item)
-            if (layerType == 'raster layer'):
-                self.dlg.treeWidget.addTopLevelItem(item)
         self.dlg.setWindowModality(Qt.ApplicationModal)
 
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
