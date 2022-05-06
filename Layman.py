@@ -1408,15 +1408,15 @@ class Layman:
         
         r= requests.get(uri,headers = self.getAuthHeader(self.authCfg))
         res = self.fromByteToJson(r.content)
-      
+        self.info = 0
         lenRead = len(res['access_rights']['read'])
         lenWrite = len(res['access_rights']['write'])
         for i in range (0, lenRead):
             #if (usersDictReversed[res['access_rights']['read'][i]] != usersDictReversed[self.laymanUsername]):
-            self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
+            self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]] +" , "+ res['access_rights']['read'][i] )
         for i in range (0, lenWrite):
            # if (usersDictReversed[res['access_rights']['write'][i]] != usersDictReversed[self.laymanUsername]):
-            self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
+            self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]] +" , "+ res['access_rights']['read'][i] )
         #self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions([mapName], usersDict, "maps"))
         self.dlg.pushButton_save.clicked.connect(lambda:  self.dlg.progressBar_loader.show())
         #self.dlg.pushButton_save.clicked.connect(lambda: threading.Thread(target=lambda: self.updatePermissions([mapName], usersDict, "maps", True)).start())
@@ -1437,6 +1437,7 @@ class Layman:
         self.recalculateDPI()
         self.dlg = SetPermissionDialog() 
         self.dlg.show()
+        self.info = 0
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         self.dlg.pushButton_addRead.setStyleSheet("#pushButton_addRead {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addRead:hover{background: #66ab27 ;}#pushButton_addRead:disabled{background: #64818b ;}")
         self.dlg.pushButton_removeRead.setStyleSheet("#pushButton_removeRead {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeRead:hover{background: #66ab27 ;}#pushButton_removeRead:disabled{background: #64818b ;}")
@@ -2770,6 +2771,8 @@ class Layman:
     def checkAddedItemDuplicity(self, type):
         itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
         itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
+        print("read")
+        print(itemsTextListRead)
         print(itemsTextListWrite)
         print(self.dlg.comboBox_users.currentText().split(' , ')[0])
         allItems = [self.dlg.comboBox_users.itemText(i) for i in range(self.dlg.comboBox_users.count())]
@@ -2777,9 +2780,11 @@ class Layman:
         #print(self.dlg.comboBox_users.currentText())
         if self.dlg.comboBox_users.currentText() in allItems:
             if type == "read":
-                if ((self.dlg.comboBox_users.currentText().split(' , ')[0] not in itemsTextListRead)):
+                #if ((self.dlg.comboBox_users.currentText().split(' , ')[0] not in itemsTextListRead)):
+                if ((self.dlg.comboBox_users.currentText() not in itemsTextListRead)):
             
-                    self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                    #self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                    self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText())
                     return True
                 else:
                     print("xx")
@@ -2789,8 +2794,9 @@ class Layman:
                         QMessageBox.information(None, "Layman", "This user already exists in the list!")
                     return False
             else:
-                if ((self.dlg.comboBox_users.currentText().split(' , ')[0] not in itemsTextListWrite) and type == "write"):
-                  #  self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                #if ((self.dlg.comboBox_users.currentText().split(' , ')[0] not in itemsTextListWrite) and type == "write"):
+                if ((self.dlg.comboBox_users.currentText() not in itemsTextListWrite) and type == "write"):
+                  #  self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText())
                     return True
                 else:
                     print("yy")
@@ -2824,6 +2830,7 @@ class Layman:
     def askForLayerPermissionChanges(self,layerName, userDict, type):
         self.failed = list()
         self.statusHelper = True
+        
         if self.locale == "cs":
             msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
         else:
@@ -2835,13 +2842,21 @@ class Layman:
         if (reply == QMessageBox.Yes):
             #threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, True)).start()
             threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
-            threading.Thread(target=lambda: self.updateAllLayersPermission(userDict)).start()
+            threading.Thread(target=lambda: self.updateAllLayersPermission(userDict, layerName)).start()
         else:
             threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
-    def updateAllLayersPermission(self, userDict):
-        composition = self.instance.getComposition()
-        itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
+    def updateAllLayersPermission(self, userDict, layerName):
+        print(layerName)
+        try:
+            composition = self.instance.getComposition()
+        except:
+            url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+layerName[0]+"/file"
+            r = requests.get(url, headers = self.getAuthHeader(self.authCfg))        
+            composition = r.json()
+            
+        
+        itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text().split(" , ")[1]) for i in range(self.dlg.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text().split(" , ")[1]) for i in range(self.dlg.listWidget_write.count())]
         userNamesRead = list()
         for pom in itemsTextListRead:
            # print(pom)
@@ -2850,14 +2865,16 @@ class Layman:
                 userNamesRead.append("EVERYONE")
             #print(pom)
             else:
-                userNamesRead.append(userDict[pom])
+                #userNamesRead.append(userDict[pom.split(" , ")[0]])
+                userNamesRead.append(pom)
         userNamesWrite = list()
         #userNamesWrite.append(self.laymanUsername)
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
             else:
-                userNamesWrite.append(userDict[pom])
+                #userNamesWrite.append(userDict[pom.split(" , ")[0]])
+                userNamesWrite.append(pom)
         data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}
         for layer in composition['layers']:
             print(layer)
@@ -2869,28 +2886,29 @@ class Layman:
             print(response.content)
     def updatePermissions(self,layerName, userDict, type, check=False):
         
-        itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
+        itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text().split(" , ")[1]) for i in range(self.dlg.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text().split(" , ")[1]) for i in range(self.dlg.listWidget_write.count())]
         userNamesRead = list()
         #userNamesRead.append(self.laymanUsername)
         for pom in itemsTextListRead:
            # print(pom)
-            if pom == "VŠICHNI":      
-                
+            if pom == "VŠICHNI":                      
                 userNamesRead.append("EVERYONE")
             #print(pom)
             else:
-                userNamesRead.append(userDict[pom])
+                #userNamesRead.append(userDict[pom.split(" , ")[0]])
+                userNamesRead.append(pom)
         userNamesWrite = list()
         #userNamesWrite.append(self.laymanUsername)
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
             else:
-                userNamesWrite.append(userDict[pom])
+                userNamesWrite.append(pom)
         data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}
         #data = {'access_rights':  read}
         print(data)
+ 
        # print(data)
         
         for layer in layerName:
@@ -2918,7 +2936,7 @@ class Layman:
                                 #layerList.append(self.compositeList[i]['layers'][j]['name'])
                                 #layerList.append(self.compositeList[i]['layers'][j]['protocol']['LAYERS'])
                                 layerList.append(self.removeUnacceptableChars(self.compositeList[i]['layers'][j]['title']))
-                self.updatePermissions(layerList,userDict, "layers")
+                self.updatePermissions(layerList,userDict, "layers", False)
                 return
             else:
                 
@@ -2942,7 +2960,7 @@ class Layman:
         #    else:
         #        QMessageBox.information(None, "Error", "Permissions was not saved!")  
         else:
-            if (self.statusHelper):               
+            if (self.statusHelper and self.info == 0):               
                 QgsMessageLog.logMessage("permissionsDoneT")
             else:
                 QgsMessageLog.logMessage("permissionsDoneF")
@@ -4479,6 +4497,7 @@ class Layman:
            
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
             data = r.json()
+            print(data)
             if (service == "WMS"):
                
                 try:
@@ -4891,6 +4910,7 @@ class Layman:
                 self.dlg.progressBar_loader.hide() 
                 #if (message[-1:] == "T"):
                 #if len(self.failed) == 0:
+                self.info = self.info + 1 
                 if self.statusHelper:
                     if self.locale == "cs":                
                         QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
@@ -5704,12 +5724,16 @@ class Layman:
         if self.dlg.comboBox_users.currentText() in allItems:
             if self.checkAddedItemDuplicity("write"):
                 itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
-                if (self.dlg.comboBox_users.currentText().split(' , ')[0] in itemsTextListRead):
-                    self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                #if (self.dlg.comboBox_users.currentText().split(' , ')[0] in itemsTextListRead):
+                if (self.dlg.comboBox_users.currentText() in itemsTextListRead):
+                   # self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                    self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText())
                     print("1")
                 else:
-                    self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
-                    self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                    #self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                    #self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText().split(' , ')[0])
+                    self.dlg.listWidget_write.addItem(self.dlg.comboBox_users.currentText())
+                    self.dlg.listWidget_read.addItem(self.dlg.comboBox_users.currentText())
                     print("2")
     def removeWritePermissionList(self):
         self.deleteItem(self.dlg.listWidget_read.currentItem().text())
@@ -8506,15 +8530,17 @@ class Layman:
                #☺ if False:
                 if className == 'XYZ':
                     #repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
-                    layerName = data['layers'][x]['params']['LAYERS']
+                    #layerName = data['layers'][x]['params']['LAYERS']
+                    layerName = data['layers'][x]['title']
                   
                     try:
                         groupName = data['layers'][x]['path']
                     except:
                         groupName = ""
-                    format = data['layers'][x]['params']['FORMAT']           
+                    #format = data['layers'][x]['params']['FORMAT']           
+                    format = "XYZ"
                     epsg = 'EPSG:4326'             
-                    wmsName = data['layers'][x]['params']['LAYERS']  
+                   # wmsName = data['layers'][x]['params']['LAYERS']  
                     layerNameTitle = data['layers'][x]['title']
                     repairUrl = data['layers'][x]['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)
@@ -8547,13 +8573,24 @@ class Layman:
                     else:
                         self.groups.append([layerNameTitle, len(data['layers']) - i])
                     try: ## nove rozdeleni
-                
-                        if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
-                    
-                            self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start())
-                            #success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
-                            #if not success:
-                            #    notify = True
+      
+                        if 'type' in data['layers'][x]['protocol']:
+                            if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
+                                if 'workspace' in data:
+                                    repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['workspace'] + "wfs"
+                               
+                                
+                                self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start())
+                        if "format" in data['layers'][x]['protocol']:
+                            if (data['layers'][x]['protocol']['format'] == "hs.format.WFS" or data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):
+                                if 'workspace' in data['layers'][x]:
+                                    repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['layers'][x]['workspace'] + "/wfs"
+                              
+                            
+                                self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start())
+                        #success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
+                        #if not success:
+                        #    notify = True
                     except:
                         print("tst")
                         self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start())
@@ -8824,6 +8861,7 @@ class Layman:
             if (self.getTypesOfGeom(vlayer) < 2):
            # if (True):    
                 if (groupName != ''):
+                    #self.addWmsToGroup(subgroupName,vlayer, "")
                     self.addWmsToGroup(groupName,vlayer, subgroupName)
 
                     self.currentLayer.append(vlayer)
@@ -8897,7 +8935,8 @@ class Layman:
                     vl.commitChanges()        
                     vl.nameChanged.connect(self.forbidRename)
                     if (groupName != ''):
-                        self.addWmsToGroup(groupName,vl, True)
+                        #self.addWmsToGroup(groupName,vl, True)
+                        self.addWmsToGroup(groupName,vl, "")
                         
                     else:      
                         self.addLayerToGroup(layerName,vl)
