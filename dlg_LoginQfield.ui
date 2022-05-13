@@ -38,7 +38,7 @@
    <property name="geometry">
     <rect>
      <x>140</x>
-     <y>110</y>
+     <y>116</y>
      <width>200</width>
      <height>27</height>
     </rect>
@@ -129,6 +129,9 @@
    </property>
    <property name="text">
     <string/>
+   </property>
+   <property name="echoMode">
+    <enum>QLineEdit::Password</enum>
    </property>
   </widget>
   <widget class="QLabel" name="label_APIKey_3">

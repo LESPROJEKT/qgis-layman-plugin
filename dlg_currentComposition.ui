@@ -123,7 +123,7 @@
    <property name="geometry">
     <rect>
      <x>647</x>
-     <y>230</y>
+     <y>240</y>
      <width>181</width>
      <height>23</height>
     </rect>
@@ -290,8 +290,8 @@
   <widget class="QPushButton" name="pushButton_qfield">
    <property name="geometry">
     <rect>
-     <x>640</x>
-     <y>350</y>
+     <x>647</x>
+     <y>190</y>
      <width>181</width>
      <height>28</height>
     </rect>

@@ -67,7 +67,7 @@ import os
 import qgis.utils
 import qgis.gui
 import unicodedata
-
+from os import walk
 from qgis.gui import QgsMapCanvas
 from qgis.core import QgsApplication
 from qgis.utils import iface
@@ -104,8 +104,18 @@ from .dlg_setPermission import SetPermissionDialog
 from .dlg_currentComposition import CurrentCompositionDialog
 from .dlg_layerDecision import LayerDecisionDialog
 from .currentComposition import CurrentComposition
-#from .dlg_LoginQfield import LoginQfieldDialog
+from .dlg_LoginQfield import LoginQfieldDialog
+from .dlg_showQProject import ShowQProjectDialog
 
+from typing import Any, Dict, List, Optional, Union
+from qgis.PyQt.QtNetwork import (
+    QHttpMultiPart,
+    QHttpPart,
+    QNetworkReply,
+    QNetworkRequest,
+)
+
+from Layman.qfield.cloud_converter import CloudConverter
 
 
 class Layman:
@@ -413,6 +423,7 @@ class Layman:
         self.dlg.pushButton_save.setEnabled(False)
         self.dlg.pushButton_setPermissions.setEnabled(False)
         self.dlg.pushButton_delete.setEnabled(False)
+        self.dlg.pushButton_qfield.setEnabled(False)
         self.dlg.label_readonly.hide()
         self.dlg.radioButton_wms.hide()
         self.dlg.radioButton_wfs.hide()
@@ -430,6 +441,7 @@ class Layman:
         self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
         self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #FF8080;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #FF2020 ;}#pushButton_delete:disabled{background: #64818b ;}")
         self.dlg.pushButton_copyUrl.setStyleSheet("#pushButton_copyUrl {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_copyUrl:hover{background: #66ab27 ;}#pushButton_copyUrl:disabled{background: #64818b ;}")
+        self.dlg.pushButton_qfield.setStyleSheet("#pushButton_qfield {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_qfield:hover{background: #66ab27 ;}#pushButton_qfield:disabled{background: #64818b ;}")
         self.dlg.listWidget_service.setStyleSheet("#listWidget_service {height:20px;}")
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))
@@ -453,7 +465,7 @@ class Layman:
         ##
         print("test")
         print(self.current)
-        self.dlg.pushButton_qfield.hide()
+        #self.dlg.pushButton_qfield.hide()
         self.dlg.pushButton_qfield.clicked.connect(self.qfieldLogin)
         print("current2")
         print(self.current)
@@ -468,6 +480,7 @@ class Layman:
             self.dlg.pushButton_editMeta.setEnabled(True)
             self.dlg.pushButton_save.setEnabled(True)
             self.dlg.pushButton_delete.setEnabled(True)
+            self.dlg.pushButton_qfield.setEnabled(True)
             #self.dlg.radioButton_wms.setEnabled(False)
             #self.dlg.radioButton_wfs.setEnabled(False)
             #x = self.getCompositionIndexByName()
@@ -1012,11 +1025,257 @@ class Layman:
     def run_QfieldLoginDialog(self):
         self.dlg2 = LoginQfieldDialog() 
         self.dlg2.show()
-
+        self.dlg2.pushButton_Connect.setStyleSheet("#pushButton_Connect {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Connect:hover{background: #66ab27 ;}#pushButton_Connect:disabled{background: #64818b ;}")
+        self.dlg2.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         #self.dlg.pushButton_Connect.clicked.connect(pass)
+      
+        self.dlg2.pushButton_close.clicked.connect(lambda: self.dlg.close())
+        self.dlg2.pushButton_Connect.clicked.connect(self.loginQfield)
     def qfieldLogin(self):
         self.run_QfieldLoginDialog()  
+    def loginQfield(self):
+        url = "https://app.qfield.cloud/api/v1/auth/token/"
+       # login = "jvrobel"
+        passwd = "Tfc33aaa"
+        email = "vrobel.jan@seznam.cz"
+        login = self.dlg2.lineEdit_userName.text()
+        passwd = self.dlg2.lineEdit_password.text()
+        if login == "" or passwd == "":
+            if self.locale == "cs":                
+                QMessageBox.information(None, "Info", "Nejsou vyplněny přihlašovací údaje!")
+                   
+            else:
+                QMessageBox.information(None, "Info", "Please fill login credentials!")
+            return
+        payload =  {
+          "username": login,
+          "email": "",
+          "password": passwd
+        }       
+        response = requests.request("POST", url, data=payload)
+        res = self.fromByteToJson(response.content)
+        if response.status_code == 200:
+            print(res['token'])
+            self.Qtoken = res['token']
+            print(self.Qtoken)        
+            self.dlg2 = ShowQProjectDialog() 
+            self.dlg2.show()
+            self.dlg2.progressBar.hide()
+            self.dlg2.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+            self.dlg2.pushButton_exportCreate.setStyleSheet("#pushButton_exportCreate {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_exportCreate:hover{background: #66ab27 ;}#pushButton_exportCreate:disabled{background: #64818b ;}")
+            self.dlg2.pushButton_export.setStyleSheet("#pushButton_export {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_export:hover{background: #66ab27 ;}#pushButton_export:disabled{background: #64818b ;}")
+            ret = self.getProjectsQfield()
+            try:
+                composition = self.instance.getComposition() 
+                self.dlg2.lineEdit_name.setText(composition['name'])
+                self.dlg2.lineEdit_desciption.setText(composition['abstract'])
+            except:
+                print("kompozice není k dispozici")
+            for project in ret:
+               # self.dlg.listWidget_listLayers.addItem(layer.name())           
+                item = QTreeWidgetItem([project['name'],project['owner'],str(project['is_public']), project['id']]) 
+                self.dlg2.treeWidget.addTopLevelItem(item)
+            self.dlg2.pushButton_export.clicked.connect(lambda:self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),""))
+            self.dlg2.pushButton_exportCreate.clicked.connect(lambda: self.createQProject(self.dlg2.lineEdit_name.text(),self.dlg2.lineEdit_desciption.text(),self.dlg2.checkBox_private.checkState()))
+            return
+        else:
+            if self.locale == "cs":                
+                QMessageBox.information(None, "Info", "Přihlášení nebylo úspěšné!")
+                   
+            else:
+                QMessageBox.information(None, "Info", "Login was not successful!")
+            return
+    def exportJunction(self, create):
+        if not create:
+            threading.Thread(target=lambda: self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),"")).start()
+    def createQProject(self,name, description, private):    
+        url = "https://app.qfield.cloud/api/v1/projects/"
+        print(private)
+        if private == 0:
+            private = "false"
+        if private == 2:
+            private = "true"
+        print(name)
+        print(description)
+        payload="""{
+                  "name": \""""+name+"""\",
+                  "description":\""""+description+"""\",
+                  "private":\""""+ str(private)+"""\",
+                  "is_public": \""""+str(private)+"""\"
+                }"""
+        headers = {
+          'Authorization': 'token ' + self.Qtoken,
+          'Content-Type': 'application/json'
+        }
 
+        response = requests.request("POST", url, headers=headers, data=payload)
+
+        res = self.fromByteToJson(response.content)
+        print(res)
+        if response.status_code == 201:
+            #threading.Thread(target=lambda:  self.uploadQFiles(res['id'],"")).start()
+            self.uploadQFiles(res['id'],"")
+        else:
+            print("chyba")
+    def convertQProject(self):
+        path = tempFileFolder = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "qfield"
+        try:
+            shutil.rmtree(path, ignore_errors=True)          
+        except OSError as error:
+            print(error)
+         
+        try: 
+            os.mkdir(path) 
+        except OSError as error: 
+            print(error) 
+        cloud_convertor = CloudConverter(QgsProject.instance(), path)
+        cloud_convertor.convert()
+        return path
+    def uploadQFiles(self, project, path):
+        layers = QgsProject.instance().mapLayers().values() 
+        print(len(layers))
+        if len(layers) == 0:       
+            if self.locale == "cs":                
+                QMessageBox.information(None, "Warning", "Nejsou vrstvy k exportu!")
+                   
+            else:
+                QMessageBox.information(None, "Warning", "No layers to export!")
+            return
+        mypath = self.convertQProject()        
+        self.dlg2.progressBar.show()
+        threading.Thread(target=lambda: self.postQData(project,mypath)).start() 
+        #projekct_Id ="b0f878a8-2f0c-4df6-99ed-ec4ac48001a0"
+        
+    def postQData(self, project, mypath):
+        projekct_Id = project
+        payload={}
+        #mypath = r"C:\Users\Honza\Downloads\xxxx"
+        filepaths = []
+        f = []
+        for (dirpath, dirnames, filenames) in walk(mypath):
+            f.extend(filenames)
+            break
+        for files in f:
+            filepaths.append(mypath + os.sep+files)        
+        print(f[0])
+        for i in range (0,len(filepaths)):
+    
+            files=[
+              ('file',(f[i],open(filepaths[i],'rb'),'application/octet-stream'))
+      
+      
+              #('',('brod_.svg',open('/C:/Users/Honza/Desktop/test/brod_.svg','rb'),'image/svg+xml'))
+            ]
+            print(files)
+            headers = {
+                      'Authorization': 'token ' + self.Qtoken}
+            url = "https://app.qfield.cloud/api/v1/files/" + projekct_Id+ "/" +f[0] + "/"
+            print(url)
+            response = requests.request("POST", url, headers=headers, data=payload, files=files)
+           # print(response.content)
+            print(response.status_code)
+        QgsMessageLog.logMessage("qfieldExport")
+    def getProjectsQfield(self):
+        url = "https://app.qfield.cloud/api/v1/projects/"       
+        headers = {
+          'Authorization': 'token ' + self.Qtoken,
+          'Content-Type': 'application/json'
+        }
+        response = requests.request("GET", url, headers=headers)
+
+        return (self.fromByteToJson(response.content))
+    def postProjectQfield(self):  
+        url = "https://app.qfield.cloud/api/v1/projects/"
+
+        payload="{  \"name\": \"test_qgis\",  \"description\": \"test_qgis\",  \"private\": true,  \"is_public\": true,  \"data_last_packaged_at\": \"2022-04-11T13:11:27.082Z\",  \"data_last_updated_at\": \"2022-04-11T13:11:27.082Z\"}"
+        headers = {
+          'Authorization': 'token ' + self.Qtoken,
+          'Content-Type': 'application/json'
+        }
+
+        response = requests.request("POST", url, headers=headers, data=payload)
+
+        print(response.text)
+### qfield plugin uploader
+    def _prepare_uri(self, uri: Union[str, List[str], QUrl]) -> QUrl:
+        if isinstance(uri, QUrl):
+            return uri
+
+        if isinstance(uri, str):
+            encoded_uri = uri
+        else:
+            encoded_parts = []
+
+            for part in uri:
+                encoded_parts.append(urllib.parse.quote(part))
+
+            encoded_uri = "/".join(encoded_parts)
+
+        if encoded_uri[-1] != "/":
+            encoded_uri += "/"
+        self.server_url = "https://app.qfield.cloud/"
+        return QUrl(self.server_url + encoded_uri)
+    def _clear_cloud_cookies(self, url: QUrl) -> None:
+        """When the CSRF_TOKEN cookie is present and the plugin is reloaded, the token has expired"""
+        for cookie in self._nam.cookieJar().cookiesForUrl(url):
+            self._nam.cookieJar().deleteCookie(cookie)
+    def cloud_upload_files(
+            self, uri: Union[str, List[str]], filenames: List[str], payload: Dict = None
+        ) -> QNetworkReply:
+            url = self._prepare_uri(uri)
+
+           # self._clear_cloud_cookies(url)
+            print(url)
+            
+            request = QNetworkRequest(url)
+            request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
+            print(b"Authorization", "Token {}".format(self.Qtoken).encode("utf-8"))
+            
+            if self.Qtoken:
+                request.setRawHeader(
+                    b"Authorization", "Token {}".format(self.Qtoken).encode("utf-8")
+                )
+
+            multi_part = QHttpMultiPart(QHttpMultiPart.FormDataType)
+            #multi_part.setParent(self)
+
+            # most of the time there is no other payload
+            if payload is not None:
+                json_part = QHttpPart()
+
+                json_part.setHeader(QNetworkRequest.ContentTypeHeader, "application/json")
+                json_part.setHeader(
+                    QNetworkRequest.ContentDispositionHeader, 'form-data; name="json"'
+                )
+                json_part.setBody(json.dumps(payload).encode("utf-8"))
+
+                multi_part.append(json_part)
+
+            # now attach each file
+            for filename in filenames:
+                # this might be optimized by usung QFile and QHttpPart.setBodyDevice, but didn't work on the first
+                with open(filename, "rb") as file:
+                    file_part = QHttpPart()
+                    file_part.setBody(file.read())
+                    file_part.setHeader(
+                        QNetworkRequest.ContentDispositionHeader,
+                        'form-data; name="file"; filename="{}"'.format(filename),
+                    )
+
+                    multi_part.append(file_part)
+                print(filename)
+           # with disable_nam_timeout(self._nam):
+            print(multi_part)
+            xx = QgsNetworkAccessManager.instance()
+            threading.Thread(target=lambda: xx.post(request, multi_part)).start() 
+          
+
+            #reply.sslErrors.connect(lambda sslErrors: reply.ignoreSslErrors(sslErrors))
+            #reply.setParent(self)
+            #multi_part.setParent(reply)
+
+            #return reply
+##
     def crsChanged(self):
         print("pes")
         print(self.crsChangedConnect)
@@ -1365,15 +1624,8 @@ class Layman:
         self.dlg.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
         self.dlg.pushButton_removeRead.setEnabled(False)
         self.dlg.pushButton_removeWrite.setEnabled(False)
-        ## combobox full text part
-        self.dlg.comboBox_users.setEditable(True)
-        self.dlg.comboBox_users.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
-        self.dlg.comboBox_users.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
-        ##
-
         uri = self.URI + "/rest/users"
         usersDict = dict()
-
         if self.locale == "cs":
             usersDict['EVERYONE'] = 'VŠICHNI'
         else:
@@ -1392,16 +1644,11 @@ class Layman:
         else:            
             self.dlg.comboBox_users.addItem('EVERYONE')
         for i in range (0, userCount):
-            if res[i]['name'] != "":
-                name = res[i]['name']
-            else:
-                name = res[i]['screen_name']
-            print(name)
             #print(res[i]['name'])
             #print(res[i]['username'])
-            usersDict[name] = res[i]['username'] 
-            usersDictReversed[res[i]['username']] = name 
-            self.dlg.comboBox_users.addItem(name  + ' , ' + res[i]['username'])
+            usersDict[res[i]['name']] = res[i]['username'] 
+            usersDictReversed[res[i]['username']] = res[i]['name'] 
+            self.dlg.comboBox_users.addItem(res[i]['name']  + ' , ' + res[i]['username'])
         ##nabit listView
         mapName = self.removeUnacceptableChars(mapName)
         uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName
@@ -1413,10 +1660,10 @@ class Layman:
         lenWrite = len(res['access_rights']['write'])
         for i in range (0, lenRead):
             #if (usersDictReversed[res['access_rights']['read'][i]] != usersDictReversed[self.laymanUsername]):
-            self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]] +" , "+ res['access_rights']['read'][i] )
+            self.dlg.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
         for i in range (0, lenWrite):
            # if (usersDictReversed[res['access_rights']['write'][i]] != usersDictReversed[self.laymanUsername]):
-            self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]] +" , "+ res['access_rights']['read'][i] )
+            self.dlg.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
         #self.dlg.pushButton_save.clicked.connect(lambda: self.updatePermissions([mapName], usersDict, "maps"))
         self.dlg.pushButton_save.clicked.connect(lambda:  self.dlg.progressBar_loader.show())
         #self.dlg.pushButton_save.clicked.connect(lambda: threading.Thread(target=lambda: self.updatePermissions([mapName], usersDict, "maps", True)).start())
@@ -1431,7 +1678,7 @@ class Layman:
         if fromAddMap:
             self.dlg.rejected.connect(lambda: self.afterClosePermissionMapDialog())  
         else:
-            self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog())  
+            self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog())   
         
     def run_SetPermission(self, layerName):
         self.recalculateDPI()
@@ -1450,11 +1697,6 @@ class Layman:
         self.dlg.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
         self.dlg.pushButton_removeRead.setEnabled(False)
         self.dlg.pushButton_removeWrite.setEnabled(False)
-        ## combobox full text part
-        self.dlg.comboBox_users.setEditable(True)
-        self.dlg.comboBox_users.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
-        self.dlg.comboBox_users.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
-        ##
         uri = self.URI + "/rest/users"
         usersDict = dict()
         if self.locale == "cs":
@@ -1470,7 +1712,6 @@ class Layman:
         res = self.fromByteToJson(r.content)
         print(r.content)
         userCount = len(res)
-        print(r.content)
         ##nabit combobox
         if self.locale == "cs":
             self.dlg.comboBox_users.addItem('VŠICHNI')
@@ -1478,16 +1719,11 @@ class Layman:
             self.dlg.comboBox_users.addItem('EVERYONE')
         for i in range (0, userCount):
             #print(res[i]['name'])
-            if res[i]['name'] != "":
-                name = res[i]['name']
-            else:
-                name = res[i]['screen_name']
-            print(name)
             #print(res[i]['username'])
-            usersDict[name] = res[i]['username'] 
-            usersDictReversed[res[i]['username']] = name 
+            usersDict[res[i]['name']] = res[i]['username'] 
+            usersDictReversed[res[i]['username']] = res[i]['name'] 
             if (res[i]['name'] != self.laymanUsername):
-                self.dlg.comboBox_users.addItem(name + ' , ' + res[i]['username'] )
+                self.dlg.comboBox_users.addItem(res[i]['name'] + ' , ' + res[i]['username'] )
         ##nabit listView
         print(len(layerName))
         if (len(layerName) == 1):            
@@ -2853,10 +3089,8 @@ class Layman:
             url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+layerName[0]+"/file"
             r = requests.get(url, headers = self.getAuthHeader(self.authCfg))        
             composition = r.json()
-            
-        
-        itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text().split(" , ")[1]) for i in range(self.dlg.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text().split(" , ")[1]) for i in range(self.dlg.listWidget_write.count())]
+        itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
         userNamesRead = list()
         for pom in itemsTextListRead:
            # print(pom)
@@ -2865,16 +3099,14 @@ class Layman:
                 userNamesRead.append("EVERYONE")
             #print(pom)
             else:
-                #userNamesRead.append(userDict[pom.split(" , ")[0]])
-                userNamesRead.append(pom)
+                userNamesRead.append(userDict[pom])
         userNamesWrite = list()
         #userNamesWrite.append(self.laymanUsername)
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
             else:
-                #userNamesWrite.append(userDict[pom.split(" , ")[0]])
-                userNamesWrite.append(pom)
+                userNamesWrite.append(userDict[pom])
         data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}
         for layer in composition['layers']:
             print(layer)
@@ -2882,33 +3114,35 @@ class Layman:
                 name = layer['protocol']['LAYERS']
             if (layer['className'] == 'HSLayers.Layer.WMS'):
                 name = layer['params']['LAYERS']
-            response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.getAuthHeader(self.authCfg))
+            try:
+                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.getAuthHeader(self.authCfg))
+            except:
+                print("neni mozne updatovat prava, nebyl nalezen name")
             print(response.content)
     def updatePermissions(self,layerName, userDict, type, check=False):
         
-        itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text().split(" , ")[1]) for i in range(self.dlg.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text().split(" , ")[1]) for i in range(self.dlg.listWidget_write.count())]
+        itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
         userNamesRead = list()
         #userNamesRead.append(self.laymanUsername)
         for pom in itemsTextListRead:
            # print(pom)
-            if pom == "VŠICHNI":                      
+            if pom == "VŠICHNI":      
+                
                 userNamesRead.append("EVERYONE")
             #print(pom)
             else:
-                #userNamesRead.append(userDict[pom.split(" , ")[0]])
-                userNamesRead.append(pom)
+                userNamesRead.append(userDict[pom])
         userNamesWrite = list()
         #userNamesWrite.append(self.laymanUsername)
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
             else:
-                userNamesWrite.append(pom)
+                userNamesWrite.append(userDict[pom])
         data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}
         #data = {'access_rights':  read}
         print(data)
- 
        # print(data)
         
         for layer in layerName:
@@ -2936,7 +3170,7 @@ class Layman:
                                 #layerList.append(self.compositeList[i]['layers'][j]['name'])
                                 #layerList.append(self.compositeList[i]['layers'][j]['protocol']['LAYERS'])
                                 layerList.append(self.removeUnacceptableChars(self.compositeList[i]['layers'][j]['title']))
-                self.updatePermissions(layerList,userDict, "layers", False)
+                self.updatePermissions(layerList,userDict, "layers")
                 return
             else:
                 
@@ -4558,7 +4792,15 @@ class Layman:
                 self.dlg.label_raster.hide() 
             except:
                 pass
-            
+        if message == "qfieldExport":
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Export proběhl úspěšně."), Qgis.Success, duration=3)               
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Export was successfull"), Qgis.Success, duration=3)
+            try:
+                self.dlg2.progressBar.hide()
+            except:
+                print("progressbar doesnt exist")    
         if message == "errConnection":
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)               
