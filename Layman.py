@@ -629,7 +629,7 @@ class Layman:
                             cellServices.addItems(['WMS'])
                         if isinstance(layer, QgsVectorLayer):
                             cellServices.addItems(['WMS','WFS'])
-                
+              
                 if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
                     if self.locale == "cs":
                         cell.addItems(['Beze změny','Přepsat data'])
@@ -637,10 +637,14 @@ class Layman:
                         cell.addItems(['No change','Overwrite geometry'])                        
                 else:
                     if self.checkExistingLayer(item.text(0)):
+                        #if self.locale == "cs":
+                        #    cell.addItems(['Beze změny','Přidat a přepsat','Přidat ze serveru' ])   
+                        #else:
+                        #    cell.addItems(['No change','Add and overwrite','Add from server' ])                                                      
                         if self.locale == "cs":
-                            cell.addItems(['Beze změny','Přidat a přepsat','Přidat ze serveru' ])   
+                            cell.addItems(['Beze změny','Přidat ze serveru','Přidat a přepsat'])   
                         else:
-                            cell.addItems(['No change','Add and overwrite','Add from server' ])                                                          
+                            cell.addItems(['No change','Add from server','Add and overwrite' ])       
                     else:
                         if self.locale == "cs":
                             cell.addItems(['Beze změny','Přidat'])
@@ -648,6 +652,7 @@ class Layman:
                             cell.addItems(['No change','Add'])                           
                   
                 self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
+          
                 self.dlg.treeWidget_layers.setItemWidget(item,1, cellServices)
                 
                 #cell.currentIndexChanged.connect(self.actionChanged)
@@ -819,10 +824,11 @@ class Layman:
         combobox = self.dlg.treeWidget_layers.itemWidget(item,2)
         if combobox is not None:
             print(combobox.currentIndex())
-            if item.checkState(column) == 2:                   
-                try:
+            if item.checkState(column) == 2:   
+                print(item.text(2))
+                if item.text(2) != "":
                     combobox.setCurrentIndex(2)
-                except:
+                else:
                     combobox.setCurrentIndex(1)
             if item.checkState(column) == 0:            
                 combobox.setCurrentIndex(0) 
@@ -5026,9 +5032,9 @@ class Layman:
                 print("chyba")
         if message == "unsupportedCRS":
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", "Nepodporované CRS souboru"), Qgis.Warning)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Nepodporované CRS souboru"), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", "Unsupported CRS of data file"), Qgis.Warning)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Unsupported CRS of data file"), Qgis.Warning)
 
 
         if message == "resetProgressbar":
@@ -5173,7 +5179,7 @@ class Layman:
             if self.locale == "cs":               
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána, protože je příliž velká."), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not successfully imported because is too large"), Qgis.Warning)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not successfully exported because is too large"), Qgis.Warning)
             done = 0
         
             for i in range (0, len(self.processingList)):
@@ -5201,7 +5207,7 @@ class Layman:
             if self.locale == "cs":               
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" byla úspěšně nahrána "), Qgis.Success, duration=3)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was successfully imported"), Qgis.Success, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was successfully exported"), Qgis.Success, duration=3)
             done = 0
         
             for i in range (0, len(self.processingList)):
@@ -5229,7 +5235,7 @@ class Layman:
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla úspěšně nahrána "), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not imported successfully"), Qgis.Warning)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not exported successfully"), Qgis.Warning)
             done = 0
         
             for i in range (0, len(self.processingList)):
@@ -6133,7 +6139,7 @@ class Layman:
         
         try:
             #self.refreshCompositeList()
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Export:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
         except:
             pass
     def modifyMapNew(self): 
@@ -6163,14 +6169,14 @@ class Layman:
         #print(self.patchMap2())
         if (self.patchMap2() == 200):
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Metadata byla úspěšně upravena."), Qgis.Success, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Metadata byla úspěšně upravena."), Qgis.Success, duration=3)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
         else:
             if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Metadata nebyla upravena."), Qgis.Warning)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Metadata nebyla upravena."), Qgis.Warning)
             else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Map metadata was not saved."), Qgis.Warning)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Map metadata was not saved."), Qgis.Warning)
         
         self.dlg.close()
         composition = self.instance.getComposition()
@@ -8179,9 +8185,9 @@ class Layman:
         #if(True):
             if (operation == "add"):    
                 if self.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Import Map", "Chcete přidat do kompozice "+str(successful)+" vrstev?") 
+                    msgbox = QMessageBox(QMessageBox.Question, "Export Map", "Chcete přidat do kompozice "+str(successful)+" vrstev?") 
                 else:
-                    msgbox = QMessageBox(QMessageBox.Question, "Import Map", "Do you want add into composition "+str(successful)+" layers?") 
+                    msgbox = QMessageBox(QMessageBox.Question, "Export Map", "Do you want add into composition "+str(successful)+" layers?") 
             if (operation == "mod"): 
                 
                 
@@ -8230,9 +8236,9 @@ class Layman:
                 return
             if (operation == "del"):
                 if self.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Import Map", "Chcete smazat vybranou vrstvu?")
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete smazat vybranou vrstvu?")
                 else:
-                    msgbox = QMessageBox(QMessageBox.Question, "Import Map", "Do you want delete selected layer?")
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want delete selected layer?")
           
             try: # jedná se o mod pokud je except
                 msgbox.addButton(QMessageBox.Yes)
@@ -9411,9 +9417,9 @@ class Layman:
         file.close()
     def notifySuccess(self):
         if self.locale == "cs":
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Vrstva "+str(self.importedLayer)+" byla úspěšně exportována."), Qgis.Success, duration=3)
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Export:", " Vrstva "+str(self.importedLayer)+" byla úspěšně exportována."), Qgis.Success, duration=3)
         else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Import:", " Layer "+str(self.importedLayer)+" was exported successfully."), Qgis.Success, duration=3)
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Export:", " Layer "+str(self.importedLayer)+" was exported successfully."), Qgis.Success, duration=3)
 
     def read_in_chunks(self, file_object): ## cca 1MB chunk převzato z laymana test klienta
         chunk_size=self.CHUNK_SIZE
@@ -9485,9 +9491,9 @@ class Layman:
             return False
     def install(self):
         if self.locale == "cs":
-            msgbox = QMessageBox(QMessageBox.Question, "Import Map", "Plugin vyžaduje instalaci následujících python modulů: \n\nFlask 1.1.1 \nWerkzeug 0.16.0 \nItsDangerous 1.1.0 \nClick 7.0 \n\nInstalace vyžaduje administrátorská práva. \nChcete provést instalaci modulů?")
+            msgbox = QMessageBox(QMessageBox.Question, "Layman", "Plugin vyžaduje instalaci následujících python modulů: \n\nFlask 1.1.1 \nWerkzeug 0.16.0 \nItsDangerous 1.1.0 \nClick 7.0 \n\nInstalace vyžaduje administrátorská práva. \nChcete provést instalaci modulů?")
         else:
-            msgbox = QMessageBox(QMessageBox.Question, "Import Map", "Plugin requires installation following python modules: \n\nFlask 1.1.1 \nWerkzeug 0.16.0 \nItsDangerous 1.1.0 \nClick 7.0 \n\nInstalation requires administrator permissions. \nDo you want install the packages?")
+            msgbox = QMessageBox(QMessageBox.Question, "Layman", "Plugin requires installation following python modules: \n\nFlask 1.1.1 \nWerkzeug 0.16.0 \nItsDangerous 1.1.0 \nClick 7.0 \n\nInstalation requires administrator permissions. \nDo you want install the packages?")
         msgbox.addButton(QMessageBox.Yes)
         msgbox.addButton(QMessageBox.No)
         msgbox.setDefaultButton(QMessageBox.No)
