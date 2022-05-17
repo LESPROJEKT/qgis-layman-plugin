@@ -1175,7 +1175,7 @@ class Layman:
             print(files)
             headers = {
                       'Authorization': 'token ' + self.Qtoken}
-            url = "https://app.qfield.cloud/api/v1/files/" + projekct_Id+ "/" +f[0] + "/"
+            url = "https://app.qfield.cloud/api/v1/files/" + projekct_Id+ "/" +f[i] + "/"
             print(url)
             response = requests.request("POST", url, headers=headers, data=payload, files=files)
            # print(response.content)
