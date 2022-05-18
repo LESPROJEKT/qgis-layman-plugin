@@ -1081,7 +1081,7 @@ class Layman:
                # self.dlg.listWidget_listLayers.addItem(layer.name())           
                 item = QTreeWidgetItem([project['name'],project['owner'],str(project['is_public']), project['id']]) 
                 self.dlg2.treeWidget.addTopLevelItem(item)
-            self.dlg2.pushButton_close.clicked.connect(lambda: self.dlg.close())
+            self.dlg2.pushButton_close.clicked.connect(lambda: self.dlg2.close())
             self.dlg2.pushButton_export.clicked.connect(lambda:self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),""))
             self.dlg2.pushButton_exportCreate.clicked.connect(lambda: self.createQProject(self.dlg2.lineEdit_name.text(),self.dlg2.lineEdit_desciption.text(),self.dlg2.checkBox_private.checkState()))
             return
@@ -8772,8 +8772,12 @@ class Layman:
                     repairUrl = data['layers'][x]['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)        
                     print(groupName,i)
-                    if 'EVERYONE' in data['access_rights']['read']:
-                        everyone = True
+                    everyone = False
+                    #url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(data['layers'][x]['title'])
+           
+                    #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+                    #if 'EVERYONE' in r.json()['access_rights']['read']:
+                    #    everyone = True
                     
                     if groupName != "":
                         self.groups.append([groupName, len(data['layers']) - i])
@@ -8822,8 +8826,9 @@ class Layman:
                     repairUrl = data['layers'][x]['protocol']['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)
                     subgroupName = ""
-                    if 'EVERYONE' in data['access_rights']['read']:
-                        everyone = True
+                    everyone = False
+                    #if 'EVERYONE' in data['access_rights']['read']:
+                    #    everyone = True
                     if "path" in  data['layers'][x]:
                         groupName = data['layers'][x]['path']  
                     else:
