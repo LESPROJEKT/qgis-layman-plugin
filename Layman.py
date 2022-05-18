@@ -1081,6 +1081,7 @@ class Layman:
                # self.dlg.listWidget_listLayers.addItem(layer.name())           
                 item = QTreeWidgetItem([project['name'],project['owner'],str(project['is_public']), project['id']]) 
                 self.dlg2.treeWidget.addTopLevelItem(item)
+            self.dlg2.pushButton_close.clicked.connect(lambda: self.dlg.close())
             self.dlg2.pushButton_export.clicked.connect(lambda:self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),""))
             self.dlg2.pushButton_exportCreate.clicked.connect(lambda: self.createQProject(self.dlg2.lineEdit_name.text(),self.dlg2.lineEdit_desciption.text(),self.dlg2.checkBox_private.checkState()))
             return
@@ -1124,7 +1125,10 @@ class Layman:
         else:
             print("chyba")
     def convertQProject(self):
-        path = tempFileFolder = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "qfield"
+        import string, random
+        letters = string.ascii_lowercase
+        end = ''.join(random.choice(letters) for i in range(10)) 
+        path = tempFileFolder = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "qfield" + end
         try:
             shutil.rmtree(path, ignore_errors=True)          
         except OSError as error:
@@ -1652,9 +1656,9 @@ class Layman:
         for i in range (0, userCount):
             #print(res[i]['name'])
             #print(res[i]['username'])
-            usersDict[res[i]['name']] = res[i]['username'] 
-            usersDictReversed[res[i]['username']] = res[i]['name'] 
-            self.dlg.comboBox_users.addItem(res[i]['name']  + ' , ' + res[i]['username'])
+            usersDict[res[i]['name'] if res[i]['name'] !="" else res[i]['username']] = res[i]['username'] 
+            usersDictReversed[res[i]['username']] = res[i]['name'] if res[i]['name'] !="" else res[i]['username']
+            self.dlg.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username']  + ' , ' + res[i]['username'])
         ##nabit listView
         mapName = self.removeUnacceptableChars(mapName)
         uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName
@@ -1726,10 +1730,10 @@ class Layman:
         for i in range (0, userCount):
             #print(res[i]['name'])
             #print(res[i]['username'])
-            usersDict[res[i]['name']] = res[i]['username'] 
-            usersDictReversed[res[i]['username']] = res[i]['name'] 
+            usersDict[res[i]['name'] if res[i]['name'] !="" else res[i]['username']] = res[i]['username'] 
+            usersDictReversed[res[i]['username']] = res[i]['name'] if res[i]['name'] !="" else res[i]['username']
             if (res[i]['name'] != self.laymanUsername):
-                self.dlg.comboBox_users.addItem(res[i]['name'] + ' , ' + res[i]['username'] )
+                self.dlg.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username']  + ' , ' + res[i]['username'])
         ##nabit listView
         print(len(layerName))
         if (len(layerName) == 1):            
@@ -3131,6 +3135,8 @@ class Layman:
         itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
         userNamesRead = list()
         #userNamesRead.append(self.laymanUsername)
+        print(itemsTextListRead)
+        print(userDict)
         for pom in itemsTextListRead:
            # print(pom)
             if pom == "VŠICHNI":      
@@ -4747,11 +4753,15 @@ class Layman:
                     return
                 format = 'png'
                 epsg = 'EPSG:5514' 
+                everyone = False
+                if 'EVERYONE' in data['access_rights']['read']:
+                    everyone = True
                 timeDimension = {}
                 groupName=""
                 subgroup=""
+                visibility = ''
                 #threading.Thread(target=lambda: self.loadWms(wmsUrl, layerName,layerNameTitle, format, epsg, groupName,subgroup, timeDimension) ).start()
-                success = self.loadWms(wmsUrl, layerName,layerNameTitle, format, epsg, groupName,subgroup, timeDimension) 
+                success = self.loadWms(wmsUrl, layerName,layerNameTitle, format, epsg, groupName,subgroup, timeDimension,visibility, everyone) 
                 if not success:
                     if self.locale == "cs":
                         QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
@@ -5154,11 +5164,11 @@ class Layman:
             #self.loadLayersThread()
                        
         if message[0:15] == "permissionsDone":    
+            self.info = self.info + 1 
             try:
                 self.dlg.progressBar_loader.hide() 
                 #if (message[-1:] == "T"):
-                #if len(self.failed) == 0:
-                self.info = self.info + 1 
+                #if len(self.failed) == 0:                
                 if self.statusHelper:
                     if self.locale == "cs":                
                         QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
@@ -7147,7 +7157,7 @@ class Layman:
             if self.removeUnacceptableChars(self.compositeList[x]['title']) == self.removeUnacceptableChars(current):
                 return x
     def checkPossibleChars(self, layername):
-        unacceptable = "/*+-%!?:><&@#'"
+        unacceptable = "/*+%!?:><&@#'"
         for ch in layername:
             if ch in unacceptable:
                 return False
@@ -8762,6 +8772,8 @@ class Layman:
                     repairUrl = data['layers'][x]['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)        
                     print(groupName,i)
+                    if 'EVERYONE' in data['access_rights']['read']:
+                        everyone = True
                     
                     if groupName != "":
                         self.groups.append([groupName, len(data['layers']) - i])
@@ -8770,7 +8782,7 @@ class Layman:
                     else:
                         self.groups.append([layerNameTitle, len(data['layers']) - i])
                     #self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName,"","")
-                    self.threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility)).start())
+                    self.threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone)).start())
                     #success = self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility)
                     #if not success:
                     #    notify = True
@@ -8810,6 +8822,8 @@ class Layman:
                     repairUrl = data['layers'][x]['protocol']['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)
                     subgroupName = ""
+                    if 'EVERYONE' in data['access_rights']['read']:
+                        everyone = True
                     if "path" in  data['layers'][x]:
                         groupName = data['layers'][x]['path']  
                     else:
@@ -8828,14 +8842,14 @@ class Layman:
                                     repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['workspace'] + "wfs"
                                
                                 
-                                self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start())
+                                self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone)).start())
                         if "format" in data['layers'][x]['protocol']:
                             if (data['layers'][x]['protocol']['format'] == "hs.format.WFS" or data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):
                                 if 'workspace' in data['layers'][x]:
                                     repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['layers'][x]['workspace'] + "/wfs"
                               
                             
-                                self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start())
+                                self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone)).start())
                         #success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
                         #if not success:
                         #    notify = True
@@ -8906,7 +8920,7 @@ class Layman:
         else:
             return layerString
  
-    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility=''):     
+    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False):     
       
         
         #layerName = self.removeUnacceptableChars(layerName)        
@@ -8950,9 +8964,10 @@ class Layman:
         quri.setParam("crs", epsg)
         quri.setParam("dpiMode", '7')
         quri.setParam("featureCount", '10')
-        quri.setParam("IgnoreReportedLayerExtents", "1")
+        #quri.setParam("IgnoreReportedLayerExtents", "1")
         if (self.isAuthorized):
-            quri.setParam("authcfg", self.authCfg)   # <---- here my authCfg url parameter
+            if not everyone:
+                quri.setParam("authcfg", self.authCfg)   # <---- here my authCfg url parameter
         quri.setParam("contextualWMSLegend", '0')
         quri.setParam("url", url)
         print(str(quri.encodedUri()))
@@ -9066,7 +9081,7 @@ class Layman:
             else:
                 QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
     
-    def loadWfs(self, url, layerName,layerNameTitle, groupName = '', subgroupName = '', visibility= ''):
+    def loadWfs(self, url, layerName,layerNameTitle, groupName = '', subgroupName = '', visibility= '', everyone=False):
         layerName = self.removeUnacceptableChars(layerName)
         #epsg = 'EPSG:3857'    
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()
@@ -9098,7 +9113,8 @@ class Layman:
         quri.setParam("service", "WFS")
         if (self.isAuthorized):
             print("add authcfg")
-            quri.setParam("authcfg", self.authCfg)
+            if not everyone:
+                quri.setParam("authcfg", self.authCfg)
         quri.setParam("url", url)     
         vlayer = QgsVectorLayer(url+"?" + str(quri.encodedUri(), "utf-8"), layerNameTitle, "WFS")
         print("validity WFS")
