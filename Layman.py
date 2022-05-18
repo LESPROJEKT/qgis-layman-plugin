@@ -1098,9 +1098,9 @@ class Layman:
     def createQProject(self,name, description, private):    
         url = "https://app.qfield.cloud/api/v1/projects/"
         print(private)
-        if private == 0:
-            private = "false"
         if private == 2:
+            private = "false"
+        if private == 0:
             private = "true"
         print(name)
         print(description)
