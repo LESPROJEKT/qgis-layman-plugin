@@ -6131,14 +6131,16 @@ class Layman:
         #transformace extentu
      
 
-        self.compositeList[x]['extent'][0] = self.dlg.lineEdit_xmin.text().replace(",",".")
-        self.compositeList[x]['extent'][2] = self.dlg.lineEdit_xmax.text().replace(",",".")
-        self.compositeList[x]['extent'][1] = self.dlg.lineEdit_ymin.text().replace(",",".")
-        self.compositeList[x]['extent'][3] = self.dlg.lineEdit_ymax.text().replace(",",".")
+        self.compositeList[x]['extent'][0] = float(self.dlg.lineEdit_xmin.text().replace(",","."))
+        self.compositeList[x]['extent'][2] = float(self.dlg.lineEdit_xmax.text().replace(",","."))
+        self.compositeList[x]['extent'][1] = float(self.dlg.lineEdit_ymin.text().replace(",","."))
+        self.compositeList[x]['extent'][3] = float(self.dlg.lineEdit_ymax.text().replace(",","."))
    
         center = tform.transform(QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()))
-        self.compositeList[x]['center'][0] = center.x()
-        self.compositeList[x]['center'][1] = center.y()
+        self.compositeList[x]['center'][0] = float(center.x())
+        self.compositeList[x]['center'][1] = float(center.y())
+        print(self.compositeList[x]['extent'])
+        
         #print(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'])       
         oldName = self.dlg.lineEdit_name.text()
         response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+oldName,headers = self.getAuthHeader(self.authCfg))
@@ -6166,14 +6168,14 @@ class Layman:
         #transformace extentu
      
 
-        composition['extent'][0] = self.dlg.lineEdit_xmin.text().replace(",",".")
-        composition['extent'][2] = self.dlg.lineEdit_xmax.text().replace(",",".")
-        composition['extent'][1] = self.dlg.lineEdit_ymin.text().replace(",",".")
-        composition['extent'][3] = self.dlg.lineEdit_ymax.text().replace(",",".")
+        composition['extent'][0] = float(self.dlg.lineEdit_xmin.text().replace(",","."))
+        composition['extent'][2] = float(self.dlg.lineEdit_xmax.text().replace(",","."))
+        composition['extent'][1] = float(self.dlg.lineEdit_ymin.text().replace(",","."))
+        composition['extent'][3] = float(self.dlg.lineEdit_ymax.text().replace(",","."))
    
         center = tform.transform(QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()))
-        composition['center'][0] = center.x()
-        composition['center'][1] = center.y()
+        composition['center'][0] = float(center.x())
+        composition['center'][1] = float(center.y())
         #print(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'])       
              
         #print(self.patchMap2())
