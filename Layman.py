@@ -8775,11 +8775,15 @@ class Layman:
                     repairUrl = self.convertUrlFromHex(repairUrl)        
                     print(groupName,i)
                     everyone = False
-                    #url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(data['layers'][x]['title'])
+                    try:
+                        workspace =  repairUrl.split("geoserver/")[1].split("_wms")[0]
+                        url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(data['layers'][x]['title'])
            
-                    #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-                    #if 'EVERYONE' in r.json()['access_rights']['read']:
-                    #    everyone = True
+                        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+                        if 'EVERYONE' in r.json()['access_rights']['read']:
+                            everyone = True
+                    except:
+                        print("chyba v nalezeni prav")
                     
                     if groupName != "":
                         self.groups.append([groupName, len(data['layers']) - i])
