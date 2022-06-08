@@ -1,7 +1,7 @@
-# This file contains metadata for your plugin. Since 
-# version 2.0 of QGIS this is the proper way to supply 
-# information about a plugin. The old method of 
-# embedding metadata in __init__.py will 
+# This file contains metadata for your plugin. Since
+# version 2.0 of QGIS this is the proper way to supply
+# information about a plugin. The old method of
+# embedding metadata in __init__.py will
 # is no longer supported since version 2.0.
 
 # This file should be included when you package your plugin.# Mandatory items:
@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.0
 description=Layman
-version=1.88.7
+version=1.89.5
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -44,6 +44,7 @@ changelog=
 	1.85 - support for other coordinate systems
 	1.86 - bugs fixes
 	1.87 - micka catalogue
+	1.88 - export Layman projects to qfield
 # Tags are comma separated with spaces allowed
 tags=python
 
@@ -55,4 +56,3 @@ experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
-
