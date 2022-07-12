@@ -205,7 +205,7 @@ class Layman:
         self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
-        QgsProject.instance().readProject.connect(self.projectReaded)
+        QgsProject.instance().readProject.connect(lambda: self.projectReaded(False))
        # self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.getActiveLayer())
         self.processingList = []
         self.writeState(0)
@@ -847,24 +847,44 @@ class Layman:
         #        del self.layerServices[self.removeUnacceptableChars(item.text())]
         #    except:
         #        pass
-    def projectReaded(self):
+    def projectReaded(self, afterLogged = False):
+        #QgsMessageLog.logMessage("disconnectCrsChanged")
         proj = QgsProject.instance()
         server, type_conversion_ok = proj.readEntry("Layman", "Server","")
         name, type_conversion_ok = proj.readEntry("Layman", "Name","")
         print(server, name)
         print(server != "" and name != "")
         if server != "" and name != "":
-
-            if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Tento projekt obsahuje odkaz na Layman server. Chcete se k tomuto serveru přihlásit?")
+            if server == self.URI and not afterLogged:
+                if self.locale == "cs":
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Tento projekt obsahuje odkaz na Layman server. Chcete nastavit ho nastavit jako aktuální kompozici?")
+                else:
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "This project includes link to Layman server. Do you want set the project as current composition?")
+                msgbox.addButton(QMessageBox.Yes)
+                msgbox.addButton(QMessageBox.No)
+                msgbox.setDefaultButton(QMessageBox.No)
+                reply = msgbox.exec()
+                if (reply == QMessageBox.Yes):
+                    self.current = name
+                    self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)
+            elif server == self.URI and afterLogged:
+                self.current = name
+                self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)
             else:
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "This project includes link to Layman server. Do you want login?")
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            reply = msgbox.exec()
-            if (reply == QMessageBox.Yes):
-                self.run_login(True)
+                if afterLogged == False:
+                    if self.locale == "cs":
+                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Tento projekt obsahuje odkaz na Layman server. Chcete se k tomuto serveru přihlásit?")
+                    else:
+                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "This project includes link to Layman server. Do you want login?")
+                    msgbox.addButton(QMessageBox.Yes)
+                    msgbox.addButton(QMessageBox.No)
+                    msgbox.setDefaultButton(QMessageBox.No)
+                    reply = msgbox.exec()
+                    if (reply == QMessageBox.Yes):
+                        self.run_login(True)
+        else:
+            
+            self.current = None
     def setGuiForItem(self, item):
         if item.text(1) == "GEOJSON":
             if self.locale == "cs":
@@ -1266,62 +1286,64 @@ class Layman:
 
             #return reply
 ##
-    def crsChanged(self):
-        print("pes")
+    def crsChanged(self):       
         print(self.crsChangedConnect)
-        if self.crsChangedConnect == True:
-            print("crs changed")
-            #QApplication.instance().processEvents()
-            crs = QgsProject.instance().crs()
-            if  self.crsOld != crs.authid() and self.current != None:
-                self.crsOld = crs.authid()
-                print(crs.authid())
-                if self.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Souřadnicový systém byl změnen na: "+ str(crs.authid())+". Chcete tento souřadnicový systém zapsat do kompozice?")
-                else:
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Coordinate system was changed to: "+ str(crs.authid())+". Do you want write it to composition?")
-                msgbox.addButton(QMessageBox.Yes)
-                msgbox.addButton(QMessageBox.No)
-                msgbox.setDefaultButton(QMessageBox.No)
-                reply = msgbox.exec()
-                if (reply == QMessageBox.Yes):
-                    composition = self.instance.getComposition()
-                    xmin = float(composition['extent'][0])
-                    xmax = float(composition['extent'][2])
-                    ymin = float(composition['extent'][1])
-                    ymax = float(composition['extent'][3])
-                    xcenter = float(composition['center'][0])
-                    ycenter = float(composition['center'][1])
-                    if crs.authid() == 'EPSG:5514':
-                        composition['projection'] = str(crs.authid()).lower()
-                        #max = self.krovakToWgs(xmax, ymax)
-                        #min = self.krovakToWgs(xmin, ymin)
-                        #center = self.krovakToWgs(xcenter, ycenter)
-                        #composition['extent'][0] = str(min[0])
-                        #composition['extent'][2] = str(max[0])
-                        #composition['extent'][1] = str(min[1])
-                        #composition['extent'][3] = str(max[1])
-                        #composition['center'][0] = center[0]
-                        #composition['center'][1] = center[1]
-                    if crs.authid() == 'EPSG:4326':
-                        composition['projection'] = str(crs.authid()).lower()
-                        #max = self.wgsToKrovak(xmax, ymax)
-                        #min = self.wgsToKrovak(xmin, ymin)
-                        #center = self.wgsToKrovak(xcenter, ycenter)
-                        #composition['extent'][0] = str(min[0])
-                        #composition['extent'][2] = str(max[0])
-                        #composition['extent'][1] = str(min[1])
-                        #composition['extent'][3] = str(max[1])
-                        #composition['center'][0] = center[0]
-                        #composition['center'][1] = center[1]
-                    self.patchMap2()
-                #layers = QgsProject.instance().mapLayers().values()
+        print(self.strip_accents(self.current))
+        print(self.strip_accents(QgsProject.instance().title()))
+        if self.strip_accents(self.current) == self.strip_accents(QgsProject.instance().title()):
+            if self.crsChangedConnect == True:
+                print("crs changed")
+                #QApplication.instance().processEvents()
+                crs = QgsProject.instance().crs()
+                if  self.crsOld != crs.authid() and self.current != None:
+                    self.crsOld = crs.authid()
+                    print(crs.authid())
+                    if self.locale == "cs":
+                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Souřadnicový systém byl změnen na: "+ str(crs.authid())+". Chcete tento souřadnicový systém zapsat do kompozice?")
+                    else:
+                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Coordinate system was changed to: "+ str(crs.authid())+". Do you want write it to composition?")
+                    msgbox.addButton(QMessageBox.Yes)
+                    msgbox.addButton(QMessageBox.No)
+                    msgbox.setDefaultButton(QMessageBox.No)
+                    reply = msgbox.exec()
+                    if (reply == QMessageBox.Yes):
+                        composition = self.instance.getComposition()
+                        xmin = float(composition['extent'][0])
+                        xmax = float(composition['extent'][2])
+                        ymin = float(composition['extent'][1])
+                        ymax = float(composition['extent'][3])
+                        xcenter = float(composition['center'][0])
+                        ycenter = float(composition['center'][1])
+                        if crs.authid() == 'EPSG:5514':
+                            composition['projection'] = str(crs.authid()).lower()
+                            #max = self.krovakToWgs(xmax, ymax)
+                            #min = self.krovakToWgs(xmin, ymin)
+                            #center = self.krovakToWgs(xcenter, ycenter)
+                            #composition['extent'][0] = str(min[0])
+                            #composition['extent'][2] = str(max[0])
+                            #composition['extent'][1] = str(min[1])
+                            #composition['extent'][3] = str(max[1])
+                            #composition['center'][0] = center[0]
+                            #composition['center'][1] = center[1]
+                        if crs.authid() == 'EPSG:4326':
+                            composition['projection'] = str(crs.authid()).lower()
+                            #max = self.wgsToKrovak(xmax, ymax)
+                            #min = self.wgsToKrovak(xmin, ymin)
+                            #center = self.wgsToKrovak(xcenter, ycenter)
+                            #composition['extent'][0] = str(min[0])
+                            #composition['extent'][2] = str(max[0])
+                            #composition['extent'][1] = str(min[1])
+                            #composition['extent'][3] = str(max[1])
+                            #composition['center'][0] = center[0]
+                            #composition['center'][1] = center[1]
+                        self.patchMap2()
+                    #layers = QgsProject.instance().mapLayers().values()
 
-                #for layer in layers:
-                #    layer.setCrs(crs)
-                #self.change_map_canvas(crs)
-               # QTimer.singleShot(10, self.set_project_crs)    ,
-               # provést refresh pro všechny vrstvy
+                    #for layer in layers:
+                    #    layer.setCrs(crs)
+                    #self.change_map_canvas(crs)
+                   # QTimer.singleShot(10, self.set_project_crs)    ,
+                   # provést refresh pro všechny vrstvy
 
     def set_project_crs(self):
         # Set CRS to EPSG:4326
@@ -1437,6 +1459,14 @@ class Layman:
         else:
             return False
 
+    def checkUniqueName(self, layers):
+        layerList = list()
+        for layer in layers:
+            layerList.append(layer.name())
+        if(len(set(layerList)) == len(layerList)):
+            return True
+        else:
+            return False
 
     def saveMapLayers(self):
         layerList = list()
@@ -1506,47 +1536,53 @@ class Layman:
 
             iterator +=1
 
+        uniq = self.checkUniqueName(layers)
+        if uniq:
+            if len(layers) > 0:
+                print("test upload layers")
+                print(self.currentSet)
+                newLayers = list()
+                for item in self.currentSet:
+                    print(item)
+                    layersFromServer = list()
+                    print(layers)
+                    if item[2] == "Add from server" or item[2] == "Přidat ze serveru":
+                        for layer in layers:
+                            print(layer.name())
+                            #if layer.name() in self.noOverrideLayers:
+                   
+                            if layer.name() == item[0]:
+                                #layersFromServer.append(layer) ## nebude se nahrávat geojson, ale jen se vytvori zaznam do kompozice
+                                self.addExistingLayerToComposition(layer.name(),composition,item[1].lower())
+                                layers.remove(layer)
 
-        if len(layers) > 0:
-            print("test upload layers")
-            print(self.currentSet)
-            newLayers = list()
-            for item in self.currentSet:
-                print(item)
-                layersFromServer = list()
-                print(layers)
-                if item[2] == "Add from server" or item[2] == "Přidat ze serveru":
-                    for layer in layers:
-                        print(layer.name())
-                        #if layer.name() in self.noOverrideLayers:
-                        if layer.name() == item[0]:
-                            #layersFromServer.append(layer) ## nebude se nahrávat geojson, ale jen se vytvori zaznam do kompozice
-                            self.addExistingLayerToComposition(layer.name(),composition,item[1].lower())
-                            layers.remove(layer)
+                    #self.addLayerToComposite2(x, layers)
+                    #threading.Thread(target=lambda: self.addLayerToComposite2(composition, layers)).start()
+                    print(item[2])
+                    if item[2] == "Add and overwrite" or item[2] =='Add' or item[2] == "Přidat a přepsat" or item[2] =='Přidat':
+                        for layer in layers:
+                            if layer.name() == item[0]:
+                                newLayers.append(layer)
+                        #print(layers)
+                        #self.toUpload = len(layers)
+                        #if len(layers) == 0:
+                        #    return
+                        #else:
+                        #    self.addLayerToComposite2(composition, layers)
+                    #if item[2] =='Overwrite geometry':
+                    #    for layer in layers:
+                    #        if layer.name() == item[0]:
+                    #            if layer.type() == QgsMapLayer.VectorLayer:
+                    #                self.postRequest(layers[i].name(), True)
 
-                #self.addLayerToComposite2(x, layers)
-                #threading.Thread(target=lambda: self.addLayerToComposite2(composition, layers)).start()
-                print(item[2])
-                if item[2] == "Add and overwrite" or item[2] =='Add' or item[2] == "Přidat a přepsat" or item[2] =='Přidat':
-                    for layer in layers:
-                        if layer.name() == item[0]:
-                            newLayers.append(layer)
-                    #print(layers)
-                    #self.toUpload = len(layers)
-                    #if len(layers) == 0:
-                    #    return
-                    #else:
-                    #    self.addLayerToComposite2(composition, layers)
-                #if item[2] =='Overwrite geometry':
-                #    for layer in layers:
-                #        if layer.name() == item[0]:
-                #            if layer.type() == QgsMapLayer.VectorLayer:
-                #                self.postRequest(layers[i].name(), True)
+                if len(newLayers) > 0:
+                    self.addLayerToComposite2(composition, layers)
 
-            if len(newLayers) > 0:
-                self.addLayerToComposite2(composition, layers)
-
-        #self.dlg.close()
+            #self.dlg.close()
+            return True
+        else:
+            QgsMessageLog.logMessage("uniqLayers")
+            return False
     def getFinalService(self, layerName):
         for item in self.currentSet:
             if item[0] == layerName:
@@ -2252,7 +2288,8 @@ class Layman:
     def setBatchLengthZero(self):
         self.batchLength = 0
     def run_login(self, server = False):
-        if server:
+        if server or self.current != None:
+            server = True
             proj = QgsProject.instance()
             server, type_conversion_ok = proj.readEntry("Layman", "Server","")
             name, type_conversion_ok = proj.readEntry("Layman", "Name","")
@@ -2272,7 +2309,9 @@ class Layman:
         path = self.plugin_dir + os.sep + "server_list.txt"
         servers = self.csvToArray(path)
         self.dlg.label_APIKey_2.setToolTip("Username is important only with first login")
-        #print(servers)
+        print(servers)
+        print(server)
+        
 
 
         for i in range (0,len(servers)):
@@ -2282,16 +2321,17 @@ class Layman:
                     self.dlg.comboBox_server.addItem("test HUB")
                 else:
                     self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
-            else:
-                print(server)
-                if server == servers[i][0]:
-                    self.dlg.comboBox_server.addItem(server)
+            else:          
+                print(server == servers[i][0])
+                print(server, servers[i][0])
+                if server == servers[i][1] and server != "http://157.230.109.174/client":
+                    self.dlg.comboBox_server.addItem(server.replace("/client",""))
                     self.setServers(servers, i) ## nastavujeme prvni server
                     print("loaded name is "+name)
                     self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2(name))
                     break
-                elif server == "http://157.230.109.174/client":
-                    self.dlg.comboBox_server.addItem("test HUB")
+                elif server == "http://157.230.109.174/client" and servers[i][1] == server:
+                    self.dlg.comboBox_server.addItem("test HUB")                  
                     self.setServers(servers, i) ## nastavujeme prvni server
                     print("loaded name is "+name)
                     self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2(name))
@@ -2314,11 +2354,12 @@ class Layman:
             for i in range (0, self.dlg.comboBox_server.count()):
                 #print(self.dlg.comboBox_server.itemText(i))
                 print(self.authCfg)
-                if self.authCfg == "a67e5fd":
-                    self.dlg.comboBox_server.setCurrentIndex(len(servers) - 1)
-                else:
-                    if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
-                        self.dlg.comboBox_server.setCurrentIndex(i)
+                if not server:
+                    if self.authCfg == "a67e5fd":
+                        self.dlg.comboBox_server.setCurrentIndex(len(servers) - 1)
+                    else:
+                        if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
+                            self.dlg.comboBox_server.setCurrentIndex(i)
 
 
         else:
@@ -2925,29 +2966,7 @@ class Layman:
         result = self.dlg.exec_()
 
     def loadLayersThread(self, onlyOwn=False):
-        ##if not self.loadedInMemory:
-        ##    self.loadAllComposites()
-        #url = self.URI+'/rest/'+self.laymanUsername+'/layers'
-        #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-        #data = r.json()
-
-        #for row in range(0, len(data)):
-
-
-        #    try:
-
-        #        item = QTreeWidgetItem([data[row]['title']])
-
-        #        title = data[row]['title']
-        #        if title == None or title == "" or title == "null":
-        #            item = QTreeWidgetItem([data[row]['name']])
-        #        self.dlg.treeWidget.addTopLevelItem(item)
-
-        #    except:
-
-        #        item = QTreeWidgetItem([self.getLayerTitle(data[row]['name'])])
-        #        self.dlg.treeWidget.addTopLevelItem(item)
-        #QgsMessageLog.logMessage("layersLoaded")
+        self.layerNamesDict = dict()
         self.dlg.treeWidget.clear()
         if self.laymanUsername and self.isAuthorized:
             url = self.URI+'/rest/'+self.laymanUsername+'/layers'
@@ -2961,6 +2980,7 @@ class Layman:
                     else:
                         item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
                     self.dlg.treeWidget.addTopLevelItem(item)
+                    self.layerNamesDict[data[row]['title']] = data[row]['name']
                 QgsMessageLog.logMessage("layersLoaded")
             else:
                 url = self.URI+'/rest/layers'
@@ -2979,6 +2999,7 @@ class Layman:
                             item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs']])
                         else:
                             item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
+                        self.layerNamesDict[data[row]['title']] = data[row]['name']
                         self.dlg.treeWidget.addTopLevelItem(item)
                 QgsMessageLog.logMessage("layersLoaded")
         else:
@@ -2995,6 +3016,7 @@ class Layman:
                     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs']])
                 else:
                     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions])
+                self.layerNamesDict[data[row]['title']] = data[row]['name']
                 self.dlg.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("layersLoaded")
     def addExternalWMSToComposite(self, name):
@@ -3483,7 +3505,7 @@ class Layman:
             print("crs changed not connected")
         self.menu_UserInfoDialog.setEnabled(True)
         self.laymanUsername = ""
-        self.isAuthorized = False
+        self.isAuthorized = False        
         self.current = None
         self.liferayServer = None
         #self.menu_Connection.setEnabled(True)
@@ -4024,7 +4046,10 @@ class Layman:
             i = i +1
         #if self.modified == True:
         if True:
-            self.saveMapLayers()
+            duplicityCheck = self.saveMapLayers()
+            if not duplicityCheck:
+                QgsMessageLog.logMessage("layersLoaded")            
+                return
             self.modified = False
         else:
             composition = self.instance.getComposition()
@@ -4496,7 +4521,8 @@ class Layman:
         except:
             layer = it.text()##pro listWidget
         try:
-            layer = self.removeUnacceptableChars(layer)
+            layer = self.layerNamesDict[layer]
+            #layer = self.removeUnacceptableChars(layer)
             #url = self.URI+'/rest/' +self.laymanUsername+'/layers/'+layer+'/thumbnail'
             url = self.URI+'/rest/' +workspace+'/layers/'+layer+'/thumbnail'
             print("thubmnailURL" + url)
@@ -4517,7 +4543,8 @@ class Layman:
         except:
             layer = it.text()##pro listWidget
         try:
-            layer = self.removeUnacceptableChars(layer)
+            layer = self.layerNamesDict[layer]
+           # layer = self.removeUnacceptableChars(layer)
             url = self.URI+'/rest/'+workspace+'/layers/'+layer+'/thumbnail'
             print("thubmnailURL" + url)
             #data = urlopen(url).read()
@@ -4746,6 +4773,7 @@ class Layman:
             #self.readLayerJsonThread(name,service, workspace)
         QgsMessageLog.logMessage("disableProgressBar")
     def readLayerJsonThread(self, layerName,service, workspace):
+        layerName = self.layerNamesDict[layerName]
         if self.checkLayerOnLayman(layerName):
             layerNameTitle =layerName
             layerName = self.removeUnacceptableChars(layerName)
@@ -4828,6 +4856,12 @@ class Layman:
                 self.dlg2.progressBar.hide()
             except:
                 print("progressbar doesnt exist")
+        if message == "uniqLayers":
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Jména vrstev jsou duplicitní.")
+            else:
+                QMessageBox.information(None, "Layman", "Layer names are duplicated.")
+
         if message == "errConnection":
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)
@@ -7878,6 +7912,7 @@ class Layman:
                         composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                     successful = successful + 1
                 print("saving layer records to composition")
+               
 
                 for i in range (0, len(layers)):
 
@@ -9770,7 +9805,7 @@ class Layman:
         return ret
     def strip_accents(self, s):
         text = ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
-        return text.lower()
+        return text.lower().replace(" ","").replace("_","")
     def registerUserIfNotExists(self):
         print(self.URI)
         userEndpoint = self.URI+ "/rest/current-user"
@@ -9877,7 +9912,10 @@ class Layman:
         self.menu_UserInfoDialog.setEnabled(True)
         self.laymanUsername = ""
         self.isAuthorized = False
-        self.current = None
+        proj = QgsProject.instance()
+        server, type_conversion_ok = proj.readEntry("Layman", "Server","")
+        if server == "":
+            self.current = None
         self.liferayServer = None
         #self.menu_Connection.setEnabled(True)
         self.compositeList = []
@@ -9949,7 +9987,7 @@ class Layman:
                 ## zjištení výpadku spojeni
                 #QgsApplication.authManager().masterPasswordVerified.connect(self.connectionLost)
 
-
+                self.projectReaded(True)
                 threading.Thread(target=lambda: self.fillCompositionDict()).start()
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
