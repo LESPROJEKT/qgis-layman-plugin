@@ -1575,7 +1575,7 @@ class Layman:
                     #            if layer.type() == QgsMapLayer.VectorLayer:
                     #                self.postRequest(layers[i].name(), True)
 
-                if len(newLayers) > 0:
+                if len(newLayers) > 0:                   
                     self.addLayerToComposite2(composition, layers)
 
             #self.dlg.close()
@@ -3019,29 +3019,12 @@ class Layman:
                 self.layerNamesDict[data[row]['title']] = data[row]['name']
                 self.dlg.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("layersLoaded")
-    def addExternalWMSToComposite(self, name):
-        #layer = QgsProject.instance().mapLayersByName(name)[0]
-        #params = layer.dataProvider().dataSourceUri().split("&")
-        #layers = list()
-        #for p in params:
-        #    #print(p)
-        #    param = p.split("=")
-        #    if(str(param[0]) == "crs"):
-        #        crs = (param[1])
-        #    if(str(param[0]) == "format"):
-        #        format = (param[1])
-        #        print(format)
-        #    if(str(param[0]) == "url"):
-        #        url = (param[1])
-        #        print(url)
-        #    if(str(param[0]) == "layers"):
-        #        layers.append(param[1])
-        #     #   print(layers)
-
-        #self.addExistingLayerToComposite(name, "wms")
+    def addExternalWMSToComposite(self, name):       
         nameInList = name
         name = self.removeUnacceptableChars(name).lower()
-        threading.Thread(target=lambda: self.addExistingWMSLayerToCompositeThread2(name, nameInList)).start()
+        self.addExistingWMSLayerToCompositeThread2(name, nameInList)
+        
+        #threading.Thread(target=lambda: self.addExistingWMSLayerToCompositeThread2(name, nameInList)).start()
     def listToString(self, s):
 
         str1 = ","
@@ -4073,9 +4056,11 @@ class Layman:
                     except:
                         print("neni v poli")
         print(composition)
+        
         print(len(composition['layers']))
         self.updateVisibilityInComposition()
         self.syncOrder2(self.getLayersOrder())
+
         self.patchMap2()
         self.writeValuesToProject(self.URI, composition['name'])
             #for layer in self.stylesToUpdate:
@@ -7630,6 +7615,7 @@ class Layman:
         layer = QgsProject.instance().mapLayersByName(nameInList)[0]
         params = layer.dataProvider().dataSourceUri().split("&")
         if not (self.isXYZ(layer.name())):
+            print("pes2")
             params = layer.dataProvider().dataSourceUri().split("&")
             layers = list()
             for p in params:
@@ -7664,15 +7650,9 @@ class Layman:
                 #print({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
 
                 composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
-            #self.importMap(x, "mod")
-            #self.patchMap2()
-            time.sleep(1)
-            #self.refreshLayerListReversed()
-
-            #self.dlg.label_loading.hide()
-
-            #self.dlg.progressBar_loader.hide()
+           
         else:
+            print("pes")
             for p in params:
                 param = p.split("=")
                 #print(p)
@@ -7681,11 +7661,11 @@ class Layman:
             crs = layer.crs().authid()
             composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"XYZ","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
 
-            #self.patchMap2()
+            
 
-            time.sleep(1)
-
-
+            
+      
+        
         QgsMessageLog.logMessage("addRaster")
     def getStyle(self, layer_name):
         if self.selectedWorkspace:
@@ -7917,9 +7897,6 @@ class Layman:
                 for i in range (0, len(layers)):
 
 
-                    #print (self.isLayerInComposite(x))
-                    #print (layers[i].name() in self.isLayerInComposite(x))
-                    #inComposite = layers[i].name() in self.isLayerInComposite(x)
 
                     inComposite = False
                     layerName = self.removeUnacceptableChars(layers[i].name()).lower()
@@ -7939,66 +7916,7 @@ class Layman:
                             pass
                         else:
                             self.postRequest(layers[i].name(), True)
-                      #  wmsStatus = 'PENDING'
-                      #  j = 0
-                      #  while ((wmsStatus == 'PENDING') and (j < 10)):
-                      #      print("waiting")
-                      #      print(wmsStatus)
-                      #      print (self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName))
-                      #      #response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), verify=False)
-                      #      response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/'+str(layerName), headers = self.getAuthHeader(self.authCfg))
-                      #      res = self.fromByteToJson(response.content)
-
-                      #      #print(res)
-                      #      try:
-                      #          #wmsStatus = res['wms']['status']
-                      #          #wmsStatus = res['wms']['url']
-                      #          wmsStatus = res['wfs']['url']
-                      #      except:
-                      #          #wmsStatus = "done"
-                      #          wmsStatus = "PENDING"
-                      #      time.sleep(1)
-                      #      j = j + 1
-
-
-                      ##  print(res)
-                      #  try:
-                      #      #wmsUrl = res['wms']['url']
-                      #      wmsUrl = res['wfs']['url']
-                      #  except:
-                      #      #wmsUrl = self.URI+'/geoserver/'+layerName+'/ows'
-                      #      wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'/wfs'
-                        #self.compositeList[x]['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(layerName),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layers[i].name()),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","FROMCRS":"EPSG:3857","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
-                       # if (self.dlg.radioButton_wms.isChecked()):
-                       #
-                       # ############# old
-                        #if self.layerServices[layerName] == "HSLayers.Layer.WMS":
-                        #    wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows'
-                        #    composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
-                        ##if (self.dlg.radioButton_wfs.isChecked()):
-                        #elif self.layerServices[layerName] == "OpenLayers.Layer.Vector":
-                        #    wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'/wfs'
-                        #    composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
-
-                        #else:
-                        #    wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows'
-                        #    composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":20,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
-                        #successful = successful + 1
-                        ### old
-        #self.patchMap2()
-                        #threading.Thread(target=lambda: self.importMap(x, "add", successful) ).start()
-                        #self.importMap(x, "add", successful)
-                #check = False
-                #counter = 1
-                #print("testssssss")
-                #while (check == False and counter < 100):
-                #    time.sleep(1)
-                #    req = requests.get(self.URI+'/rest/'+self.laymanUsername+'/maps/'+composition['name'], headers = self.getAuthHeader(self.authCfg))
-                #    counter = counter + 1
-                #    print("composition status" + self.fromByteToJson(req.content)["layman_metadata"]["publication_status"])
-                #    if self.fromByteToJson(req.content)["layman_metadata"]["publication_status"] == "COMPLETE": # "INCOMPLETE kdyz spadne thumbnail"
-                #        check = True
-                #        self.patchMap2()
+                     
         self.processingRequest = False
     def removeRastersWithoutCrs(self, layers):
         unacceptableLayers = list()

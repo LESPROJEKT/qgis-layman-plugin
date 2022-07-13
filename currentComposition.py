@@ -56,7 +56,7 @@ class CurrentComposition(object):
             layerList.append(layer)
         return layerList
     def getUrl(self):
-        return self.URI+'/rest/'+self.workspace+'/maps/'+self.name+'/file'
+        return self.URI+'/client/rest/'+self.workspace+'/maps/'+self.name+'/file'
     def setIds(self, layers):
         for layer in layers:
             self.layerIds.append(layer.id())
@@ -91,6 +91,7 @@ class CurrentComposition(object):
         url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name     
         r = requests.get(url = url, headers = self.header)
         data = r.json()
+        print(data)
         return data['access_rights']
     def removeUnacceptableChars(self, input):
         input = input.lower()
@@ -104,6 +105,7 @@ class CurrentComposition(object):
         input = input.replace("í","i")
         input = input.replace("ý","y")
         input = input.replace("á","a")
+        input = input.replace("ň","n")
         input = input.replace("ó","o")
         input = input.replace("č","c")
         input = input.replace("ď","d")
@@ -112,9 +114,12 @@ class CurrentComposition(object):
         input = input.replace("-","_")
         input = input.replace(".","_")
         input = input.replace(":","")
-        input = input.replace("/","_")        
+        input = input.replace("/","_")
+        input = input.replace("(","")
+        input = input.replace(")","")
         input = input.replace("___","_")
         input = input.replace("__","_")
+        input = re.sub(r'[?|$|.|!]',r'',input)
         input = re.sub(r'[?|$|.|!]',r'',input)
         try:
             if input[len(input) - 1] == "_":
