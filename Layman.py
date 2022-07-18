@@ -1753,7 +1753,8 @@ class Layman:
         ##nabit listView
         print(len(layerName))
         if (len(layerName) == 1):
-            layerName[0] = self.removeUnacceptableChars(layerName[0])
+            #layerName[0] = self.removeUnacceptableChars(layerName[0])
+            layerName[0] = self.layerNamesDict[layerName[0]]
             uri = self.URI + "/rest/"+self.laymanUsername+"/layers/"+layerName[0]
 
             r= requests.get(uri,headers = self.getAuthHeader(self.authCfg))
@@ -4077,12 +4078,12 @@ class Layman:
             tempFile = self.getTempPath(os.path.basename(layer_name))
             stylePath = tempFile + ".qml"
             layer.saveNamedStyle(stylePath)
-            #stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+            
         else:
             tempFile = self.getTempPath(os.path.basename(layer_name))
             stylePath = tempFile + ".sld"
             layer.saveSldStyle(stylePath)
-            #stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+            
         files = [('style', open(stylePath, 'rb'))]
         url = self.URI+'/rest/'+workspace+"/layers/" + layer_name
         data = { 'name' :  layer_name, 'title' : str(layer.name())}
