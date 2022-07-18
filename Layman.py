@@ -9943,7 +9943,8 @@ class Layman:
             reply = msgbox.exec()
             if (reply == QMessageBox.No):
                 return
-        url = "https://gitlab.com/Vrobel/layman_qgis/-/archive/master/layman_qgis-master.zip"
+        #url = "https://gitlab.com/Vrobel/layman_qgis/-/archive/master/layman_qgis-master.zip"
+        url = "https://gitlab.com/plan4all/layman-qgis-plugin/-/archive/master/layman-qgis-plugin-master.zip"
         save_path = tempfile.gettempdir() + os.sep + "layman.zip"
         self.download_url(url, save_path)
 
@@ -9958,7 +9959,8 @@ class Layman:
         QMessageBox.information(None, "Layman", "Layman plugin was updated. Please restart QGIS.")
 
     def checkVersion(self):
-        r = requests.get("https://gitlab.com/Vrobel/layman_qgis/-/raw/master/metadata.txt?inline=false")
+        #r = requests.get("https://gitlab.com/Vrobel/layman_qgis/-/raw/master/metadata.txt?inline=false")
+        r = requests.get("https://gitlab.com/plan4all/layman-qgis-plugin/-/raw/master/metadata.txt?inline=false")
 
         buf = io.StringIO(r.text)
         config = configparser.ConfigParser()
