@@ -7602,7 +7602,11 @@ class Layman:
             if(param[0] == "url"):
                 url = param[1]
         crs = layer.crs().authid()
-        composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+        if layer.hasScaleBasedVisibility():
+            minScale = int(layer.minimumScale())
+        else:
+            minScale = None
+        composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution": minScale,"minResolution":int(layer.maximumScale()),"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
 
     def addExistingWMSLayerToCompositeThread2(self, title,nameInList):
         composition = self.instance.getComposition()
@@ -7652,8 +7656,7 @@ class Layman:
 
                 composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
            
-        else:
-            print("pes")
+        else:           
             for p in params:
                 param = p.split("=")
                 #print(p)
@@ -7868,6 +7871,10 @@ class Layman:
                     self.dlg.progressBar_loader.show()
                     layerName = self.removeUnacceptableChars(layers[i].name()).lower()
                     #if self.layerServices[layerName] == "HSLayers.Layer.WMS":
+                    if layers[i].hasScaleBasedVisibility():
+                        minScale = int(layers[i].minimumScale())
+                    else:
+                        minScale = None
                     if service == 'wms':
                         print(layers[i].crs().authid())
                         print(layers[i].crs().authid() in self.supportedEPSG)
@@ -7877,7 +7884,7 @@ class Layman:
                                 self.saveXYZ(layers[i])
                             else:
                                 wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'_wms/ows'
-                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":minScale,"minResolution":int(layers[i].maximumScale()),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                                 print(composition)
                     #if (self.dlg.radioButton_wfs.isChecked()):
                     #elif self.layerServices[layerName] == "OpenLayers.Layer.Vector":
@@ -7885,12 +7892,12 @@ class Layman:
                         wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'/wfs'
                         styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ str(layerName) + "/style"
 
-                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":minScale,"minResolution":int(layers[i].maximumScale()),"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
 
 
                     else:
                         wmsUrl = self.URI.replace("/client", "") +'/geoserver/'+self.laymanUsername+'_wms/ows'
-                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":minScale,"minResolution":int(layers[i].maximumScale()),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                     successful = successful + 1
                 print("saving layer records to composition")
                
@@ -8744,6 +8751,8 @@ class Layman:
                     layerName = data['layers'][x]['params']['LAYERS']
                     format = data['layers'][x]['params']['FORMAT']
                     epsg = 'EPSG:4326'
+                    maxRes = data['layers'][x]['minResolution']
+                    minRes = data['layers'][x]['maxResolution']                     
 
                     try:
                         groupName = data['layers'][x]['path']
@@ -8772,7 +8781,7 @@ class Layman:
                     else:
                         self.groups.append([layerNameTitle, len(data['layers']) - i])
                     #self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName,"","")
-                    self.threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone)).start())
+                    self.threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes)).start())
                     #success = self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility)
                     #if not success:
                     #    notify = True
@@ -8782,7 +8791,8 @@ class Layman:
                     #repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
                     #layerName = data['layers'][x]['params']['LAYERS']
                     layerName = data['layers'][x]['title']
-
+                    maxRes = data['layers'][x]['minResolution']
+                    minRes = data['layers'][x]['maxResolution']                  
                     try:
                         groupName = data['layers'][x]['path']
                     except:
@@ -8800,14 +8810,15 @@ class Layman:
                         self.groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
                         self.groups.append([layerNameTitle, len(data['layers']) - i])
-                    self.threads.append(threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)).start())
+                    self.threads.append(threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)).start())
                     #success = self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility)
                     #if not success:
                     #    notify = True
 
                 if className == 'OpenLayers.Layer.Vector' or className == 'Vector':
                     epsg = 'EPSG:4326'
-
+                    maxRes = data['layers'][x]['minResolution']
+                    minRes = data['layers'][x]['maxResolution']                   
                     layerNameTitle = data['layers'][x]['title']
                     repairUrl = data['layers'][x]['protocol']['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)
@@ -8833,20 +8844,21 @@ class Layman:
                                     repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['workspace'] + "wfs"
 
 
-                                self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone)).start())
+                                self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
                         if "format" in data['layers'][x]['protocol']:
                             if (data['layers'][x]['protocol']['format'] == "hs.format.WFS" or data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):
                                 if 'workspace' in data['layers'][x]:
-                                    repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['layers'][x]['workspace'] + "/wfs"
+                                    #repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['layers'][x]['workspace'] + "/wfs"
+                                    repairUrl = repairUrl.replace("hsl-layman", "geoserver")
 
 
-                                self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone)).start())
+                                self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
                         #success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
                         #if not success:
                         #    notify = True
                     except:
                         print("tst")
-                        self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)).start())
+                        self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
                         #success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
                         #if not success:
                         #    notify = True
@@ -8911,7 +8923,7 @@ class Layman:
         else:
             return layerString
 
-    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False):
+    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0):
 
 
         #layerName = self.removeUnacceptableChars(layerName)
@@ -8985,10 +8997,15 @@ class Layman:
             pass # pro qgis 3.10 a vys
         self.currentLayer.append(rlayer)
         if (rlayer.isValid()):
+            if minRes != None and maxRes != None:
+                rlayer.setMinimumScale(minRes)
+                rlayer.setMaximumScale(maxRes)
+                rlayer.setScaleBasedVisibility(True)
             if (groupName != '' or subgroupName != ''):
                 #pass
                 self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path
                 #self.addWmsToGroup(groupName,rlayer, subgroupName)
+                
             else:
                 self.params = []
                 self.params.append(visibility)
@@ -9018,7 +9035,7 @@ class Layman:
             #else:
             #    QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
             return False
-    def loadXYZ(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName= '', visibility= '', i = -1):
+    def loadXYZ(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName= '', visibility= '', i = -1, minRes= 0, maxRes=None):
 
 
         layerName = self.removeUnacceptableChars(layerName)
@@ -9038,6 +9055,10 @@ class Layman:
             print("ignoreExtents works only with qgis 3.10 and higher")
             pass # pro qgis 3.10 a vys
         if (rlayer.isValid()):
+            if minRes != None and maxRes != None:
+                rlayer.setMinimumScale(minRes)
+                rlayer.setMaximumScale(maxRes)
+                rlayer.setScaleBasedVisibility(True)
             if (groupName != ''):
 
                 self.addWmsToGroup(subgroupName,rlayer, "")
@@ -9072,7 +9093,7 @@ class Layman:
             else:
                 QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
 
-    def loadWfs(self, url, layerName,layerNameTitle, groupName = '', subgroupName = '', visibility= '', everyone=False):
+    def loadWfs(self, url, layerName,layerNameTitle, groupName = '', subgroupName = '', visibility= '', everyone=False, minRes= 0, maxRes=None):
         layerName = self.removeUnacceptableChars(layerName)
         #epsg = 'EPSG:3857'
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()
@@ -9111,7 +9132,12 @@ class Layman:
         print("validity WFS")
         print(vlayer.isValid())
 
-        if (vlayer.isValid()):
+        if (vlayer.isValid()):         
+            if minRes != None and maxRes != None:
+                print("set scale")
+                vlayer.setMinimumScale(50000)
+                vlayer.setMaximumScale(maxRes)
+                vlayer.setScaleBasedVisibility(True)
             print("cc")
             if (self.getTypesOfGeom(vlayer) < 2):
            # if (True):
