@@ -9135,7 +9135,7 @@ class Layman:
         if (vlayer.isValid()):         
             if minRes != None and maxRes != None:
                 print("set scale")
-                vlayer.setMinimumScale(50000)
+                vlayer.setMinimumScale(minRes)
                 vlayer.setMaximumScale(maxRes)
                 vlayer.setScaleBasedVisibility(True)
             print("cc")
