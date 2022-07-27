@@ -4003,6 +4003,7 @@ class Layman:
                        # print(sublayer.name() + " QgsLayerTreeLayer modify")
                         self.modifyPathOfLayer(sublayer.name(),"")
                         self.modifyVisibilityOfLayer(sublayer.name(),sublayer.isVisible())
+                        self.modifyScaleOfLayer(sublayer.layer(), sublayer.layer().hasScaleBasedVisibility())
                         #print(sublayer.isVisible())
                         #print(sublayer.name())
                    # sublayer.visibilityChanged.connect(changeVisibility)
@@ -4012,10 +4013,10 @@ class Layman:
                            # print(sublayer.name() + " QgsLayerTreeGroup modify")
                             self.modifyPathOfLayer(layer.name(),sublayer.name())
                             self.modifyVisibilityOfLayer(layer.name(),layer.isVisible() )
-                            #print(layer.isVisible())
-                            #print(layer.name())
+                            self.modifyScaleOfLayer(layer, layer.hasScaleBasedVisibility())
+                           
         #print(composition)
-
+    
     def updateCompositionThread(self):
         composition = self.instance.getComposition()
 
@@ -4060,6 +4061,7 @@ class Layman:
         
         print(len(composition['layers']))
         self.updateVisibilityInComposition()
+        
         self.syncOrder2(self.getLayersOrder())
 
         self.patchMap2()
@@ -5652,7 +5654,7 @@ class Layman:
             #self.prj.layerWasAdded.connect(self.layerAdded)
             layers = self.project.mapLayers().values() ## hlidac vrstvy
             self.instance.setIds(layers)
-            for layer in layers:
+            for layer in layers:                
                 layerType = layer.type()
                 if layerType == QgsMapLayer.VectorLayer:
                     layer.editingStopped.connect(self.layerEditStopped)
@@ -5720,7 +5722,18 @@ class Layman:
                 composition['layers'][i]['visibility'] = checked
                 #print(composition['layers'][i]['visibility'])
                 #self.patchMap2()
-
+    def modifyScaleOfLayer(self, layer, checked):
+        composition = self.instance.getComposition()    
+        if checked:            
+            for i in range (0, len(composition['layers'])):           
+                if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):              
+                    composition['layers'][i]['maxResolution'] = int(layer.maximumScale())
+                    composition['layers'][i]['minResolution'] = int(layer.minimumScale())
+        else:
+            for i in range (0, len(composition['layers'])):           
+                if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):              
+                    composition['layers'][i]['maxResolution'] = None
+                    composition['layers'][i]['minResolution'] = 0 
     def removeSignals(self):
         print("removing signals")
         layers = QgsProject.instance().mapLayers().values()
@@ -7606,7 +7619,7 @@ class Layman:
             minScale = int(layer.minimumScale())
         else:
             minScale = None
-        composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution": minScale,"minResolution":int(layer.maximumScale()),"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+        composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":int(layer.maximumScale()) ,"minResolution":minScale,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
 
     def addExistingWMSLayerToCompositeThread2(self, title,nameInList):
         composition = self.instance.getComposition()
@@ -7884,7 +7897,7 @@ class Layman:
                                 self.saveXYZ(layers[i])
                             else:
                                 wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'_wms/ows'
-                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":minScale,"minResolution":int(layers[i].maximumScale()),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":int(layers[i].maximumScale()),"minResolution":minScale,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                                 print(composition)
                     #if (self.dlg.radioButton_wfs.isChecked()):
                     #elif self.layerServices[layerName] == "OpenLayers.Layer.Vector":
@@ -7892,12 +7905,12 @@ class Layman:
                         wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'/wfs'
                         styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ str(layerName) + "/style"
 
-                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":minScale,"minResolution":int(layers[i].maximumScale()),"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":int(layers[i].maximumScale()),"minResolution":minScale,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
 
 
                     else:
                         wmsUrl = self.URI.replace("/client", "") +'/geoserver/'+self.laymanUsername+'_wms/ows'
-                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":minScale,"minResolution":int(layers[i].maximumScale()),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":True,"wmsMaxScale":0,"legends":[""],"maxResolution":int(layers[i].maximumScale()),"minResolution":minScale,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"singleTile": True,"visibility": True,"dimensions":{}})
                     successful = successful + 1
                 print("saving layer records to composition")
                
@@ -8131,24 +8144,6 @@ class Layman:
         print(response.status_code)
         print(response.content)
         res = self.fromByteToJson(response.content)
-        #if response.status_code == 400 and attempt < 4:
-        #    time.sleep(5)
-        #    attempt = attempt + 1
-        #    if attempt == 3:
-        #        requests.delete(self.URI+'/rest/'+workspace+'/maps/'+composition['name'], headers = self.getAuthHeader(self.authCfg))
-        #        time.sleep(1)
-        #        response = requests.post(self.URI+'/rest/'+workspace+'/maps/', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
-        #        print("post")
-        #        print(response.content)
-        #    else:
-        #        self.patchMap2(attempt)
-
-            #i = 0
-            #while response.status_code == 400 and i < 3:
-            #    response = requests.patch(self.URI+'/rest/'+workspace+'/maps/'+composition['name'], files=files, data = data, headers = self.getAuthHeader(self.authCfg))
-            #    print(response.content)
-            #    i = i + 1
-            #    time.sleep(3)
 
         return response.status_code
 
@@ -8751,8 +8746,8 @@ class Layman:
                     layerName = data['layers'][x]['params']['LAYERS']
                     format = data['layers'][x]['params']['FORMAT']
                     epsg = 'EPSG:4326'
-                    maxRes = data['layers'][x]['minResolution']
-                    minRes = data['layers'][x]['maxResolution']                     
+                    minRes = data['layers'][x]['minResolution']
+                    maxRes = data['layers'][x]['maxResolution']                     
 
                     try:
                         groupName = data['layers'][x]['path']
@@ -8791,8 +8786,8 @@ class Layman:
                     #repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
                     #layerName = data['layers'][x]['params']['LAYERS']
                     layerName = data['layers'][x]['title']
-                    maxRes = data['layers'][x]['minResolution']
-                    minRes = data['layers'][x]['maxResolution']                  
+                    minRes = data['layers'][x]['minResolution']
+                    maxRes = data['layers'][x]['maxResolution']                  
                     try:
                         groupName = data['layers'][x]['path']
                     except:
@@ -8817,8 +8812,8 @@ class Layman:
 
                 if className == 'OpenLayers.Layer.Vector' or className == 'Vector':
                     epsg = 'EPSG:4326'
-                    maxRes = data['layers'][x]['minResolution']
-                    minRes = data['layers'][x]['maxResolution']                   
+                    minRes = data['layers'][x]['minResolution']
+                    maxRes = data['layers'][x]['maxResolution']                   
                     layerNameTitle = data['layers'][x]['title']
                     repairUrl = data['layers'][x]['protocol']['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)
@@ -8841,11 +8836,14 @@ class Layman:
                         if 'type' in data['layers'][x]['protocol']:
                             if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
                                 if 'workspace' in data:
+                                    print("aa")
                                     repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['workspace'] + "wfs"
 
 
                                 self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
+                                
                         if "format" in data['layers'][x]['protocol']:
+                            print("bb")
                             if (data['layers'][x]['protocol']['format'] == "hs.format.WFS" or data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):
                                 if 'workspace' in data['layers'][x]:
                                     #repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['layers'][x]['workspace'] + "/wfs"
@@ -8858,13 +8856,14 @@ class Layman:
                         #    notify = True
                     except:
                         print("tst")
+                        print("cc")
                         self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
                         #success = self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility)
                         #if not success:
                         #    notify = True
                     #elif (data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
                     #    self.loadWfs(wfsUrl, layerName, layerNameTitle)
-
+                
             else:
                 self.wrongLayers = True
                 #if self.locale == "cs":
@@ -9093,7 +9092,7 @@ class Layman:
             else:
                 QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
 
-    def loadWfs(self, url, layerName,layerNameTitle, groupName = '', subgroupName = '', visibility= '', everyone=False, minRes= 0, maxRes=None):
+    def loadWfs(self, url, layerName,layerNameTitle, groupName = '', subgroupName = '', visibility= '', everyone=False, minRes= 0, maxRes=None):                    
         layerName = self.removeUnacceptableChars(layerName)
         #epsg = 'EPSG:3857'
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()
@@ -9131,13 +9130,17 @@ class Layman:
         vlayer = QgsVectorLayer(url+"?" + str(quri.encodedUri(), "utf-8"), layerNameTitle, "WFS")
         print("validity WFS")
         print(vlayer.isValid())
-
+       
+            
         if (vlayer.isValid()):         
             if minRes != None and maxRes != None:
                 print("set scale")
                 vlayer.setMinimumScale(minRes)
                 vlayer.setMaximumScale(maxRes)
                 vlayer.setScaleBasedVisibility(True)
+                print(vlayer.hasScaleBasedVisibility())
+            
+
             print("cc")
             if (self.getTypesOfGeom(vlayer) < 2):
            # if (True):
@@ -9164,25 +9167,7 @@ class Layman:
                     #QgsMessageLog.logMessage("loadLayer"+ vlayer.name())
                     #QgsMessageLog.logMessage("loadLayer")
                     QgsMessageLog.logMessage("loadVector" + str(rand))
-                #if visibility == False:
-                #    print(vlayer.id())
-                #    QgsProject.instance().layerTreeRoot().findLayer(vlayer.id()).setItemVisibilityChecked(False)
-                ## zde bude SLD kod
-                print("tt")
-                #style = self.getStyle(layerName)
-                ##code = self.getSLD(layerName)
-
-
-                #if (style[0] == 200):
-                #    if (style[1] == "sld"):
-                #        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
-                #        vlayer.loadSldStyle(tempf)
-                #        vlayer.triggerRepaint()
-                #    if (style[1] == "qml"):
-                #        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
-                #        vlayer.loadNamedStyle(tempf)
-                #        vlayer.triggerRepaint()
-
+     
             else: ### cast pro slozenou geometrii
                 self.mixedLayers.append(layerName)
                 pointFeats = list()
@@ -9254,15 +9239,12 @@ class Layman:
                     else:
                         self.addLayerToGroup(layerName,vl)
 
-
+            
             return True
         else:
             QgsProject.instance().addMapLayer(vlayer)
             return False
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "WFS není pro vrstu "+layerNameTitle+ " k dispozici.")
-            else:
-                QMessageBox.information(None, "Layman", "WFS for layer "+layerNameTitle+ " is not available.")
+          
     def forbidRename(self):
         if ((int(round(time.time() * 1000)) - self.millis)  > 3000):
             self.millis = int(round(time.time() * 1000))
@@ -9294,26 +9276,7 @@ class Layman:
             if typesL+typesP+typesPol > 2:
                 return typesL+typesP+typesPol
         return typesL+typesP+typesPol
-    #def addWmsToGroup(self, groupName, layer, subgroup = False):
-    #    root = QgsProject.instance().layerTreeRoot()
-    #    group = root.findGroup(groupName)
-    #    if subgroup and group:
-    #        group = group.findGroup(layer.name())
-    #        #if not(sub):
-    #        #    group.addGroup(layer.name())
-    #        #    group = group.findGroup(layer.name())
-    #    if not(group):
-    #        group = root.addGroup(groupName)
-    #        if subgroup:
-    #            sub = group.findGroup(layer.name())
-    #            if not(sub):
-    #                group.addGroup(layer.name())
-    #                group = group.findGroup(layer.name())
 
-    #        #group = self.reorderToTop(groupName)
-    #    time.sleep(1)
-    #    QgsProject.instance().addMapLayer(layer,False)
-    #    group.insertChildNode(1000,QgsLayerTreeLayer(layer))
     def addWmsToGroup(self, groupName, layer, subgroupName="", i = 1000):
         print(groupName)
         root = QgsProject.instance().layerTreeRoot()
@@ -9322,10 +9285,7 @@ class Layman:
             QgsProject.instance().addMapLayer(layer,False)
             return
         if not(group):
-            group = root.addGroup(groupName)
-           # group = self.reorderToTop(groupName, i)
-        #####
-        #time.sleep(1)
+            group = root.addGroup(groupName)    
         if subgroupName == "":
             QgsProject.instance().addMapLayer(layer,False)
             group.insertChildNode(1,QgsLayerTreeLayer(layer))
