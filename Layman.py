@@ -8641,7 +8641,7 @@ class Layman:
         with ZipFile(save_path, 'r') as zipObj:
            # Extract all the contents of zip file in different directory
            zipObj.extractall(tempfile.gettempdir())
-        src = tempfile.gettempdir() + os.sep + "layman_qgis-master"
+        src = tempfile.gettempdir() + os.sep + "layman-qgis-plugin-master"
 
         self.copytree(src, self.plugin_dir)
         self.dlg.close()
