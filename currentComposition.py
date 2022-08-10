@@ -56,7 +56,10 @@ class CurrentComposition(object):
             layerList.append(layer)
         return layerList
     def getUrl(self):
-        return self.URI+'/client/rest/'+self.workspace+'/maps/'+self.name+'/file'
+        if "client" in self.URI:
+            return self.URI+'/rest/'+self.workspace+'/maps/'+self.name+'/file'
+        else:
+            return self.URI+'/client/rest/'+self.workspace+'/maps/'+self.name+'/file'
     def setIds(self, layers):
         for layer in layers:
             self.layerIds.append(layer.id())
@@ -86,7 +89,15 @@ class CurrentComposition(object):
         if self.user in data['access_rights']['read'] or "EVERYONE" in data['access_rights']['read']:
             print("r")
             return "r"     
-
+    def hasLaymanLayer(self):
+        for layer in self.composition['layers']:
+            if layer['className'] == "OpenLayers.Layer.Vector":
+                if '/geoserver/' in layer['protocol']['url']:
+                    return True
+            if layer['className'] == "HSLayers.Layer.WMS":
+                if '/geoserver/' in layer['url']:
+                    return True
+        return False
     def getAllPermissions(self):
         url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name     
         r = requests.get(url = url, headers = self.header)

@@ -688,9 +688,15 @@ class Layman:
                 iterator +=1
         except:
             print("neni v canvasu")
-    def copyCompositionUrl(self):
-        url = self.instance.getUrl()
-        print(url)
+    def copyCompositionUrl(self, composition=None):
+        if not composition:
+            url = self.instance.getUrl()
+        else:
+            if "client" in self.URI:
+                url = self.URI+'/rest/'+self.dlg.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0))+'/file'
+            else:  
+                url = self.URI+'/client/rest/'+self.dlg.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0))+'/file'
+            print(url)
         try:
             df=pd.DataFrame([url])
             df.to_clipboard(index=False,header=False)
@@ -2334,8 +2340,8 @@ class Layman:
         self.dlg.pushButton_mapWFS.setEnabled(True)
         self.dlg.pushButton.hide()
         self.dlg.pushButton_mapWFS.hide()
-        self.dlg.label_info.hide()
-        self.dlg.treeWidget.itemClicked.connect(self.showThumbnailMap)
+        self.dlg.label_info.hide()     
+        self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnailMap2(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)), self.dlg.treeWidget.selectedItems()[0].text(1)  ) ).start())
         self.dlg.treeWidget.itemClicked.connect(self.enableButton)
         self.dlg.treeWidget.itemClicked.connect(self.enableLoadMapButtons)
         self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
@@ -2365,13 +2371,16 @@ class Layman:
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
         self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        self.dlg.pushButton_copyUrl.setStyleSheet("#pushButton_copyUrl {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_copyUrl:hover{background: #66ab27 ;}#pushButton_copyUrl:disabled{background: #64818b ;}")
         self.dlg.checkBox_own.stateChanged.connect(self.loadMapsThread)
         self.dlg.checkBox_own.stateChanged.connect(self.disableButtonsAddMap)
         self.dlg.checkBox_own.stateChanged.connect(self.rememberValueMap)
         self.dlg.pushButton_delete.setEnabled(False)
+        self.dlg.pushButton_copyUrl.setEnabled(False)
         self.dlg.pushButton_setPermissions.setEnabled(False)
         self.dlg.pushButton_map.setEnabled(False)
         self.dlg.show()
+        self.dlg.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl(True))
         self.dlg.progressBar_loader.show()
         self.dlg.label_loading.show()
         if not self.isAuthorized:
@@ -2779,18 +2788,20 @@ class Layman:
     def askForLayerPermissionChanges(self,layerName, userDict, type):
         self.failed = list()
         self.statusHelper = True
-
-        if self.locale == "cs":
-            msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
-        else:
-            msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Do you want set these permissions to layers included in map composition?")
-        msgbox.addButton(QMessageBox.Yes)
-        msgbox.addButton(QMessageBox.No)
-        msgbox.setDefaultButton(QMessageBox.No)
-        reply = msgbox.exec()
-        if (reply == QMessageBox.Yes):         
-            threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
-            threading.Thread(target=lambda: self.updateAllLayersPermission(userDict, layerName)).start()
+        if self.instance.hasLaymanLayer():
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Do you want set these permissions to layers included in map composition?")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.Yes):         
+                threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
+                threading.Thread(target=lambda: self.updateAllLayersPermission(userDict, layerName)).start()
+            else:
+                threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
         else:
             threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
     def updateAllLayersPermission(self, userDict, layerName):
@@ -3019,7 +3030,7 @@ class Layman:
     def enableButton(self, item, col):
 
 
-        self.dlg.pushButton.setEnabled(True)
+        self.dlg.pushButton.setEnabled(True)        
         self.dlg.pushButton_mapWFS.setEnabled(True)     
         self.dlg.pushButton_deleteLayers.setEnabled(True)
         self.dlg.pushButton_editMeta.setEnabled(True)
@@ -3176,6 +3187,7 @@ class Layman:
 
 
     def enableButton(self, item):
+        self.dlg.pushButton_copyUrl.setEnabled(True)
         try:
             if (self.WMSenable):
                 self.dlg.pushButton_addWMS.setEnabled(True)
@@ -3939,10 +3951,10 @@ class Layman:
         self.params = list()
         self.params.append(it)
         QgsMessageLog.logMessage("showThumbnailMap2")
-    def showThumbnailMap2(self, it):
+    def showThumbnailMap2(self, it, workspace):
         try:
-            map = it.text(0) ##pro QTreeWidget
-            workspace = it.text(1)
+            map = it ##pro QTreeWidget
+            workspace = workspace
         except:
             map = it.text()##pro listWidget
 

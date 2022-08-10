@@ -181,7 +181,7 @@
    <property name="geometry">
     <rect>
      <x>672</x>
-     <y>290</y>
+     <y>262</y>
      <width>201</width>
      <height>27</height>
     </rect>
@@ -194,7 +194,7 @@
    <property name="geometry">
     <rect>
      <x>672</x>
-     <y>368</y>
+     <y>340</y>
      <width>201</width>
      <height>28</height>
     </rect>
@@ -207,7 +207,7 @@
    <property name="geometry">
     <rect>
      <x>672</x>
-     <y>330</y>
+     <y>302</y>
      <width>201</width>
      <height>27</height>
     </rect>
@@ -275,6 +275,19 @@
    </property>
    <property name="text">
     <string>Nepřihlášený uživatel</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_copyUrl">
+   <property name="geometry">
+    <rect>
+     <x>670</x>
+     <y>380</y>
+     <width>201</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Copy URL</string>
    </property>
   </widget>
  </widget>
