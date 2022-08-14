@@ -273,6 +273,11 @@
      <string>Action</string>
     </property>
    </column>
+   <column>
+    <property name="text">
+     <string>Atributes</string>
+    </property>
+   </column>
   </widget>
   <widget class="QLabel" name="label_raster">
    <property name="geometry">
@@ -311,6 +316,19 @@
    </property>
    <property name="text">
     <string>Copy URL</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_layerProperties">
+   <property name="geometry">
+    <rect>
+     <x>650</x>
+     <y>350</y>
+     <width>181</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Layer properties</string>
    </property>
   </widget>
  </widget>

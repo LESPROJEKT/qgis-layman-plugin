@@ -37,9 +37,13 @@ class CurrentComposition(object):
             if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(layer['title']):
                 return layer['visibility']
     def getServiceForLayer(self,layerName):
-        for layer in self.composition['layers']:
+        for layer in self.composition['layers']:          
             if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(layer['title']):
+                print(layerName , layer['className'])
+                print(layer['className'] == "HSLayers.Layer.WMS")
                 return layer['className']
+            
+            
     def isLayerId(self, id):
         if id in self.layerIds:
             return True
@@ -98,6 +102,10 @@ class CurrentComposition(object):
                 if '/geoserver/' in layer['url']:
                     return True
         return False
+    def getLayerOrderByTitle(self, title):
+        for i in range (0,len(self.composition['layers'])):
+            if self.composition['layers'][i]['title'] == title: 
+                return i
     def getAllPermissions(self):
         url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name     
         r = requests.get(url = url, headers = self.header)
