@@ -70,8 +70,8 @@
   <widget class="QLabel" name="label_name">
    <property name="geometry">
     <rect>
-     <x>132</x>
-     <y>22</y>
+     <x>130</x>
+     <y>19</y>
      <width>290</width>
      <height>16</height>
     </rect>
@@ -96,21 +96,21 @@
   <widget class="QCheckBox" name="checkBox_singleTile">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>48</y>
+     <x>130</x>
+     <y>45</y>
      <width>81</width>
      <height>20</height>
     </rect>
    </property>
    <property name="text">
-    <string>single tile</string>
+    <string/>
    </property>
   </widget>
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>80</y>
+     <y>72</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -129,14 +129,14 @@
     </rect>
    </property>
    <property name="text">
-    <string>Title:</string>
+    <string>title:</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_opacity">
    <property name="geometry">
     <rect>
      <x>130</x>
-     <y>80</y>
+     <y>72</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -149,7 +149,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>110</y>
+     <y>102</y>
      <width>101</width>
      <height>16</height>
     </rect>
@@ -162,7 +162,7 @@
    <property name="geometry">
     <rect>
      <x>130</x>
-     <y>110</y>
+     <y>102</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -175,7 +175,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>140</y>
+     <y>132</y>
      <width>101</width>
      <height>16</height>
     </rect>
@@ -188,7 +188,7 @@
    <property name="geometry">
     <rect>
      <x>130</x>
-     <y>140</y>
+     <y>132</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -201,7 +201,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>170</y>
+     <y>162</y>
      <width>81</width>
      <height>16</height>
     </rect>
@@ -214,7 +214,7 @@
    <property name="geometry">
     <rect>
      <x>130</x>
-     <y>170</y>
+     <y>162</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -227,7 +227,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>200</y>
+     <y>192</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -240,13 +240,26 @@
    <property name="geometry">
     <rect>
      <x>130</x>
-     <y>200</y>
+     <y>192</y>
      <width>55</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
     <string/>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>48</y>
+     <width>81</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>single tile:</string>
    </property>
   </widget>
  </widget>

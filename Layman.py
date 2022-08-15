@@ -430,7 +430,7 @@ class Layman:
         self.dlg.radioButton_wfs.hide()
         self.dlg.label_raster.hide()
 
-        self.dlg.treeWidget_layers.header().resizeSection(0,280);
+        self.dlg.treeWidget_layers.header().resizeSection(0,230);
         self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #3bc4ff;}#pushButton_setPermissions:disabled{background: #64818b ;}")
         self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #3bc4ff;}#pushButton_new:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
@@ -594,8 +594,8 @@ class Layman:
                                                  
                 if self.instance.getServiceForLayer(item.text(0)) == "HSLayers.Layer.WMS":
                     cellButton = QPushButton("...", None)
-                    size = QSize(22, 22)
-                    cellButton.setFixedSize(size)
+                    #size = QSize(22, 22)
+                    #cellButton.setFixedSize(size)
                     cellButton.clicked.connect(self.showLayerProperties)
                     self.dlg.treeWidget_layers.setItemWidget(item,3, cellButton)
                 ##
