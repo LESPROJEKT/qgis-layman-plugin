@@ -783,11 +783,21 @@ class Layman:
                 msgbox.setDefaultButton(QMessageBox.No)
                 reply = msgbox.exec()
                 if (reply == QMessageBox.Yes):
+                    if self.compositionExists(name):
+                        self.current = name
+                        self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)
+                    else:
+                        self.current = None
+                        if self.locale == "cs":
+                            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice již na serveru neexistuje."), Qgis.Warning, duration=5)
+                        else:
+                            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Composition on server does not exists."), Qgis.Warning, duration=5)
+            elif server == self.URI and afterLogged:
+                if self.compositionExists(name):
                     self.current = name
                     self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)
-            elif server == self.URI and afterLogged:
-                self.current = name
-                self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)
+                else:
+                        self.current = None
             else:
                 if afterLogged == False:
                     if self.locale == "cs":
@@ -803,6 +813,15 @@ class Layman:
         else:
             
             self.current = None
+    def compositionExists(self,name):
+        url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file' 
+        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        print("yyyyyyyyyyyyyy")
+        print(r.status_code)
+        if r.status_code == 200:
+            return True
+        else:
+            return False 
     def setGuiForItem(self, item):
         if item.text(1) == "GEOJSON":
             if self.locale == "cs":
@@ -929,7 +948,7 @@ class Layman:
                     del item
                     self.dlg.listWidget_layers.repaint()
 
-
+    
     def progressColor(self, name, status):
         for index in range(0, self.dlg.listWidget_layers.count()): ## show only duplicity
             item = self.dlg.listWidget_layers.item(index)
