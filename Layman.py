@@ -2743,11 +2743,11 @@ class Layman:
     def loadLayersThread(self, onlyOwn=False):
         self.layerNamesDict = dict()
         self.dlg.treeWidget.clear()
-        if self.laymanUsername and self.isAuthorized:
+        if self.laymanUsername and self.isAuthorized:  
             url = self.URI+'/rest/'+self.laymanUsername+'/layers'
             r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
             data = r.json()
-            if onlyOwn:
+            if onlyOwn:                
                 for row in range(0, len(data)):                   
                     if "native_crs" in data[row]:
                         item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
@@ -2773,7 +2773,12 @@ class Layman:
                             item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs']])
                         else:
                             item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
-                        self.layerNamesDict[data[row]['title']] = data[row]['name']
+                        #print(dataAll[row])
+                        #print("aaaa")
+                        #print(row)
+                        #print("bbbb")
+                        print(self.layerNamesDict)
+                        self.layerNamesDict[dataAll[row]['title']] = dataAll[row]['name']
                         self.dlg.treeWidget.addTopLevelItem(item)
                 QgsMessageLog.logMessage("layersLoaded")
         else:
@@ -3633,9 +3638,11 @@ class Layman:
               
                 if isinstance(sublayer, QgsLayerTreeGroup):
                     for layer in sublayer.findLayers():
-                        if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(lay['title']):                        
+                        if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(lay['title']):      
                             self.modifyPathOfLayer(layer.name(),sublayer.name())
-                            self.modifyVisibilityOfLayer(layer.name(),layer.isVisible() )
+                            self.modifyVisibilityOfLayer(layer.name(),layer.isVisible())
+                            if (isinstance(layer, QgsLayerTreeLayer)):
+                                layer = layer.layer()      
                             self.modifyScaleOfLayer(layer, layer.hasScaleBasedVisibility())                           
         
     
