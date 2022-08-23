@@ -1090,7 +1090,10 @@ class Layman:
         if response.status_code == 201:            
             self.uploadQFiles(res['id'],"")
         else:
-            print("chyba")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Taková kompozice již existuje. Vyberte prosím jiný název.")
+            else:
+                QMessageBox.information(None, "Layman", "This composition already exists. Please choose another name.")
     def convertQProject(self):
         import string, random
         letters = string.ascii_lowercase
