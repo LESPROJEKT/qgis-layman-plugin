@@ -76,7 +76,7 @@
    </column>
    <column>
     <property name="text">
-     <string>Workspace</string>
+     <string>Owner</string>
     </property>
    </column>
    <column>

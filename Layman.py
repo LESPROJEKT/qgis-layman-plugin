@@ -389,20 +389,19 @@ class Layman:
             text=self.tr(u'Load map from server'),
             callback=self.run_AddMapDialog,
             enabled_flag=False,
-            parent=self.iface.mainWindow())
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'micka.png'
-        self.menu_AddMickaDialog = self.add_action(
-            icon_path,
-            text=self.tr(u'Load map from server'),
-            callback=self.run_AddMickaDialog,
-            enabled_flag=False,
-            parent=self.iface.mainWindow())
-
+            parent=self.iface.mainWindow())      
         icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'map.png'
         self.menu_CurrentCompositionDialog = self.add_action(
             icon_path,
             text=self.tr(u'Current composition'),
             callback=self.run_CurrentCompositionDialog,
+            enabled_flag=False,
+            parent=self.iface.mainWindow())
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'micka.png'
+        self.menu_AddMickaDialog = self.add_action(
+            icon_path,
+            text=self.tr(u'Browse the metadata catalog'),
+            callback=self.run_AddMickaDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow())
         icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_4.svg'

@@ -420,7 +420,7 @@
     <message>
         <location filename="../dlg_addMap.ui" line="79"/>
         <source>Workspace</source>
-        <translation>Pracovní prostor</translation>
+        <translation type="obsolete">Pracovní prostor</translation>
     </message>
     <message>
         <location filename="../dlg_addMap.ui" line="84"/>
@@ -617,11 +617,16 @@
         <source>Layer properties</source>
         <translation>Vlastnosti vrstvy</translation>
     </message>
+    <message>
+        <location filename="../dlg_addMap.ui" line="79"/>
+        <source>Owner</source>
+        <translation>Vlastník</translation>
+    </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="5246"/>
+        <location filename="../Layman.py" line="5271"/>
         <source>&amp;Layman</source>
         <translation type="unfinished"></translation>
     </message>
@@ -656,24 +661,29 @@
         <translation>Načíst vrstvu ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="398"/>
+        <location filename="../Layman.py" line="391"/>
         <source>Load map from server</source>
         <translation>Načíst mapu ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="406"/>
+        <location filename="../Layman.py" line="398"/>
         <source>Current composition</source>
         <translation>Aktuální kompozice</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="413"/>
+        <location filename="../Layman.py" line="412"/>
         <source>User info</source>
         <translation>Informace o uživateli</translation>
     </message>
     <message>
         <location filename="../Layman.py" line="359"/>
         <source>Save as to JSON and SLD</source>
-        <translation type="unfinished"></translation>
+        <translation>Uloži jako JSON a SLD</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="405"/>
+        <source>Browse the metadata catalog</source>
+        <translation>Prohlížet metadatový katalog</translation>
     </message>
 </context>
 </TS>
