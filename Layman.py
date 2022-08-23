@@ -3993,7 +3993,7 @@ class Layman:
             layer = self.layerNamesDict[layer]        
             url = self.URI+'/rest/' +workspace+'/layers/'+layer+'/thumbnail'
             print("thubmnailURL" + url)
-            r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+            r = requests.get(url, headers = self.getAuthHeader(self.authCfg))            
             data = r.content      
             pixmap = QPixmap(200, 200)
             pixmap.loadFromData(data)
@@ -6703,10 +6703,11 @@ class Layman:
         name = self.removeUnacceptableChars(title).lower() 
         dimension = ""
         layer = QgsProject.instance().mapLayersByName(nameInList)[0]
-        params = layer.dataProvider().dataSourceUri().split("&")
-        if not (self.isXYZ(layer.name())):
-            print("pes2")
+        if "&" in layer.dataProvider().dataSourceUri():
             params = layer.dataProvider().dataSourceUri().split("&")
+        else:
+            params = layer.dataProvider().dataSourceUri().split(" ") ## arcgis use whitespace
+        if not (self.isXYZ(layer.name())): 
             layers = list()
             for p in params:     
                 param = p.split("=")
