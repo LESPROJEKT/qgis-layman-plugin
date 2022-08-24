@@ -69,7 +69,7 @@ import qgis.gui
 import unicodedata
 from os import walk
 from qgis.gui import QgsMapCanvas
-from qgis.core import QgsApplication
+from qgis.core import QgsApplication, QgsSettings
 from qgis.utils import iface
 import xml.etree.ElementTree as ET
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QWidget, QInputDialog, QLineEdit, QFileDialog
@@ -197,9 +197,11 @@ class Layman:
         self.isItemChanged = False
         self.noOverrideLayers = list()
         self.processingRequest = False
+        self.settings = QgsSettings()
         self.mickaRet = None
         self.crsOld = 'EPSG:4326'
         self.mixedLayers = list()
+        self.qLogged = False
         self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
         self.schemaVersion = "2.0.0"
         self.DPI = self.getDPI()
@@ -966,6 +968,22 @@ class Layman:
 
         self.dlg2.pushButton_close.clicked.connect(lambda: self.dlg.close())
         self.dlg2.pushButton_Connect.clicked.connect(self.loginQfield)
+        if self.settings.value("laymanRememberQfield"):
+            self.dlg2.checkBox_remember.setCheckState(2)
+            if self.settings.value("laymenQfieldAuthCfg", type=bool):
+                authcfg = self.settings.value("laymenQfieldAuthCfg")
+                authManager = QgsApplication.authManager()
+                if not authManager.masterPasswordHashInDatabase():
+                    return QgsAuthMethodConfig()            
+                cfg = QgsAuthMethodConfig()
+                authManager.loadAuthenticationConfig(authcfg, cfg, True)
+                self.dlg2.lineEdit_userName.setText(cfg.config('username'))
+                self.dlg2.lineEdit_password.setText(cfg.config('password'))
+                if self.qLogged:
+                    self.loginQfield()
+        else:
+            self.dlg2.checkBox_remember.setCheckState(0)
+        
     def showLayerProperties(self):
         self.dlg2 = LayerPropertiesDialog()
         self.dlg2.show()        
@@ -1028,7 +1046,14 @@ class Layman:
         }
         response = requests.request("POST", url, data=payload)
         res = self.fromByteToJson(response.content)
+        remember = self.dlg2.checkBox_remember.isChecked()
+        if remember:
+            self.settings.setValue("laymanRememberQfield", remember)
+            self.setQAuth(username=login, password=passwd)
+        else:
+            self.settings.setValue("laymanRememberQfield", "")
         if response.status_code == 200:
+            self.qLogged = True
             print(res['token'])
             self.Qtoken = res['token']
             print(self.Qtoken)
@@ -1060,6 +1085,31 @@ class Layman:
             else:
                 QMessageBox.information(None, "Info", "Login was not successful!")
             return
+    def setQAuth(self, **kwargs: str) -> None:
+
+        authcfg = self.settings.value("laymenQfieldAuthCfg")
+        cfg = QgsAuthMethodConfig()
+        authManager = QgsApplication.authManager()
+        authManager.setMasterPassword()
+        authManager.loadAuthenticationConfig(authcfg, cfg, True)
+
+        cfg.setUri(self.URI)
+
+        if cfg.id():
+            for key, value in kwargs.items():
+                cfg.setConfig(key, value)
+
+            authManager.updateAuthenticationConfig(cfg)
+        else:
+            cfg.setMethod("Basic")
+            cfg.setName("laymanQfield")            
+
+            for key, value in kwargs.items():
+                cfg.setConfig(key, value)
+
+            authManager.storeAuthenticationConfig(cfg)
+            self.settings.setValue("laymenQfieldAuthCfg", cfg.id())
+
     def exportJunction(self, create):
         if not create:
             threading.Thread(target=lambda: self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),"")).start()
@@ -2865,7 +2915,7 @@ class Layman:
     def askForLayerPermissionChanges(self,layerName, userDict, type):
         self.failed = list()
         self.statusHelper = True
-        if self.instance.hasLaymanLayer():
+        if self.hasLaymanLayer(layerName[0]):
             if self.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
             else:
@@ -2881,6 +2931,19 @@ class Layman:
                 threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
         else:
             threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
+
+    def hasLaymanLayer(self, name):
+        url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+name+"/file"
+        r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        composition = r.json()
+        for layer in composition['layers']:
+            if layer['className'] == "OpenLayers.Layer.Vector":
+                if '/geoserver/' in layer['protocol']['url']:
+                    return True
+            if layer['className'] == "HSLayers.Layer.WMS":
+                if '/geoserver/' in layer['url']:
+                    return True
+        return False
     def updateAllLayersPermission(self, userDict, layerName):
         print(layerName)
         try:

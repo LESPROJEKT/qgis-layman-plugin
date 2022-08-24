@@ -147,6 +147,19 @@
     <string>Password:</string>
    </property>
   </widget>
+  <widget class="QCheckBox" name="checkBox_remember">
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>160</y>
+     <width>91</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Remember</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
