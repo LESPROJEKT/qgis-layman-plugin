@@ -3154,12 +3154,12 @@ class Layman:
     def checkSelectedCount(self):
         if (len(self.dlg.treeWidget.selectedItems()) > 1):
             self.dlg.pushButton_setPermissions.setEnabled(True)
-            self.dlg.pushButton_wfs.setEnabled(True)
+            #self.dlg.pushButton_wfs.setEnabled(True)
             self.dlg.pushButton_delete.setEnabled(True)
             self.dlg.pushButton.setEnabled(True)
         else:
             self.dlg.pushButton_setPermissions.setEnabled(True)
-            self.dlg.pushButton_wfs.setEnabled(True)
+            #self.dlg.pushButton_wfs.setEnabled(True)
             self.dlg.pushButton_delete.setEnabled(True)
             self.dlg.pushButton.setEnabled(True)
 
@@ -3167,12 +3167,26 @@ class Layman:
         self.dlg.pushButton.setEnabled(True)
         self.dlg.pushButton_urlWfs.setEnabled(True)
         self.dlg.pushButton_urlWms.setEnabled(True)
-        self.dlg.pushButton_wfs.setEnabled(True)
+        
         self.dlg.pushButton_layerRedirect.setEnabled(True)
         self.dlg.pushButton_delete.setEnabled(True)
-        self.dlg.pushButton_setPermissions.setEnabled(True)
+        self.dlg.pushButton_setPermissions.setEnabled(True)        
+        if self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "vector":
+            self.dlg.pushButton_wfs.setEnabled(True)
+        elif self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "raster":
+            self.dlg.pushButton_wfs.setEnabled(False)
+        else:
+            self.dlg.pushButton_wfs.setEnabled(True)
         self.checkSelectedCount()
-
+    def checkFileType(self, name, workspace):
+        name = self.layerNamesDict[name]   
+        url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(name)
+        response = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        res = self.fromByteToJson(response.content)
+        if "file" in res:
+            return res['file']['file_type']
+        else:
+            return ""
     def enableButton(self, item, col):
 
 

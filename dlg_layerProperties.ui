@@ -110,7 +110,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>72</y>
+     <y>100</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -136,7 +136,7 @@
    <property name="geometry">
     <rect>
      <x>130</x>
-     <y>72</y>
+     <y>100</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -149,7 +149,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>102</y>
+     <y>130</y>
      <width>101</width>
      <height>16</height>
     </rect>
@@ -162,7 +162,7 @@
    <property name="geometry">
     <rect>
      <x>130</x>
-     <y>102</y>
+     <y>130</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -175,7 +175,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>132</y>
+     <y>160</y>
      <width>101</width>
      <height>16</height>
     </rect>
@@ -188,7 +188,7 @@
    <property name="geometry">
     <rect>
      <x>130</x>
-     <y>132</y>
+     <y>160</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -201,7 +201,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>162</y>
+     <y>190</y>
      <width>81</width>
      <height>16</height>
     </rect>
@@ -214,7 +214,7 @@
    <property name="geometry">
     <rect>
      <x>130</x>
-     <y>162</y>
+     <y>190</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -227,7 +227,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>192</y>
+     <y>220</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -240,7 +240,7 @@
    <property name="geometry">
     <rect>
      <x>130</x>
-     <y>192</y>
+     <y>220</y>
      <width>55</width>
      <height>16</height>
     </rect>
@@ -260,6 +260,32 @@
    </property>
    <property name="text">
     <string>single tile:</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_5">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>73</y>
+     <width>81</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>base layer:</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="checkBox_baseLayer">
+   <property name="geometry">
+    <rect>
+     <x>130</x>
+     <y>70</y>
+     <width>81</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
    </property>
   </widget>
  </widget>
