@@ -1,3 +1,4 @@
+
  # -*- coding: utf-8 -*-
 """
 /***************************************************************************
@@ -6801,7 +6802,8 @@ class Layman:
                 if(str(param[0]) == "format"):
                     format = (param[1])             
                 if(str(param[0]) == "url"):
-                    url = (param[1])             
+                    url = (param[1]) 
+                    url = url.replace("'", "")                   
                 if(str(param[0]) == "layers"):
                     layers.append(param[1])
                 if(str(param[0]) == "timeDimensionExtent"):
