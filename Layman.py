@@ -6800,7 +6800,8 @@ class Layman:
                 if(str(param[0]) == "crs"):
                     crs = (param[1])
                 if(str(param[0]) == "format"):
-                    format = (param[1])             
+                    format = (param[1])   
+                    format = format.replace("'", "")
                 if(str(param[0]) == "url"):
                     url = (param[1]) 
                     url = url.replace("'", "")                   
