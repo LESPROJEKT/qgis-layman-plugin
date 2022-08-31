@@ -995,12 +995,16 @@ class Layman:
         self.dlg2.label_name.setText(layerName)
         self.dlg2.pushButton_save.clicked.connect(lambda: self.saveCompositionLayerChanges(layerName))
         self.dlg2.pushButton_close.clicked.connect(lambda: self.dlg2.close())
-        composition = self.instance.getComposition()        
+        composition = self.instance.getComposition()           
         for layer in composition['layers']:
             if layer['title'] == layerName:              
                 self.dlg2.checkBox_singleTile.setCheckState(2) if layer['singleTile'] == True else self.dlg2.checkBox_singleTile.setCheckState(0)
                 if "base" in layer:
                     self.dlg2.checkBox_baseLayer.setCheckState(2) if layer['base'] == True else self.dlg2.checkBox_singleTile.setCheckState(0)
+                if "greyscale" in layer:
+                    self.dlg2.checkBox_greyScale.setCheckState(2) if layer['greyscale'] == True else self.dlg2.checkBox_greyScale.setCheckState(0)
+                else:
+                    self.dlg2.checkBox_greyScale.setCheckState(0)
                 ##set attributes to labels
                 self.dlg2.label_opacity.setText(str(layer['opacity']))
                 self.dlg2.label_max.setText(str(layer['maxResolution']))
@@ -1009,7 +1013,14 @@ class Layman:
                 self.dlg2.label_path.setText(str(layer['path']))
                 ##
                 
-
+    def setGrayScaleForLayer(self, layer):       
+        if  isinstance(layer, QgsRasterLayer):
+            pipe = layer.pipe()
+            if self.dlg2.checkBox_greyScale.checkState() == 2:
+                pipe.hueSaturationFilter().setGrayscaleMode(1)
+            if self.dlg2.checkBox_greyScale.checkState() == 0:
+                pipe.hueSaturationFilter().setGrayscaleMode(0)
+            layer.triggerRepaint()
     def saveCompositionLayerChanges(self, name):
         composition = self.instance.getComposition()
         if self.dlg2.checkBox_singleTile.checkState() == 2:
@@ -1020,6 +1031,10 @@ class Layman:
             composition['layers'][self.instance.getLayerOrderByTitle(name)]['base'] = True
         else:
             composition['layers'][self.instance.getLayerOrderByTitle(name)]['base'] = False
+        if self.dlg2.checkBox_greyScale.checkState() == 2:
+            composition['layers'][self.instance.getLayerOrderByTitle(name)]['greyscale'] = True
+        else:
+            composition['layers'][self.instance.getLayerOrderByTitle(name)]['greyscale'] = False
         if self.patchMap2() == 200:
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Změny byly uloženy."), Qgis.Success, duration=3)
@@ -1030,6 +1045,7 @@ class Layman:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Změny nebyly uloženy."), Qgis.Warning, duration=5)
             else:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Changes was not saved."), Qgis.Warning, duration=5)
+        self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])
     def qfieldLogin(self):
         self.run_QfieldLoginDialog()
     def loginQfield(self):
@@ -4125,8 +4141,9 @@ class Layman:
             map = self.removeUnacceptableChars(str(map))
             url = self.URI+'/rest/'+workspace+'/maps/'+str(map).lower()+'/thumbnail'
             print("thubmnailURL" + url)
-
-            data = urlopen(url).read()
+            r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+            data = r.content
+            #data = urlopen(url).read()
             pixmap = QPixmap(200, 200)
             pixmap.loadFromData(data)
             smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
@@ -6782,6 +6799,10 @@ class Layman:
         else:
             minScale = None
         composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":False, "base": False,"wmsMaxScale":0,"legends":[""],"maxResolution":int(layer.maximumScale()) ,"minResolution":minScale,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+    def getGreyScaleMode(self, layer):
+        pipe  = layer.pipe()        
+        greyscale = False if pipe.hueSaturationFilter().grayscaleMode() == 0 else True
+        return greyscale
 
     def addExistingWMSLayerToCompositeThread2(self, title,nameInList):
         composition = self.instance.getComposition()
@@ -6789,6 +6810,7 @@ class Layman:
         name = self.removeUnacceptableChars(title).lower() 
         dimension = ""
         layer = QgsProject.instance().mapLayersByName(nameInList)[0]
+        greyScale = self.getGreyScaleMode(layer)
         if "&" in layer.dataProvider().dataSourceUri():
             params = layer.dataProvider().dataSourceUri().split("&")
         else:
@@ -6817,10 +6839,10 @@ class Layman:
             self.existLayer = False
             print(dimension)
             if dimension == "":
-                composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions":{},"singleTile":False, "base": False,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+                composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions":{},"singleTile":False, "greyscale": greyScale,  "base": False,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
             else:              
 
-                composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True, "base": False,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
+                composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
            
         else:           
             for p in params:
@@ -6829,7 +6851,7 @@ class Layman:
                 if(param[0] == "url"):
                     url = param[1]
             crs = layer.crs().authid()
-            composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"XYZ","singleTile":False, "base": False,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+            composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"XYZ","singleTile":False,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
 
             
 
@@ -7801,7 +7823,11 @@ class Layman:
                     format = data['layers'][x]['params']['FORMAT']
                     epsg = 'EPSG:4326'
                     minRes = data['layers'][x]['minResolution']
-                    maxRes = data['layers'][x]['maxResolution']                     
+                    maxRes = data['layers'][x]['maxResolution']    
+                    if "greyscale" in data['layers'][x]:
+                        greyscale = data['layers'][x]['greyscale']
+                    else:
+                        greyscale = False
 
                     try:
                         groupName = data['layers'][x]['path']
@@ -7829,7 +7855,7 @@ class Layman:
                         self.groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
                         self.groups.append([layerNameTitle, len(data['layers']) - i])                    
-                    self.threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes)).start())
+                    self.threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale)).start())
                    
 
 
@@ -7948,7 +7974,7 @@ class Layman:
         else:
             return layerString
 
-    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0):
+    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False):
                
         layerName = self.parseWMSlayers(layerName) 
         epsg = QgsProject.instance().crs().authid()
@@ -8012,7 +8038,10 @@ class Layman:
                 rand = random.randint(0,10000)
                 self.currentLayerDict[str(rand)] = rlayer
 
-                QgsMessageLog.logMessage("loadVector" + str(rand))        
+                QgsMessageLog.logMessage("loadVector" + str(rand))   
+            
+            if greyscale:
+                rlayer.pipe().hueSaturationFilter().setGrayscaleMode(1)
             return True
         else:
             rand = random.randint(0,10000)
