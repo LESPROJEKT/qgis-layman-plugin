@@ -6813,8 +6813,10 @@ class Layman:
         greyScale = self.getGreyScaleMode(layer)
         if "&" in layer.dataProvider().dataSourceUri():
             params = layer.dataProvider().dataSourceUri().split("&")
+            arc = False
         else:
             params = layer.dataProvider().dataSourceUri().split(" ") ## arcgis use whitespace
+            arc = True
         if not (self.isXYZ(layer.name())): 
             layers = list()
             for p in params:     
@@ -6839,10 +6841,10 @@ class Layman:
             self.existLayer = False
             print(dimension)
             if dimension == "":
-                composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions":{},"singleTile":False, "greyscale": greyScale,  "base": False,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+                composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS" if not arc else "ArcGISRest","dimensions":{},"singleTile":False, "greyscale": greyScale,  "base": False,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
             else:              
 
-                composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
+                composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS" if not arc else "ArcGISRest","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"legends":[""],"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
            
         else:           
             for p in params:
@@ -7858,7 +7860,12 @@ class Layman:
                     self.threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale)).start())
                    
 
-
+                if className == 'ArcGISRest':
+                   
+                    url = data['layers'][x]['url']
+                    layerNameTitle = data['layers'][x]['title']
+                    self.threads.append(threading.Thread(target=lambda: self.loadArcGisRest(url, layerNameTitle)).start())
+                    
                 if className == 'XYZ':                   
                     layerName = data['layers'][x]['title']
                     minRes = data['layers'][x]['minResolution']
@@ -7973,6 +7980,39 @@ class Layman:
             return res
         else:
             return layerString
+    def loadArcGisRest(self, url, layerName,  groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False):        
+        r = requests.get(url + "?f=json")
+        res = json.loads(r.content)
+        id = 0
+        for layer in res['layers']:
+            if layer['name'] == layerName:
+                id = layer['id']
+        rlayer = QgsRasterLayer("url="+url+" layer='"+str(id)+"'", layerName, "arcgismapserver")   
+        if (rlayer.isValid()):
+            if minRes != None and maxRes != None:
+                rlayer.setMinimumScale(minRes)
+                rlayer.setMaximumScale(maxRes)
+                rlayer.setScaleBasedVisibility(True)
+            if (groupName != '' or subgroupName != ''):            
+                self.addWmsToGroup(subgroupName,rlayer, "")
+                              
+            else:
+                self.params = []
+                self.params.append(visibility)              
+                rand = random.randint(0,10000)
+                self.currentLayerDict[str(rand)] = rlayer
+
+                QgsMessageLog.logMessage("loadVector" + str(rand))   
+            
+            if greyscale:
+                rlayer.pipe().hueSaturationFilter().setGrayscaleMode(1)
+            return True
+        else:
+            rand = random.randint(0,10000)
+            self.currentLayerDict[str(rand)] = rlayer
+            QgsMessageLog.logMessage("loadVector" + str(rand))         
+            return False
+        QgsProject.instance().addMapLayer(layer)
 
     def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False):
                
