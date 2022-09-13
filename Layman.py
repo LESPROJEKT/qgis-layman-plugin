@@ -6811,12 +6811,14 @@ class Layman:
         dimension = ""
         layer = QgsProject.instance().mapLayersByName(nameInList)[0]
         greyScale = self.getGreyScaleMode(layer)
+        arc = False
+        if layer.dataProvider().name() == "arcgismapserver":
+            arc = True
         if "&" in layer.dataProvider().dataSourceUri():
-            params = layer.dataProvider().dataSourceUri().split("&")
-            arc = False
+            params = layer.dataProvider().dataSourceUri().split("&")            
         else:
             params = layer.dataProvider().dataSourceUri().split(" ") ## arcgis use whitespace
-            arc = True
+            
         if not (self.isXYZ(layer.name())): 
             layers = list()
             for p in params:     
