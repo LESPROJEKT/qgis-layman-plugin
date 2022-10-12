@@ -450,6 +450,7 @@ class Layman:
         if self.current != None:
             self.instance.refreshComposition()
             composition = self.instance.getComposition()
+            print(composition)
 
             self.dlg.pushButton_editMeta.setEnabled(True)
             self.dlg.pushButton_new.setEnabled(True)
@@ -2157,8 +2158,11 @@ class Layman:
             if not server:
                 if i == len(servers) - 1: ## vyjimka pro alias na test server bude ostraneno
                     self.dlg.comboBox_server.addItem("test HUB")
-                else:
-                    self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
+                else:                 
+                    if len(servers[i]) == 6:
+                        self.dlg.comboBox_server.addItem(servers[i][5])  
+                    else:
+                       self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
             else:         
                 
                 if server == servers[i][1] and server != "http://157.230.109.174/client":
@@ -7040,7 +7044,9 @@ class Layman:
         files = {'file': (tempFile, open(tempFile, 'rb')),}       
         data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername,   'access_rights.write': self.laymanUsername}
 
-        response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))        
+        response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))     
+        print(response.content)
+        ## check unsupported crs
         if (response.status_code == 200):
             if self.locale == "cs":     
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " byla úspešně vytvořena."), Qgis.Success, duration=3)

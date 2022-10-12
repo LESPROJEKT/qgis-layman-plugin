@@ -1,12 +1,12 @@
-https://www.agrihub.cz,https://www.agrihub.cz,id-db181713-5e17-81fc-0c08-d72fa67e5fc,secret-f2eb1859-2e47-1ca4-32d6-a96c747a7259,a67e5fc
-https://hub.lesprojekt.cz,https://hub.lesprojekt.cz,id-8679cb4c-dc93-caff-0274-587fb723a14,secret-da27e84a-3186-a174-fe58-0f425dad7f1,b723a14
-https://www.smartafrihub.com,https://www.smartafrihub.com,id-8679cb4c-dc93-caff-0274-587fb723a14,secret-da27e84a-3186-a174-fe58-0f425dad7f1,h985e12
-https://hub.polirural.eu,https://hub.polirural.eu/client,id-9bff6e4c-b794-7462-3d49-e01e9a17ec43,secret-a271d025-fe55-85c7-5a6d-a76e9a6504e,t781x25
-https://hub.sieusoil.eu,https://hub.sieusoil.eu/client,id-8679cb4c-dc93-caff-0274-587fb723a14,secret-da27e84a-3186-a174-fe58-0f425dad7f1,c512b25
-https://hub.plan4all.eu,https://hub.plan4all.eu/client,id-8679cb4c-dc93-caff-0274-587fb723a14,secret-da27e84a-3186-a174-fe58-0f425dad7f1,g784h58
-https://www.agrihub.sk,https://www.agrihub.sk/client,id-db181713-5e17-81fc-0c08-d72fa67e5fc,secret-f2eb1859-2e47-1ca4-32d6-a96c747a7259,x6571sk
-https://watlas.lesprojekt.cz,https://watlas.lesprojekt.cz/client,QgIs,ALxZPpoKnwOOXbPUEMleNEVGiBlDSiltdtTUK66aWT65TWYoQMommHgX5K543yjBOn0Ac7wz9s59RDfjkqTvqnJ3FZ8ZMnK3tSQaSfteyZI3r5We5kd3z1EsksbuAxUM,7f22y3f
-https://atlas2.kraj-lbc.cz,https://atlas2.kraj-lbc.cz/client,QgIs,ALxZPpoKnwOOXbPUEMleNEVGiBlDSiltdtTUK66aWT65TWYoQMommHgX5K543yjBOn0Ac7wz9s59RDfjkqTvqnJ3FZ8ZMnK3tSQaSfteyZI3r5We5kd3z1EsksbuAxUM,7f22y3d
-https://hub4everybody.lesprojekt.cz,https://hub4everybody.lesprojekt.cz/client,QgIs,GiKAdcDuNXY8oIlsLmRLc9O0mgduCu8flTiz3w9jIhJz0SGHQVeZVGVMji1ww44AusI80mhrm6qVUuTd84XXdr7L6WsmB3hhhurdwgh0olAOajILLtQORHQWDvQdASyI,7f22y3e
-https://ng.smartafrihub.com,https://ng.smartafrihub.com/client,QgIs,iT9EzxOugbh6VNKXvlUYjyhS7mVaHA3z3Waggq1eDlmq7RRh76yyzAd1WoEx3FSMC0PDSttqUuHszAwPm3rti3lVuwcEsvCnJJIrHegT8bBTz6veVVqbJvMXOn8DuseU,7f22y3g
-https://www.agrihub.cz,http://157.230.109.174/client,id-db181713-5e17-81fc-0c08-d72fa67e5fc,secret-f2eb1859-2e47-1ca4-32d6-a96c747a7259,a67e5fd
+https://www.agrihub.cz,https://www.agrihub.cz,id-db181713-5e17-81fc-0c08-d72fa67e5fc,secret-f2eb1859-2e47-1ca4-32d6-a96c747a7259,a67e5fc,agrihub.cz
+https://hub.lesprojekt.cz,https://hub.lesprojekt.cz,id-8679cb4c-dc93-caff-0274-587fb723a14,secret-da27e84a-3186-a174-fe58-0f425dad7f1,b723a14,hub.lesprojekt
+https://www.smartafrihub.com,https://www.smartafrihub.com,id-8679cb4c-dc93-caff-0274-587fb723a14,secret-da27e84a-3186-a174-fe58-0f425dad7f1,h985e12,smartafrihub
+https://hub.polirural.eu,https://hub.polirural.eu/client,id-9bff6e4c-b794-7462-3d49-e01e9a17ec43,secret-a271d025-fe55-85c7-5a6d-a76e9a6504e,t781x25,polirural
+https://hub.sieusoil.eu,https://hub.sieusoil.eu/client,id-8679cb4c-dc93-caff-0274-587fb723a14,secret-da27e84a-3186-a174-fe58-0f425dad7f1,c512b25,sieusoil
+https://hub.plan4all.eu,https://hub.plan4all.eu/client,id-8679cb4c-dc93-caff-0274-587fb723a14,secret-da27e84a-3186-a174-fe58-0f425dad7f1,g784h58,plan4all
+https://www.agrihub.sk,https://www.agrihub.sk/client,id-db181713-5e17-81fc-0c08-d72fa67e5fc,secret-f2eb1859-2e47-1ca4-32d6-a96c747a7259,x6571sk,agrihub.sk
+https://watlas.lesprojekt.cz,https://watlas.lesprojekt.cz/client,QgIs,ALxZPpoKnwOOXbPUEMleNEVGiBlDSiltdtTUK66aWT65TWYoQMommHgX5K543yjBOn0Ac7wz9s59RDfjkqTvqnJ3FZ8ZMnK3tSQaSfteyZI3r5We5kd3z1EsksbuAxUM,7f22y3f,watlas
+https://atlas2.kraj-lbc.cz,https://atlas2.kraj-lbc.cz/client,QgIs,ALxZPpoKnwOOXbPUEMleNEVGiBlDSiltdtTUK66aWT65TWYoQMommHgX5K543yjBOn0Ac7wz9s59RDfjkqTvqnJ3FZ8ZMnK3tSQaSfteyZI3r5We5kd3z1EsksbuAxUM,7f22y3d,atlas2.kraj-lbc
+https://hub4everybody.lesprojekt.cz,https://hub4everybody.lesprojekt.cz/client,QgIs,GiKAdcDuNXY8oIlsLmRLc9O0mgduCu8flTiz3w9jIhJz0SGHQVeZVGVMji1ww44AusI80mhrm6qVUuTd84XXdr7L6WsmB3hhhurdwgh0olAOajILLtQORHQWDvQdASyI,7f22y3e,hub4everybody
+https://ng.smartafrihub.com,https://ng.smartafrihub.com/client,QgIs,iT9EzxOugbh6VNKXvlUYjyhS7mVaHA3z3Waggq1eDlmq7RRh76yyzAd1WoEx3FSMC0PDSttqUuHszAwPm3rti3lVuwcEsvCnJJIrHegT8bBTz6veVVqbJvMXOn8DuseU,7f22y3g,ng.smartafrihub
+https://www.agrihub.cz,http://157.230.109.174/client,id-db181713-5e17-81fc-0c08-d72fa67e5fc,secret-f2eb1859-2e47-1ca4-32d6-a96c747a7259,a67e5fd,test HUB
