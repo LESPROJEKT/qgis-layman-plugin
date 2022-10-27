@@ -7684,8 +7684,13 @@ class Layman:
                         self.groupsSet.add(groupName)
                         self.groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
-                        self.groups.append([layerNameTitle, len(data['layers']) - i])                    
-                    self.threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale)).start())
+                        self.groups.append([layerNameTitle, len(data['layers']) - i]) 
+                    legends = "0"                        
+                    if "legends" in data['layers'][x]:
+                        legends = "1"
+                    print(legends)
+                    
+                    self.threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)).start())
                    
 
                 if className == 'ArcGISRest':
@@ -7838,13 +7843,13 @@ class Layman:
             return False
         QgsProject.instance().addMapLayer(layer)
 
-    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False):
+    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False, legend="0"):
                
         layerName = self.parseWMSlayers(layerName) 
         epsg = QgsProject.instance().crs().authid()
 
         url = url.replace("%2F", "/").replace("%3A",":")
-        urlWithParams = 'contextualWMSLegend=0&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url
+        urlWithParams = 'contextualWMSLegend='+legend+'&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url
             
         quri = QgsDataSourceUri()
         try:
@@ -7873,7 +7878,7 @@ class Layman:
         if (self.isAuthorized):
             if not everyone:
                 quri.setParam("authcfg", self.authCfg)   # <---- here my authCfg url parameter
-        quri.setParam("contextualWMSLegend", '0')
+        quri.setParam("contextualWMSLegend", legend)
         quri.setParam("url", url)        
         rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
        
