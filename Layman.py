@@ -6663,6 +6663,35 @@ class Layman:
         pipe  = layer.pipe()        
         greyscale = False if pipe.hueSaturationFilter().grayscaleMode() == 0 else True
         return greyscale
+    def getLegendUrlFromCapatibilites(self, layer):
+        for item in layer.dataProvider().uri().uri().split("&"):
+            if "contextualWMSLegend=" in item:
+                val = item.replace("contextualWMSLegend=","").replace("'","").replace(" ","")
+                #print(val)
+            if "url=" in item:
+                url = item.replace("url=","").replace("'","")
+                #print(url)
+            if "layers=" in item:
+                layer = item.replace("layers=","").replace("'","")
+                #print(url)    
+      
+        r = requests.get(url+"service=wms&version=1.1.1&request=GetCapabilities")        
+
+
+        tree = ET.ElementTree(ET.fromstring(r.content))
+        root = tree.getroot()
+        i = 0
+        for name in  root.findall("./Capability/Layer/Layer/Name"):      
+            name = name.text   
+            if name == layer:
+                break
+            i = i + 1
+        link = root.findall("./Capability/Layer/Layer/Style/LegendURL/OnlineResource")
+        for key in link[i].attrib:
+            if "href" in key:
+                link = link[i].attrib[key].replace("service=wms","")
+                
+                return [val, link]
 
     def addExistingWMSLayerToCompositeThread2(self, title,nameInList):
         composition = self.instance.getComposition()
@@ -6670,6 +6699,11 @@ class Layman:
         name = self.removeUnacceptableChars(title).lower() 
         dimension = ""
         layer = QgsProject.instance().mapLayersByName(nameInList)[0]
+        legend = list()
+        #try:
+        legend = self.getLegendUrlFromCapatibilites(layer)
+        #except:
+        #    legend.append("0")
         greyScale = self.getGreyScaleMode(layer)
         arc = False
         if layer.dataProvider().name() == "arcgismapserver":
@@ -6716,7 +6750,11 @@ class Layman:
                     url = param[1]
             crs = layer.crs().authid()
             composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"XYZ","singleTile":False,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
-
+        print("legend set to:")
+        print(legend[0])
+        
+        if legend[0] == "1":
+            composition["legends"] = [legend[1]]
             
 
             
