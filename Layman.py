@@ -6664,6 +6664,7 @@ class Layman:
         greyscale = False if pipe.hueSaturationFilter().grayscaleMode() == 0 else True
         return greyscale
     def getLegendUrlFromCapatibilites(self, layer):
+        layers = list()
         for item in layer.dataProvider().uri().uri().split("&"):
             if "contextualWMSLegend=" in item:
                 val = item.replace("contextualWMSLegend=","").replace("'","").replace(" ","")
@@ -6673,6 +6674,7 @@ class Layman:
                 #print(url)
             if "layers=" in item:
                 layer = item.replace("layers=","").replace("'","")
+                layers.append(layer)
                 #print(url)    
       
         r = requests.get(url+"service=wms&version=1.1.1&request=GetCapabilities")        
@@ -6680,18 +6682,20 @@ class Layman:
 
         tree = ET.ElementTree(ET.fromstring(r.content))
         root = tree.getroot()
-        i = 0
-        for name in  root.findall("./Capability/Layer/Layer/Name"):      
-            name = name.text   
-            if name == layer:
-                break
-            i = i + 1
-        link = root.findall("./Capability/Layer/Layer/Style/LegendURL/OnlineResource")
-        for key in link[i].attrib:
-            if "href" in key:
-                link = link[i].attrib[key].replace("service=wms","")
-                
-                return [val, link]
+        ret = list()
+        for layer in layers:
+            i = 0
+            for name in  root.findall("./Capability/Layer/Layer/Name"):      
+                name = name.text   
+                if name == layer:
+                    break
+                i = i + 1
+            link = root.findall("./Capability/Layer/Layer/Style/LegendURL/OnlineResource")
+            for key in link[i].attrib:
+                if "href" in key:
+                    link = link[i].attrib[key].replace("service=wms","")
+                    ret.append(link)
+        return [val, ret]
 
     def addExistingWMSLayerToCompositeThread2(self, title,nameInList):
         composition = self.instance.getComposition()
@@ -6754,7 +6758,7 @@ class Layman:
         print(legend[0])
         
         if legend[0] == "1":
-            composition["legends"] = [legend[1]]
+            composition["legends"] = legend[1]
             
 
             
