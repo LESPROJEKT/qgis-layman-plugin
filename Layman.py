@@ -6677,7 +6677,7 @@ class Layman:
                 layers.append(layer)
                 #print(url)    
       
-        r = requests.get(url+"service=wms&version=1.1.1&request=GetCapabilities")        
+        r = requests.get(url+"?service=wms&version=1.1.1&request=GetCapabilities")        
 
 
         tree = ET.ElementTree(ET.fromstring(r.content))
@@ -6704,10 +6704,11 @@ class Layman:
         dimension = ""
         layer = QgsProject.instance().mapLayersByName(nameInList)[0]
         legend = list()
-        #try:
-        legend = self.getLegendUrlFromCapatibilites(layer)
-        #except:
-        #    legend.append("0")
+        try:
+            legend = self.getLegendUrlFromCapatibilites(layer)
+        except:
+            print("legend failed")
+            legend.append("0")
         greyScale = self.getGreyScaleMode(layer)
         arc = False
         if layer.dataProvider().name() == "arcgismapserver":
