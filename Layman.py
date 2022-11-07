@@ -2918,17 +2918,23 @@ class Layman:
         itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
         itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
         userNamesRead = list()       
-        
+        print(userDict)       
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":
+            
                 userNamesRead.append("EVERYONE")          
             else:
+                print(pom)
+                if "," in pom:
+                    pom = pom.split(", ")[1]
                 userNamesRead.append(userDict[pom])
         userNamesWrite = list()      
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
             else:
+                if "," in pom:
+                    pom = pom.split(", ")[1]
                 userNamesWrite.append(userDict[pom])
         data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}     
         
@@ -8606,7 +8612,8 @@ class Layman:
         userEndpoint = self.URI+ "/rest/current-user"
         r = requests.get(url = userEndpoint, headers = self.getAuthHeader(self.authCfg))
         res = self.fromByteToJson(r.content)        
-        return res['claims']['name']
+        #return res['claims']['name']
+        return res['username']
     def connectionLost(self):
         print("connection lost")
         self.disableEnvironment()   
