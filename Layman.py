@@ -1026,6 +1026,8 @@ class Layman:
             else:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Changes was not saved."), Qgis.Warning, duration=5)
         self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])
+    def rememberLastServer(self, server):
+        self.settings.setValue("laymanLastServer", server)
     def qfieldLogin(self):
         self.run_QfieldLoginDialog()
     def loginQfield(self):
@@ -2212,7 +2214,8 @@ class Layman:
 
         self.dlg.lineEdit_userName.textChanged.connect(self.checkUsername)
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-
+        if QgsSettings().value("laymanLastServer") != None:
+            self.dlg.comboBox_server.setCurrentIndex(int(QgsSettings().value("laymanLastServer")))
         if not server:
             self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2())
         self.dlg.pushButton_Continue.clicked.connect(lambda: self.getToken())
@@ -8631,6 +8634,7 @@ class Layman:
         self.compositeList = []
         self.compositeListOld = []
     def openAuthLiferayUrl2(self, load=""):
+        self.rememberLastServer(self.dlg.comboBox_server.currentIndex())
         self.dlg.pushButton_Connect.setEnabled(False)
         self.isAuthorized = True
         authcfg_id = self.authCfg     
