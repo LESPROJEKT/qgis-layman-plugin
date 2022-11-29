@@ -123,6 +123,8 @@ from PyQt5.QtCore import pyqtSignal, QObject
 class Layman(QObject):
     """QGIS Plugin Implementation."""
     reprojectionFailed = pyqtSignal(str)
+    exportLayerFailed = pyqtSignal(str)
+    exportLayerSuccessful = pyqtSignal(str)
 
 
 
@@ -323,6 +325,8 @@ class Layman(QObject):
 
     def connectEvents(self): 
         self.reprojectionFailed.connect(self._onReprojectionFailed)
+        self.exportLayerSuccessful.connect(self._onExportLayerSuccessful)
+        self.exportLayerFailed.connect(self._onExportLayerFailed)
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -4641,50 +4645,50 @@ class Layman(QObject):
                     self.dlg.progressBar.hide()
             except:
                 pass
-        if message[0:8] == "imports_":
-            try:
-                self.progressColor(message[8:100], True)
-            except:
-                pass
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" byla úspěšně nahrána "), Qgis.Success, duration=3)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was successfully exported"), Qgis.Success, duration=3)
-            done = 0
+        #if message[0:8] == "imports_":
+        #    try:
+        #        self.progressColor(message[8:100], True)
+        #    except:
+        #        pass
+        #    if self.locale == "cs":
+        #        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" byla úspěšně nahrána "), Qgis.Success, duration=3)
+        #    else:
+        #        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was successfully exported"), Qgis.Success, duration=3)
+        #    done = 0
 
-            for i in range (0, len(self.processingList)):
-                if self.processingList[i][2] == 1:
-                    self.processingList[i][2] = 2
+        #    for i in range (0, len(self.processingList)):
+        #        if self.processingList[i][2] == 1:
+        #            self.processingList[i][2] = 2
                    
-                    done = done + 1
-            try:
-                if self.locale == "cs":
-                    self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
-                else:
-                    self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
-            except:
-                pass
-            try:
-                if self.uploaded == self.batchLength:
-                    self.dlg.progressBar.hide()
-            except:
-                pass
-        if message[0:8] == "importn_":
-            try:
-                self.progressColor(message[8:100], False)
-            except:
-                pass
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla nahrána "), Qgis.Warning)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not exported successfully"), Qgis.Warning)
-            done = 0
+        #            done = done + 1
+        #    try:
+        #        if self.locale == "cs":
+        #            self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+        #        else:
+        #            self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+        #    except:
+        #        pass
+        #    try:
+        #        if self.uploaded == self.batchLength:
+        #            self.dlg.progressBar.hide()
+        #    except:
+        #        pass
+        #if message[0:8] == "importn_":
+        #    try:
+        #        self.progressColor(message[8:100], False)
+        #    except:
+        #        pass
+        #    if self.locale == "cs":
+        #        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla nahrána "), Qgis.Warning)
+        #    else:
+        #        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not exported successfully"), Qgis.Warning)
+        #    done = 0
 
-            for i in range (0, len(self.processingList)):
-                if self.processingList[i][2] == 1:
+        #    for i in range (0, len(self.processingList)):
+        #        if self.processingList[i][2] == 1:
 
-                    self.processingList[i][2] = 2                
-                    done = done + 1
+        #            self.processingList[i][2] = 2                
+        #            done = done + 1
      
         if message == "wrongName":
             if self.locale == "cs":
@@ -4817,6 +4821,49 @@ class Layman(QObject):
                 self.processingList[i][2] = 2                
                 done = done + 1
         self.dlg.progressBar.hide()
+    def _onExportLayerSuccessful(self, layerName):
+        try:
+            self.progressColor(layerName, True)
+        except:
+            pass
+        if self.locale == "cs":
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+layerName+" byla úspěšně nahrána "), Qgis.Success, duration=3)
+        else:
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+layerName+" was successfully exported"), Qgis.Success, duration=3)
+        done = 0
+
+        for i in range (0, len(self.processingList)):
+            if self.processingList[i][2] == 1:
+                self.processingList[i][2] = 2
+               
+                done = done + 1
+        try:
+            if self.locale == "cs":
+                self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+            else:
+                self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+        except:
+            pass
+        try:
+            if self.uploaded == self.batchLength:
+                self.dlg.progressBar.hide()
+        except:
+            pass
+    def _onExportLayerFailed(self, layerName):
+        try:
+            self.progressColor(layerName, False)
+        except:
+            pass
+        if self.locale == "cs":
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+layerName+" nebyla nahrána "), Qgis.Warning)
+        else:
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+layerName+" was not exported successfully"), Qgis.Warning)
+        done = 0
+
+        for i in range (0, len(self.processingList)):
+            if self.processingList[i][2] == 1:
+                self.processingList[i][2] = 2                
+                done = done + 1
     def loadAllCompositesT(self):
         self.compositeList = list()
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'
@@ -5204,34 +5251,35 @@ class Layman(QObject):
                     layers.append(lay)
 
         return layers
-    def run_getLayer(self):
-        self.recalculateDPI()
-        """Run method that performs all the real work"""
+    #to remove
+    #def run_getLayer(self):
+    #    self.recalculateDPI()
+    #    """Run method that performs all the real work"""
 
-        # Create the dialog with elements (after translation) and keep reference
-        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start == True:
-            self.first_start = False
+    #    # Create the dialog with elements (after translation) and keep reference
+    #    # Only create GUI ONCE in callback, so that it will only load when the plugin is started
+    #    if self.first_start == True:
+    #        self.first_start = False
 
 
-        self.dlgGetLayers.items.clear()
-        # show the dialog
-        self.dlgGetLayers.show()
-        data= self.getExistingLayers()
-        for x in range(len(data)):
+    #    self.dlgGetLayers.items.clear()
+    #    # show the dialog
+    #    self.dlgGetLayers.show()
+    #    data= self.getExistingLayers()
+    #    for x in range(len(data)):
            
-            self.dlgGetLayers.items.addItem(data[x]['name'])
-        # Run the dialog event loop
+    #        self.dlgGetLayers.items.addItem(data[x]['name'])
+    #    # Run the dialog event loop
 
-        result = self.dlgGetLayers.exec_()
+    #    result = self.dlgGetLayers.exec_()
 
 
-        # See if OK was pressed
-        if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
+    #    # See if OK was pressed
+    #    if result:
+    #        # Do something useful here - delete the line containing pass and
+    #        # substitute with your code.
 
-            print ("test tlacitka")
+    #        print ("test tlacitka")
 
     def onClosePlugin(self):
         """Cleanup necessary items here when plugin dockwidget is closed"""
@@ -5951,10 +5999,12 @@ class Layman(QObject):
                     self.uploaded = self.uploaded + 1
                 except:
                     pass
-                QgsMessageLog.logMessage("imports_"+layer_name)
+                #QgsMessageLog.logMessage("imports_"+layer_name)
+                self.exportLayerSuccessful.emit(layer_name)
 
             else:
-                QgsMessageLog.logMessage("importn_"+layer_name)
+                #QgsMessageLog.logMessage("importn_"+layer_name)
+                self.exportLayerFailed.emit(layer_name)
            ## self.writeState(1)
             QgsMessageLog.logMessage("exportPatch")
             try:
@@ -6227,12 +6277,14 @@ class Layman(QObject):
                     self.uploaded = self.uploaded + 1
                 except:
                     pass
-                QgsMessageLog.logMessage("imports_"+layer_name)
+                #QgsMessageLog.logMessage("imports_"+layer_name)
+                self.exportLayerSuccessful.emit(layer_name)
             elif (response.status_code == 413):
                 QgsMessageLog.logMessage("importl_"+layer_name)
             else:
 
-                QgsMessageLog.logMessage("importn_"+layer_name)
+                #QgsMessageLog.logMessage("importn_"+layer_name)
+                self.exportLayerFailed.emit(layer_name)
             self.importedLayer = layer_name
             self.processingList[q][2] = 1
             #self.writeState(1)
