@@ -119,10 +119,10 @@ from qgis.PyQt.QtNetwork import (
 
 from Layman.qfield.cloud_converter import CloudConverter
 
-
-class Layman:
+from PyQt5.QtCore import pyqtSignal, QObject
+class Layman(QObject):
     """QGIS Plugin Implementation."""
-
+    reprojectionFailed = pyqtSignal(str)
 
 
 
@@ -137,6 +137,7 @@ class Layman:
         :type iface: QgsInterface
         """
         # Save reference to the QGIS interface
+        super(Layman, self).__init__()
         self.iface = iface
 
         # initialize plugin directory
@@ -320,7 +321,8 @@ class Layman:
 
         return action
 
-
+    def connectEvents(self): 
+        self.reprojectionFailed.connect(self._onReprojectionFailed)
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -342,7 +344,7 @@ class Layman:
         self.txtAction.setToolTip(self.tr(u'Current Row Number'))
         # Set callback
         self.textbox.setText("Layman")
-
+        self.connectEvents()
         ################ end usericon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'login.png'
         icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_1.svg'
         self.menu_Connection = self.add_action(
@@ -4803,6 +4805,18 @@ class Layman:
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
             self.compositeList.append (map)
         self.loadedInMemory = True
+    def _onReprojectionFailed(self, layerName):        
+        if self.locale == "cs":
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+layerName+" má nastavenou špatnou projekci!"), Qgis.Warning)
+        else:
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+layerName+" has wrong projection!"), Qgis.Warning)
+        done = 0
+        
+        for i in range (0, len(self.processingList)):
+            if self.processingList[i][2] == 1:        
+                self.processingList[i][2] = 2                
+                done = done + 1
+        self.dlg.progressBar.hide()
     def loadAllCompositesT(self):
         self.compositeList = list()
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'
@@ -5575,7 +5589,11 @@ class Layman:
                 print("The file does not exist")
             epsg = layer.crs().authid()
             parameter = {'INPUT': layer, 'TARGET_CRS': epsg, 'OUTPUT': layer_filename}
-            print(processing.run('qgis:reprojectlayer', parameter))
+            try:
+                processing.run('qgis:reprojectlayer', parameter)
+            except:
+                print("wrong reprojection")
+                return False
             ## transforma test
           
 
@@ -5594,6 +5612,7 @@ class Layman:
             self.insertPictureToQML(layer)
             layer.saveNamedStyle(qml_filename)
             self.insertBinaryToQml(layer, qml_filename)
+            return True
     def json_exportMix(self, layer):
 
         filePath = self.getTempPath(self.removeUnacceptableChars(layer.name() + str(layer.geometryType())).lower())
@@ -5872,8 +5891,10 @@ class Layman:
     def checkFileSizeLimit(self, size):
         if size > 2000000000:
             QgsMessageLog.logMessage("limitSize")
-    def patchThread2(self, layer_name, data, id):
-        self.json_export(layer_name, id)
+    def patchThread2(self, layer_name, data, id):    
+        if not (self.json_export(layer_name, id)):
+            self.reprojectionFailed.emit(layer_name)
+            return
 
         #try:
         geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
@@ -5894,7 +5915,10 @@ class Layman:
             self.mergeGeojsons(paths, self.getTempPath(self.removeUnacceptableChars(layer.name())),self.removeUnacceptableChars(layer.name()))
 
         else:
-            self.json_export(layer_name)    
+            if not (self.json_export(layer_name)):
+                self.reprojectionFailed.emit(layer_name)
+                return
+            
 
         geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
   
@@ -6167,7 +6191,9 @@ class Layman:
             self.mergeGeojsons(paths, self.getTempPath(self.removeUnacceptableChars(layer.name()))),self.removeUnacceptableChars(layer.name())
 
         else:
-            self.json_export(layer_name)       
+            if not (self.json_export(layer_name)):
+                self.reprojectionFailed.emit(layer_name)
+                return      
         geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
         if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0"):
             stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
@@ -7424,16 +7450,17 @@ class Layman:
             tempFile = tempfile.gettempdir() + os.sep + name +'.geojson'
 
             return tempFile
-    def sendLayer(self):
-        layer = self.getActiveLayer()
-        if (layer == None):
-            if self.locale == "cs":
-                QMessageBox.information(None, "Message", "Neexistuje žádná vrstva k uložení")
-            else:
-                QMessageBox.information(None, "Message", "No layer to save!")
-        else:
-            self.json_export()
-            self.postRequest()
+    ## to remove
+    #def sendLayer(self):
+    #    layer = self.getActiveLayer()
+    #    if (layer == None):
+    #        if self.locale == "cs":
+    #            QMessageBox.information(None, "Message", "Neexistuje žádná vrstva k uložení")
+    #        else:
+    #            QMessageBox.information(None, "Message", "No layer to save!")
+    #    else:
+    #        self.json_export()
+    #        self.postRequest()
     def getExistingLayers(self):
         url = self.URI+'/rest/'+self.laymanUsername+"/layers"
         r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
