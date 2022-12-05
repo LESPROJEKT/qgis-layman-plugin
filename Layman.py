@@ -1672,7 +1672,7 @@ class Layman(QObject):
         else:
             self.dlg.listWidget_read.addItem(self.name)
             self.dlg.listWidget_write.addItem(self.name)
-            self.dlg.listWidget_read.addItem(usersDict['EVERYONE'])
+            #self.dlg.listWidget_read.addItem(usersDict['EVERYONE'])
         self.dlg.pushButton_save.clicked.connect(lambda:  self.dlg.progressBar_loader.show())     
         self.dlg.pushButton_save.clicked.connect(lambda: self.askForMapPermissionChanges(layerName, usersDict, "layers"))
         self.dlg.pushButton_addRead.clicked.connect(lambda:  self.checkAddedItemDuplicity("read"))
@@ -8647,7 +8647,7 @@ class Layman(QObject):
                 print("username is: " + self.laymanUsername )
                 self.textbox.setOpenExternalLinks(True)
                 url = self.liferayServer.replace('https:\\','').replace('.cz','').replace('http:\\','').replace('www.','').replace('.com','')
-                self.textbox.setText('<a href="'+self.liferayServer+"/home"'">' + url + '</a>')
+                self.textbox.setText('<a href="'+self.liferayServer+'">' + url + '</a>')
            if res['code'] == 32:
                 self.disableEnvironment()
                 if self.locale == "cs":
@@ -8664,7 +8664,7 @@ class Layman(QObject):
                 print("creating new user: " + res['username'])
                 self.laymanUsername =  res['username']
                 url = self.liferayServer.replace('https:\\','')
-                self.textbox.setText('<a href="'+self.liferayServer+"/home"'">' + url + '</a>')
+                self.textbox.setText('<a href="'+self.liferayServer+'">' + url + '</a>')
                 ##self.textbox.setText("Connected to: " + self.liferayServer.replace("https:\\","").replace(".cz","").replace("http:\\","").replace("www.","").replace(".com",""))
             except:
                 print("Komunikace s Liferay nefunguje")
