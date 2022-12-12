@@ -125,6 +125,8 @@ class Layman(QObject):
     reprojectionFailed = pyqtSignal(str)
     exportLayerFailed = pyqtSignal(str)
     exportLayerSuccessful = pyqtSignal(str)
+    loadComposition = pyqtSignal(str,str,str)
+    afterLoadedComposition = pyqtSignal()
 
 
 
@@ -327,6 +329,8 @@ class Layman(QObject):
         self.reprojectionFailed.connect(self._onReprojectionFailed)
         self.exportLayerSuccessful.connect(self._onExportLayerSuccessful)
         self.exportLayerFailed.connect(self._onExportLayerFailed)
+        self.loadComposition.connect(self.readMapJson2)
+        self.afterLoadedComposition.connect(self.afterCompositionLoaded)
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -1585,7 +1589,7 @@ class Layman(QObject):
         for i in range (0, userCount):           
             usersDict[res[i]['name'] if res[i]['name'] !="" else res[i]['username']] = res[i]['username']
             usersDictReversed[res[i]['username']] = res[i]['name'] if res[i]['name'] !="" else res[i]['username']
-            self.dlg.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username']  + ' , ' + res[i]['username'])
+            self.dlg.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username'])
         ##nabit listView
         mapName = self.removeUnacceptableChars(mapName)
         uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName
@@ -1653,7 +1657,8 @@ class Layman(QObject):
             usersDict[res[i]['name'] if res[i]['name'] !="" else res[i]['username']] = res[i]['username']
             usersDictReversed[res[i]['username']] = res[i]['name'] if res[i]['name'] !="" else res[i]['username']
             if (res[i]['name'] != self.laymanUsername):
-                self.dlg.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username']  + ' , ' + res[i]['username'])
+                #self.dlg.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username']  + ' , ' + res[i]['username'])
+                self.dlg.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username'])
        
         if (len(layerName) == 1):          
             layerName[0] = self.layerNamesDict[layerName[0]]
@@ -4362,8 +4367,8 @@ class Layman(QObject):
                 QgsProject.instance().crsChanged.disconnect()
             except:
                 print("signal crsChanged was not connected")
-        if message == "readmapjson":            
-            self.readMapJson2(self.params[0],self.params[1],self.params[2])
+        # if message == "readmapjson":            
+        #     self.readMapJson2(self.params[0],self.params[1],self.params[2])
          
         if message =="showThumbnailMap2":
             try:
@@ -4909,12 +4914,12 @@ class Layman(QObject):
                 self.crsChangedConnect = True
       
         self.dlg.pushButton_map.setEnabled(False)         
-        self.params = list()
-        self.params.append(name)
-        self.params.append(service)
-        self.params.append(workspace)
-
-        QgsMessageLog.logMessage("readmapjson")
+        # self.params = list()
+        # self.params.append(name)
+        # self.params.append(service)
+        # self.params.append(workspace)
+        self.loadComposition.emit(name, service, workspace)
+       # QgsMessageLog.logMessage("readmapjson")
     def readMapJson2(self,name, service, workspace=""):    
         self.unloadedLayers = list()
         self.processingRequest = True   
@@ -7904,8 +7909,8 @@ class Layman(QObject):
             threadsB = set()
             for thread in threading.enumerate():
                 threadsB.add(thread.name)
-
-        QgsMessageLog.logMessage("afterCompositionLoaded")
+        self.afterLoadedComposition.emit()
+        #QgsMessageLog.logMessage("F")
 
         QgsMessageLog.logMessage("reorderGroups")
 
