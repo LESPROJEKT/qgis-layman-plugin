@@ -484,6 +484,7 @@ class Layman(QObject):
             #for i in range (0, len(self.compositeList[x]['layers'])):
             
             try:
+                print(composition)
                 len(composition['layers'])
             except:
                 self.logout()
@@ -4127,12 +4128,12 @@ class Layman(QObject):
         return None
     def checkForSpecialChars(self, s):
         special_characters = "!@#$%^&*()+?=,<>/"
-        numbers = "0123456789"
-        try:
-            if s[0] in numbers:
-                return True
-        except:
-            pass
+        #numbers = "0123456789"
+        #try:
+        #    if s[0] in numbers:
+        #        return True
+        #except:
+        #    pass
         if any(c in special_characters for c in s):
             return True
         else:
@@ -7412,12 +7413,12 @@ class Layman(QObject):
         return layer
 
     def createComposite(self, name, title, setCurrent = False):      
-        if title[0] in ["0","1","2","3","4","5","6","7","8","9"]:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Message", "Není povoleno číslo v prvník znaku titulku!")
-            else:
-                QMessageBox.information(None, "Message", "Number in first character of title is not allowed!")
-            return
+        #if title[0] in ["0","1","2","3","4","5","6","7","8","9"]:
+        #    if self.locale == "cs":
+        #        QMessageBox.information(None, "Message", "Není povoleno číslo v prvník znaku titulku!")
+        #    else:
+        #        QMessageBox.information(None, "Message", "Number in first character of title is not allowed!")
+        #    return
         if (title == ""):
             if self.locale == "cs":
                 QMessageBox.information(None, "Message", "Není vyplněn titulek!")
@@ -7425,8 +7426,9 @@ class Layman(QObject):
                 QMessageBox.information(None, "Message", "Title is not filled!")
         else:
             name = self.removeUnacceptableChars(title)
+            
             data = self.getEmptyComposite(name,title)
-
+            print(name)
             self.compositeList.append(data)
             x = len(self.compositeList) - 1
             self.importCleanComposite(x)
@@ -7434,7 +7436,7 @@ class Layman(QObject):
                 self.refreshCompositeList(True)
             except:
                 print("err")
-            if setCurrent:
+            if setCurrent:                
                 self.current = name
                 self.selectedWorkspace = self.laymanUsername
                 url = self.URI+'/rest/'+self.selectedWorkspace+'/maps/'+name+'/file'                
@@ -7562,6 +7564,8 @@ class Layman(QObject):
             return False
 
     def removeUnacceptableChars(self, input):
+        if input[0] == " ":
+            input = input[1:]
         input = input.lower()
         input = input.replace("ř","r")
         input = input.replace("š","s")
