@@ -5745,36 +5745,45 @@ class Layman(QObject):
                             with open(path, "rb") as image_file:
                                 encoded_string = base64.b64encode(image_file.read())                             
                             path2 = i.symbol().symbolLayer(0).path()
+                            pathRelative = path2.split("svg/")[1]
                             decoded =   encoded_string.decode("utf-8")
                             path3 = ("base64:"  + decoded) 
 
-                            
+                            print(path3)
                             with open(stylePath, 'r') as file :
                                 filedata = file.read()
 
                             filedata = filedata.replace(path2, path3)
+                            #print(pathRelative)
+                            filedata = filedata.replace(pathRelative, path3)
+                            #print(filedata)
+                            
 
                             with open(stylePath, 'w') as file:
                                 file.write(filedata)
+                            
                 j = 0
                 pom = True
 
                 while pom:                   
-                    if isinstance(i.symbol().symbolLayer(j), QgsMarkerLineSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
-
+                    if isinstance(i.symbol().symbolLayer(j), QgsMarkerLineSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):# or isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer):
+                        #if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer):
+                        #    path = (i.symbol().symbolLayer(0).path()) 
+                        #else:
                         path = (i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path())                 
                         if path[:4] != "base":
                             if os.path.exists(path):
                                 with open(path, "rb") as image_file:
                                     encoded_string = base64.b64encode(image_file.read())                                
-                                path = i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path()
+                                #path = i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path()
                                 decoded =   encoded_string.decode("utf-8")
-                                path2 = ("base64:"  + decoded)                              
-                                with open(stylePath, 'r') as file :
+                                path2 = ("base64:"  + decoded)    
+                                pathRelative = path2.split("svg/")[1]
+                                with open(stylePath, 'r') as file:
                                     filedata = file.read()
 
                                 filedata = filedata.replace(path, path2)
-
+                                filedata = filedata.replace(pathRelative, path3)
                                 with open(stylePath, 'w') as file:
                                     file.write(filedata)
                     j = j +1
@@ -7412,13 +7421,13 @@ class Layman(QObject):
         layer = self.iface.activeLayer()
         return layer
 
-    def createComposite(self, name, title, setCurrent = False):      
-        #if title[0] in ["0","1","2","3","4","5","6","7","8","9"]:
-        #    if self.locale == "cs":
-        #        QMessageBox.information(None, "Message", "Není povoleno číslo v prvník znaku titulku!")
-        #    else:
-        #        QMessageBox.information(None, "Message", "Number in first character of title is not allowed!")
-        #    return
+    def createComposite(self, name, title, setCurrent = False):         
+        if QgsProject.instance().crs().authid() not in ("EPSG:3857", "EPSG:4326",  "EPSG:5514",  "EPSG:32633",  "EPSG:32634",  "EPSG:3034",  "EPSG:3035",  "EPSG:3059"):
+            if self.locale == "cs":
+                QMessageBox.information(None, "Message", "Není nastaveno podporované EPSG projektu.")
+            else:
+                QMessageBox.information(None, "Message", "Project EPSG is not supported.")
+            return
         if (title == ""):
             if self.locale == "cs":
                 QMessageBox.information(None, "Message", "Není vyplněn titulek!")
