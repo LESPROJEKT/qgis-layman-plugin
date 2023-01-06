@@ -4826,7 +4826,10 @@ class Layman(QObject):
             if self.processingList[i][2] == 1:        
                 self.processingList[i][2] = 2                
                 done = done + 1
-        self.dlg.progressBar.hide()
+        try:
+            self.dlg.progressBar.hide()
+        except:
+            print("current dialog")
     def _onExportLayerSuccessful(self, layerName):
         try:
             self.progressColor(layerName, True)
