@@ -207,6 +207,7 @@ class Layman(QObject):
         self.mickaRet = None
         self.crsOld = 'EPSG:4326'
         self.mixedLayers = list()
+        self.supportedEpsg = ["EPSG:3857", "EPSG:4326",  "EPSG:5514",  "EPSG:32633",  "EPSG:32634",  "EPSG:3034",  "EPSG:3035",  "EPSG:3059"]
         self.qLogged = False
         self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
         self.schemaVersion = "2.0.0"
@@ -3996,7 +3997,8 @@ class Layman(QObject):
             layer = it.text(0) ##pro QTreeWidget
             workspace = it.text(1)
         except:
-            layer = it.text()##pro listWidget
+            print("different form")
+            #layer = it.text()##pro listWidget
         try:
             layer = self.layerNamesDict[layer]        
             url = self.URI+'/rest/' +workspace+'/layers/'+layer+'/thumbnail'
@@ -4263,8 +4265,11 @@ class Layman(QObject):
                 QMessageBox.information(None, "Layman", "Layer " + message[15:100] +" is nested in two groups. Only parent group will be saved.")
          
         if message == "updateMapDone":
-            self.dlg.progressBar_loader.hide()
-            self.dlg.pushButton_save.setEnabled(True)
+            try:
+                self.dlg.progressBar_loader.hide()
+                self.dlg.pushButton_save.setEnabled(True)
+            except:
+                print("formular jiz byl uzavren")
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Změny v kompozici byly uloženy."), Qgis.Success, duration=3)
             else:
@@ -5645,6 +5650,8 @@ class Layman(QObject):
             else:
                 print("The file does not exist")
             epsg = layer.crs().authid()
+            if not epsg in self.supportedEpsg:
+                epsg = QgsProject.instance().crs().authid()
             parameter = {'INPUT': layer, 'TARGET_CRS': epsg, 'OUTPUT': layer_filename}
             try:
                 processing.run('qgis:reprojectlayer', parameter)
@@ -5668,7 +5675,7 @@ class Layman(QObject):
             layer.saveSldStyle(sld_filename)
             self.insertPictureToQML(layer)
             layer.saveNamedStyle(qml_filename)
-            self.insertBinaryToQml(layer, qml_filename)
+            self.insertBinaryToQml(layer, qml_filename)           
             return True
     def json_exportMix(self, layer):
 
@@ -5748,17 +5755,20 @@ class Layman(QObject):
                             with open(path, "rb") as image_file:
                                 encoded_string = base64.b64encode(image_file.read())                             
                             path2 = i.symbol().symbolLayer(0).path()
-                            pathRelative = path2.split("svg/")[1]
+                            pathRelative = path2.split("svg/")[1] if len(path2.split("svg/"))>1 else ""
                             decoded =   encoded_string.decode("utf-8")
                             path3 = ("base64:"  + decoded) 
 
                             print(path3)
                             with open(stylePath, 'r') as file :
                                 filedata = file.read()
-
-                            filedata = filedata.replace(path2, path3)
+                
+                            
                             #print(pathRelative)
-                            filedata = filedata.replace(pathRelative, path3)
+                            if pathRelative != "":
+                                filedata = filedata.replace(pathRelative, path3)
+                            else:
+                                filedata = filedata.replace(path2, path3)
                             #print(filedata)
                             
 
@@ -5773,28 +5783,33 @@ class Layman(QObject):
                         #if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer):
                         #    path = (i.symbol().symbolLayer(0).path()) 
                         #else:
-                        path = (i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path())                 
-                        if path[:4] != "base":
-                            if os.path.exists(path):
-                                with open(path, "rb") as image_file:
-                                    encoded_string = base64.b64encode(image_file.read())                                
-                                #path = i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path()
-                                decoded =   encoded_string.decode("utf-8")
-                                path2 = ("base64:"  + decoded)    
-                                pathRelative = path2.split("svg/")[1]
-                                with open(stylePath, 'r') as file:
-                                    filedata = file.read()
+                        if not ((isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsSimpleLineSymbolLayer) or isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsSimpleMarkerSymbolLayer))):
+                            path = (i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path())                 
+                            if path[:4] != "base":
+                                if os.path.exists(path):
+                                    with open(path, "rb") as image_file:
+                                        encoded_string = base64.b64encode(image_file.read())                                
+                                    #path = i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path()
+                                    decoded =   encoded_string.decode("utf-8")
+                                    path2 = ("base64:"  + decoded)    
+                                    #pathRelative = path2.split("svg/")[1]
+                                    pathRelative = path2.split("svg/")[1] if len(path2.split("svg/")) > 1 else ""
+                                    with open(stylePath, 'r') as file:
+                                        filedata = file.read()
 
-                                filedata = filedata.replace(path, path2)
-                                filedata = filedata.replace(pathRelative, path3)
-                                with open(stylePath, 'w') as file:
-                                    file.write(filedata)
+                                
+                                    if pathRelative != "":
+                                        filedata = filedata.replace(pathRelative, path2)
+                                    else:
+                                        filedata = filedata.replace(path, path2)
+                                    with open(stylePath, 'w') as file:
+                                        file.write(filedata)
                     j = j +1
                     try:
                         i.symbol().symbolLayer(j).subSymbol
                     except:
                         pom = False
-              
+                    
 
         elif isinstance(single_symbol_renderer, QgsRuleBasedRenderer):
            
@@ -7029,7 +7044,7 @@ class Layman(QObject):
                     self.importMapEnvironmnet(False)
                     threading.Thread(target=lambda: self.importMap(x, "add", successful) ).start()                  
     def addLayerToComposite2(self,composition, layersList):
-        layersList = self.removeRastersWithoutCrs(layersList)
+        #layersList = self.removeRastersWithoutCrs(layersList)
         print(layersList)
 
         for layer in layersList:
@@ -7060,7 +7075,8 @@ class Layman(QObject):
                     else:
                         minScale = None
                     if service == 'wms':                        
-                        if layers[i].crs().authid() in self.supportedEPSG:
+                        #if layers[i].crs().authid() in self.supportedEPSG: ## nyni se vrstva transformuje na crs projektu pokud nevyhovuje
+                        if True:
                             if self.isXYZ(layers[i].name()):
                                 self.saveXYZ(layers[i])
                             else:
@@ -7425,7 +7441,7 @@ class Layman(QObject):
         return layer
 
     def createComposite(self, name, title, setCurrent = False):         
-        if QgsProject.instance().crs().authid() not in ("EPSG:3857", "EPSG:4326",  "EPSG:5514",  "EPSG:32633",  "EPSG:32634",  "EPSG:3034",  "EPSG:3035",  "EPSG:3059"):
+        if QgsProject.instance().crs().authid() not in self.supportedEpsg:
             if self.locale == "cs":
                 QMessageBox.information(None, "Message", "Není nastaveno podporované EPSG projektu.")
             else:
