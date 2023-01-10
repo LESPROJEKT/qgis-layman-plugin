@@ -2100,7 +2100,7 @@ class Layman(QObject):
     def run_ImportLayerDialog(self):
         self.recalculateDPI()
         self.dlg = ImportLayerDialog()
-
+        
         self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))
         if self.locale == "cs":
             self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 0")
@@ -2138,6 +2138,7 @@ class Layman(QObject):
         self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.selectSelectedLayer()
+        self.dlg.treeWidget.header().resizeSection(0,250);
         self.dlg.show()
 
 
@@ -4372,9 +4373,7 @@ class Layman(QObject):
             try:
                 QgsProject.instance().crsChanged.disconnect()
             except:
-                print("signal crsChanged was not connected")
-        # if message == "readmapjson":            
-        #     self.readMapJson2(self.params[0],self.params[1],self.params[2])
+                print("signal crsChanged was not connected")       
          
         if message =="showThumbnailMap2":
             try:
@@ -4390,9 +4389,9 @@ class Layman(QObject):
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Connection with server lost!"), Qgis.Error, duration=3)
         if message =="compositionSchemaError":
             if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Schéma kompozice není ve validním formátu")
+                QMessageBox.information(None, "Layman", "Schéma kompozice není ve validním formátu.")
             else:
-                QMessageBox.information(None, "Layman", "Composition is not in valid format")
+                QMessageBox.information(None, "Layman", "Composition is not in valid format.")
             self.dlg.progressBar_loader.hide()
         if message == "readlayerjson":
             #name, service ,workspace
@@ -4430,15 +4429,7 @@ class Layman(QObject):
                         self.currentLayerDict[num].loadNamedStyle(tempf)
                         self.currentLayerDict[num].triggerRepaint()
 
-        if message == "loadLayer":
-
-
-            print("loading layer")
-            print("###############################z")
-            print(self.currentLayer)
-            print(self.currentLayer[len(self.currentLayer)-1].name())
-            print(self.currentLayer[len(self.currentLayer)-1].isValid())
-            print("###############################z")
+        if message == "loadLayer":            
             QgsProject.instance().addMapLayer(self.currentLayer[0])
 
             try:
