@@ -34,7 +34,7 @@ from PyQt5.QtGui import QIcon, QPixmap, QRegExpValidator, QDoubleValidator, QBru
 from PyQt5.QtWidgets import QAction, QTreeWidget,QTreeWidgetItemIterator, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem, QAbstractItemView,QComboBox
 from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from PyQt5 import QtWidgets
-
+from qgis.core import QgsUnitTypes
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -5737,7 +5737,27 @@ class Layman(QObject):
         if isinstance(single_symbol_renderer, QgsCategorizedSymbolRenderer):           
             symbol  = layer.renderer().categories()
             for i in symbol:               
-
+                if isinstance(i.symbol().symbolLayer(0), QgsMarkerLineSymbolLayer):            
+                    #print(i.symbol().symbolLayer(0).subSymbol().symbolLayer(0))
+                    if isinstance(i.symbol().symbolLayer(0).subSymbol().symbolLayer(0), QgsSvgMarkerSymbolLayer):
+                        path = (i.symbol().symbolLayer(0).subSymbol().symbolLayer(0).path())
+                        if path[:4] != "base":
+                            if os.path.exists(path):
+                                with open(path, "rb") as image_file:
+                                    encoded_string = base64.b64encode(image_file.read())                             
+                                path2 = i.symbol().symbolLayer(0).subSymbol().symbolLayer(0).path()
+                                pathRelative = path2.split("svg/")[1] if len(path2.split("svg/"))>1 else ""
+                                decoded =   encoded_string.decode("utf-8")
+                                path3 = ("base64:"  + decoded) 
+                                with open(stylePath, 'r') as file :
+                                        filedata = file.read()  
+                                if pathRelative != "":
+                                    filedata = filedata.replace(pathRelative, path3)
+                                else:
+                                    filedata = filedata.replace(path2, path3)    
+                                with open(stylePath, 'w') as file:
+                                    file.write(filedata)
+                    
                 if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
                     path = i.symbol().symbolLayer(0).path()
                     print(type(i.symbol().symbolLayer(0).subSymbol() ))
@@ -6770,6 +6790,15 @@ class Layman(QObject):
         else:
             minScale = None
         composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":int(layer.maximumScale()) ,"minResolution":minScale,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+    def scaleToResolution(self, scale):
+        # calculate the resolution
+        dpi = 96
+        inch_per_m = 39.37
+        resolution = scale * dpi / (inch_per_m * QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, QgsUnitTypes.DistanceFeet))
+        # print the resolution
+        print(resolution)
+        return resolution
+
     def getGreyScaleMode(self, layer):
         pipe  = layer.pipe()        
         greyscale = False if pipe.hueSaturationFilter().grayscaleMode() == 0 else True
