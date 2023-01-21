@@ -137,7 +137,7 @@
   <widget class="QLabel" name="label_progress">
    <property name="geometry">
     <rect>
-     <x>300</x>
+     <x>270</x>
      <y>241</y>
      <width>371</width>
      <height>16</height>

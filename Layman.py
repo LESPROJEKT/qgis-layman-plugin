@@ -2100,7 +2100,7 @@ class Layman(QObject):
     def run_ImportLayerDialog(self):
         self.recalculateDPI()
         self.dlg = ImportLayerDialog()
-        
+        self.dlg.label_progress.hide()
         self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))
         if self.locale == "cs":
             self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 0")
@@ -5082,8 +5082,9 @@ class Layman(QObject):
         if checked:            
             for i in range (0, len(composition['layers'])):           
                 if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):              
-                    composition['layers'][i]['maxResolution'] = int(layer.maximumScale())
-                    composition['layers'][i]['minResolution'] = int(layer.minimumScale())
+                    composition['layers'][i]['maxResolution'] = int(self.scaleToResolution(layer.minimumScale()))
+                    composition['layers'][i]['minResolution'] = int(self.scaleToResolution(layer.maximumScale()))
+                    
         else:
             for i in range (0, len(composition['layers'])):           
                 if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):              
@@ -5924,6 +5925,7 @@ class Layman(QObject):
         text_file.write((top + str(feats)[1:-1] + bottom).replace("'", "\""))
         text_file.close()
     def callPostRequest(self, layers):     
+        self.dlg.label_progress.show()
         self.ThreadsA = set()
         for thread in threading.enumerate():
             self.ThreadsA.add(thread.name)
@@ -6786,10 +6788,10 @@ class Layman(QObject):
                 url = param[1]
         crs = layer.crs().authid()
         if layer.hasScaleBasedVisibility():
-            minScale = int(layer.minimumScale())
+            minScale = int(self.scaleToResolution(layer.minimumScale()))           
         else:
             minScale = None
-        composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":int(layer.maximumScale()) ,"minResolution":minScale,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+        composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution": minScale,"minResolution":int(self.scaleToResolution(layer.maximumScale())),"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
     def scaleToResolution(self, scale):
         # calculate the resolution
         dpi = 96
@@ -6798,7 +6800,16 @@ class Layman(QObject):
         # print the resolution
         print(resolution)
         return resolution
+    def resolutionToScale(self, resolution):
+        # define the resolution
+        #resolution = 17000
 
+        # calculate the scale
+        dpi = 96
+        inch_per_m = 39.37
+        scale = resolution * (inch_per_m * QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, QgsUnitTypes.DistanceFeet)) / dpi      
+        print(scale)
+        return scale
     def getGreyScaleMode(self, layer):
         pipe  = layer.pipe()        
         greyscale = False if pipe.hueSaturationFilter().grayscaleMode() == 0 else True
@@ -7091,7 +7102,8 @@ class Layman(QObject):
                     self.dlg.progressBar_loader.show()
                     layerName = self.removeUnacceptableChars(layers[i].name()).lower()                   
                     if layers[i].hasScaleBasedVisibility():
-                        minScale = int(layers[i].minimumScale())
+                        minScale = int(self.scaleToResolution(layers[i].minimumScale()))
+                    
                     else:
                         minScale = None
                     if service == 'wms':                        
@@ -7101,18 +7113,18 @@ class Layman(QObject):
                                 self.saveXYZ(layers[i])
                             else:
                                 wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'_wms/ows'
-                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":int(layers[i].maximumScale()),"minResolution":minScale,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5, "visibility": True,"dimensions":{}})
+                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":int(self.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5, "visibility": True,"dimensions":{}})
                                                
                     elif service == 'wfs':
                         wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'/wfs'
                         styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ str(layerName) + "/style"
 
-                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":int(layers[i].maximumScale()),"minResolution":minScale,"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":int(self.scaleToResolution(layers[i].maximumScale())),"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
 
 
                     else:
                         wmsUrl = self.URI.replace("/client", "") +'/geoserver/'+self.laymanUsername+'_wms/ows'
-                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":int(layers[i].maximumScale()),"minResolution":minScale,"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":int(self.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
                     successful = successful + 1
                 print("saving layer records to composition")
                
@@ -8007,8 +8019,8 @@ class Layman(QObject):
         rlayer = QgsRasterLayer("url="+url+" layer='"+str(id)+"'", layerName, "arcgismapserver")   
         if (rlayer.isValid()):
             if minRes != None and maxRes != None:
-                rlayer.setMinimumScale(minRes)
-                rlayer.setMaximumScale(maxRes)
+                rlayer.setMinimumScale(self.resolutionToScale(maxRes))
+                rlayer.setMaximumScale(self.resolutionToScale(minRes))
                 rlayer.setScaleBasedVisibility(True)
             if (groupName != '' or subgroupName != ''):            
                 self.addWmsToGroup(subgroupName,rlayer, "")
@@ -8078,8 +8090,8 @@ class Layman(QObject):
         self.currentLayer.append(rlayer)
         if (rlayer.isValid()):
             if minRes != None and maxRes != None:
-                rlayer.setMinimumScale(minRes)
-                rlayer.setMaximumScale(maxRes)
+                rlayer.setMinimumScale(self.resolutionToScale(maxRes))
+                rlayer.setMaximumScale(self.resolutionToScale(minRes))
                 rlayer.setScaleBasedVisibility(True)
             if (groupName != '' or subgroupName != ''):            
                 self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path
@@ -8120,8 +8132,8 @@ class Layman(QObject):
             pass # pro qgis 3.10 a vys
         if (rlayer.isValid()):
             if minRes != None and maxRes != None:
-                rlayer.setMinimumScale(minRes)
-                rlayer.setMaximumScale(maxRes)
+                rlayer.setMinimumScale(self.resolutionToScale(maxRes))
+                rlayer.setMaximumScale(self.resolutionToScale(minRes))
                 rlayer.setScaleBasedVisibility(True)
             if (groupName != ''):
 
@@ -8173,8 +8185,8 @@ class Layman(QObject):
         if (vlayer.isValid()):         
             if minRes != None and maxRes != None:
                 print("set scale")
-                vlayer.setMinimumScale(minRes)
-                vlayer.setMaximumScale(maxRes)
+                vlayer.setMinimumScale(self.resolutionToScale(maxRes))
+                vlayer.setMaximumScale(self.resolutionToScale(minRes))
                 vlayer.setScaleBasedVisibility(True)
                 print(vlayer.hasScaleBasedVisibility())            
 
