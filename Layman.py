@@ -127,6 +127,8 @@ class Layman(QObject):
     exportLayerSuccessful = pyqtSignal(str)
     loadComposition = pyqtSignal(str,str,str)
     afterLoadedComposition = pyqtSignal()
+    permissionInfo = pyqtSignal(bool,list, int)
+    reoderComposition = pyqtSignal(list,list,set,list)
 
 
 
@@ -332,6 +334,8 @@ class Layman(QObject):
         self.exportLayerFailed.connect(self._onExportLayerFailed)
         self.loadComposition.connect(self.readMapJson2)
         self.afterLoadedComposition.connect(self.afterCompositionLoaded)
+        self.permissionInfo.connect(self.afterPermissionDone)
+        self.reoderComposition.connect(self.reorderGroups) 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -2097,11 +2101,42 @@ class Layman(QObject):
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         self.dlg.show()
         result = self.dlg.exec_()
+    def timeSeries(self, items): 
+        url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars("rasters")
+        r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
+        inputPath = r"C:\Users\Honza\Downloads\RVI4S1(1)\\"
+        # List of .shp files to include in the zip archive
+        rasters = [inputPath+"S1A_IW_GRDH_1SDV_20220510T050948_20220510T051013_043144_05271A_E359_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220522T050948_20220522T051013_043319_052C50_287D_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220603T050949_20220603T051014_043494_053176_E5BF_RVI4S1.tif"]
+
+        # Create the zip archive
+        with zipfile.ZipFile("C:\\Users\\Honza\\Downloads\\RVI4S1(1)\\test\\rasters.zip", "w") as zip:
+            for raster in rasters:                
+                zip.write(raster, os.path.basename(raster))
+        payload = {
+                #'file': name.lower()+ext,
+                'file': ["rasters.zip"],
+                'title': "rasters",
+                'crs': "EPSG:4326",
+                'time_regex': '[0-9]{8}'
+                }
+        # Send the zip archive to the server
+        url = "https://hub4everybody.com/rest/jan_vrobel/layers"
+        path = "C:\\Users\\Honza\\Downloads\\RVI4S1(1)\\test\\rasters.zip"
+        file = open("C:\\Users\\Honza\\Downloads\\RVI4S1(1)\\test\\rasters.zip", "rb")
+        files = {'file': ("", open(path, 'rb'))}
+        #r = requests.post(url, files={"rasters.zip": file},data=payload,  headers = self.getAuthHeader(self.authCfg))
+        response = requests.request("POST", url, files=files,  data=payload, headers = self.getAuthHeader(self.authCfg))   
+
+        # data = { 'name' :  str("rasters").lower(), 'title' : str("rasters")}
+        # data['crs'] = 'EPSG:4326'
+        # response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
+        print(response.text)        
     def run_ImportLayerDialog(self):
         self.recalculateDPI()
         self.dlg = ImportLayerDialog()
         self.dlg.label_progress.hide()
         self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))
+        self.dlg.pushButton_timeSeries.clicked.connect(lambda: self.timeSeries(self.dlg.treeWidget.selectedItems()))
         if self.locale == "cs":
             self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 0")
         else:
@@ -2979,8 +3014,8 @@ class Layman(QObject):
                 self.updatePermissions(layerList,userDict, "layers")
                 return
             else:
-
-                QgsMessageLog.logMessage("permissionsDoneF")
+                self.permissionInfo.emit(False, self.failed, 0)    
+               #QgsMessageLog.logMessage("permissionsDoneF")
 
         elif (type == "layers" and check):
             for name in layerName:
@@ -2990,9 +3025,28 @@ class Layman(QObject):
                     return      
         else:
             if (self.statusHelper and self.info == 0):
-                QgsMessageLog.logMessage("permissionsDoneT")
+                print(self.failed)
+                self.permissionInfo.emit(True, self.failed, 0)
+                #QgsMessageLog.logMessage("permissionsDoneT")
             else:
-                QgsMessageLog.logMessage("permissionsDoneF")
+                self.permissionInfo.emit(False, self.failed, 0)
+                #QgsMessageLog.logMessage("permissionsDoneF")
+    def afterPermissionDone(self, success, failed, info):
+        #self.info = self.info + 1
+        try:
+            self.dlg.progressBar_loader.hide()             
+            if success:
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
+                else:
+                    QMessageBox.information(None, "Saved", "Permissions was saved successfully.")
+            else:
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu/mapu: " + str(failed).replace("[","").replace("]",""))
+                else:
+                    QMessageBox.information(None, "Error", "Permissions was not saved for layer/map: " + str(failed).replace("[","").replace("]",""))
+        except:
+            print("form was killed before response")
     def disableExport(self):
         if self.dlg.treeWidget.selectedItems() == []:
             self.dlg.pushButton.setEnabled(False)
@@ -3992,7 +4046,8 @@ class Layman(QObject):
     def showThumbnail(self, it):
         self.params = list()
         self.params.append(it)
-        QgsMessageLog.logMessage("showThumbnail2")
+        self.showThumbnail2(it)
+        #QgsMessageLog.logMessage("showThumbnail2")
     def showThumbnail2(self, it):
         try:
             layer = it.text(0) ##pro QTreeWidget
@@ -4201,7 +4256,8 @@ class Layman(QObject):
         self.params.append(layerName)
         self.params.append(service)
         self.dlg.progressBar_loader.show()
-        QgsMessageLog.logMessage("readlayerjson")
+        self.readLayerJson2(layerName,service)
+        #QgsMessageLog.logMessage("readlayerjson")
     def readLayerJson2(self,layerName, service):     
         for i in range (0, len(self.dlg.treeWidget.selectedItems())):
             name = self.dlg.treeWidget.selectedItems()[i].text(0)
@@ -4780,6 +4836,14 @@ class Layman(QObject):
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva není k dispozici!"), Qgis.Warning)
             else:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer is not available!"), Qgis.Warning)
+    def reorderGroups(self, threads, groups, groupsSet, groupsPosition):
+        for thread in threads:
+            try:
+                thread.join()
+            except:
+                pass
+        for g in groups:                               
+            self.reorderToTop(g[0], groupsSet, groupsPosition, g[1])                
     def loadAllComposites(self):
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'
 
@@ -7799,15 +7863,15 @@ class Layman(QObject):
 
     def loadservice3(self, data):
         groupName = ''
-        self.threads = list()
+        threads = list()
 
         self.ThreadsA = set()
         for thread in threading.enumerate():
             self.ThreadsA.add(thread.name)
         i=1
-        self.groups = list()
-        self.groupPositions = list()
-        self.groupsSet = set()
+        groups = list()
+        groupPositions = list()
+        groupsSet = set()
         for x in range(len(data['layers'])- 1, -1, -1):       ## descending order
             print("iteration")
             try:
@@ -7880,24 +7944,24 @@ class Layman(QObject):
                         print("chyba v nalezeni prav")
 
                     if groupName != "":
-                        self.groups.append([groupName, len(data['layers']) - i])
-                        self.groupsSet.add(groupName)
-                        self.groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
+                        groups.append([groupName, len(data['layers']) - i])
+                        groupsSet.add(groupName)
+                        groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
-                        self.groups.append([layerNameTitle, len(data['layers']) - i]) 
+                        groups.append([layerNameTitle, len(data['layers']) - i]) 
                     legends = "0"                        
                     if "legends" in data['layers'][x]:
                         legends = "1"
                     print(legends)
                     
-                    self.threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)).start())
+                    threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)).start())
                    
 
                 if className == 'ArcGISRest':
                    
                     url = data['layers'][x]['url']
                     layerNameTitle = data['layers'][x]['title']
-                    self.threads.append(threading.Thread(target=lambda: self.loadArcGisRest(url, layerNameTitle)).start())
+                    threads.append(threading.Thread(target=lambda: self.loadArcGisRest(url, layerNameTitle)).start())
                     
                 if className == 'XYZ':                   
                     layerName = data['layers'][x]['title']
@@ -7913,12 +7977,12 @@ class Layman(QObject):
                     repairUrl = data['layers'][x]['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)
                     if groupName != "":
-                        self.groups.append([groupName, len(data['layers']) -i])
-                        self.groupsSet.add(groupName)
-                        self.groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
+                        groups.append([groupName, len(data['layers']) -i])
+                        groupsSet.add(groupName)
+                        groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
-                        self.groups.append([layerNameTitle, len(data['layers']) - i])
-                    self.threads.append(threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)).start())
+                        groups.append([layerNameTitle, len(data['layers']) - i])
+                    threads.append(threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)).start())
                   
 
                 if className == 'OpenLayers.Layer.Vector' or className == 'Vector':
@@ -7936,11 +8000,11 @@ class Layman(QObject):
                     else:
                         groupName = ""
                     if groupName != "":
-                        self.groups.append([groupName, len(data['layers']) -i])
-                        self.groupsSet.add(groupName)
-                        self.groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
+                        groups.append([groupName, len(data['layers']) -i])
+                        groupsSet.add(groupName)
+                        groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
-                        self.groups.append([layerNameTitle, len(data['layers']) - i])
+                        groups.append([layerNameTitle, len(data['layers']) - i])
                     try: ## nove rozdeleni
 
                         if 'type' in data['layers'][x]['protocol']:
@@ -7949,7 +8013,7 @@ class Layman(QObject):
                                     repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['workspace'] + "wfs"
 
 
-                                self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
+                                threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
                                 
                         if "format" in data['layers'][x]['protocol']:                            
                             if (data['layers'][x]['protocol']['format'] == "hs.format.WFS" or data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):
@@ -7957,17 +8021,15 @@ class Layman(QObject):
                                     repairUrl = repairUrl.replace("hsl-layman", "geoserver")
 
 
-                                self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
+                                threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
                    
                     except:                        
-                        self.threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())                        
+                        threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())                        
 
                 
             else:
                 self.wrongLayers = True              
-
             i = i + 1
-
         threadsB = set()
         while (self.ThreadsA != threadsB):
             threadsB = set()
@@ -7976,7 +8038,9 @@ class Layman(QObject):
         self.afterLoadedComposition.emit()
         #QgsMessageLog.logMessage("F")
 
-        QgsMessageLog.logMessage("reorderGroups")
+        #QgsMessageLog.logMessage("reorderGroups")
+        #self.reorderGroups(threads, groups, groupsSet, groupPositions)
+        self.reoderComposition.emit(threads, groups, groupsSet, groupPositions)
 
 
     def Title(self, layerName):
@@ -8031,7 +8095,7 @@ class Layman(QObject):
                 rand = random.randint(0,10000)
                 self.currentLayerDict[str(rand)] = rlayer
 
-                QgsMessageLog.logMessage("loadVector" + str(rand))   
+                self.loadLayer(rlayer)     
             
             if greyscale:
                 rlayer.pipe().hueSaturationFilter().setGrayscaleMode(1)
@@ -8039,7 +8103,7 @@ class Layman(QObject):
         else:
             rand = random.randint(0,10000)
             self.currentLayerDict[str(rand)] = rlayer
-            QgsMessageLog.logMessage("loadVector" + str(rand))         
+            self.loadLayer(rlayer)          
             return False
         QgsProject.instance().addMapLayer(layer)
 
@@ -8102,7 +8166,7 @@ class Layman(QObject):
                 rand = random.randint(0,10000)
                 self.currentLayerDict[str(rand)] = rlayer
 
-                QgsMessageLog.logMessage("loadVector" + str(rand))   
+                self.loadLayer(rlayer)    
             
             if greyscale:
                 rlayer.pipe().hueSaturationFilter().setGrayscaleMode(1)
@@ -8110,7 +8174,7 @@ class Layman(QObject):
         else:
             rand = random.randint(0,10000)
             self.currentLayerDict[str(rand)] = rlayer
-            QgsMessageLog.logMessage("loadVector" + str(rand))         
+            self.loadLayer(rlayer)          
             return False
     def loadXYZ(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName= '', visibility= '', i = -1, minRes= 0, maxRes=None):
 
@@ -8146,7 +8210,7 @@ class Layman(QObject):
                 rand = random.randint(0,10000)
                 self.currentLayerDict[str(rand)] = rlayer
 
-                QgsMessageLog.logMessage("loadVector" + str(rand))               
+                self.loadLayer(rlayer)                       
             if visibility == False:
                 QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
             return True
@@ -8156,7 +8220,22 @@ class Layman(QObject):
                 QMessageBox.information(None, "Layman", "WMS není pro vrstu "+layerNameTitle+ " k dispozici.")
             else:
                 QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
+    def loadLayer(self, layer):
+        QgsProject.instance().addMapLayer(layer)
 
+        if (isinstance(layer, QgsVectorLayer)):
+            style = self.getStyle(layer.name())
+                    #code = self.getSLD(layerName)
+            layerName = layer.name()
+            if (style[0] == 200):
+                if (style[1] == "sld"):
+                    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                    layer.loadSldStyle(tempf)
+                    layer.triggerRepaint()
+                if (style[1] == "qml"):
+                    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                    layer.loadNamedStyle(tempf)
+                    layer.triggerRepaint()
     def loadWfs(self, url, layerName,layerNameTitle, groupName = '', subgroupName = '', visibility= '', everyone=False, minRes= 0, maxRes=None):                    
         layerName = self.removeUnacceptableChars(layerName)        
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()       
@@ -8202,8 +8281,9 @@ class Layman(QObject):
                 else:                 
                     self.currentLayer.append(vlayer)
                     rand = random.randint(0,10000)
-                    self.currentLayerDict[str(rand)] = vlayer                                 
-                    QgsMessageLog.logMessage("loadVector" + str(rand))
+                    self.currentLayerDict[str(rand)] = vlayer     
+                    self.loadLayer(vlayer)                           
+                    #QgsMessageLog.logMessage("loadVector" + str(rand))
      
             else: ### cast pro slozenou geometrii
                 self.mixedLayers.append(layerName)
@@ -8331,7 +8411,7 @@ class Layman(QObject):
         time.sleep(1)
         QgsProject.instance().addMapLayer(layer,False)
         group.insertChildNode(1000,QgsLayerTreeLayer(layer))
-    def reorderToTop(self, name, i= 1000):
+    def reorderToTop(self, name,groupsSet, groupsPositions, i= 1000):
         
         _ch = ""
         root = QgsProject.instance().layerTreeRoot()
@@ -8340,18 +8420,18 @@ class Layman(QObject):
                 _ch = ch.clone()
                 root.insertChildNode(i, _ch)
                 root.removeChildNode(ch)
-        try:
-            self.reorderInGroup()
-        except:
-            print("error in reorder group")
+       # try:
+        self.reorderInGroup(groupsPositions, groupsSet)
+        #except:
+         #   print("error in reorder group")
 
 
         return _ch
 
-    def reorderInGroup(self):
+    def reorderInGroup(self,groupPositions, groupsSet):
         from collections import OrderedDict
         root = QgsProject.instance().layerTreeRoot()
-        for groupName in self.groupsSet:
+        for groupName in groupsSet:
             group = root.findGroup(groupName)  # We are interested in group1
             reverse_order = False
 
@@ -8362,9 +8442,9 @@ class Layman(QObject):
             mLNED = LayerNamesEnumDict(group.children())
             print(mLNED)
             mLNEDkeys = OrderedDict(sorted(LayerNamesEnumDict(group.children()).items(), reverse=reverse_order)).keys()        
-            self.groupPosition = sorted(self.groupPositions,key=lambda x: x[2])                     
+            groupPosition = sorted(groupPositions,key=lambda x: x[2])                     
             arr = list()
-            for item in reversed(self.groupPositions):
+            for item in reversed(groupPositions):
                 if item[0] == groupName:
                     res = [x for x in mLNEDkeys if re.search(item[1], x)]               
                     arr.append(str(res).replace("]","").replace("[","").replace("'",""))               
