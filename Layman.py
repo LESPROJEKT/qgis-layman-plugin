@@ -6889,7 +6889,7 @@ class Layman(QObject):
             if (len(layers) == 1):
                 layers = str(layers).replace("[", "").replace("]", "").replace("'", "")
             else:
-                layers = str(layers).replace("'", "")
+                layers = str(layers).replace("'", "").replace("[", "").replace("]", "")
             self.existLayer = False
             print(dimension)
             if dimension == "":
