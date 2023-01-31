@@ -5794,8 +5794,8 @@ class Layman(QObject):
                     if isinstance(i.symbol().symbolLayer(j), QgsMarkerLineSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):# or isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer):
                         #if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer):
                         #    path = (i.symbol().symbolLayer(0).path()) 
-                        #else:
-                        if not ((isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsSimpleLineSymbolLayer) or isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsSimpleMarkerSymbolLayer))):
+                        #else:QgsVectorFieldSymbolLayer
+                        if not ((isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsSimpleLineSymbolLayer) or isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsSimpleMarkerSymbolLayer)or isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsVectorFieldSymbolLayer))):
                             path = (i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path())                 
                             if path[:4] != "base":
                                 if os.path.exists(path):
@@ -6448,12 +6448,12 @@ class Layman(QObject):
 
 
 
-        if (re.match('[0-9]{1}', layer_name)): ## nesmí být nesmysl v názvu na prvním místě
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Není povoleno číslo v prvním znaku.")
-            else:
-                QMessageBox.information(None, "Layman", "Number in first character is not allowed.")
-            nameCheck = False
+        # if (re.match('[0-9]{1}', layer_name)): ## nesmí být nesmysl v názvu na prvním místě
+        #     if self.locale == "cs":
+        #         QMessageBox.information(None, "Layman", "Není povoleno číslo v prvním znaku.")
+        #     else:
+        #         QMessageBox.information(None, "Layman", "Number in first character is not allowed.")
+        #     nameCheck = False
         if not self.checkPossibleChars(layer_name):
             QgsMessageLog.logMessage("wrongName")
             return
