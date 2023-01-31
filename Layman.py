@@ -2137,6 +2137,7 @@ class Layman(QObject):
         self.dlg.label_progress.hide()
         self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))
         self.dlg.pushButton_timeSeries.clicked.connect(lambda: self.timeSeries(self.dlg.treeWidget.selectedItems()))
+        self.dlg.pushButton_timeSeries.hide()
         if self.locale == "cs":
             self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 0")
         else:
