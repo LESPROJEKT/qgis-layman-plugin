@@ -2117,8 +2117,11 @@ class Layman(QObject):
         for layer in layers:
             if (layer.type() == QgsMapLayer.VectorLayer):
                 layerType = 'vector layer'
-            else:
-                layerType = 'raster layer'
+            if (layer.type() == QgsMapLayer.RasterLayer):
+                if layer.dataProvider().name() == "arcgismapserver":
+                    layerType = 'arcgis layer'
+                else:
+                    layerType = 'raster layer'
             if layer.providerType() != "wms":
                 item = QTreeWidgetItem([layer.name(), layerType])
         
@@ -6864,11 +6867,11 @@ class Layman(QObject):
         arc = False
         if layer.dataProvider().name() == "arcgismapserver":
             arc = True
-        if "&" in layer.dataProvider().dataSourceUri():
+        if not arc:
             params = layer.dataProvider().dataSourceUri().split("&")            
         else:
             params = layer.dataProvider().dataSourceUri().split(" ") ## arcgis use whitespace
-            
+      
         if not (self.isXYZ(layer.name())): 
             layers = list()
             for p in params:     
@@ -6880,7 +6883,8 @@ class Layman(QObject):
                     format = format.replace("'", "")
                 if(str(param[0]) == "url"):
                     url = (param[1]) 
-                    url = url.replace("'", "")                   
+                    url = url.replace("'", "") 
+                            
                 if(str(param[0]) == "layers"):
                     layers.append(param[1])
                 if(str(param[0]) == "timeDimensionExtent"):
@@ -6895,7 +6899,6 @@ class Layman(QObject):
             if dimension == "":
                 composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS" if not arc else "ArcGISRest","dimensions":{},"singleTile":False, "greyscale": greyScale,  "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
             else:              
-
                 composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS" if not arc else "ArcGISRest","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
            
         else:           
