@@ -36,6 +36,7 @@ from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from PyQt5 import QtWidgets
 from qgis.core import QgsUnitTypes
 import PyQt5
+from PyQt5.QtGui import QCursor
 # Initialize Qt resources from file resources.py
 from .resources import *
 import re
@@ -1570,9 +1571,10 @@ class Layman(QObject):
 
             self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
             self.dlg.label_version.setText(self.getVersion())
-            self.dlg.label_versionLayman.setText(self.laymanVersion)
+            self.dlg.label_versionLayman.setText(self.laymanVersion)            
             self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-
+            self.dlg.label_older.setCursor(QCursor(Qt.PointingHandCursor))
+            self.dlg.label_older.mousePressEvent = lambda event: self.getOldVersion()             
             self.dlg.label_avversion.setText(versionCheck[1])
             if versionCheck[0] == True:
                 self.dlg.label_avversion.hide()
@@ -2023,6 +2025,13 @@ class Layman(QObject):
 
 
         result = self.dlg.exec_()
+    def getOldVersion(self):
+        response = QMessageBox.question(None, "Downgrade", "Chcete nainstalovat starší verzi pro QGIS 3.24 a nižší?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if response == QMessageBox.Yes:
+            print("Yes")
+        else:
+            print("No")
+        print("test")
     def importMapEnvironmnet(self,enabled):
         time.sleep(1)
         if enabled:

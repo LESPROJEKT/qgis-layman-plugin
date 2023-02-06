@@ -32,7 +32,7 @@
    <property name="geometry">
     <rect>
      <x>40</x>
-     <y>60</y>
+     <y>57</y>
      <width>111</width>
      <height>16</height>
     </rect>
@@ -45,7 +45,7 @@
    <property name="geometry">
     <rect>
      <x>40</x>
-     <y>100</y>
+     <y>97</y>
      <width>111</width>
      <height>16</height>
     </rect>
@@ -58,7 +58,7 @@
    <property name="geometry">
     <rect>
      <x>200</x>
-     <y>60</y>
+     <y>57</y>
      <width>181</width>
      <height>16</height>
     </rect>
@@ -71,7 +71,7 @@
    <property name="geometry">
     <rect>
      <x>200</x>
-     <y>100</y>
+     <y>97</y>
      <width>191</width>
      <height>16</height>
     </rect>
@@ -98,7 +98,7 @@
     <rect>
      <x>200</x>
      <y>23</y>
-     <width>181</width>
+     <width>241</width>
      <height>16</height>
     </rect>
    </property>
@@ -110,7 +110,7 @@
    <property name="geometry">
     <rect>
      <x>40</x>
-     <y>137</y>
+     <y>133</y>
      <width>111</width>
      <height>16</height>
     </rect>
@@ -123,7 +123,7 @@
    <property name="geometry">
     <rect>
      <x>200</x>
-     <y>137</y>
+     <y>133</y>
      <width>191</width>
      <height>16</height>
     </rect>
@@ -136,7 +136,7 @@
    <property name="geometry">
     <rect>
      <x>102</x>
-     <y>260</y>
+     <y>250</y>
      <width>131</width>
      <height>28</height>
     </rect>
@@ -149,7 +149,7 @@
    <property name="geometry">
     <rect>
      <x>40</x>
-     <y>210</y>
+     <y>206</y>
      <width>111</width>
      <height>16</height>
     </rect>
@@ -162,7 +162,7 @@
    <property name="geometry">
     <rect>
      <x>200</x>
-     <y>210</y>
+     <y>206</y>
      <width>191</width>
      <height>16</height>
     </rect>
@@ -175,7 +175,7 @@
    <property name="geometry">
     <rect>
      <x>244</x>
-     <y>260</y>
+     <y>250</y>
      <width>130</width>
      <height>28</height>
     </rect>
@@ -188,7 +188,7 @@
    <property name="geometry">
     <rect>
      <x>40</x>
-     <y>173</y>
+     <y>170</y>
      <width>111</width>
      <height>16</height>
     </rect>
@@ -201,13 +201,26 @@
    <property name="geometry">
     <rect>
      <x>200</x>
-     <y>170</y>
+     <y>167</y>
      <width>191</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
     <string/>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_older">
+   <property name="geometry">
+    <rect>
+     <x>103</x>
+     <y>290</y>
+     <width>151</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Get older version &lt; 3.24</string>
    </property>
   </widget>
  </widget>
