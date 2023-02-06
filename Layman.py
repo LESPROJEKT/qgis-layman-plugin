@@ -745,8 +745,7 @@ class Layman(QObject):
             else:  
                 url = self.URI+'/client/rest/'+self.dlg.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0))+'/file'
             
-        try:
-            5/0
+        try:            
             df=pd.DataFrame([url])
             df.to_clipboard(index=False,header=False)            
             if self.locale == "cs":
