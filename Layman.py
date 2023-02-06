@@ -31,7 +31,7 @@ import io
 import random
 from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt, QFileSystemWatcher, QRegExp,QDir,QUrl, QByteArray , QTimer, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QRegExpValidator, QDoubleValidator, QBrush, QColor
-from PyQt5.QtWidgets import QAction, QTreeWidget,QTreeWidgetItemIterator, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem, QAbstractItemView,QComboBox
+from PyQt5.QtWidgets import QAction, QTreeWidget,QTreeWidgetItemIterator, QTreeWidgetItem, QMessageBox, QLabel, QProgressDialog, QDialog, QProgressBar,QListWidgetItem, QAbstractItemView,QComboBox, QHBoxLayout
 from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from PyQt5 import QtWidgets
 from qgis.core import QgsUnitTypes
@@ -708,6 +708,31 @@ class Layman(QObject):
                 iterator +=1
         except:
             print("neni v canvasu")
+    def showMessageBar():        
+        widget = QWidget()
+        layout = QHBoxLayout()
+        layout.addWidget(QLabel("Additional Information:"))
+        button = QPushButton("Click me")
+        layout.addWidget(button)
+        widget.setLayout(layout)
+
+        def showMessageBox():
+            msg = QMessageBox()
+            msg.setWindowTitle("Additional Information")
+            msg.setText("This is the additional information you requested.")
+            clipboard_button = QPushButton("Copy to Clipboard", msg)
+            msg.addButton(clipboard_button, QMessageBox.ActionRole)
+            clipboard_button.clicked.connect(copy_to_clipboard)
+            msg.exec_()
+
+        def copy_to_clipboard():
+            clipboard = PyQt5.QtGui.QGuiApplication.clipboard()
+            clipboard.setText("This is the additional information you requested.")
+        
+        button.clicked.connect(showMessageBox)
+
+        
+        iface.messageBar().pushWidget(widget, Qgis.Warning)            
     def copyCompositionUrl(self, composition=None):
         if not composition:
             url = self.instance.getUrl()
@@ -8822,7 +8847,7 @@ class Layman(QObject):
                 if self.locale == "cs":
                     QMessageBox.information(None, "Error", "Komunikaci se serverem nelze navázat!")
                 else:
-                    QMessageBox.information(None, "Error", "Communication with the server cannot be established!")
+                    QMessageBox.information(None, "Error", "Communication with the server cannot be established!")               
                 self.logout()
                 return False
         return True
