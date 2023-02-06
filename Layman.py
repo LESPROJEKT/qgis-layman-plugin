@@ -35,7 +35,7 @@ from PyQt5.QtWidgets import QAction, QTreeWidget,QTreeWidgetItemIterator, QTreeW
 from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from PyQt5 import QtWidgets
 from qgis.core import QgsUnitTypes
-
+import PyQt5
 # Initialize Qt resources from file resources.py
 from .resources import *
 import re
@@ -52,6 +52,7 @@ import zipfile
 from zipfile import ZipFile
 import tempfile
 import configparser
+import traceback
 import shutil
 import uuid
 import csv
@@ -708,32 +709,34 @@ class Layman(QObject):
                 iterator +=1
         except:
             print("neni v canvasu")
-    def showMessageBar():        
+    def showMessageBar(self, text, info, err, typ):    
         widget = QWidget()
         layout = QHBoxLayout()
-        layout.addWidget(QLabel("Additional Information:"))
-        button = QPushButton("Click me")
+        #layout.addWidget(QLabel("Layman - "+ text[0] if self.locale == "cs" else text[1]))
+        button = QPushButton("Více informací" if self.locale == "cs" else "More info")
+        label2 = iface.messageBar().createMessage("Layman:", text[0] if self.locale == "cs" else text[1])
+        layout.addWidget(label2)
         layout.addWidget(button)
         widget.setLayout(layout)
 
         def showMessageBox():
             msg = QMessageBox()
-            msg.setWindowTitle("Additional Information")
-            msg.setText("This is the additional information you requested.")
-            clipboard_button = QPushButton("Copy to Clipboard", msg)
+            msg.setWindowTitle("Layman")
+            msg.setText(str(info))
+            clipboard_button = QPushButton("Kopírovat do schránky" if self.locale == "cs" else "Copy to clipboard", msg)
             msg.addButton(clipboard_button, QMessageBox.ActionRole)
             clipboard_button.clicked.connect(copy_to_clipboard)
             msg.exec_()
 
         def copy_to_clipboard():
             clipboard = PyQt5.QtGui.QGuiApplication.clipboard()
-            clipboard.setText("This is the additional information you requested.")
+            clipboard.setText(str(err))
         
         button.clicked.connect(showMessageBox)
 
         
-        iface.messageBar().pushWidget(widget, Qgis.Warning)            
-    def copyCompositionUrl(self, composition=None):
+        self.iface.messageBar().pushWidget(widget, typ)            
+    def copyCompositionUrl(self, composition=None):  
         if not composition:
             url = self.instance.getUrl()
         else:
@@ -743,17 +746,21 @@ class Layman(QObject):
                 url = self.URI+'/client/rest/'+self.dlg.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0))+'/file'
             
         try:
+            5/0
             df=pd.DataFrame([url])
-            df.to_clipboard(index=False,header=False)
+            df.to_clipboard(index=False,header=False)            
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL uloženo do schránky."), Qgis.Success, duration=3)
             else:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL saved to clipboard."), Qgis.Success, duration=3)
-        except:
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL nebylo uloženo do schránky."), Qgis.Warning)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL was not saved to clipboard."), Qgis.Warning)
+        except Exception as e:
+            info = str(e)
+            allInfo = traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__) 
+            self.showMessageBar([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, allInfo, Qgis.Warning)
+            # if self.locale == "cs":
+            #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL nebylo uloženo do schránky."), Qgis.Warning)
+            # else:
+            #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL was not saved to clipboard."), Qgis.Warning)
     def run_LayerDecisionDialog(self, layersToDecision):
         self.recalculateDPI()
         self.dlg = LayerDecisionDialog()
