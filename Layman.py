@@ -4868,21 +4868,12 @@ class Layman(QObject):
     def loadAllComposites(self):
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'
 
-        try:
-            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-        except:
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
+        
+        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))       
         try:
             data = r.json()
-
         except:
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
+            self.showMessageBar([" Připojení k serveru selhalo!", " Connection with server failed!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning)            
             return
         for i in data:           
             url = self.URI+'/rest/' + self.laymanUsername + '/maps/'+i['name']+'/file'
@@ -4890,10 +4881,7 @@ class Layman(QObject):
             try:
                 map = r.json()
             except:
-                if self.locale == "cs":
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)
-                else:
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
+                self.showMessageBar([" Připojení k serveru selhalo!", " Connection with server failed!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning) 
             self.compositeList.append (map)
         self.loadedInMemory = True
     def _onReprojectionFailed(self, layerName):        
@@ -4998,13 +4986,9 @@ class Layman(QObject):
                 QgsProject.instance().setCrs(crs)
                 self.crsChangedConnect = True
       
-        self.dlg.pushButton_map.setEnabled(False)         
-        # self.params = list()
-        # self.params.append(name)
-        # self.params.append(service)
-        # self.params.append(workspace)
+        self.dlg.pushButton_map.setEnabled(False) 
         self.loadComposition.emit(name, service, workspace)
-       # QgsMessageLog.logMessage("readmapjson")
+      
     def readMapJson2(self,name, service, workspace=""):    
         self.unloadedLayers = list()
         self.processingRequest = True   
@@ -5333,35 +5317,6 @@ class Layman(QObject):
                     layers.append(lay)
 
         return layers
-    #to remove
-    #def run_getLayer(self):
-    #    self.recalculateDPI()
-    #    """Run method that performs all the real work"""
-
-    #    # Create the dialog with elements (after translation) and keep reference
-    #    # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-    #    if self.first_start == True:
-    #        self.first_start = False
-
-
-    #    self.dlgGetLayers.items.clear()
-    #    # show the dialog
-    #    self.dlgGetLayers.show()
-    #    data= self.getExistingLayers()
-    #    for x in range(len(data)):
-           
-    #        self.dlgGetLayers.items.addItem(data[x]['name'])
-    #    # Run the dialog event loop
-
-    #    result = self.dlgGetLayers.exec_()
-
-
-    #    # See if OK was pressed
-    #    if result:
-    #        # Do something useful here - delete the line containing pass and
-    #        # substitute with your code.
-
-    #        print ("test tlacitka")
 
     def onClosePlugin(self):
         """Cleanup necessary items here when plugin dockwidget is closed"""
