@@ -162,8 +162,7 @@ class Layman(QObject):
         self.thread1 = None
         self.compositeList = []
         self.compositeListOld = []
-        self.CHUNK_SIZE = 1048576 ## s touto hodnotou pracuje layman klient (cca 1MB soubor)
-        #self.CHUNK_SIZE = 2098152
+        self.CHUNK_SIZE = 1048576 ## s touto hodnotou pracuje layman klient (cca 1MB soubor)        
         self.URI = None
         self.access_token = None
         self.expires_in = None
@@ -472,8 +471,7 @@ class Layman(QObject):
             self.dlg.pushButton_editMeta.setEnabled(True)
             self.dlg.pushButton_new.setEnabled(True)
             self.dlg.pushButton_setPermissions.setEnabled(True)
-            self.dlg.pushButton_close.setEnabled(True)
-            self.dlg.pushButton_editMeta.setEnabled(True)
+            self.dlg.pushButton_close.setEnabled(True)            
             self.dlg.pushButton_save.setEnabled(True)
             self.dlg.pushButton_delete.setEnabled(True)
             self.dlg.pushButton_qfield.setEnabled(True)           
@@ -493,13 +491,18 @@ class Layman(QObject):
             try:
                 print(composition)
                 len(composition['layers'])
-            except:
-                self.logout()
-                if self.locale == "cs":
-                    QMessageBox.information(None, "Chyba připojení", "Uživatel již není příhlášen!")
-                    self.logout()
-                else:
-                    QMessageBox.information(None, "Connection error", "The user is not logged in!")
+            except:            
+                self.dlg.progressBar_loader.hide() 
+                self.dlg.pushButton_editMeta.setEnabled(False)                
+                self.dlg.pushButton_setPermissions.setEnabled(False)     
+                self.dlg.pushButton_save.setEnabled(False)
+                self.dlg.pushButton_delete.setEnabled(False)
+                self.dlg.pushButton_qfield.setEnabled(False)   
+                self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))      
+                # if self.locale == "cs":
+                #     QMessageBox.information(None, "Chyba připojení", "Uživatel již není příhlášen!")                    
+                # else:
+                #     QMessageBox.information(None, "Connection error", "The user is not logged in!")
                 return
             for i in reversed(range (0, len(composition['layers']))):                
                 layerList.append(self.removeUnacceptableChars(composition['layers'][i]['title']))
@@ -757,10 +760,6 @@ class Layman(QObject):
             info = str(e)
             allInfo = traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__) 
             self.showMessageBar([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, allInfo, Qgis.Warning)
-            # if self.locale == "cs":
-            #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL nebylo uloženo do schránky."), Qgis.Warning)
-            # else:
-            #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " URL was not saved to clipboard."), Qgis.Warning)
     def run_LayerDecisionDialog(self, layersToDecision):
         self.recalculateDPI()
         self.dlg = LayerDecisionDialog()
@@ -1063,26 +1062,21 @@ class Layman(QObject):
             composition['layers'][self.instance.getLayerOrderByTitle(name)]['greyscale'] = True
         else:
             composition['layers'][self.instance.getLayerOrderByTitle(name)]['greyscale'] = False
-        if self.patchMap2() == 200:
+        response = self.patchMap2()
+        if  response.status_code == 200:
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Změny byly uloženy."), Qgis.Success, duration=3)
             else:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Changes was saved."), Qgis.Success, duration=3)
         else:
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Změny nebyly uloženy."), Qgis.Warning, duration=5)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Changes was not saved."), Qgis.Warning, duration=5)
+            self.showMessageBar([" Změny nebyly uloženy.", " Changes was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning)            
         self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])
     def rememberLastServer(self, server):
         self.settings.setValue("laymanLastServer", server)
     def qfieldLogin(self):
         self.run_QfieldLoginDialog()
     def loginQfield(self):
-        url = "https://app.qfield.cloud/api/v1/auth/token/"
-       # login = "jvrobel"
-        passwd = "Tfc33aaa"
-        email = "vrobel.jan@seznam.cz"
+        url = "https://app.qfield.cloud/api/v1/auth/token/"    
         login = self.dlg2.lineEdit_userName.text()
         passwd = self.dlg2.lineEdit_password.text()
         if login == "" or passwd == "":
@@ -1131,12 +1125,7 @@ class Layman(QObject):
             self.dlg2.pushButton_exportCreate.clicked.connect(lambda: self.createQProject(self.dlg2.lineEdit_name.text(),self.dlg2.lineEdit_desciption.text(),self.dlg2.checkBox_private.checkState()))
             return
         else:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Info", "Přihlášení nebylo úspěšné!")
-
-            else:
-                QMessageBox.information(None, "Info", "Login was not successful!")
-            return
+            self.showMessageBar(["Přihlášení nebylo úspěšné!", "Login was not successful!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning)  
     def setQAuth(self, **kwargs: str) -> None:
 
         authcfg = self.settings.value("laymenQfieldAuthCfg")
@@ -1554,6 +1543,8 @@ class Layman(QObject):
         self.dlg.pushButton_update.setStyleSheet("#pushButton_update {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_update:hover{background: #66ab27 ;}#pushButton_update:disabled{background: #64818b ;}")
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
+        self.dlg.label_older.setCursor(QCursor(Qt.PointingHandCursor))
+        self.dlg.label_older.mousePressEvent = lambda event: self.getOldVersion()  
         
         if self.liferayServer != None and self.laymanUsername != "":
             userEndpoint = self.URI + "/rest/current-user"
@@ -1573,8 +1564,7 @@ class Layman(QObject):
             self.dlg.label_version.setText(self.getVersion())
             self.dlg.label_versionLayman.setText(self.laymanVersion)            
             self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-            self.dlg.label_older.setCursor(QCursor(Qt.PointingHandCursor))
-            self.dlg.label_older.mousePressEvent = lambda event: self.getOldVersion()             
+                       
             self.dlg.label_avversion.setText(versionCheck[1])
             if versionCheck[0] == True:
                 self.dlg.label_avversion.hide()
@@ -1924,8 +1914,7 @@ class Layman(QObject):
         self.dlg.pushButton_deleteMap.clicked.connect(lambda: self.deleteMap(self.dlg.listWidget.currentItem().text(),self.dlg.listWidget.currentRow()))      
         self.dlg.pushButton_up.clicked.connect(lambda: self.reorderLayers(self.dlg.treeWidget_listLayers.indexOfTopLevelItem(self.dlg.treeWidget_listLayers.currentItem()), 1, self.dlg.listWidget.currentRow()))       
         self.dlg.pushButton_down.clicked.connect(lambda: self.reorderLayers(self.dlg.treeWidget_listLayers.indexOfTopLevelItem(self.dlg.treeWidget_listLayers.currentItem()), -1, self.dlg.listWidget.currentRow()))
-
-        self.dlg.pushButton_saveOrder.clicked.connect(lambda: self.saveReorder(self.dlg.listWidget.currentRow()))
+        
         self.dlg.pushButton_setMapPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.dlg.listWidget.currentItem().text()))
 
         #if not self.loadedInMemory:
@@ -1962,7 +1951,7 @@ class Layman(QObject):
         self.dlg.treeWidget_listLayers.itemClicked.connect(lambda: self.dlg.pushButton_deleteLayers.setEnabled(True))
         self.dlg.listWidget.itemClicked.connect(lambda: self.setListLayer())
 
-        self.dlg.rejected.connect(lambda: self.saveReorder())
+        
 
 
         #
@@ -2028,10 +2017,11 @@ class Layman(QObject):
     def getOldVersion(self):
         response = QMessageBox.question(None, "Downgrade", "Chcete nainstalovat starší verzi pro QGIS 3.24 a nižší?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if response == QMessageBox.Yes:
-            print("Yes")
+            url = "https://gitlab.com/plan4all/layman-qgis-plugin/-/archive/old/layman-qgis-plugin-old.zip"
+            self.installPlugin(url)        
         else:
-            print("No")
-        print("test")
+            print("No install")
+        
     def importMapEnvironmnet(self,enabled):
         time.sleep(1)
         if enabled:
@@ -3243,12 +3233,7 @@ class Layman(QObject):
                 self.dlg.pushButton_addWMS.setEnabled(True)
         except:
             pass
-
-    def saveReorder(self):
-        for x in self.mapsChanged:           
-            self.patchMap(x)
-        print("changes saved to server")
-      
+  
     def getVersion(self):
         config = configparser.ConfigParser()
         config.read(os.path.join(self.plugin_dir ,'metadata.txt'))
@@ -3631,7 +3616,7 @@ class Layman(QObject):
         if response.status_code == 200:
             QgsMessageLog.logMessage("delLay")
         else:
-            QgsMessageLog.logMessage("delLayErr")
+            self.showMessageBar(["Vrstva nebyla smazána!", "Layer was not deleted!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning)
     def deleteItemFromTreeWidget(self,name):     
         iterator= QTreeWidgetItemIterator(self.dlg.treeWidget);
         items = []
@@ -4680,13 +4665,8 @@ class Layman(QObject):
 
             except:
                 pass
-
             
-        if message == "delLayErr":
-            if self.locale == "cs":
-                QMessageBox.information(None, "Error", "Vrstva nebyla smazána!")
-            else:
-                QMessageBox.information(None, "Error", "Layer was not deleted!")
+        
         if message == "delLay":
             try:
                 self.dlg.label_thumbnail.setText(' ')
@@ -5225,10 +5205,7 @@ class Layman(QObject):
             else:          
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
         else:
-            if self.locale == "cs":            
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla smazána."), Qgis.Warning)
-            else:           
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)
+            self.showMessageBar([" Kompozice  " + name + " nebyla smazána.", " Composition  " + name + " was not sucessfully deleted."], "code: " + str(response.status_code), str(response.content), Qgis.Warning)     
  
         self.refreshListWidgetMaps() ## pro treewidget
 
@@ -5251,10 +5228,7 @@ class Layman(QObject):
                 else:         
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was sucessfully deleted."), Qgis.Success, duration=3)
             else:
-                if self.locale == "cs":              
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + composition['name'] + " nebyla smazána."), Qgis.Warning)
-                else:             
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was not sucessfully deleted."), Qgis.Warning)
+                self.showMessageBar([" Kompozice  " + composition['name'] + " nebyla smazána.", " Composition  " + composition['name'] + " was not sucessfully deleted."], "code: " + str(response.status_code), str(response.content), Qgis.Warning)               
 
             self.instance = None
             self.current = None
@@ -5280,10 +5254,7 @@ class Layman(QObject):
                 else:             
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
             else:
-                if self.locale == "cs":             
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla smazána."), Qgis.Warning)
-                else:              
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)
+                self.showMessageBar([" Kompozice  " + name + " nebyla smazána.", " Composition  " + name + " was not sucessfully deleted."], "code: " + str(response.status_code), str(response.content), Qgis.Warning)          
 
             try:
                 del (self.compositeList[x])
@@ -5617,16 +5588,14 @@ class Layman(QObject):
         center = tform.transform(QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()))
         composition['center'][0] = float(center.x())
         composition['center'][1] = float(center.y())
-        if (self.patchMap2() == 200):
+        response = self.patchMap2()
+        if (response.status_code == 200):
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Metadata byla úspěšně upravena."), Qgis.Success, duration=3)
             else:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
         else:
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Metadata nebyla upravena."), Qgis.Warning)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Map metadata was not saved."), Qgis.Warning)
+            self.showMessageBar([" Metadata nebyla upravena.", " Map metadata was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning)            
 
         self.dlg.close()
         composition = self.instance.getComposition()
@@ -6139,10 +6108,7 @@ class Layman(QObject):
                     time.sleep(3)
                     response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), headers = self.getAuthHeader(self.authCfg))
             except:
-                if self.locale == "cs":
-                    QMessageBox.information(None, "Layman import layer", "Připojení se serverem selhalo!")
-                else:
-                    QMessageBox.information(None, "Layman import layer", "Connection with server failed!")
+                self.showMessageBar(["Připojení se serverem selhalo!", "Connection with server failed!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning)                
                 return
 
             if (response.status_code == 200):
@@ -6561,17 +6527,7 @@ class Layman(QObject):
             nameCheck = False
         if not self.checkPossibleChars(layer_name):
             QgsMessageLog.logMessage("wrongName")
-            return
-
-
-        
-        if False:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Prostorový rozsah vrstvy je mimo rozsah WGS 84. (EPSG: 4326)")
-            else:
-                QMessageBox.information(None, "Layman", "Extent of layer is out of WGS 84 range. (EPSG: 4326)")
-            validExtent = False
-
+            return      
         if (nameCheck and validExtent):
 
            # crs = layers[0].crs().authid()
@@ -7178,17 +7134,36 @@ class Layman(QObject):
                     self.dlg.progressBar.show()
                     self.dlg.label_import.show()
                     self.importMapEnvironmnet(False)
-                    threading.Thread(target=lambda: self.importMap(x, "add", successful) ).start()                  
-    def addLayerToComposite2(self,composition, layersList):
-        #layersList = self.removeRastersWithoutCrs(layersList)
+                    threading.Thread(target=lambda: self.importMap(x, "add", successful) ).start()     
+    def findParamForWfs(self, param, layer):
+        string = layer.dataProvider().uri().uri()
+        start = layer.dataProvider().uri().uri().find(param) + len(param)
+        end = string.find("'", start)
+        value = string[start:end]   
+        return value                                        
+    def addLayerToComposite2(self,composition, layersList):        
         print(layersList)
-
         for layer in layersList:
 
             if (isinstance(layer,QgsRasterLayer)) and layer.dataProvider().uri().uri() != "":
                 print("External WMS detected")
                 self.addExternalWMSToComposite(layer.name())
-            if (isinstance(layer,QgsVectorLayer))  or layer.dataProvider().uri().uri() == "":
+            if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
+                print("External WFS detected")
+                path = ""
+                path = self.getGroupOfLayer(layer)
+                if path == 'root':
+                    path = ""
+                url = self.findParamForWfs("url='", layer)  
+                layerTreeRoot = QgsProject.instance().layerTreeRoot()
+                layerTreeNode = layerTreeRoot.findLayer(layer.id())     
+                layerName = self.removeUnacceptableChars(layer.name()).lower() 
+                if layer.hasScaleBasedVisibility():
+                    minScale = int(self.scaleToResolution(layer.minimumScale()))                    
+                else:
+                    minScale = None    
+                composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layer.name()),"className":"OpenLayers.Layer.Vector","style": "","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":int(self.scaleToResolution(layer.maximumScale())),"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.externalWFS","url": url},"ratio":1.5,"visibility": layerTreeNode.isVisible(),"dimensions":{}})
+            elif (isinstance(layer,QgsVectorLayer))  or layer.dataProvider().uri().uri() == "":
 
                 layers = []
                 layers.append(layer)
@@ -7354,12 +7329,7 @@ class Layman(QObject):
             else:           
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was sucessfully created."), Qgis.Success, duration=3)
         else:
-            if self.locale == "cs":          
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " nebyla vytvořena."), Qgis.Warning)
-            else:           
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully created."), Qgis.Warning)
-
-
+            self.showMessageBar([" Kompozice  " + self.compositeList[x]['name'] + " nebyla vytvořena.", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully created."], "code: " + str(response.status_code), str(response.content), Qgis.Warning)        
 
     def showProgressBar(self, bar):
         bar = QProgressBar()
@@ -7380,23 +7350,7 @@ class Layman(QObject):
             return
 
         return pom
-    def patchMap(self, x):
-        tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
-        with open(tempFile, 'w') as outfile:
-            json.dump(self.compositeList[x], outfile)
-        jsonPath = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
-        with open(jsonPath, 'rb') as f:
-            d = json.load(f)
-
-        files = {'file': (jsonPath, open(jsonPath, 'rb')),}
-        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract']}         
-        response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'], files=files, data = data, headers = self.getAuthHeader(self.authCfg))
-        self.processingRequest = False        
-        if (response.status_code == 200):
-            QgsMessageLog.logMessage("patchMapP")
-        else:           
-           pass
-        return
+    
     def compositionToClipboard(self):
 
         composition = self.instance.getComposition()
@@ -7419,27 +7373,15 @@ class Layman(QObject):
         write = self.instance.getAllPermissions()['write']
         data['access_rights.read'] =  self.listToString(read)
         data['access_rights.write'] = self.listToString(write)
-        # data['access_rights'] = self.instance.getAllPermissions()
-
-
-        print("export map")
-        #response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'],headers = self.getAuthHeader(self.authCfg))
+        print("export map")      
         workspace = self.instance.getWorkspace()        
         requests.delete(self.URI+'/rest/'+workspace+'/maps/'+composition['name'], headers = self.getAuthHeader(self.authCfg))
         time.sleep(1)
-        response = requests.post(self.URI+'/rest/'+workspace+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
-        #response = requests.patch(self.URI+'/rest/'+workspace+'/maps/'+composition['name'], files=files, data = data, headers = self.getAuthHeader(self.authCfg))
+        response = requests.post(self.URI+'/rest/'+workspace+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))      
         self.processingRequest = False        
         res = self.fromByteToJson(response.content)
-
-        return response.status_code
-
-        if (response.status_code == 200):
-            QgsMessageLog.logMessage("patchMapP")
-        else:
-            return
-            QgsMessageLog.logMessage("patchMapN")
-        return
+        return response
+    
     def importMap(self, x, operation, s = 0): ##s je počet vrstev úspěšně nahraných na server  
         tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
 
@@ -7484,10 +7426,7 @@ class Layman(QObject):
                     else:
                         iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was sucessfully modified."), Qgis.Success, duration=3)
                 else:
-                    if self.locale == "cs":
-                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " nebyla změněna."), Qgis.Warning)
-                    else:
-                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully modified."), Qgis.Warning)
+                    self.showMessageBar([" Kompozice  " + self.compositeList[x]['name'] + " nebyla změněna.", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully modified."], "code: " + str(response.status_code), str(response.content), Qgis.Warning)                   
                 if (self.dlg.windowTitle() != "Manage Maps"):
                     self.dlg.show()
                 return
@@ -7707,7 +7646,7 @@ class Layman(QObject):
                 i = i + 1
                 if i == 2:
                     time.sleep(1)
-                    QgsMessageLog.logMessage("requestError")
+                    self.showMessageBar(["Chyba spojení se serverem!", "Connection with server lost!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning)
                     return False
 
 
@@ -8047,8 +7986,8 @@ class Layman(QObject):
                     else:
                         groups.append([layerNameTitle, len(data['layers']) - i])
                     try: ## nove rozdeleni
-
-                        if 'type' in data['layers'][x]['protocol']:
+                       
+                        if 'type' in data['layers'][x]['protocol']: ## old
                             if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
                                 if 'workspace' in data:                                    
                                     repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['workspace'] + "wfs"
@@ -8056,8 +7995,10 @@ class Layman(QObject):
 
                                 threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
                                 
-                        if "format" in data['layers'][x]['protocol']:                            
-                            if (data['layers'][x]['protocol']['format'] == "hs.format.WFS" or data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):
+                        if "format" in data['layers'][x]['protocol']:    
+                            if (data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):   
+                                threads.append(threading.Thread(target=lambda: self.loadWfsExternal(data['layers'][x],epsg, groupName)).start())
+                            if (data['layers'][x]['protocol']['format'] == "hs.format.WFS"):
                                 if 'workspace' in data['layers'][x]:                                    
                                     repairUrl = repairUrl.replace("hsl-layman", "geoserver")
 
@@ -8277,6 +8218,23 @@ class Layman(QObject):
                     tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
                     layer.loadNamedStyle(tempf)
                     layer.triggerRepaint()
+    def loadWfsExternal(self, layer, epsg, groupName):
+        minRes = layer['minResolution']
+        maxRes = layer['maxResolution']  
+        #wfs_url = "http://gis.nature.cz/arcgis/services/Aplikace/Opendata/MapServer/WFSServer?service=WFS&version=auto&request=GetFeature&typeName=Opendata:Velkoplosna_zvlaste_chranena_uzemi__VZCHU_&SRSNAME=EPSG:4326"                   
+        wfs_url = layer["protocol"]["url"]+"?service=WFS&version=auto&request=GetFeature&typeName="+layer["title"]+"&SRSNAME=" + epsg                   
+        layer = QgsVectorLayer(wfs_url, 'layername', 'WFS')
+        print(layer.isValid())
+        self.loadLayer(layer) 
+        if (layer.isValid()):         
+            if minRes != None and maxRes != None:
+                print("set scale")
+                layer.setMinimumScale(self.resolutionToScale(maxRes))
+                layer.setMaximumScale(self.resolutionToScale(minRes))
+                layer.setScaleBasedVisibility(True)
+                print(layer.hasScaleBasedVisibility())
+        if (groupName != ''):                    
+            self.addWmsToGroup(groupName,layer,"")                
     def loadWfs(self, url, layerName,layerNameTitle, groupName = '', subgroupName = '', visibility= '', everyone=False, minRes= 0, maxRes=None):                    
         layerName = self.removeUnacceptableChars(layerName)        
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()       
@@ -8593,40 +8551,7 @@ class Layman(QObject):
                 response = requests.post(url, files = files, data=payload, headers = self.getAuthHeader(self.authCfg))
          
         except:
-            pass            
-
-
-    def is_admin(self):
-        try:
-            return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
-            return False
-    def install(self):
-        if self.locale == "cs":
-            msgbox = QMessageBox(QMessageBox.Question, "Layman", "Plugin vyžaduje instalaci následujících python modulů: \n\nFlask 1.1.1 \nWerkzeug 0.16.0 \nItsDangerous 1.1.0 \nClick 7.0 \n\nInstalace vyžaduje administrátorská práva. \nChcete provést instalaci modulů?")
-        else:
-            msgbox = QMessageBox(QMessageBox.Question, "Layman", "Plugin requires installation following python modules: \n\nFlask 1.1.1 \nWerkzeug 0.16.0 \nItsDangerous 1.1.0 \nClick 7.0 \n\nInstalation requires administrator permissions. \nDo you want install the packages?")
-        msgbox.addButton(QMessageBox.Yes)
-        msgbox.addButton(QMessageBox.No)
-        msgbox.setDefaultButton(QMessageBox.No)
-        reply = msgbox.exec()
-        if (reply == QMessageBox.Yes):
-            path = QgsApplication.prefixPath().replace("apps/qgis","apps") + "/Python37/lib/site-packages"
-
-
-            if self.is_admin():
-                print("xx")# 
-            else:
-                # Re-run the program with admin rights
-                program = self.plugin_dir + os.sep + "dependencies" + os.sep + "LaymanDependencies.exe"
-
-                if not os.path.exists(path):
-                    path = path.replace("apps-ltr","apps")          
-                print(ctypes.windll.shell32.ShellExecuteW(None, "runas", program, path, None, 1))
-                self.dlg.close()
-                self.disableEnvironment()
-                QMessageBox.information(None, "Layman", "Layman plugin was updated. Please restart QGIS.")
-              #  ctypes.windll.shell32.ShellExecuteW(None, "runas", "notepad.exe", self.plugin_dir + os.sep + "Layman.py", None, 1)
+            pass  
 ############################################# auth part############################
     def startThread(self):
         self.thread1 = threading.Thread(target=self.refreshToken)
@@ -8996,6 +8921,8 @@ class Layman(QObject):
                 return
         #url = "https://gitlab.com/Vrobel/layman_qgis/-/archive/master/layman_qgis-master.zip"
         url = "https://gitlab.com/plan4all/layman-qgis-plugin/-/archive/master/layman-qgis-plugin-master.zip"
+        self.installPlugin(url)
+    def installPlugin(self, url):
         save_path = tempfile.gettempdir() + os.sep + "layman.zip"
         self.download_url(url, save_path)
 
@@ -9008,7 +8935,6 @@ class Layman(QObject):
         self.dlg.close()
         self.disableEnvironment()
         QMessageBox.information(None, "Layman", "Layman plugin was updated. Please restart QGIS.")
-
     def checkVersion(self):
         #r = requests.get("https://gitlab.com/Vrobel/layman_qgis/-/raw/master/metadata.txt?inline=false")
         r = requests.get("https://gitlab.com/plan4all/layman-qgis-plugin/-/raw/master/metadata.txt?inline=false")
