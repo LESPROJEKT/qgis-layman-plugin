@@ -7131,14 +7131,16 @@ class Layman(QObject):
                 if path == 'root':
                     path = ""
                 url = self.findParamForWfs("url='", layer)  
+                title = self.findParamForWfs("typename='", layer)  
                 layerTreeRoot = QgsProject.instance().layerTreeRoot()
                 layerTreeNode = layerTreeRoot.findLayer(layer.id())     
+                #layerName = self.removeUnacceptableChars(layer.name()).lower() 
                 layerName = self.removeUnacceptableChars(layer.name()).lower() 
                 if layer.hasScaleBasedVisibility():
                     minScale = int(self.scaleToResolution(layer.minimumScale()))                    
                 else:
                     minScale = None    
-                composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layer.name()),"className":"OpenLayers.Layer.Vector","style": "","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":int(self.scaleToResolution(layer.maximumScale())),"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.externalWFS","url": url},"ratio":1.5,"visibility": layerTreeNode.isVisible(),"dimensions":{}})
+                composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":layer.name(),"className":"OpenLayers.Layer.Vector","style": "","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":int(self.scaleToResolution(layer.maximumScale())),"name": str(title),"opacity":1 ,"protocol":{"format": "hs.format.externalWFS","url": url},"ratio":1.5,"visibility": layerTreeNode.isVisible(),"dimensions":{}})
             elif (isinstance(layer,QgsVectorLayer))  or layer.dataProvider().uri().uri() == "":
 
                 layers = []
@@ -8198,8 +8200,8 @@ class Layman(QObject):
         minRes = layer['minResolution']
         maxRes = layer['maxResolution']  
         #wfs_url = "http://gis.nature.cz/arcgis/services/Aplikace/Opendata/MapServer/WFSServer?service=WFS&version=auto&request=GetFeature&typeName=Opendata:Velkoplosna_zvlaste_chranena_uzemi__VZCHU_&SRSNAME=EPSG:4326"                   
-        wfs_url = layer["protocol"]["url"]+"?service=WFS&version=auto&request=GetFeature&typeName="+layer["title"]+"&SRSNAME=" + epsg                   
-        layer = QgsVectorLayer(wfs_url, 'layername', 'WFS')
+        wfs_url = layer["protocol"]["url"]+"?service=WFS&version=auto&request=GetFeature&typeName="+layer["name"]+"&SRSNAME=" + epsg                   
+        layer = QgsVectorLayer(wfs_url, layer['title'], 'WFS')
         print(layer.isValid())
         self.loadLayer(layer) 
         if (layer.isValid()):         
