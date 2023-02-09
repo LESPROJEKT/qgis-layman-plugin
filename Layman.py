@@ -560,6 +560,8 @@ class Layman(QObject):
                     if isinstance(layer, QgsVectorLayer):
                         #item.setText(1, "WFS")
                         item.setText(1, "WMS")
+                    if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
+                        item.setText(1, "WFS")                      
                     #self.setGuiForItem(itemService)
                     self.setGuiForItem(item)
                     if layerType == QgsMapLayer.VectorLayer:
@@ -584,8 +586,10 @@ class Layman(QObject):
                             cellServices.addItems(['WMS','WFS'])
                         if isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
                             cellServices.addItems(['WMS'])
-                        if isinstance(layer, QgsVectorLayer):
+                        if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS':
                             cellServices.addItems(['WMS','WFS'])
+                        if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS':
+                            cellServices.addItems(['WFS'])                            
 
                 if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
                     if self.locale == "cs":
@@ -2200,11 +2204,8 @@ class Layman(QObject):
         for layer in layers:
             if (layer.type() == QgsMapLayer.VectorLayer):
                 layerType = 'vector layer'
-            if (layer.type() == QgsMapLayer.RasterLayer):
-                if layer.dataProvider().name() == "arcgismapserver":
-                    layerType = 'arcgis layer'
-                else:
-                    layerType = 'raster layer'
+            else:
+                layerType = 'raster layer'
             if layer.providerType() != "wms":
                 item = QTreeWidgetItem([layer.name(), layerType])
         
@@ -5847,8 +5848,8 @@ class Layman(QObject):
                     if isinstance(i.symbol().symbolLayer(j), QgsMarkerLineSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):# or isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer):
                         #if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer):
                         #    path = (i.symbol().symbolLayer(0).path()) 
-                        #else:QgsVectorFieldSymbolLayer
-                        if not ((isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsSimpleLineSymbolLayer) or isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsSimpleMarkerSymbolLayer)or isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsVectorFieldSymbolLayer))):
+                        #else:
+                        if not ((isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsSimpleLineSymbolLayer) or isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsSimpleMarkerSymbolLayer))):
                             path = (i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path())                 
                             if path[:4] != "base":
                                 if os.path.exists(path):
@@ -6498,12 +6499,12 @@ class Layman(QObject):
 
 
 
-        # if (re.match('[0-9]{1}', layer_name)): ## nesmí být nesmysl v názvu na prvním místě
-        #     if self.locale == "cs":
-        #         QMessageBox.information(None, "Layman", "Není povoleno číslo v prvním znaku.")
-        #     else:
-        #         QMessageBox.information(None, "Layman", "Number in first character is not allowed.")
-        #     nameCheck = False
+        if (re.match('[0-9]{1}', layer_name)): ## nesmí být nesmysl v názvu na prvním místě
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Není povoleno číslo v prvním znaku.")
+            else:
+                QMessageBox.information(None, "Layman", "Number in first character is not allowed.")
+            nameCheck = False
         if not self.checkPossibleChars(layer_name):
             QgsMessageLog.logMessage("wrongName")
             return      
@@ -6904,11 +6905,11 @@ class Layman(QObject):
         arc = False
         if layer.dataProvider().name() == "arcgismapserver":
             arc = True
-        if not arc:
+        if "&" in layer.dataProvider().dataSourceUri():
             params = layer.dataProvider().dataSourceUri().split("&")            
         else:
             params = layer.dataProvider().dataSourceUri().split(" ") ## arcgis use whitespace
-      
+            
         if not (self.isXYZ(layer.name())): 
             layers = list()
             for p in params:     
@@ -6920,8 +6921,7 @@ class Layman(QObject):
                     format = format.replace("'", "")
                 if(str(param[0]) == "url"):
                     url = (param[1]) 
-                    url = url.replace("'", "") 
-                            
+                    url = url.replace("'", "")                   
                 if(str(param[0]) == "layers"):
                     layers.append(param[1])
                 if(str(param[0]) == "timeDimensionExtent"):
@@ -6930,12 +6930,13 @@ class Layman(QObject):
             if (len(layers) == 1):
                 layers = str(layers).replace("[", "").replace("]", "").replace("'", "")
             else:
-                layers = str(layers).replace("'", "").replace("[", "").replace("]", "").replace(" ", "")
+                layers = str(layers).replace("'", "")
             self.existLayer = False
             print(dimension)
             if dimension == "":
                 composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS" if not arc else "ArcGISRest","dimensions":{},"singleTile":False, "greyscale": greyScale,  "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
             else:              
+
                 composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS" if not arc else "ArcGISRest","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
            
         else:           
