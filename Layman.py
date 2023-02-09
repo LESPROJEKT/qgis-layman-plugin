@@ -8902,6 +8902,17 @@ class Layman(QObject):
                 return
         #url = "https://gitlab.com/Vrobel/layman_qgis/-/archive/master/layman_qgis-master.zip"
         url = "https://gitlab.com/plan4all/layman-qgis-plugin/-/archive/master/layman-qgis-plugin-master.zip"
+        if not self.checkQgisVersion():        
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Aktualizace pluginu", "Plugin vyžaduje verzi QGIS 3.26 a vyšší. Chcete přesto pokračovat?")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Plugin update", "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.No):
+                return
         self.installPlugin(url)
     def installPlugin(self, url):
         save_path = tempfile.gettempdir() + os.sep + "layman.zip"
@@ -8961,7 +8972,14 @@ class Layman(QObject):
         config = configparser.ConfigParser()
         config.read(file)
         return config
-
+    def checkQgisVersion(self):
+        version = Qgis.QGIS_VERSION_INT
+        major = version // 10000
+        minor = (version // 100) % 100      
+        if major > 3 or (major == 3 and minor >= 26):
+            return True
+        else:
+            return False
     def layerChanged(self):
 
 
