@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.26
 description=Layman
-version=1.96.0
+version=1.97.0
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -47,6 +47,7 @@ changelog=
 	1.88 - export Layman projects to qfield
 	1.95 - layer take EPSG from project 
 	1.96 - compatibility with QGIS 3.26
+	1.97 - raster time series export
 # Tags are comma separated with spaces allowed
 tags=python
 

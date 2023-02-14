@@ -110,6 +110,7 @@ from .dlg_layerProperties import LayerPropertiesDialog
 from .currentComposition import CurrentComposition
 from .dlg_LoginQfield import LoginQfieldDialog
 from .dlg_showQProject import ShowQProjectDialog
+from .dlg_timeSeries import TimeSeriesDialog
 
 from typing import Any, Dict, List, Optional, Union
 from qgis.PyQt.QtNetwork import (
@@ -132,6 +133,7 @@ class Layman(QObject):
     permissionInfo = pyqtSignal(bool,list, int)
     reoderComposition = pyqtSignal(list,list,set,list)
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel)
+    tsSuccess = pyqtSignal()
 
 
 
@@ -339,6 +341,7 @@ class Layman(QObject):
         self.permissionInfo.connect(self.afterPermissionDone)
         self.reoderComposition.connect(self.reorderGroups) 
         self.showErr.connect(self.showMessageBar)
+        self.tsSuccess.connect(self._onSuccessTs)
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -2152,42 +2155,125 @@ class Layman(QObject):
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         self.dlg.show()
         result = self.dlg.exec_()
-    def timeSeries(self, items): 
-        url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars("rasters")
-        r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
-        inputPath = r"C:\Users\Honza\Downloads\RVI4S1(1)\\"
-        # List of .shp files to include in the zip archive
-        rasters = [inputPath+"S1A_IW_GRDH_1SDV_20220510T050948_20220510T051013_043144_05271A_E359_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220522T050948_20220522T051013_043319_052C50_287D_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220603T050949_20220603T051014_043494_053176_E5BF_RVI4S1.tif"]
+    def checkRegex(self, items, regex):
+        for item in items:
+            if not re.search(regex, item.text(0)):
+                return False
+        return True 
+    def getRegex(self):
+        # print(substring)
+        # #escaped_substring = re.escape(substring)     
+        # pattern =  r"\d{" + str(len(substring)) + r"}"  
+        # return pattern
+        string = self.dlg2.comboBox_layers.currentText()
+        print(string)
+        patterns =  [r'[0-9]{8}', r'^\d{4}-\d{1,2}-\d{1,2}', r'\d{1,2}-\w{3}-\d{4}$', r'^\d{1,2}\s+\w+\s+\d{4}$', r'^\w+\s+\d{1,2},\s+\d{4}$']
+        for pattern in patterns:
+            print(pattern)
+            if re.search(pattern, string):
+                print("Pattern found in the string.")
+                self.dlg2.lineEdit_regex.setText(pattern)   
+        return False
+    # def onTimeComboChanged(self):
+        
+    #     self.dlg2.lineEdit_layerName.setText(self.dlg2.comboBox_layers.currentText())               
+    def showTSDialog(self):
+        self.dlg2 = TimeSeriesDialog()
+        self.dlg2.pushButton_timeSeries.setStyleSheet("#pushButton_timeSeries {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_timeSeries:hover{background: #66ab27 ;}")        
+        self.dlg2.pushButton_getRegex.setStyleSheet("#pushButton_getRegex {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_getRegex:hover{background: #66ab27 ;}")        
+        self.dlg2.show()   
+        self.dlg2.lineEdit_layerName.hide()   
+        #self.dlg2.comboBox_layers.currentIndexChanged.connect(self.onTimeComboChanged)
+        for item in self.dlg.treeWidget.selectedItems():
+            self.dlg2.comboBox_layers.addItem(item.text(0))
+        #'[0-9]{8}'
+        self.dlg2.pushButton_timeSeries.clicked.connect(lambda: self.prepareTSUpdate(self.dlg.treeWidget.selectedItems(), self.dlg2.lineEdit_regex.text() , self.dlg2.lineEdit_name.text()))  
+        self.dlg2.pushButton_getRegex.clicked.connect(self.getRegex)  
+    # def setRegexText(self):
+        # self.dlg2.lineEdit_layerName.setReadOnly(False)
+        # self.dlg2.lineEdit_layerName.setEchoMode(QLineEdit.Normal)
+        # self.dlg2.lineEdit_layerName.setFocus()
+        # #self.dlg2.lineEdit_layerName.setSelection(8, 15)
+        # print(self.dlg2.lineEdit_layerName.hasSelectedText())
+        # self.dlg2.lineEdit_regex.setText(self.getRegex(self.dlg2.lineEdit_layerName.selectedText()))        
+    def prepareTSUpdate(self, items, regex, title):
+        if not self.checkRegex(items, regex):
+            print("regex nesedí na názvy")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Regulerní výraz nesedí na jeden nebo více názvů.")
+            else:
+                QMessageBox.information(None, "Layman", "The regular expression does not match one or more names.")
+            return
+        self.dlg2.close()
+        self.dlg.progressBar.show()
+        threading.Thread(target=lambda: self.timeSeries(items, regex, title)).start()
 
+    def timeSeries(self, items, regex, title): 
+        
+        print("time series")
+        # url = self.URI+'/rest/'+self.laymanUsername+'/maps'
+        # r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        # print(r.content)
+        name = self.removeUnacceptableChars(title)
+        rasters = list()
+        for item in items:
+            layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+            rasters.append(layer.source())
+        crs = layer.crs().authid()
+        url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
+        r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
+        #inputPath = r"C:\Users\Honza\Downloads\RVI4S1(1)\\"
+      
+        #rasters = [inputPath+"S1A_IW_GRDH_1SDV_20220510T050948_20220510T051013_043144_05271A_E359_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220522T050948_20220522T051013_043319_052C50_287D_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220603T050949_20220603T051014_043494_053176_E5BF_RVI4S1.tif"]
+        name = self.removeUnacceptableChars(title)
         # Create the zip archive
-        with zipfile.ZipFile("C:\\Users\\Honza\\Downloads\\RVI4S1(1)\\test\\rasters.zip", "w") as zip:
+        path = tempfile.gettempdir() + os.sep + name+".zip"
+        with zipfile.ZipFile(path, "w") as zip:
             for raster in rasters:                
                 zip.write(raster, os.path.basename(raster))
         payload = {
                 #'file': name.lower()+ext,
-                'file': ["rasters.zip"],
-                'title': "rasters",
-                'crs': "EPSG:4326",
-                'time_regex': '[0-9]{8}'
+                'file': [name+".zip"],
+                'title': title,
+                'crs': crs,
+                'time_regex': regex
                 }
         # Send the zip archive to the server
-        url = "https://hub4everybody.com/rest/jan_vrobel/layers"
-        path = "C:\\Users\\Honza\\Downloads\\RVI4S1(1)\\test\\rasters.zip"
-        file = open("C:\\Users\\Honza\\Downloads\\RVI4S1(1)\\test\\rasters.zip", "rb")
+       # url = "https://hub4everybody.com/rest/jan_vrobel/layers"
+        url = self.URI+'/rest/'+self.laymanUsername+'/layers'
+        # path = "C:\\Users\\Honza\\Downloads\\RVI4S1(1)\\test\\rasters.zip"
+        #file = open("C:\\Users\\Honza\\Downloads\\RVI4S1(1)\\test\\rasters.zip", "rb")
         files = {'file': ("", open(path, 'rb'))}
         #r = requests.post(url, files={"rasters.zip": file},data=payload,  headers = self.getAuthHeader(self.authCfg))
         response = requests.request("POST", url, files=files,  data=payload, headers = self.getAuthHeader(self.authCfg))   
+        print(response.text)  
+        f = open(path, 'rb')
+        arr = []
+        for piece in self.read_in_chunks(f):
+            arr.append(piece)
+            #layer_name = self.removeUnacceptableChars(layer_name)
 
-        # data = { 'name' :  str("rasters").lower(), 'title' : str("rasters")}
+
+
+        resumableFilename = name + ".zip"
+        layman_original_parameter = "file"
+        resumableTotalChunks = len(arr)
+            #print ("resumable" + resumableFilename)
+        print(resumableTotalChunks)
+        filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) ## chunky se ukládají do adresáře v tempu
+        self.processChunks(arr, resumableFilename, layman_original_parameter,resumableTotalChunks, name,filePath,".zip")
+        # print(response.text)  
+        # data = { 'name' :  str("rasters").lower(), 'title' : str("rasters"), 'file' : str("rasters.zip")}
         # data['crs'] = 'EPSG:4326'
         # response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
-        print(response.text)        
+        self.tsSuccess.emit()         
     def run_ImportLayerDialog(self):
         self.recalculateDPI()
         self.dlg = ImportLayerDialog()
         self.dlg.label_progress.hide()
         self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))
-        self.dlg.pushButton_timeSeries.clicked.connect(lambda: self.timeSeries(self.dlg.treeWidget.selectedItems()))
+        self.dlg.pushButton_timeSeries.clicked.connect(lambda: self.showTSDialog())
+        #self.dlg.pushButton_timeSeries.clicked.connect(lambda: self.timeSeries(self.dlg.treeWidget.selectedItems()))
         self.dlg.pushButton_timeSeries.hide()
         if self.locale == "cs":
             self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 0")
@@ -2234,6 +2320,7 @@ class Layman(QObject):
     def setBatchLengthZero(self):
         self.batchLength = 0
     def run_login(self, server = False):
+        
         if server or self.current != None:
             server = True
             proj = QgsProject.instance()
@@ -2242,8 +2329,7 @@ class Layman(QObject):
             
         self.recalculateDPI()
 
-        self.dlg = ConnectionManagerDialog()
-
+        self.dlg = ConnectionManagerDialog()      
         self.dlg.show()    
         if not self.dependencies:
             self.dlg.pushButton_Connect.hide()          
@@ -5978,18 +6064,43 @@ class Layman(QObject):
         text_file = open(output, "w")
         text_file.write((top + str(feats)[1:-1] + bottom).replace("'", "\""))
         text_file.close()
-    def callPostRequest(self, layers):     
-        self.dlg.label_progress.show()
+    def checkIfAllLayerAreRaster(self, layers): 
+        if len(layers) == 1:
+            return False
+        for item in layers:
+            layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+            if layer.type() == QgsMapLayer.RasterLayer:
+                raster_layer = layer
+                if raster_layer.providerType() != "wms":
+                    path = raster_layer.source()
+                    print("File raster layer:", path)
+            else:
+                return False  
+        return True    
+    def callPostRequest(self, layers):
         self.ThreadsA = set()
         for thread in threading.enumerate():
             self.ThreadsA.add(thread.name)
         self.uploaded = 0
         self.batchLength = len(layers)
+        
+        if self.checkIfAllLayerAreRaster(layers):
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Je vybráno více rastrových vrstev. Chcete je exportovat jako časové?")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Multiple raster layers are selected. Do you want to export them as time series?")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.Yes):
+                self.showTSDialog()
+                return
+        self.dlg.label_progress.show()        
         if self.locale == "cs":
             self.dlg.label_progress.setText("Úspěšně exportováno: 0 / " + str(len(layers)) )
         else:
-            self.dlg.label_progress.setText("Sucessfully exported 0 / " + str(len(layers)) )
-       
+            self.dlg.label_progress.setText("Sucessfully exported 0 / " + str(len(layers)) )        
         self.layersToUpload = len(layers)
         for item in layers:
             
@@ -8451,11 +8562,9 @@ class Layman(QObject):
             ret = True
         return ret
 
-    def registerLayer(self, name):
-
-
+    def registerLayer(self, title):        
         url = self.URI + "/rest/"+self.laymanUsername+"/layers"
-        name = self.removeUnacceptableChars(name)
+        name = self.removeUnacceptableChars(title)
         geoPath = self.getTempPath(name).lower()
         if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0"):
             stylePath = self.getTempPath(name).replace("geojson", "qml").lower()
@@ -8464,7 +8573,7 @@ class Layman(QObject):
         files = {'style': (stylePath, open(stylePath, 'rb')),} # nahrávám sld
         payload = {
             'file': name.lower()+".geojson",
-            'title': name
+            'title': title
             }
         response = requests.request("POST", url, files = files, data=payload, headers = self.getAuthHeader(self.authCfg))
 
@@ -8811,8 +8920,9 @@ class Layman(QObject):
         self.compositeListOld = []
     def openAuthLiferayUrl2(self, load="", autoLog = False):        
         if hasattr(self, 'dlg'):            
-            self.rememberLastServer(self.dlg.comboBox_server.currentIndex())
-            self.dlg.pushButton_Connect.setEnabled(False)
+            if isinstance(self.dlg, ConnectionManagerDialog):
+                self.rememberLastServer(self.dlg.comboBox_server.currentIndex())
+                self.dlg.pushButton_Connect.setEnabled(False)
         self.isAuthorized = True
         authcfg_id = self.authCfg     
         print(self.setup_oauth(authcfg_id, self.liferayServer))
@@ -8852,11 +8962,12 @@ class Layman(QObject):
 
                 self.authHeader = authHeader
                 self.authOptained()     
-                if hasattr(self, 'dlg'):      
-                    self.dlg.pushButton_logout.setEnabled(True)
-                    self.dlg.pushButton_NoLogin.setEnabled(False)
-                    self.dlg.pushButton_Connect.setEnabled(False)
-                    self.dlg.close()                
+                if hasattr(self, 'dlg'): 
+                    if isinstance(self.dlg, ConnectionManagerDialog):     
+                        self.dlg.pushButton_logout.setEnabled(True)
+                        self.dlg.pushButton_NoLogin.setEnabled(False)
+                        self.dlg.pushButton_Connect.setEnabled(False)
+                        self.dlg.close()                
                 if load != "":
                     print("loading current")
                     url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+load+'/file'
@@ -8984,6 +9095,12 @@ class Layman(QObject):
             return True
         else:
             return False
+    def _onSuccessTs(self):
+        if self.locale == "cs":
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Časová wms úspěšně exportována."), Qgis.Success, duration=3)
+        else:
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Time series WMS successfully exported."), Qgis.Success, duration=3)
+        self.dlg.progressBar.hide()        
     def layerChanged(self):
 
 
