@@ -2160,11 +2160,7 @@ class Layman(QObject):
             if not re.search(regex, item.text(0)):
                 return False
         return True 
-    def getRegex(self):
-        # print(substring)
-        # #escaped_substring = re.escape(substring)     
-        # pattern =  r"\d{" + str(len(substring)) + r"}"  
-        # return pattern
+    def getRegex(self):       
         string = self.dlg2.comboBox_layers.currentText()
         print(string)
         patterns =  [r'[0-9]{8}', r'^\d{4}-\d{1,2}-\d{1,2}', r'\d{1,2}-\w{3}-\d{4}$', r'^\d{1,2}\s+\w+\s+\d{4}$', r'^\w+\s+\d{1,2},\s+\d{4}$']
@@ -2188,7 +2184,11 @@ class Layman(QObject):
             self.dlg2.comboBox_layers.addItem(item.text(0))
         #'[0-9]{8}'
         self.dlg2.pushButton_timeSeries.clicked.connect(lambda: self.prepareTSUpdate(self.dlg.treeWidget.selectedItems(), self.dlg2.lineEdit_regex.text() , self.dlg2.lineEdit_name.text()))  
-        self.dlg2.pushButton_getRegex.clicked.connect(self.getRegex)  
+        #self.dlg2.pushButton_getRegex.clicked.connect(self.getRegex)  
+        self.dlg2.pushButton_getRegex.hide()
+        self.dlg2.comboBox_layers.hide()
+
+        self.getRegex()
     # def setRegexText(self):
         # self.dlg2.lineEdit_layerName.setReadOnly(False)
         # self.dlg2.lineEdit_layerName.setEchoMode(QLineEdit.Normal)
@@ -4427,6 +4427,9 @@ class Layman(QObject):
                 if 'EVERYONE' in data['access_rights']['read']:
                     everyone = True
                 timeDimension = {}
+                if 'time' in data['wms']:
+                    timeDimension = data['wms']
+                
                 groupName=""
                 subgroup=""
                 visibility = ''              
@@ -8191,22 +8194,23 @@ class Layman(QObject):
         urlWithParams = 'contextualWMSLegend='+legend+'&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url
             
         quri = QgsDataSourceUri()
-        try:
-            if timeDimension != {}:
-                if 'value' in timeDimension['time']:
-                    if 'values' in timeDimension['time']:                        
-                        quri.setParam("type", "wmst")
-                        #quri.setParam("timeDimensionExtent", "1995-01-01/2021-12-31/PT5M")                        
-                        quri.setParam("timeDimensionExtent", str(timeDimension['time']['values']))
-                        quri.setParam("allowTemporalUpdates", "true")
-                        quri.setParam("temporalSource", "provider")
-                    else:
-                        quri.setParam("type", "wmst")
-                        quri.setParam("timeDimensionExtent", self.readDimFromCapatibilites(url, layerName))
-                        quri.setParam("allowTemporalUpdates", "true")
-                        quri.setParam("temporalSource", "provider")
-            
-        except:
+        try:  
+            if timeDimension != {}:  
+                if 'values' in timeDimension['time']:           
+                    print("wmst")             
+                    quri.setParam("type", "wmst")
+                      #quri.setParam("timeDimensionExtent", "1995-01-01/2021-12-31/PT5M")                        
+                    quri.setParam("timeDimensionExtent", str(timeDimension['time']['values']))
+                    quri.setParam("allowTemporalUpdates", "true")
+                    quri.setParam("temporalSource", "provider")
+                            
+                else:
+                    quri.setParam("type", "wmst")
+                    quri.setParam("timeDimensionExtent", self.readDimFromCapatibilites(url, layerName))
+                    quri.setParam("allowTemporalUpdates", "true")
+                    quri.setParam("temporalSource", "provider")            
+        except Exception as e:
+            print(e)
             print("error with time wms")
         quri.setParam("layers", layerName.replace("'", ""))
         quri.setParam("styles", '')
