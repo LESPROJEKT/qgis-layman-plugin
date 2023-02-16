@@ -7875,36 +7875,36 @@ class Layman(QObject):
                 #UrlWfs = res['wfs']['url']
                 UrlWms = data['layers'][x]['url']
                 self.loadWfs(UrlWfs, layerName,layerNameTitle, groupName)
-    def loadService(self, data, service, groupName = ''):
+    # def loadService(self, data, service, groupName = ''):
 
 
-        for x in range(len(data['layers'])- 1, -1, -1):       ## descending order      
-            repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
-            try:
-                layerName = data['layers'][x]['params']['LAYERS']
-            except:
-                layerName = data['layers'][x]['name']
-            format = data['layers'][x]['params']['FORMAT']      
-            epsg = 'EPSG:4326'
-            className = data['layers'][x]['className']         
-            wmsName = data['layers'][x]['params']['LAYERS']
-            layerNameTitle = data['layers'][x]['title']
-            if self.checkLayerOnLayman(layerName):
-                if service == 'WMS':
+    #     for x in range(len(data['layers'])- 1, -1, -1):       ## descending order      
+    #         repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
+    #         try:
+    #             layerName = data['layers'][x]['params']['LAYERS']
+    #         except:
+    #             layerName = data['layers'][x]['name']
+    #         format = data['layers'][x]['params']['FORMAT']      
+    #         epsg = 'EPSG:4326'
+    #         className = data['layers'][x]['className']         
+    #         wmsName = data['layers'][x]['params']['LAYERS']
+    #         layerNameTitle = data['layers'][x]['title']
+    #         if self.checkLayerOnLayman(layerName):
+    #             if service == 'WMS':
 
-                    repairUrl = data['layers'][x]['url']                   
-                    if className == 'XYZ':
-                        self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName)
-                    else:
-                        self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
-                if service == 'WFS':                
-                    repairUrl = data['layers'][x]['url']
-                    self.loadWfs(repairUrl, layerName,layerNameTitle, groupName)
-            else:
-                if self.locale == "cs":
-                    QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
-                else:
-                    QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
+    #                 repairUrl = data['layers'][x]['url']                   
+    #                 if className == 'XYZ':
+    #                     self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName)
+    #                 else:
+    #                     self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
+    #             if service == 'WFS':                
+    #                 repairUrl = data['layers'][x]['url']
+    #                 self.loadWfs(repairUrl, layerName,layerNameTitle, groupName)
+    #         else:
+    #             if self.locale == "cs":
+    #                 QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
+    #             else:
+    #                 QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
     def convertUrlFromHex(self, url):
         url = url.replace('%3A',':')
         url = url.replace('%2F','/')
@@ -8016,6 +8016,8 @@ class Layman(QObject):
                         r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
                         if 'EVERYONE' in r.json()['access_rights']['read']:
                             everyone = True
+                        if 'time' in r.json()['wms']:       
+                            timeDimension = r.json()['wms']                    
                     except:
                         print("chyba v nalezeni prav")
 
