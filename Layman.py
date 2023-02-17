@@ -134,6 +134,7 @@ class Layman(QObject):
     reoderComposition = pyqtSignal(list,list,set,list)
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel)
     tsSuccess = pyqtSignal()
+    processingRaster = pyqtSignal(int,int)
 
 
 
@@ -342,6 +343,7 @@ class Layman(QObject):
         self.reoderComposition.connect(self.reorderGroups) 
         self.showErr.connect(self.showMessageBar)
         self.tsSuccess.connect(self._onSuccessTs)
+        self.processingRaster.connect(self.onRasterUpload)
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -577,13 +579,14 @@ class Layman(QObject):
                 self.dlg.treeWidget_layers.addTopLevelItem(item)
               
             iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
-
+            urlServer = self.URI.replace("/client", "")
             while iterator.value():
                 item = iterator.value()                
                 cell = QComboBox()
                 cell.currentTextChanged.connect(self.comboBoxChanged)
                 cellServices = QComboBox()
                 for layer in layersArr:
+                    print(self.URI, layer.dataProvider().uri().uri())
                     if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(item.text(0)):
                         if isinstance(layer, QgsRasterLayer) and "geoserver" in layer.dataProvider().dataSourceUri():
                             cellServices.addItems(['WMS','WFS'])
@@ -591,8 +594,10 @@ class Layman(QObject):
                             cellServices.addItems(['WMS'])
                         if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS':
                             cellServices.addItems(['WMS','WFS'])
-                        if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS':
-                            cellServices.addItems(['WFS'])                            
+                        if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer not in layer.dataProvider().uri().uri():
+                            cellServices.addItems(['WFS'])         
+                        if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer in layer.dataProvider().uri().uri():
+                            cellServices.addItems(['WFS', 'WMS'])                                                        
 
                 if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
                     if self.locale == "cs":
@@ -861,7 +866,7 @@ class Layman(QObject):
                         for i in range (0,len(servers)):
                             if server == servers[i][1]:
                                 self.setServers(servers, i)                                
-                        
+                                self.liferayServer = server.replace("/client","")
                         self.openAuthLiferayUrl2("",True)
                         #self.run_login(True)
         else:
@@ -2208,16 +2213,16 @@ class Layman(QObject):
         self.dlg.progressBar.show()
         threading.Thread(target=lambda: self.timeSeries(items, regex, title)).start()
 
-    def timeSeries(self, items, regex, title): 
-        
-        print("time series")
-        # url = self.URI+'/rest/'+self.laymanUsername+'/maps'
-        # r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-        # print(r.content)
+    def timeSeries(self, items, regex, title):         
+        print("time series")        
         name = self.removeUnacceptableChars(title)
         rasters = list()
+        path = None
         for item in items:
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+            if (r'/vsizip/') in layer.source():
+                path = layer.source().replace("/"+os.path.basename(layer.source()),"").replace(r'/vsizip/','')
+                break
             rasters.append(layer.source())
         crs = layer.crs().authid()
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
@@ -2227,10 +2232,11 @@ class Layman(QObject):
         #rasters = [inputPath+"S1A_IW_GRDH_1SDV_20220510T050948_20220510T051013_043144_05271A_E359_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220522T050948_20220522T051013_043319_052C50_287D_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220603T050949_20220603T051014_043494_053176_E5BF_RVI4S1.tif"]
         name = self.removeUnacceptableChars(title)
         # Create the zip archive
-        path = tempfile.gettempdir() + os.sep + name+".zip"
-        with zipfile.ZipFile(path, "w") as zip:
-            for raster in rasters:                
-                zip.write(raster, os.path.basename(raster))
+        if path is None:
+            path = tempfile.gettempdir() + os.sep + name+".zip"
+            with zipfile.ZipFile(path, "w") as zip:
+                for raster in rasters:                
+                    zip.write(raster, os.path.basename(raster))
         payload = {
                 #'file': name.lower()+ext,
                 'file': [name+".zip"],
@@ -3862,7 +3868,7 @@ class Layman(QObject):
                             self.modifyScaleOfLayer(layer, layer.hasScaleBasedVisibility())                           
         
     
-    def updateCompositionThread(self):
+    def updateCompositionThread(self):        
         composition = self.instance.getComposition()
 
         i= 0
@@ -3871,7 +3877,7 @@ class Layman(QObject):
             if service == "HSLayers.Layer.WMS" and item[1] == "WFS":
                 self.wms_wfs3(item[0], i, item[1])
                 pass
-            if service == "OpenLayers.Layer.Vector" and item[1] == "WMS":
+            if service == "OpenLayers.Layer.Vector" and item[1] == "WMS":                
                 self.wms_wfs3(item[0], i, item[1])
             i = i +1
      
@@ -3902,10 +3908,8 @@ class Layman(QObject):
                     except:
                         print("neni v poli")
         
-        self.updateVisibilityInComposition()
-        
+        self.updateVisibilityInComposition()        
         self.syncOrder2(self.getLayersOrder())
-
         self.patchMap2()
         self.writeValuesToProject(self.URI, composition['name'])   
         QgsMessageLog.logMessage("updateMapDone")
@@ -4724,30 +4728,9 @@ class Layman(QObject):
                     self.dlg.progressBar.hide()
                     self.dlg.label_import.hide()
 
-
-
             except:
-                pass
-        if message[:9] == "mProgress":
-            print("mProgress")
-            progress = int(message[9:].split(";")[0])
-            max = int(message[9:].split(";")[1])
-            prog = int((progress / max) * 100)
-            
-            if progress < max:
-                if (prog == 10 or prog == 20 or prog == 30 or prog == 40 or prog == 50 or prog == 60 or prog == 70 or prog == 80 or prog == 90  or prog == 100):
-                    if self.locale == "cs":
-                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Nahrávání rastru: "+ str(prog) + "%"), Qgis.Success, duration=5)
-                    else:
-                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Export raster: "+ str(prog) + "%"), Qgis.Success, duration=5)
-        if message[:8] == "progress":
-            progress = int(message[8:].split(";")[0])
-            max = int(message[8:].split(";")[1])
-            self.dlg.progressBar.setMaximum(max)
-            self.dlg.progressBar.setValue(progress)
+                pass      
 
-
-            pass
         if message == "limitSize":
             if self.locale == "cs":
                 QMessageBox.information(None, "Upozornění", "Tato vrstva je větší než 2GB. Může být serverem odmítnuta.")
@@ -4842,50 +4825,7 @@ class Layman(QObject):
                     self.dlg.progressBar.hide()
             except:
                 pass
-        #if message[0:8] == "imports_":
-        #    try:
-        #        self.progressColor(message[8:100], True)
-        #    except:
-        #        pass
-        #    if self.locale == "cs":
-        #        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" byla úspěšně nahrána "), Qgis.Success, duration=3)
-        #    else:
-        #        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was successfully exported"), Qgis.Success, duration=3)
-        #    done = 0
-
-        #    for i in range (0, len(self.processingList)):
-        #        if self.processingList[i][2] == 1:
-        #            self.processingList[i][2] = 2
-                   
-        #            done = done + 1
-        #    try:
-        #        if self.locale == "cs":
-        #            self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
-        #        else:
-        #            self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
-        #    except:
-        #        pass
-        #    try:
-        #        if self.uploaded == self.batchLength:
-        #            self.dlg.progressBar.hide()
-        #    except:
-        #        pass
-        #if message[0:8] == "importn_":
-        #    try:
-        #        self.progressColor(message[8:100], False)
-        #    except:
-        #        pass
-        #    if self.locale == "cs":
-        #        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla nahrána "), Qgis.Warning)
-        #    else:
-        #        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not exported successfully"), Qgis.Warning)
-        #    done = 0
-
-        #    for i in range (0, len(self.processingList)):
-        #        if self.processingList[i][2] == 1:
-
-        #            self.processingList[i][2] = 2                
-        #            done = done + 1
+       
      
         if message == "wrongName":
             if self.locale == "cs":
@@ -4970,7 +4910,9 @@ class Layman(QObject):
                 self.dlg.label_thumbnail.setText(' ')
             except:
                 pass           
-        
+    def onRasterUpload(self, progress, max):   
+        self.dlg.progressBar.setMaximum(max)
+        self.dlg.progressBar.setValue(progress)   
     def reorderGroups(self, threads, groups, groupsSet, groupsPosition):
         for thread in threads:
             try:
@@ -6290,6 +6232,9 @@ class Layman(QObject):
             shutil.copy2(path, newPath)
             path = newPath
         ext = (layer.dataProvider().dataSourceUri()[-4:])
+        if (r'/vsizip/') in layer.source():
+            path = layer.source().replace("/"+os.path.basename(layer.source()),"").replace(r'/vsizip/','')
+            
         files = {'file': (path, open(path, 'rb')),'style': open(stylePath, 'rb')}
         if os.path.getsize(path) > 800000000:
             self.checkFileSizeLimit(os.path.getsize(path))
@@ -6437,9 +6382,10 @@ class Layman(QObject):
 
             try:
                 if self.layersToUpload == 1:
-                    QgsMessageLog.logMessage("progress"+str(i)+";"+str(resumableTotalChunks))
+                    self.processingRaster.emit(i,resumableTotalChunks)                    
             except:
-                    QgsMessageLog.logMessage("mProgress"+str(i)+";"+str(resumableTotalChunks))
+                pass
+                  
              
 
         QgsMessageLog.logMessage("export")
@@ -7875,36 +7821,7 @@ class Layman(QObject):
                 #UrlWfs = res['wfs']['url']
                 UrlWms = data['layers'][x]['url']
                 self.loadWfs(UrlWfs, layerName,layerNameTitle, groupName)
-    # def loadService(self, data, service, groupName = ''):
 
-
-    #     for x in range(len(data['layers'])- 1, -1, -1):       ## descending order      
-    #         repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
-    #         try:
-    #             layerName = data['layers'][x]['params']['LAYERS']
-    #         except:
-    #             layerName = data['layers'][x]['name']
-    #         format = data['layers'][x]['params']['FORMAT']      
-    #         epsg = 'EPSG:4326'
-    #         className = data['layers'][x]['className']         
-    #         wmsName = data['layers'][x]['params']['LAYERS']
-    #         layerNameTitle = data['layers'][x]['title']
-    #         if self.checkLayerOnLayman(layerName):
-    #             if service == 'WMS':
-
-    #                 repairUrl = data['layers'][x]['url']                   
-    #                 if className == 'XYZ':
-    #                     self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName)
-    #                 else:
-    #                     self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName)
-    #             if service == 'WFS':                
-    #                 repairUrl = data['layers'][x]['url']
-    #                 self.loadWfs(repairUrl, layerName,layerNameTitle, groupName)
-    #         else:
-    #             if self.locale == "cs":
-    #                 QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
-    #             else:
-    #                 QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
     def convertUrlFromHex(self, url):
         url = url.replace('%3A',':')
         url = url.replace('%2F','/')
@@ -8829,9 +8746,7 @@ class Layman(QObject):
         id = self.client_id.replace('-', '')
         login = login.replace(".","_")
         self.laymanUsername = login
-        user = {'username':login}
-        #user = {'username':'vrobel_hanz'}
-        #user =  self.Agrimail
+        user = {'username':login}      
         print("authheader: "+ str(self.getAuthHeader(self.authCfg)))
 
         r = requests.patch(url = userEndpoint, data = user, headers = self.getAuthHeader(self.authCfg))
@@ -8871,7 +8786,7 @@ class Layman(QObject):
             #self.laymanUsername = res['username']
             #else:
             #    self.laymanUsername =  user['username']
-        except:
+        except Exception as e:          
             try:
                 print("creating new user: " + res['username'])
                 self.laymanUsername =  res['username']
