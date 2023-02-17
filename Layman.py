@@ -2296,8 +2296,11 @@ class Layman(QObject):
         for layer in layers:
             if (layer.type() == QgsMapLayer.VectorLayer):
                 layerType = 'vector layer'
-            else:
-                layerType = 'raster layer'
+            if (layer.type() == QgsMapLayer.RasterLayer):	
+                if layer.dataProvider().name() == "arcgismapserver":	
+                    layerType = 'arcgis layer'	
+                else:	
+                    layerType = 'raster layer'
             if layer.providerType() != "wms":
                 item = QTreeWidgetItem([layer.name(), layerType])
         
@@ -6555,16 +6558,7 @@ class Layman(QObject):
                 if (isinstance(l, QgsVectorLayer)):
                     layers.clear()
                     layers.append(l)
-                    break
-
-
-
-        if (re.match('[0-9]{1}', layer_name)): ## nesmí být nesmysl v názvu na prvním místě
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Není povoleno číslo v prvním znaku.")
-            else:
-                QMessageBox.information(None, "Layman", "Number in first character is not allowed.")
-            nameCheck = False
+                    break     
         if not self.checkPossibleChars(layer_name):
             QgsMessageLog.logMessage("wrongName")
             return      
