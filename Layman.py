@@ -135,6 +135,7 @@ class Layman(QObject):
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel)
     tsSuccess = pyqtSignal()
     processingRaster = pyqtSignal(int,int)
+    setPluginLabel = pyqtSignal(str)
 
 
 
@@ -222,7 +223,7 @@ class Layman(QObject):
         self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
-        QgsProject.instance().readProject.connect(lambda: self.projectReaded(False))
+        QgsProject.instance().readProject.connect(lambda: self.projectReaded(False))       
        # self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.getActiveLayer())
         self.processingList = []
         self.writeState(0)
@@ -344,6 +345,7 @@ class Layman(QObject):
         self.showErr.connect(self.showMessageBar)
         self.tsSuccess.connect(self._onSuccessTs)
         self.processingRaster.connect(self.onRasterUpload)
+        self.setPluginLabel.connect(self.onSetPluginLabel)
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -363,7 +365,7 @@ class Layman(QObject):
         self.txtAction = self.toolbar.addWidget(self.textbox)
         # Set tooltip
         self.txtAction.setToolTip(self.tr(u'Current Row Number'))
-        # Set callback
+        # Set callback        
         self.textbox.setText("Layman")
         self.connectEvents()
         ################ end usericon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'login.png'
@@ -815,13 +817,16 @@ class Layman(QObject):
     def addService(self, item):
         if item.checkState() == 2:
             print("new layer")
-           
+    def test2(self):
+        print("xxxxxxxxxxxxxx")        
     def projectReaded(self, afterLogged = False):      
         proj = QgsProject.instance()
         server, type_conversion_ok = proj.readEntry("Layman", "Server","")
         name, type_conversion_ok = proj.readEntry("Layman", "Name","")        
         if server != "" and name != "":
             if server == self.URI and not afterLogged and self.laymanUsername !="":
+                print (server == self.URI)
+                print(afterLogged, self.laymanUsername !="")                
                 if self.locale == "cs":
                     msgbox = QMessageBox(QMessageBox.Question, "Layman", "Tento projekt obsahuje odkaz na Layman server. Chcete nastavit ho nastavit jako aktuální kompozici?")
                 else:
@@ -845,7 +850,7 @@ class Layman(QObject):
                     self.current = name
                     self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)
                 else:
-                        self.current = None
+                    self.current = None
             else:
                 if afterLogged == False:
                     if self.locale == "cs":
@@ -860,6 +865,7 @@ class Layman(QObject):
                         proj = QgsProject.instance()
                         server, type_conversion_ok = proj.readEntry("Layman", "Server","")
                         self.laymanUsername, type_conversion_ok = proj.readEntry("Layman", "Workspace")
+                        self.Agrimail = self.laymanUsername
                         print(self.laymanUsername)
                         path = self.plugin_dir + os.sep + "server_list.txt"
                         servers = self.csvToArray(path)
@@ -3111,6 +3117,8 @@ class Layman(QObject):
                 name = layer['params']['LAYERS']
             try:
                 response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.getAuthHeader(self.authCfg))
+                if (response.status_code != 200):                      
+                    self.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning)
             except:
                 print("neni mozne updatovat prava, nebyl nalezen name")
             
@@ -3146,7 +3154,8 @@ class Layman(QObject):
             response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer, data = data,  headers = self.getAuthHeader(self.authCfg))
       
             if (response.status_code != 200):
-                self.failed.append(layer)
+                self.failed.append(layer)         
+                self.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning)
                 self.statusHelper = False
         ## rekurzivni zmeny
         if (type == "maps" and check):
@@ -3163,7 +3172,8 @@ class Layman(QObject):
                 self.updatePermissions(layerList,userDict, "layers")
                 return
             else:
-                self.permissionInfo.emit(False, self.failed, 0)    
+                self.permissionInfo.emit(False, self.failed, 0) 
+                  
                #QgsMessageLog.logMessage("permissionsDoneF")
 
         elif (type == "layers" and check):
@@ -3428,16 +3438,15 @@ class Layman(QObject):
             self.dlg.close()
             
     def logout(self):
-        self.disableEnvironment()
-        self.textbox.setText("Layman")
+        self.disableEnvironment()          
         userEndpoint = self.URI+ "/rest/current-user"
         r = requests.delete(url = userEndpoint, headers = self.getAuthHeader(self.authCfg))
-        QgsApplication.authManager().clearCachedConfig(self.authCfg)
-        self.dlg.close()
-        self.textbox.setText("Layman")
+        QgsApplication.authManager().clearCachedConfig(self.authCfg)         
         ## flush variables
         self.loadedInMemory = False       
         try:
+            self.textbox.setText("Layman")
+            self.dlg.close() 
             self.dlg.pushButton_NoLogin.setEnabled(True)
             self.dlg.pushButton_Connect.setEnabled(True)
         except:
@@ -4517,14 +4526,14 @@ class Layman(QObject):
                 self.importMapEnvironmnet(True)
             except:
                 pass
-        if message == "compositionLoaded":
-            try:
-                self.menu_ImportMapDialog.setEnabled(True)
-            except:
-                if self.locale == "cs":
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice nebyly nahrány!"), Qgis.Warning)
-                else:
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Compositions was not loaded!"), Qgis.Warning)
+        # if message == "compositionLoaded":
+        #     try:
+        #         self.menu_ImportMapDialog.setEnabled(True)
+        #     except:
+        #         if self.locale == "cs":
+        #             iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice nebyly nahrány!"), Qgis.Warning)
+        #         else:
+        #             iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Compositions was not loaded!"), Qgis.Warning)
         if message == "reorderGroups":
             for thread in self.threads:
                 try:
@@ -4649,16 +4658,16 @@ class Layman(QObject):
             del self.currentLayer[0]
 
 
-        if message == "patchMapP":
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice byla upravena"), Qgis.Success, duration=3)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Composition was changed"), Qgis.Success, duration=3)
-        if message == "patchMapN":
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice nebyla upravena"), Qgis.Warning)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Error: Composition was not changed"), Qgis.Warning)
+        # if message == "patchMapP":
+        #     if self.locale == "cs":
+        #         iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice byla upravena"), Qgis.Success, duration=3)
+        #     else:
+        #         iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Composition was changed"), Qgis.Success, duration=3)
+        # if message == "patchMapN":
+        #     if self.locale == "cs":
+        #         iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice nebyla upravena"), Qgis.Warning)
+        #     else:
+        #         iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Error: Composition was not changed"), Qgis.Warning)
         if message == "layerDeleteFromCompositeWrong":
             if self.locale == "cs":
 
@@ -6436,14 +6445,11 @@ class Layman(QObject):
                 try:
                     self.uploaded = self.uploaded + 1
                 except:
-                    pass
-                #QgsMessageLog.logMessage("imports_"+layer_name)
+                    pass              
                 self.exportLayerSuccessful.emit(layer_name)
             elif (response.status_code == 413):
                 QgsMessageLog.logMessage("importl_"+layer_name)
             else:
-
-                #QgsMessageLog.logMessage("importn_"+layer_name)
                 self.exportLayerFailed.emit(layer_name)
             self.importedLayer = layer_name
             self.processingList[q][2] = 1
@@ -7331,9 +7337,7 @@ class Layman(QObject):
                 previousLayers.append(self.compositeList[x]['layers'][i])        
         self.compositeList[x]['layers'] = []            #vymazat vsechny vrstvy
         for i in range (0,len(previousLayers)):
-
             if (i != len(previousLayers) - (position+1)):      ## kompozice je obracena oproti HSlayers proto odecist
-
                 self.compositeList[x]['layers'].append(previousLayers[i])  
         if (lenBefore - 1) ==  len(self.compositeList[x]['layers']):
             self.importMap(x, "delLay")
@@ -8758,7 +8762,7 @@ class Layman(QObject):
             self.disableEnvironment()
             return
 
-        try:
+        if 'code' in res:
            # if res['message'] == 'User already reserved username.': # res['code'] == 34, code 35 je pokud již jiný uživatel má účet, který chceme registrovat
            if res['code'] == 34: # res['code'] == 34, code 35 je pokud již jiný uživatel má účet, který chceme registrovat (code 35 pravděpodobně nemůže nastat)
 
@@ -8766,9 +8770,14 @@ class Layman(QObject):
 
                 self.laymanUsername = res['detail']['username']
                 print("username is: " + self.laymanUsername )
-                self.textbox.setOpenExternalLinks(True)
                 url = self.liferayServer.replace('https:\\','').replace('.cz','').replace('http:\\','').replace('www.','').replace('.com','')
-                self.textbox.setText('<a href="'+self.liferayServer+'">' + url + '</a>')
+                # try:
+                self.setPluginLabel.emit('<a href="'+self.liferayServer+'">' + url + '</a>')
+                    
+                # except:
+                #     pass                    
+                
+                
            if res['code'] == 32:
                 self.disableEnvironment()
                 if self.locale == "cs":
@@ -8780,14 +8789,15 @@ class Layman(QObject):
             #self.laymanUsername = res['username']
             #else:
             #    self.laymanUsername =  user['username']
-        except Exception as e:          
+        else:          
             try:
                 print("creating new user: " + res['username'])
                 self.laymanUsername =  res['username']
                 url = self.liferayServer.replace('https:\\','')
                 self.textbox.setText('<a href="'+self.liferayServer+'">' + url + '</a>')
                 ##self.textbox.setText("Connected to: " + self.liferayServer.replace("https:\\","").replace(".cz","").replace("http:\\","").replace("www.","").replace(".com",""))
-            except:
+            except Exception as ex:
+                print(ex)
                 print("Komunikace s Liferay nefunguje")
 
                 if self.locale == "cs":
@@ -8797,6 +8807,9 @@ class Layman(QObject):
                 self.logout()
                 return False
         return True
+    def onSetPluginLabel(self,string):
+        self.textbox.setOpenExternalLinks(True)
+        self.textbox.setText(string)        
     def checkAuthChange(self):
         i = 0
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt"
