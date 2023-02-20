@@ -6236,6 +6236,7 @@ class Layman(QObject):
         layer.saveSldStyle(stylePath)
         self.replaceInfiniteInSLD(stylePath)
         layer_name = layer.name()
+        title = layer_name
         path = layer.dataProvider().dataSourceUri()
         basename = os.path.basename(path)
         if basename == 'OUTPUT.tif':
@@ -6268,14 +6269,14 @@ class Layman(QObject):
                 payload = {
                 #'file': name.lower()+ext,
                 'file': [name.lower()+ext,name.lower() + self.returnPathIfFileExists(path,ext, True)],
-                'title': name,
+                'title': title,
                 'crs': str(layer.crs().authid()),
                 'style': open(stylePath, 'rb')
                 }
             else:
                 payload = {
                 'file': name.lower()+ext,
-                'title': name,
+                'title': title,
                 'crs': str(layer.crs().authid())
                 }
             files = {'style': open(stylePath, 'rb')}
