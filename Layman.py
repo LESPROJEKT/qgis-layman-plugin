@@ -4184,8 +4184,8 @@ class Layman(QObject):
             layer = self.layerNamesDict[layer]        
             url = self.URI+'/rest/' +workspace+'/layers/'+layer+'/thumbnail'
             
-           # r = requests.get(url, headers = self.getAuthHeader(self.authCfg)) 
-            r = self.requestWrapper("GET", url, payload = None, files = None)           
+            r = requests.get(url, headers = self.getAuthHeader(self.authCfg)) 
+            #r = self.requestWrapper("GET", url, payload = None, files = None)           
             data = r.content      
             pixmap = QPixmap(200, 200)
             pixmap.loadFromData(data)
@@ -4204,8 +4204,8 @@ class Layman(QObject):
             layer = self.layerNamesDict[layer]           
             url = self.URI+'/rest/'+workspace+'/layers/'+layer+'/thumbnail'
             
-            #r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
-            r = self.requestWrapper("GET", url, payload = None, files = None)
+            r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+            #r = self.requestWrapper("GET", url, payload = None, files = None)
             data = r.content
             pixmap = QPixmap(200, 200)
             pixmap.loadFromData(data)
@@ -4228,8 +4228,8 @@ class Layman(QObject):
         try:
             map = self.removeUnacceptableChars(str(map))
             url = self.URI+'/rest/'+workspace+'/maps/'+str(map).lower()+'/thumbnail'            
-           #r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
-            r = self.requestWrapper("GET", url, payload = None, files = None)
+            r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+            #r = self.requestWrapper("GET", url, payload = None, files = None)
             data = r.content
             #data = urlopen(url).read()
             pixmap = QPixmap(200, 200)
