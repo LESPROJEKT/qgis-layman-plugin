@@ -1739,7 +1739,8 @@ class Layman(QObject):
             layerName[0] = self.layerNamesDict[layerName[0]]
             uri = self.URI + "/rest/"+self.laymanUsername+"/layers/"+layerName[0]
 
-            r= requests.get(uri,headers = self.getAuthHeader(self.authCfg))
+            #r= requests.get(uri,headers = self.getAuthHeader(self.authCfg))
+            r = self.requestWrapper("GET", uri, payload = None, files = None)  
             res = self.fromByteToJson(r.content)
 
             lenRead = len(res['access_rights']['read'])
@@ -2121,7 +2122,8 @@ class Layman(QObject):
     def isNewCompositeAdded(self):
         reload = False
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
-        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        r = self.requestWrapper("GET", url, payload = None, files = None)  
         res = self.fromByteToJson(r.content)
 
 
@@ -2147,8 +2149,9 @@ class Layman(QObject):
         for i in range (0, len(self.compositeList)):      
             entries.append(self.compositeList[i]['title'])
         self.dlg.listWidget.addItems(entries)
-        url = self.URI+'/rest/'+self.laymanUsername+'/layers'       
-        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))        
+        url = self.URI+'/rest/'+self.laymanUsername+'/layers'  
+        r = self.requestWrapper("GET", url, payload = None, files = None)     
+        #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))        
         try:
             data = r.json()
         except:
@@ -2158,7 +2161,8 @@ class Layman(QObject):
             self.dlg.comboBox_raster.setCurrentIndex(0)
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
         try:
-            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+            #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+            r = self.requestWrapper("GET", url, payload = None, files = None)  
         except:
             QgsMessageLog.logMessage("errConnection")
         data = r.json()
@@ -2243,7 +2247,8 @@ class Layman(QObject):
             rasters.append(layer.source())
         crs = layer.crs().authid()
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
-        r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
+        #r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
+        r = self.requestWrapper("DELETE", url, payload = None, files = None)  
         #inputPath = r"C:\Users\Honza\Downloads\RVI4S1(1)\\"
       
         #rasters = [inputPath+"S1A_IW_GRDH_1SDV_20220510T050948_20220510T051013_043144_05271A_E359_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220522T050948_20220522T051013_043319_052C50_287D_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220603T050949_20220603T051014_043494_053176_E5BF_RVI4S1.tif"]
@@ -2269,6 +2274,7 @@ class Layman(QObject):
         files = {'file': ("", open(path, 'rb'))}
         #r = requests.post(url, files={"rasters.zip": file},data=payload,  headers = self.getAuthHeader(self.authCfg))
         response = requests.request("POST", url, files=files,  data=payload, headers = self.getAuthHeader(self.authCfg))   
+        response = self.requestWrapper("POST", url, payload)  
         print(response.text)  
         f = open(path, 'rb')
         arr = []
@@ -2716,7 +2722,8 @@ class Layman(QObject):
         ymax = None
         initRun = True
         url = self.URI+'/client/geoserver/'+self.laymanUsername+'/ows?service=wms&version=1.1.1&request=GetCapabilities'
-        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))        
+        #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))    
+        r = self.requestWrapper("GET", url, payload = None, files = None)      
         names = list()
         renge = list()
         tree = ET.ElementTree(ET.fromstring(r.content))
@@ -4397,8 +4404,8 @@ class Layman(QObject):
             ### map check
             url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+str(text)+"/file"
 
-            #r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
-            r = self.requestWrapper("GET", url, payload = None, files = None)
+            r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+            #r = self.requestWrapper("GET", url, payload = None, files = None)
 
             res = r.json()            
             ch = True
@@ -7422,7 +7429,7 @@ class Layman(QObject):
         files = {'file': (tempFile, open(tempFile, 'rb')),}       
         data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername,   'access_rights.write': self.laymanUsername}
 
-        response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))     
+        #response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))     
         response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/maps', data, files)
         print(response.content)
         ## check unsupported crs
@@ -9139,7 +9146,7 @@ class Layman(QObject):
         response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files)            
         if response.status_code != 200:
             self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning) 
-                   
+            5/0       
         return response
     def run(self):
         """Run method that loads and starts the plugin"""
