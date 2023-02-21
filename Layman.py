@@ -3144,8 +3144,8 @@ class Layman(QObject):
             if (layer['className'] == 'HSLayers.Layer.WMS'):
                 name = layer['params']['LAYERS']
             try:
-                #response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.getAuthHeader(self.authCfg))
-                response = self.requestWrapper("PATCH", self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data)
+                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.getAuthHeader(self.authCfg))
+                #response = self.requestWrapper("PATCH", self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data)
                 if (response.status_code != 200):                      
                     self.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning)
             except:
@@ -3180,8 +3180,8 @@ class Layman(QObject):
         for layer in layerName:
             layer = self.removeUnacceptableChars(layer)      
             
-            #response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer, data = data,  headers = self.getAuthHeader(self.authCfg))
-            response = self.requestWrapper("PATCH", self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer, data, files = None)
+            response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer, data = data,  headers = self.getAuthHeader(self.authCfg))
+            #response = self.requestWrapper("PATCH", self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer, data, files = None)
       
             if (response.status_code != 200):
                 self.failed.append(layer)         
@@ -4147,14 +4147,7 @@ class Layman(QObject):
 
                 if type == 'WMS':
                     print("set layer to wms")                 
-                    composition['style'] = ''
-                    try:                     
-                        name = layer['name']
-                    except: 
-                        print("convert wfs to wms failed")                 
-                        return
-
-                   
+                    composition['style'] = '' 
                     url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName
                     #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
                     r = self.requestWrapper("GET", url, payload = None, files = None)
@@ -4172,73 +4165,9 @@ class Layman(QObject):
                     del layer['protocol']
                     self.layerServices[self.removeUnacceptableChars(layer['title'])] = "HSLayers.Layer.WMS"                    
 
-                    somethingChanged = True
-              
+                    somethingChanged = True             
 
 
-
-
-    def wms_wfs(self, item, column):        
-        if item.text(1) == "HSLayers.Layer.WMS" or item.text(1) == "OpenLayers.Layer.Vector":
-            if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Služba pro vrstvu "+item.text(0)+" bude změněna.")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Service for layer "+item.text(0)+" will be changed")
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            reply = msgbox.exec()
-            if (reply == QMessageBox.Yes):
-                for layer in self.compositeList[self.dlg.listWidget.currentRow()]['layers']:
-                    if layer['title'] == item.text(0):
-                        if item.text(1) == "HSLayers.Layer.WMS":
-                            name = layer['params']['LAYERS']
-                            #url = layer['url']
-                            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
-                            #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-                            r = self.requestWrapper("GET", url, payload = None, files = None)
-                            data = r.json()
-                            url = data['wfs']['url']
-
-                            layer['className'] = "OpenLayers.Layer.Vector"
-                            layer['protocol'] = {
-                                "FROMCRS": "EPSG:3857",
-                                "INFO_FORMAT": "application/vnd.ogc.gml",
-                                "LAYERS": name,
-                                "format": "hs.format.WFS",
-                                "url": url
-                              }
-                            del layer['params']
-                            del layer['url']
-
-                        if item.text(1) == "OpenLayers.Layer.Vector":
-                            try:
-                                name = layer['protocol']['LAYERS']
-                            except:
-                                if self.locale == "cs":
-                                    QMessageBox.information(None, "Layman", "Tato vrstva má zastaralý formát metadat.")
-                                else:
-                                    QMessageBox.information(None, "Layman", "This layer has old format of metadata.")
-                                return
-                            #url = layer['url']
-                            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
-                           # r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-                            r = self.requestWrapper("GET", url, payload = None, files = None)
-                            data = r.json()
-                            url = data['wms']['url']
-
-                            layer['className'] = "HSLayers.Layer.WMS"
-                            layer['url'] = url
-                            layer['params'] = {
-                                "FORMAT": "image/png",
-                                "FROMCRS": "EPSG:3857",
-                                "LAYERS": name,
-                                "VERSION": "1.3.0"
-                              }
-                            del layer['protocol']
-           
-                self.importMap(self.dlg.listWidget.currentRow(), 'mod')
-                self.refreshLayerListReversed()
     def showThumbnail(self, it):
         self.params = list()
         self.params.append(it)
@@ -5305,8 +5234,8 @@ class Layman(QObject):
     def deleteMapFromServer(self,name):
 
         url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
-        #response = requests.delete(url, headers = self.getAuthHeader(self.authCfg))
-        response = self.requestWrapper("DELETE", url, payload = None, files = None)
+        response = requests.delete(url, headers = self.getAuthHeader(self.authCfg))
+        #response = self.requestWrapper("DELETE", url, payload = None, files = None)
        
         if (response.status_code == 200):
             if self.locale == "cs":          
@@ -5357,8 +5286,8 @@ class Layman(QObject):
         if (reply == QMessageBox.Yes):
             name = self.removeUnacceptableChars(name)
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
-           # response = requests.delete(url, headers = self.getAuthHeader(self.authCfg))           
-            response = self.requestWrapper("DELETE", url, payload = None, files = None)
+            response = requests.delete(url, headers = self.getAuthHeader(self.authCfg))           
+            #response = self.requestWrapper("DELETE", url, payload = None, files = None)
             if (response.status_code == 200):
                 if self.locale == "cs":             
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
@@ -6211,12 +6140,12 @@ class Layman(QObject):
             self.importedLayer = layer_name
             self.processingList[q][2] = 1
             try:
-                #response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), headers = self.getAuthHeader(self.authCfg))
-                response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), payload = None, files = None)
+                response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), headers = self.getAuthHeader(self.authCfg))
+                #response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), payload = None, files = None)
                 if (response.status_code == 400):
                     time.sleep(3)
-                    response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), payload = None, files = None)
-                    #response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), headers = self.getAuthHeader(self.authCfg))
+                    #response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), payload = None, files = None)
+                    response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), headers = self.getAuthHeader(self.authCfg))
             except:
                 self.showErr.emit(["Připojení se serverem selhalo!", "Connection with server failed!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning)                
                 return
@@ -7437,8 +7366,8 @@ class Layman(QObject):
         files = {'file': (tempFile, open(tempFile, 'rb')),}       
         data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername,   'access_rights.write': self.laymanUsername}
 
-        #response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))     
-        response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/maps', data, files)
+        response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))     
+        #response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/maps', data, files)
         print(response.content)
         ## check unsupported crs
         if (response.status_code == 200):
@@ -7537,10 +7466,10 @@ class Layman(QObject):
                 except:
                     pass           
 
-                #response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'],headers = self.getAuthHeader(self.authCfg))
-                response = self.requestWrapper("DELETE", self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'], payload = None, files = None)
-                response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/maps', data, files)
-               # response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
+                response = requests.delete(self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'],headers = self.getAuthHeader(self.authCfg))
+                #response = self.requestWrapper("DELETE", self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name'], payload = None, files = None)
+                #response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/maps', data, files)
+                response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/maps', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
 
                 if (response.status_code == 200):
                     if self.locale == "cs":
@@ -7715,8 +7644,8 @@ class Layman(QObject):
         layer_name = layer_name.replace(" ", "_")
         layer_name = self.removeUnacceptableChars(layer_name)
         url = self.URI+'/rest/' + self.laymanUsername + "/layers/" + layer_name
-        #r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
-        r = self.requestWrapper("GET", url, payload = None, files = None)
+        r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        #r = self.requestWrapper("GET", url, payload = None, files = None)
         res = r.json()
         read = res['access_rights']['read']
         write = res['access_rights']['write']
