@@ -4108,15 +4108,17 @@ class Layman(QObject):
     def wms_wfs3(self, layerName, index, type):        
         somethingChanged = False
         composition = self.instance.getComposition()
+        layerName = self.removeUnacceptableChars(layerName)
         for layer in composition['layers']:
-            if self.removeUnacceptableChars(layer['title']) == self.removeUnacceptableChars(layerName):
+            if self.removeUnacceptableChars(layer['title']) == layerName:
                 if type == "WFS":
                     print("set layer to wfs")                 
-                    styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ self.removeUnacceptableChars(layerName) + "/style"
+                    styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ layerName + "/style"
                     composition['style'] = styleUrl
                     try:
                         name = layer['params']['LAYERS']
                     except:
+                        print("convert wms to wfs failed")  
                         return
                     url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
                     #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
@@ -4143,11 +4145,12 @@ class Layman(QObject):
                     composition['style'] = ''
                     try:                     
                         name = layer['name']
-                    except:                  
+                    except: 
+                        print("convert wfs to wms failed")                 
                         return
 
                    
-                    url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
+                    url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName
                     #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
                     r = self.requestWrapper("GET", url, payload = None, files = None)
                     data = r.json()
