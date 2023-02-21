@@ -2217,6 +2217,11 @@ class Layman(QObject):
             return
         self.dlg2.close()
         self.dlg.progressBar.show()
+        self.dlg.label_progress.show()
+        if self.locale == "cs":
+            self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 1")
+        else:
+            self.dlg.label_progress.setText("Sucessfully exported: 0 / 1")
         threading.Thread(target=lambda: self.timeSeries(items, regex, title)).start()
 
     def timeSeries(self, items, regex, title):         
@@ -9028,7 +9033,11 @@ class Layman(QObject):
         if self.locale == "cs":
             iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Časová wms úspěšně exportována."), Qgis.Success, duration=3)
         else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Time series WMS successfully exported."), Qgis.Success, duration=3)
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Time series WMS successfully exported."), Qgis.Success, duration=3)        
+        if self.locale == "cs":
+            self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")
+        else:
+            self.dlg.label_progress.setText("Sucessfully exported: 1 / 1")            
         self.dlg.progressBar.hide()        
     def layerChanged(self):
 
