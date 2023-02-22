@@ -136,6 +136,7 @@ class Layman(QObject):
     tsSuccess = pyqtSignal()
     processingRaster = pyqtSignal(int,int)
     setPluginLabel = pyqtSignal(str)
+    enableWfsButton = pyqtSignal(bool, QPushButton)
 
 
 
@@ -346,6 +347,7 @@ class Layman(QObject):
         self.tsSuccess.connect(self._onSuccessTs)
         self.processingRaster.connect(self.onRasterUpload)
         self.setPluginLabel.connect(self.onSetPluginLabel)
+        self.enableWfsButton.connect(self.onWfsButton)
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -1854,7 +1856,7 @@ class Layman(QObject):
         for i in range (0, len(self.compositeList)):
             self.dlg.listWidget.addItem(self.compositeList[i]['name']) 
         self.dlg.listWidget.itemClicked.connect(self.listCompositeLayers)
-        self.dlg.listWidget_listLayers2.itemClicked.connect(self.showThumbnail)
+        self.dlg.listWidget_listLayers2.itemClicked.connect(self.showThumbnail2)
 
     
         self.dlg.show()
@@ -2935,7 +2937,7 @@ class Layman(QObject):
         self.dlg.treeWidget.itemClicked.connect(self.enableDeleteButton)
         self.dlg.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
         self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
-        self.dlg.treeWidget.itemClicked.connect(self.showThumbnail)
+        self.dlg.treeWidget.itemClicked.connect(self.showThumbnail2)
         self.dlg.filter.valueChanged.connect(self.filterResults)
         self.dlg.treeWidget.setColumnWidth(0, 300)
         self.dlg.treeWidget.setColumnWidth(2, 80)
@@ -3360,14 +3362,23 @@ class Layman(QObject):
         
         self.dlg.pushButton_layerRedirect.setEnabled(True)
         self.dlg.pushButton_delete.setEnabled(True)
-        self.dlg.pushButton_setPermissions.setEnabled(True)        
-        if self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "vector":
-            self.dlg.pushButton_wfs.setEnabled(True)
-        elif self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "raster":
-            self.dlg.pushButton_wfs.setEnabled(False)
-        else:
-            self.dlg.pushButton_wfs.setEnabled(True)
+        self.dlg.pushButton_setPermissions.setEnabled(True)  
+        #threading.Thread(target=lambda: self.deteteLayerFromCompositeThread(x, i, name, title)).start()   
         self.checkSelectedCount()
+        threading.Thread(target=self.checkServiceButtons).start()
+
+    def checkServiceButtons(self):           
+        if self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "vector":
+            self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)
+            #self.dlg.pushButton_wfs.setEnabled(True)
+        elif self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "raster":
+            self.enableWfsButton.emit(False, self.dlg.pushButton_wfs)
+           # self.dlg.pushButton_wfs.setEnabled(False)
+        else:
+            self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)
+           # self.dlg.pushButton_wfs.setEnabled(True)
+    def onWfsButton(self, enable, button):    
+        button.setEnabled(enable)
     def checkFileType(self, name, workspace):
         name = self.layerNamesDict[name]   
         url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(name)
@@ -4168,77 +4179,47 @@ class Layman(QObject):
                     somethingChanged = True             
 
 
-    def showThumbnail(self, it):
-        self.params = list()
-        self.params.append(it)
-        self.showThumbnail2(it)
-        #QgsMessageLog.logMessage("showThumbnail2")
-    def showThumbnail2(self, it):
-        try:
-            layer = it.text(0) ##pro QTreeWidget
-            workspace = it.text(1)
-        except:
-            print("different form")
-            #layer = it.text()##pro listWidget
-        try:
-            layer = self.layerNamesDict[layer]        
-            url = self.URI+'/rest/' +workspace+'/layers/'+layer+'/thumbnail'
-            
-            r = requests.get(url, headers = self.getAuthHeader(self.authCfg)) 
-            #r = self.requestWrapper("GET", url, payload = None, files = None)           
-            data = r.content      
-            pixmap = QPixmap(200, 200)
-            pixmap.loadFromData(data)
-            smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
-            self.dlg.label_thumbnail.setPixmap(smaller_pixmap)
-            self.dlg.label_thumbnail.setAlignment(Qt.AlignCenter)
-        except:
-            self.dlg.label_thumbnail.setText('  Unable to load thumbnail.')
-    def showSmallThumbnail(self, it):
-        try:
-            layer = it.text(0) ##pro QTreeWidget
-            workspace = it.text(1)
-        except:
-            layer = it.text()##pro listWidget
-        try:
-            layer = self.layerNamesDict[layer]           
-            url = self.URI+'/rest/'+workspace+'/layers/'+layer+'/thumbnail'
-            
-            r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
-            #r = self.requestWrapper("GET", url, payload = None, files = None)
-            data = r.content
-            pixmap = QPixmap(200, 200)
-            pixmap.loadFromData(data)
-            smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
-            self.dlg.label_thumbnail.setPixmap(smaller_pixmap)
-            self.dlg.label_thumbnail.setAlignment(Qt.AlignCenter)
-        except:
-            self.dlg.label_thumbnail.setText('  Unable to load thumbnail.')
-    def showThumbnailMap(self, it):
-        self.params = list()
-        self.params.append(it)
-        QgsMessageLog.logMessage("showThumbnailMap2")
-    def showThumbnailMap2(self, it, workspace):
-        try:
-            map = it ##pro QTreeWidget
-            workspace = workspace
-        except:
-            map = it.text()##pro listWidget
+    # def showThumbnail(self, it):
+    #     self.params = list()
+    #     self.params.append(it)
+    #     self.showThumbnail2(it)
+    #     #QgsMessageLog.logMessage("showThumbnail2")
+    def showThumbnail2(self, it):        
+        layer = it.text(0) ##pro QTreeWidget
+        workspace = it.text(1)
+        if self.dlg.checkBox_thumbnail.checkState() == 0:
+            try:
+                layer = self.layerNamesDict[layer]        
+                url = self.URI+'/rest/' +workspace+'/layers/'+layer+'/thumbnail'
+                
+                r = requests.get(url, headers = self.getAuthHeader(self.authCfg)) 
+                #r = self.requestWrapper("GET", url, payload = None, files = None)           
+                data = r.content      
+                pixmap = QPixmap(200, 200)
+                pixmap.loadFromData(data)
+                smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
+                self.dlg.label_thumbnail.setPixmap(smaller_pixmap)
+                self.dlg.label_thumbnail.setAlignment(Qt.AlignCenter)
+            except:
+                self.dlg.label_thumbnail.setText('  Unable to load thumbnail.')
 
-        try:
-            map = self.removeUnacceptableChars(str(map))
-            url = self.URI+'/rest/'+workspace+'/maps/'+str(map).lower()+'/thumbnail'            
-            r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
-            #r = self.requestWrapper("GET", url, payload = None, files = None)
-            data = r.content
-            #data = urlopen(url).read()
-            pixmap = QPixmap(200, 200)
-            pixmap.loadFromData(data)
-            smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
-            self.dlg.label_thumbnail.setPixmap(smaller_pixmap)
-           # self.dlg.label_thumbnail.setAlignment(Qt.AlignCenter)
-        except:
-            self.dlg.label_thumbnail.setText('       Unable to load thumbnail.')
+    def showThumbnailMap2(self, it, workspace):
+        
+        map = it ##pro QTreeWidget
+        workspace = workspace
+        if self.dlg.checkBox_thumbnail.checkState() == 0:
+            try:
+                map = self.removeUnacceptableChars(str(map))
+                url = self.URI+'/rest/'+workspace+'/maps/'+str(map).lower()+'/thumbnail'            
+                r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+                #r = self.requestWrapper("GET", url, payload = None, files = None)
+                data = r.content             
+                pixmap = QPixmap(200, 200)
+                pixmap.loadFromData(data)
+                smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
+                self.dlg.label_thumbnail.setPixmap(smaller_pixmap)      
+            except:
+                self.dlg.label_thumbnail.setText('       Unable to load thumbnail.')
     def setup_oauth(self, authcfg_id, authcfg_name):
       
         if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e' and authcfg_id != '7f22y3g': ## prozatím pro test toto id ma wagtail
@@ -4568,13 +4549,8 @@ class Layman(QObject):
             try:
                 QgsProject.instance().crsChanged.disconnect()
             except:
-                print("signal crsChanged was not connected")       
-         
-        if message =="showThumbnailMap2":
-            try:
-                self.showThumbnailMap2(self.params[0])
-            except:
-                print("problem with thumbnail")
+                print("signal crsChanged was not connected") 
+      
         if message =="showThumbnail2":
             self.showThumbnail2(self.params[0])
         if message =="requestError":

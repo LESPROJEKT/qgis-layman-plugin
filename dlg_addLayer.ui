@@ -306,6 +306,19 @@
     </property>
    </widget>
   </widget>
+  <widget class="QCheckBox" name="checkBox_thumbnail">
+   <property name="geometry">
+    <rect>
+     <x>810</x>
+     <y>36</y>
+     <width>191</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Disable</string>
+   </property>
+  </widget>
  </widget>
  <customwidgets>
   <customwidget>

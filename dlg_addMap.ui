@@ -290,6 +290,19 @@
     <string>Copy URL</string>
    </property>
   </widget>
+  <widget class="QCheckBox" name="checkBox_thumbnail">
+   <property name="geometry">
+    <rect>
+     <x>810</x>
+     <y>10</y>
+     <width>191</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Disable</string>
+   </property>
+  </widget>
  </widget>
  <customwidgets>
   <customwidget>
