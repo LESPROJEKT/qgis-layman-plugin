@@ -9050,7 +9050,7 @@ class Layman(QObject):
         response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files)            
         if response.status_code != 200:
             self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning) 
-            5/0       
+                
         return response
     def run(self):
         """Run method that loads and starts the plugin"""
