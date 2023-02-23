@@ -2254,8 +2254,8 @@ class Layman(QObject):
             rasters.append(layer.source())
         crs = layer.crs().authid()
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
-        #r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
-        r = self.requestWrapper("DELETE", url, payload = None, files = None)  
+        r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
+        #r = self.requestWrapper("DELETE", url, payload = None, files = None)  
         #inputPath = r"C:\Users\Honza\Downloads\RVI4S1(1)\\"
       
         #rasters = [inputPath+"S1A_IW_GRDH_1SDV_20220510T050948_20220510T051013_043144_05271A_E359_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220522T050948_20220522T051013_043319_052C50_287D_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220603T050949_20220603T051014_043494_053176_E5BF_RVI4S1.tif"]
@@ -2280,7 +2280,7 @@ class Layman(QObject):
         #file = open("C:\\Users\\Honza\\Downloads\\RVI4S1(1)\\test\\rasters.zip", "rb")
         files = {'file': ("", open(path, 'rb'))}
         #r = requests.post(url, files={"rasters.zip": file},data=payload,  headers = self.getAuthHeader(self.authCfg))
-        response = requests.request("POST", url, files=files,  data=payload, headers = self.getAuthHeader(self.authCfg))   
+        #response = requests.request("POST", url, files=files,  data=payload, headers = self.getAuthHeader(self.authCfg))   
         response = self.requestWrapper("POST", url, payload)  
         print(response.text)  
         f = open(path, 'rb')
