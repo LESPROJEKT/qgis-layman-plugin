@@ -153,7 +153,7 @@
         <translation>Uložit</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="330"/>
+        <location filename="../dlg_timeSeries.ui" line="106"/>
         <source>Name:</source>
         <translation>Jméno:</translation>
     </message>
@@ -213,7 +213,7 @@
         <translation>Náhled vrstvy:</translation>
     </message>
     <message>
-        <location filename="../dlg_importMap.ui" line="137"/>
+        <location filename="../dlg_timeSeries.ui" line="47"/>
         <source>Processing data:</source>
         <translation>Probíhá nahrávání:</translation>
     </message>
@@ -622,21 +622,51 @@
         <source>Owner</source>
         <translation>Vlastník</translation>
     </message>
+    <message>
+        <location filename="../dlg_addMap.ui" line="303"/>
+        <source>Disable</source>
+        <translation>Vypnout</translation>
+    </message>
+    <message>
+        <location filename="../dlg_timeSeries.ui" line="73"/>
+        <source>Export time series</source>
+        <translation>Exportovat</translation>
+    </message>
+    <message>
+        <location filename="../dlg_userInfo.ui" line="223"/>
+        <source>Get older version &lt; 3.24</source>
+        <translation>Získat starší verzi &lt; 3.24</translation>
+    </message>
+    <message>
+        <location filename="../dlg_timeSeries.ui" line="35"/>
+        <source>Layman - Export time series</source>
+        <translation>Layman - Exportovat časovou řadu</translation>
+    </message>
+    <message>
+        <location filename="../dlg_timeSeries.ui" line="119"/>
+        <source>Regex:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dlg_timeSeries.ui" line="152"/>
+        <source>Get regex </source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="5271"/>
+        <location filename="../Layman.py" line="5372"/>
         <source>&amp;Layman</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="344"/>
+        <location filename="../Layman.py" line="372"/>
         <source>Current Row Number</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="350"/>
+        <location filename="../Layman.py" line="378"/>
         <source>Login</source>
         <translation>Přihlásit se</translation>
     </message>
@@ -646,42 +676,42 @@
         <translation type="obsolete">Uložit jako JSON a QML</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="368"/>
+        <location filename="../Layman.py" line="396"/>
         <source>Load from JSON</source>
         <translation>Načíst z JSON</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="377"/>
+        <location filename="../Layman.py" line="405"/>
         <source>Export layer to server</source>
         <translation>Exportovat vrstvu na server</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="384"/>
+        <location filename="../Layman.py" line="412"/>
         <source>Load layer from server</source>
         <translation>Načíst vrstvu ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="391"/>
+        <location filename="../Layman.py" line="419"/>
         <source>Load map from server</source>
         <translation>Načíst mapu ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="398"/>
+        <location filename="../Layman.py" line="426"/>
         <source>Current composition</source>
         <translation>Aktuální kompozice</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="412"/>
+        <location filename="../Layman.py" line="440"/>
         <source>User info</source>
         <translation>Informace o uživateli</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="359"/>
+        <location filename="../Layman.py" line="387"/>
         <source>Save as to JSON and SLD</source>
         <translation>Uloži jako JSON a SLD</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="405"/>
+        <location filename="../Layman.py" line="433"/>
         <source>Browse the metadata catalog</source>
         <translation>Prohlížet metadatový katalog</translation>
     </message>

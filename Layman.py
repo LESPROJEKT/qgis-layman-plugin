@@ -2233,6 +2233,7 @@ class Layman(QObject):
                 QMessageBox.information(None, "Layman", "The regular expression does not match one or more names.")
             return
         self.dlg2.close()
+        self.dlg.progressBar.setMaximum(0)
         self.dlg.progressBar.show()
         self.dlg.label_progress.show()
         if self.locale == "cs":
@@ -2254,11 +2255,7 @@ class Layman(QObject):
             rasters.append(layer.source())
         crs = layer.crs().authid()
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
-        r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
-        #r = self.requestWrapper("DELETE", url, payload = None, files = None)  
-        #inputPath = r"C:\Users\Honza\Downloads\RVI4S1(1)\\"
-      
-        #rasters = [inputPath+"S1A_IW_GRDH_1SDV_20220510T050948_20220510T051013_043144_05271A_E359_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220522T050948_20220522T051013_043319_052C50_287D_RVI4S1.tif", inputPath+"S1A_IW_GRDH_1SDV_20220603T050949_20220603T051014_043494_053176_E5BF_RVI4S1.tif"]
+        r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))        
         name = self.removeUnacceptableChars(title)
         # Create the zip archive
         if path is None:
@@ -2272,36 +2269,25 @@ class Layman(QObject):
                 'title': title,
                 'crs': crs,
                 'time_regex': regex
-                }
-        # Send the zip archive to the server
-       # url = "https://hub4everybody.com/rest/jan_vrobel/layers"
-        url = self.URI+'/rest/'+self.laymanUsername+'/layers'
-        # path = "C:\\Users\\Honza\\Downloads\\RVI4S1(1)\\test\\rasters.zip"
-        #file = open("C:\\Users\\Honza\\Downloads\\RVI4S1(1)\\test\\rasters.zip", "rb")
-        files = {'file': ("", open(path, 'rb'))}
-        #r = requests.post(url, files={"rasters.zip": file},data=payload,  headers = self.getAuthHeader(self.authCfg))
-        #response = requests.request("POST", url, files=files,  data=payload, headers = self.getAuthHeader(self.authCfg))   
+                }    
+     
+        url = self.URI+'/rest/'+self.laymanUsername+'/layers'        
+        files = {'file': ("", open(path, 'rb'))} 
         response = self.requestWrapper("POST", url, payload)  
         print(response.text)  
         f = open(path, 'rb')
         arr = []
         for piece in self.read_in_chunks(f):
-            arr.append(piece)
-            #layer_name = self.removeUnacceptableChars(layer_name)
-
-
-
+            arr.append(piece)    
         resumableFilename = name + ".zip"
         layman_original_parameter = "file"
         resumableTotalChunks = len(arr)
             #print ("resumable" + resumableFilename)
         print(resumableTotalChunks)
         filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) ## chunky se ukládají do adresáře v tempu
+        self.layersToUpload = 1
         self.processChunks(arr, resumableFilename, layman_original_parameter,resumableTotalChunks, name,filePath,".zip")
-        # print(response.text)  
-        # data = { 'name' :  str("rasters").lower(), 'title' : str("rasters"), 'file' : str("rasters.zip")}
-        # data['crs'] = 'EPSG:4326'
-        # response = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
+
         self.tsSuccess.emit()         
     def run_ImportLayerDialog(self):
         self.recalculateDPI()
@@ -3231,6 +3217,7 @@ class Layman(QObject):
                     QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
                 else:
                     QMessageBox.information(None, "Saved", "Permissions was saved successfully.")
+                self.dlg.close()                    
             else:
                 if self.locale == "cs":
                     QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu/mapu: " + str(failed).replace("[","").replace("]",""))

@@ -7,7 +7,8 @@ FORMS = ../dlg_addLayer.ui \
 ../dlg_addMap.ui \
 ../dlg_userInfo.ui \     
 ../dlg_setPermission.ui \  
-../dlg_currentComposition.ui  
+../dlg_currentComposition.ui \
+../dlg_timeSeries.ui 
 
 SOURCES = ../Layman.py 
 
