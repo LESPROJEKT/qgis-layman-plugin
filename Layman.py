@@ -6856,24 +6856,41 @@ class Layman(QObject):
         else:
             minScale = None
         composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution": minScale,"minResolution":int(self.scaleToResolution(layer.maximumScale())),"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
-    def scaleToResolution(self, scale):
-        # calculate the resolution
-        dpi = 96
-        inch_per_m = 39.37
-        resolution = scale * dpi / (inch_per_m * QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, QgsUnitTypes.DistanceFeet))
-        # print the resolution
-        print(resolution)
-        return resolution
+    def scaleToResolution(self, denominator):   
+        map_settings = iface.mapCanvas().mapSettings()
+        crs = map_settings.destinationCrs()
+        units = crs.mapUnits()
+        dpi = 25.4 / 0.28
+        mpu = QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, units)    
+        return denominator / (mpu * 39.37 * dpi)    
+    # def scaleToResolution(self, scale):
+    #     # calculate the resolution
+    #     dpi = 96
+    #     inch_per_m = 39.37
+    #     resolution = scale * dpi / (inch_per_m * QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, QgsUnitTypes.DistanceFeet))
+    #     # print the resolution
+    #     print(resolution)
+    #     return resolution
+    def resolutionRounder(self,x):
+        rounded = int(round(x / 5000.0) * 5000)
+        power = len(str(rounded)) - 1
+        first_digit = int(str(rounded)[0])
+        return first_digit * 10**power    
     def resolutionToScale(self, resolution):
         # define the resolution
         #resolution = 17000
 
         # calculate the scale
-        dpi = 96
-        inch_per_m = 39.37
-        scale = resolution * (inch_per_m * QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, QgsUnitTypes.DistanceFeet)) / dpi      
-        print(scale)
-        return scale
+        # dpi = 96
+        # inch_per_m = 39.37
+        # scale = resolution * (inch_per_m * QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, QgsUnitTypes.DistanceFeet)) / dpi      
+        # print(scale)
+        # return scale
+        map_settings = iface.mapCanvas().mapSettings()
+        crs = map_settings.destinationCrs()
+        units = crs.mapUnits()
+        dpi = 25.4 / 0.28  # assume 96 dpi 
+        return self.resolutionRounder(round(resolution * 39.37 * dpi))
     def getGreyScaleMode(self, layer):
         pipe  = layer.pipe()        
         greyscale = False if pipe.hueSaturationFilter().grayscaleMode() == 0 else True
