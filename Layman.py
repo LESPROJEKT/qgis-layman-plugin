@@ -2247,8 +2247,12 @@ class Layman(QObject):
         name = self.removeUnacceptableChars(title)
         rasters = list()
         path = None
+        stylePath = None
         for item in items:
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+            if stylePath is None: ## get first layer
+                stylePath = self.getTempPath(self.removeUnacceptableChars(layer.name())).replace(".geojson",".sld")
+                layer.saveSldStyle(stylePath) 
             if (r'/vsizip/') in layer.source():
                 path = layer.source().replace("/"+os.path.basename(layer.source()),"").replace(r'/vsizip/','')
                 break
@@ -2263,17 +2267,20 @@ class Layman(QObject):
             with zipfile.ZipFile(path, "w") as zip:
                 for raster in rasters:                
                     zip.write(raster, os.path.basename(raster))
+        
         payload = {
                 #'file': name.lower()+ext,
                 'file': [name+".zip"],
                 'title': title,
                 'crs': crs,
-                'time_regex': regex
+                'time_regex': regex,
+                'style': open(stylePath, 'rb')
                 }    
-     
+        print(payload)
         url = self.URI+'/rest/'+self.laymanUsername+'/layers'        
         files = {'file': ("", open(path, 'rb'))} 
-        response = self.requestWrapper("POST", url, payload)  
+        files = {'style': open(stylePath, 'rb')}
+        response = self.requestWrapper("POST", url, payload, files)  
         print(response.text)  
         f = open(path, 'rb')
         arr = []
@@ -2294,8 +2301,7 @@ class Layman(QObject):
         self.dlg = ImportLayerDialog()
         self.dlg.label_progress.hide()
         self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))
-        self.dlg.pushButton_timeSeries.clicked.connect(lambda: self.showTSDialog())
-        #self.dlg.pushButton_timeSeries.clicked.connect(lambda: self.timeSeries(self.dlg.treeWidget.selectedItems()))
+        self.dlg.pushButton_timeSeries.clicked.connect(lambda: self.showTSDialog())        
         self.dlg.pushButton_timeSeries.hide()
         if self.locale == "cs":
             self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 0")
@@ -2309,6 +2315,10 @@ class Layman(QObject):
         self.dlg.treeWidget.setCurrentItem(self.dlg.treeWidget.topLevelItem(0),0)
         layers = QgsProject.instance().mapLayers().values()
         mix = list()
+        root = QgsProject.instance().layerTreeRoot()      
+        layers = []    
+        for child in root.children():
+            self.get_layers_in_order(child, layers)
         for layer in layers:
             if (layer.type() == QgsMapLayer.VectorLayer):
                 layerType = 'vector layer'
@@ -2331,19 +2341,22 @@ class Layman(QObject):
                 if (layerType == 'raster layer'):
                     self.dlg.treeWidget.addTopLevelItem(item)
         self.dlg.setWindowModality(Qt.ApplicationModal)
-
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
         self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.selectSelectedLayer()
-        self.dlg.treeWidget.header().resizeSection(0,250);
+        self.dlg.treeWidget.header().resizeSection(0,250)
         self.dlg.show()
-
-
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         result = self.dlg.exec_()
     def setBatchLengthZero(self):
         self.batchLength = 0
+    def get_layers_in_order(self,node, layers):
+        if isinstance(node, QgsLayerTreeLayer):
+            layers.append(node.layer())
+        elif isinstance(node, QgsLayerTreeGroup):
+            for child in node.children():
+                self.get_layers_in_order(child, layers)        
     def run_login(self, server = False):
         
         if server or self.current != None:
@@ -2396,7 +2409,6 @@ class Layman(QObject):
         if self.laymanUsername == "":
             if not server:
                 self.setServers(servers, 0) ## nastavujeme prvni server
-
 
         self.dlg.comboBox_server.currentIndexChanged.connect(lambda: self.setServers(servers, self.dlg.comboBox_server.currentIndex()))
         if (os.path.isfile(os.getenv("HOME") + os.sep + ".layman" + os.sep +'layman_user.INI')):
@@ -2631,8 +2643,6 @@ class Layman(QObject):
     def run_AddMapDialog(self):
         self.recalculateDPI()
         self.dlg = AddMapDialog()
-
-
         self.dlg.pushButton.setEnabled(False)
         self.dlg.pushButton_mapWFS.setEnabled(False)
         self.dlg.pushButton_mapWFS.setEnabled(True)
@@ -2646,9 +2656,6 @@ class Layman(QObject):
         self.dlg.treeWidget.setColumnWidth(0, 300)
         self.dlg.treeWidget.setColumnWidth(2, 80)
         self.dlg.label_noUser.hide()
-
-
-
         self.dlg.pushButton.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WMS'))
         self.dlg.pushButton_mapWFS.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WFS'))
         self.dlg.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
@@ -5837,40 +5844,7 @@ class Layman(QObject):
                             with open(stylePath, 'w') as file:
                                 file.write(filedata)
                             
-                j = 0
-                pom = True
-
-                while pom:                   
-                    if isinstance(i.symbol().symbolLayer(j), QgsMarkerLineSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):# or isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer):
-                        #if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer):
-                        #    path = (i.symbol().symbolLayer(0).path()) 
-                        #else:
-                        if not ((isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsSimpleLineSymbolLayer) or isinstance(i.symbol().symbolLayer(j).subSymbol().symbolLayer(0), QgsSimpleMarkerSymbolLayer))):
-                            path = (i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path())                 
-                            if path[:4] != "base":
-                                if os.path.exists(path):
-                                    with open(path, "rb") as image_file:
-                                        encoded_string = base64.b64encode(image_file.read())                                
-                                    #path = i.symbol().symbolLayer(j).subSymbol().symbolLayer(0).path()
-                                    decoded =   encoded_string.decode("utf-8")
-                                    path2 = ("base64:"  + decoded)    
-                                    #pathRelative = path2.split("svg/")[1]
-                                    pathRelative = path2.split("svg/")[1] if len(path2.split("svg/")) > 1 else ""
-                                    with open(stylePath, 'r') as file:
-                                        filedata = file.read()
-
-                                
-                                    if pathRelative != "":
-                                        filedata = filedata.replace(pathRelative, path2)
-                                    else:
-                                        filedata = filedata.replace(path, path2)
-                                    with open(stylePath, 'w') as file:
-                                        file.write(filedata)
-                    j = j +1
-                    try:
-                        i.symbol().symbolLayer(j).subSymbol
-                    except:
-                        pom = False
+                j = 0               
                     
 
         elif isinstance(single_symbol_renderer, QgsRuleBasedRenderer):
@@ -5996,9 +5970,9 @@ class Layman(QObject):
         
         if self.checkIfAllLayerAreRaster(layers):
             if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Je vybráno více rastrových vrstev. Chcete je exportovat jako časové?")
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Je vybráno více rastrových vrstev. Chcete je exportovat jako časové? Symbologie bude přebrána z prvního rastru.")
             else:
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Multiple raster layers are selected. Do you want to export them as time series?")
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Multiple raster layers are selected. Do you want to export them as time series? The symbology will be taken from the first raster.")
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
@@ -6215,11 +6189,7 @@ class Layman(QObject):
 
            
             url = self.URI + "/rest/"+self.laymanUsername+"/layers"
-            name = self.removeUnacceptableChars(layer_name)
-            ## registrovat obě vrstvy musím pokud existuje externí souory,poslat jako pole?
-
-
-            #files = [('file', open(geoPath, 'rb')), ('style', open(stylePath, 'rb'))]
+            name = self.removeUnacceptableChars(layer_name)           
             if externalFile:
                 payload = {
                 #'file': name.lower()+ext,
@@ -6593,8 +6563,7 @@ class Layman(QObject):
                 else:
 
                     self.layerName = layer_name                   
-                    if(True): ##Pravděpodobně nebude třeba testovat EPSG, pokud se detekuje, je vrstva transformována.
-                      #  print (layer_name)
+                    if(True): ##Pravděpodobně nebude třeba testovat EPSG, pokud se detekuje, je vrstva transformována.                      
                         if not auto:
                             self.dlg.progressBar.show()
                             self.dlg.label_import.show()
@@ -7649,17 +7618,6 @@ class Layman(QObject):
             tempFile = tempfile.gettempdir() + os.sep + name +'.geojson'
 
             return tempFile
-    ## to remove
-    #def sendLayer(self):
-    #    layer = self.getActiveLayer()
-    #    if (layer == None):
-    #        if self.locale == "cs":
-    #            QMessageBox.information(None, "Message", "Neexistuje žádná vrstva k uložení")
-    #        else:
-    #            QMessageBox.information(None, "Message", "No layer to save!")
-    #    else:
-    #        self.json_export()
-    #        self.postRequest()
     def getExistingLayers(self):
         url = self.URI+'/rest/'+self.laymanUsername+"/layers"
        # r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
@@ -8613,7 +8571,7 @@ class Layman(QObject):
                 i += 1
 
 
-    def authOptained (self):
+    def authOptained(self):
         try:
             self.dlg.pushButton_Continue.setEnabled(True)
             self.dlg.pushButton_Connect.setEnabled(False)
@@ -8860,7 +8818,8 @@ class Layman(QObject):
         self.liferayServer = None
         self.compositeList = []
         self.compositeListOld = []
-    def openAuthLiferayUrl2(self, load="", autoLog = False):        
+    def openAuthLiferayUrl2(self, load="", autoLog = False): 
+        
         if hasattr(self, 'dlg'):            
             if isinstance(self.dlg, ConnectionManagerDialog):
                 self.rememberLastServer(self.dlg.comboBox_server.currentIndex())
