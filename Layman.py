@@ -733,7 +733,7 @@ class Layman(QObject):
             print("neni v canvasu")
     def showMessageBar(self, text, info, err, typ):    
         widget = QWidget()
-        layout = QHBoxLayout()
+        layout = QHBoxLayout()        
         #layout.addWidget(QLabel("Layman - "+ text[0] if self.locale == "cs" else text[1]))
         button = QPushButton("Více informací" if self.locale == "cs" else "More info")
         label2 = iface.messageBar().createMessage("Layman:", text[0] if self.locale == "cs" else text[1])
@@ -743,11 +743,16 @@ class Layman(QObject):
 
         def showMessageBox():
             msg = QMessageBox()
-            msg.setWindowTitle("Layman")
-            msg.setText(str(info))
-            clipboard_button = QPushButton("Kopírovat do schránky" if self.locale == "cs" else "Copy to clipboard", msg)
+            msg.setWindowTitle("Layman")            
+            msg.setText(text[0] +" - "+ str(info) if self.locale == "cs" else text[1] +" - " + str(info))
+            clipboard_button = QPushButton("Kopírovat do schránky" if self.locale == "cs" else "Copy to clipboard", msg)          
+            clipboard_button.setStyleSheet("color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 6px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;") # Add the stylesheet             
             msg.addButton(clipboard_button, QMessageBox.ActionRole)
             clipboard_button.clicked.connect(copy_to_clipboard)
+            msg.layout().addWidget(clipboard_button, 1, 1)    
+            msg.layout().setRowStretch(0, 1) 
+            msg.layout().setColumnStretch(0, 1) 
+            msg.layout().setColumnStretch(2, 1)
             msg.exec_()
 
         def copy_to_clipboard():
@@ -2934,8 +2939,7 @@ class Layman(QObject):
         self.dlg.filter.valueChanged.connect(self.filterResults)
         self.dlg.treeWidget.setColumnWidth(0, 300)
         self.dlg.treeWidget.setColumnWidth(2, 80)
-        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        #self.dlg.setWindowModality(Qt.ApplicationModal)
+        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())        
         self.dlg.checkBox_own.stateChanged.connect(self.rememberValueLayer)
         self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showPermissionsDialog(self.dlg.treeWidget.selectedItems()))
         self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
@@ -3339,13 +3343,12 @@ class Layman(QObject):
 
     def checkSelectedCount(self):
         if (len(self.dlg.treeWidget.selectedItems()) > 1):
-            self.dlg.pushButton_setPermissions.setEnabled(True)
-            #self.dlg.pushButton_wfs.setEnabled(True)
+            self.dlg.pushButton_setPermissions.setEnabled(True)            
             self.dlg.pushButton_delete.setEnabled(True)
             self.dlg.pushButton.setEnabled(True)
+            self.dlg.checkBox_thumbnail.setCheckState(2)
         else:
-            self.dlg.pushButton_setPermissions.setEnabled(True)
-            #self.dlg.pushButton_wfs.setEnabled(True)
+            self.dlg.pushButton_setPermissions.setEnabled(True)            
             self.dlg.pushButton_delete.setEnabled(True)
             self.dlg.pushButton.setEnabled(True)
 
@@ -3356,8 +3359,7 @@ class Layman(QObject):
         
         self.dlg.pushButton_layerRedirect.setEnabled(True)
         self.dlg.pushButton_delete.setEnabled(True)
-        self.dlg.pushButton_setPermissions.setEnabled(True)  
-        #threading.Thread(target=lambda: self.deteteLayerFromCompositeThread(x, i, name, title)).start()   
+        self.dlg.pushButton_setPermissions.setEnabled(True)          
         self.checkSelectedCount()
         threading.Thread(target=self.checkServiceButtons).start()
 
@@ -5986,13 +5988,28 @@ class Layman(QObject):
         else:
             self.dlg.label_progress.setText("Sucessfully exported 0 / " + str(len(layers)) )        
         self.layersToUpload = len(layers)
+        bulk = False
+        if self.layersToUpload > 1:
+            for item in layers:
+                if (self.checkExistingLayer(item.text(0))):
+                    if self.locale == "cs":
+                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Je vybráno více vrstev a některé z nich již na serveru existují. Chcete je hromadně přepsat?")
+                    else:
+                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Multiple layers are selected and some of them already exist on the server. Do you want to overwrite them?")
+                    msgbox.addButton(QMessageBox.Yes)
+                    msgbox.addButton(QMessageBox.No)
+                    msgbox.setDefaultButton(QMessageBox.No)
+                    reply = msgbox.exec()
+                    if (reply == QMessageBox.Yes):  
+                        bulk = True     
+                        break  
+                    else:
+                        return              
         for item in layers:
-            
-
-
-
-
-            self.postRequest(item.text(0), False, True)
+            if not bulk:   
+                self.postRequest(item.text(0), False, True, False)
+            else:
+                self.postRequest(item.text(0), False, True, True)                   
         #self.dlg.label_progress.setText("")
     def setCurrentLayer(name):
         layers = QgsProject.instance().mapLayersByName(name)
@@ -6485,7 +6502,7 @@ class Layman(QObject):
                     dimension = elt.text
                     check = False
                     return dimension
-    def postRequest(self, layer_name, auto=False, thread=False):
+    def postRequest(self, layer_name, auto=False, thread=False, bulk = False):
         nameCheck = True
         validExtent = True
         layers = QgsProject.instance().mapLayersByName(layer_name)    
@@ -6500,21 +6517,23 @@ class Layman(QObject):
             QgsMessageLog.logMessage("wrongName")
             return      
         if (nameCheck and validExtent):
-
            # crs = layers[0].crs().authid()
-            crs = "EPSG:3857"
+            #crs = "EPSG:3857"
             data = { 'name' :  str(layer_name).lower(), 'title' : str(layer_name)}
             if (self.checkValidAttributes(layer_name)):
                 if (self.checkExistingLayer(layer_name)):
                     if not auto:
-                        if self.locale == "cs":
-                            msgbox = QMessageBox(QMessageBox.Question, "Layman", "Vrstva "+layer_name+" již na serveru existuje. Chcete přepsat její geometrii?")
+                        if not bulk:
+                            if self.locale == "cs":
+                                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Vrstva "+layer_name+" již na serveru existuje. Chcete přepsat její geometrii?")
+                            else:
+                                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Layer "+layer_name+" already exists in server. Do you want overwrite it´s geometry?")
+                            msgbox.addButton(QMessageBox.Yes)
+                            msgbox.addButton(QMessageBox.No)
+                            msgbox.setDefaultButton(QMessageBox.No)
+                            reply = msgbox.exec()
                         else:
-                            msgbox = QMessageBox(QMessageBox.Question, "Layman", "Layer "+layer_name+" already exists in server. Do you want overwrite it´s geometry?")
-                        msgbox.addButton(QMessageBox.Yes)
-                        msgbox.addButton(QMessageBox.No)
-                        msgbox.setDefaultButton(QMessageBox.No)
-                        reply = msgbox.exec()
+                             reply = QMessageBox.Yes                           
                         if (reply == QMessageBox.Yes):
                             self.dlg.progressBar.show()
                             self.dlg.label_import.show()
@@ -8591,13 +8610,13 @@ class Layman(QObject):
 
     def getAuthHeader(self, authCfg):        
         if self.isAuthorized:
-            config = QgsAuthMethodConfig()
+            config = QgsAuthMethodConfig()            
             url = QUrl(self.URI+ "/rest/current-user")
-            xx = QNetworkRequest(url)    
+            xx = QNetworkRequest(url)   
             i = 0
-            success = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))   
-            if success[0] == False:
-                success  = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))           
+            success = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))             
+            # if success[0] == False:
+            #     success  = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))           
             if success[0] == True:
                 header = (xx.rawHeader(QByteArray(b"Authorization")))                
                 authHeader ={
@@ -8826,8 +8845,8 @@ class Layman(QObject):
                 self.dlg.pushButton_Connect.setEnabled(False)
         self.isAuthorized = True
         authcfg_id = self.authCfg     
-        print(self.setup_oauth(authcfg_id, self.liferayServer))
-        authHeader = self.getAuthHeader(self.authCfg)
+        print(self.setup_oauth(authcfg_id, self.liferayServer))        
+        authHeader = self.getAuthHeader(self.authCfg)        
         print(authHeader)
         if (authHeader):
             if self.registerUserIfNotExists():
