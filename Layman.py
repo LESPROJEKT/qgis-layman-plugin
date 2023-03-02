@@ -583,6 +583,34 @@ class Layman(QObject):
                 self.dlg.treeWidget_layers.addTopLevelItem(item)
               
             iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
+            notActive = set(layerList) - set(layersInCanvas)  
+            for layer in notActive:
+                #item = QListWidgetItem()
+                item = QTreeWidgetItem()
+                #if  layer not in self.unloadedLayers:
+                # cell = QComboBox()
+                # cell.addItems(['No change','Add'])
+                
+                if self.locale == "cs":
+                    item.setText(0,layer + " (Smazána z projektu)")
+                    item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+                    item.setData(0, QtCore.Qt.CheckStateRole, None)
+                else:
+                    item.setText(0, layer + " (Removed from canvas)")
+                    item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+                    item.setData(0, QtCore.Qt.CheckStateRole, None)
+                
+                brush = QBrush()
+                brush.setColor(QColor(255,17,0))
+                item.setForeground(0,brush)
+                item.setCheckState(0,0)
+                if self.locale == "cs":
+                    item.setToolTip(0,"Tato vrstva se nevyskytuje v mapovém okně QGIS, ale je obsažena v kompozici.")
+                else:
+                    item.setToolTip(0,"This layer does not appear in the QGIS map window, but is included in the composition.")
+                #self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
+                self.dlg.treeWidget_layers.addTopLevelItem(item)
+                self.layersWasModified()
             urlServer = self.URI.replace("/client", "")
             while iterator.value():
                 item = iterator.value()                
@@ -608,6 +636,11 @@ class Layman(QObject):
                         cell.addItems(['Beze změny','Přepsat data'])
                     else:
                         cell.addItems(['No change','Overwrite geometry'])
+                elif item.text(0).replace(" (Smazána z projektu)", "").replace(" (Removed from canvas)", "") in  notActive:
+                    if self.locale == "cs":
+                        cell.addItems(['Beze změny','Smazat'])
+                    else:
+                        cell.addItems(['No change','Remove'])                        
                 else:
                     if self.checkExistingLayer(item.text(0)):           
                         if self.locale == "cs":
@@ -635,33 +668,36 @@ class Layman(QObject):
                 iterator +=1
                 self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
 
-           
-            notActive = set(layerList) - set(layersInCanvas)        
-           
-            for layer in notActive:
-                #item = QListWidgetItem()
-                item = QTreeWidgetItem()
-                #if  layer not in self.unloadedLayers:
-                if self.locale == "cs":
-                    item.setText(0,layer + " (Smazána z projektu)")
-                    item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
-                    item.setData(0, QtCore.Qt.CheckStateRole, None)
-                else:
-                    item.setText(0, layer + " (Removed from canvas)")
-                    item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
-                    item.setData(0, QtCore.Qt.CheckStateRole, None)
+                     
+            #notActive = set(layerList) - set(layersInCanvas)        
+            
+            # for layer in notActive:
+            #     #item = QListWidgetItem()
+            #     item = QTreeWidgetItem()
+            #     #if  layer not in self.unloadedLayers:
+            #     # cell = QComboBox()
+            #     # cell.addItems(['No change','Add'])
                 
-                brush = QBrush()
-                brush.setColor(QColor(255,17,0))
-                item.setForeground(0,brush)
-                item.setCheckState(0,0)
-                if self.locale == "cs":
-                    item.setToolTip(0,"Tato vrstva se nevyskytuje v mapovém okně QGIS, ale je obsažena v kompozici.")
-                else:
-                    item.setToolTip(0,"This layer does not appear in the QGIS map window, but is included in the composition.")
-               
-                self.dlg.treeWidget_layers.addTopLevelItem(item)
-                self.layersWasModified()
+            #     if self.locale == "cs":
+            #         item.setText(0,layer + " (Smazána z projektu)")
+            #         item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+            #         item.setData(0, QtCore.Qt.CheckStateRole, None)
+            #     else:
+            #         item.setText(0, layer + " (Removed from canvas)")
+            #         item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+            #         item.setData(0, QtCore.Qt.CheckStateRole, None)
+                
+            #     brush = QBrush()
+            #     brush.setColor(QColor(255,17,0))
+            #     item.setForeground(0,brush)
+            #     item.setCheckState(0,0)
+            #     if self.locale == "cs":
+            #         item.setToolTip(0,"Tato vrstva se nevyskytuje v mapovém okně QGIS, ale je obsažena v kompozici.")
+            #     else:
+            #         item.setToolTip(0,"This layer does not appear in the QGIS map window, but is included in the composition.")
+            #     #self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
+            #     self.dlg.treeWidget_layers.addTopLevelItem(item)
+            #     self.layersWasModified()
 
             if self.laymanUsername != self.instance.getWorkspace():
                 self.dlg.pushButton_setPermissions.setEnabled(False)
@@ -1513,23 +1549,18 @@ class Layman(QObject):
         layers = list()
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         while iterator.value():
-            item = iterator.value()
+            item = iterator.value()         
             if item.checkState(0) == 2 and  self.removeUnacceptableChars(item.text(0)) not in layerList:           
                 if not self.checkLayerInCurrentCompositon(item.text(0)): # kdyz se nenachazi v kompozici nahravame
                 #if True: # kdyz se nenachazi v kompozici nahravame
                     layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
                     if (isinstance(layer, QgsVectorLayer)):
-                        #if layer.featureCount() > 0:
-                        if True:
-                            layerType = layer.type()
-                            if layerType == QgsMapLayer.VectorLayer:
-                                layer.editingStopped.connect(self.layerEditStopped)
-                            layers.append(layer)
-                        else:
-                            if self.locale == "cs":
-                                QMessageBox.information(None, "Layman import layer", "Nelze nahrát vrstvu: "+layer.name()+", protože neobsahuje žádný prvek!")
-                            else:
-                                QMessageBox.information(None, "Layman import layer", "Unable to load layer: "+layer.name()+", because it has no feature!")
+                        #if layer.featureCount() > 0:                        
+                        layerType = layer.type()
+                        if layerType == QgsMapLayer.VectorLayer:
+                            layer.editingStopped.connect(self.layerEditStopped)
+                        layers.append(layer)
+                        
                     else:
                         layers.append(layer)
                     #self.addLayerToComposite2(x, layer)
@@ -1540,7 +1571,7 @@ class Layman(QObject):
                         layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
                         if layer.type() == QgsMapLayer.VectorLayer:
                             self.postRequest(layer.name(), True)
-            elif item.checkState(0) == 0 and item.text(0) not in layerCheckedList:  ## může být zaškrnut i jinde, pak nemažem                
+            elif item.checkState(0) == 0 and item.text(0) not in layerCheckedList and self.dlg.treeWidget_layers.itemWidget(item,2).currentText() in ("Smazat", "Remove"):  ## může být zaškrnut i jinde, pak nemažem                                        
                 pom = 0
                 for i in range (0, len(composition['layers'])):
                     i = i - pom
@@ -1557,9 +1588,11 @@ class Layman(QObject):
             if len(layers) > 0:
                 
                 
-                newLayers = list()
+                newLayers = list()                
                 for item in self.currentSet:                    
                     layersFromServer = list()                    
+             
+
                     if item[2] == "Add from server" or item[2] == "Přidat ze serveru":
                         for layer in layers:                                                    
                    
@@ -3804,7 +3837,7 @@ class Layman(QObject):
    
     def syncOrder2(self, layers):
         serverOrder = self.instance.getLayerNamesList()
-        composition = self.instance.getComposition()
+        composition = self.instance.getComposition()      
         backup = copy.deepcopy(composition)
         composition['layers'] = []
         print(serverOrder)
@@ -3963,8 +3996,11 @@ class Layman(QObject):
                         print("neni v poli")
         
         self.updateVisibilityInComposition()        
-        self.syncOrder2(self.getLayersOrder())
-        self.patchMap2()
+        
+        #self.syncOrder2(self.getLayersOrder())
+        print(len(composition['layers']))
+        print("fff")
+        self.patchMap2()        
         self.writeValuesToProject(self.URI, composition['name'])   
         QgsMessageLog.logMessage("updateMapDone")
         QgsMessageLog.logMessage("layersUploaded")
@@ -7379,7 +7415,7 @@ class Layman(QObject):
         jsonPath = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
         with open(jsonPath, 'rb') as f:
             d = json.load(f)
-
+        
         files = {'file': (jsonPath, open(jsonPath, 'rb')),}
        # data = { 'name' :  composition['name'], 'title' : composition['title'], 'description' : composition['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername}
         data = { 'name' :  composition['name'], 'title' : composition['title'], 'description' : composition['abstract']}
