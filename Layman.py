@@ -3837,10 +3837,14 @@ class Layman(QObject):
    
     def syncOrder2(self, layers):
         serverOrder = self.instance.getLayerNamesList()
-        composition = self.instance.getComposition()      
+        composition = self.instance.getComposition()   
+        if len(serverOrder) != len(QgsProject.instance().mapLayers()):
+            print("pocet vrstev na serveru a v projektu je jiný. Není možné synchronizovat pořadí.")
+            return   
         backup = copy.deepcopy(composition)
         composition['layers'] = []
         print(serverOrder)
+        
         for layer in layers:
             if self.removeUnacceptableChars(layer.name()) in serverOrder:
                 print(layer.name())
@@ -3852,6 +3856,7 @@ class Layman(QObject):
             print("změna pořadí selhala vracím zpět.")
         print("order changed to:")
         print(composition['layers'])
+
 
 
     def syncOrder(self, layers): # vyhledove odstranit      
@@ -3997,9 +4002,7 @@ class Layman(QObject):
         
         self.updateVisibilityInComposition()        
         
-        #self.syncOrder2(self.getLayersOrder())
-        print(len(composition['layers']))
-        print("fff")
+        self.syncOrder2(self.getLayersOrder())    
         self.patchMap2()        
         self.writeValuesToProject(self.URI, composition['name'])   
         QgsMessageLog.logMessage("updateMapDone")
