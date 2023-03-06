@@ -137,6 +137,7 @@ class Layman(QObject):
     processingRaster = pyqtSignal(int,int)
     setPluginLabel = pyqtSignal(str)
     enableWfsButton = pyqtSignal(bool, QPushButton)
+    successWrapper = pyqtSignal(list)
 
 
 
@@ -348,6 +349,7 @@ class Layman(QObject):
         self.processingRaster.connect(self.onRasterUpload)
         self.setPluginLabel.connect(self.onSetPluginLabel)
         self.enableWfsButton.connect(self.onWfsButton)
+        self.successWrapper.connect(self.onSuccess)
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -766,6 +768,11 @@ class Layman(QObject):
                 iterator +=1
         except:
             print("neni v canvasu")
+    def onSuccess(self, text): 
+        if self.locale == "cs":             
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", text[0]), Qgis.Success, duration=3)
+        else:             
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", text[1]), Qgis.Success, duration=3)           
     def showMessageBar(self, text, info, err, typ):    
         widget = QWidget()
         layout = QHBoxLayout()        
@@ -1057,13 +1064,13 @@ class Layman(QObject):
 
     
     def progressColor(self, name, status):
-        for index in range(0, self.dlg.listWidget_layers.count()): ## show only duplicity
-            item = self.dlg.listWidget_layers.item(index)
-            if item.text() == name:
+        for i in range(self.dlg.treeWidget.topLevelItemCount()):
+            item = self.dlg.treeWidget.topLevelItem(i)
+            if item.text(0) == name:
                 if status:
-                    item.setForeground(QColor(0,128,0))
+                    item.setData(0, Qt.ForegroundRole, QColor("green"))
                 else:
-                    item.setForeground(QColor(255,0,0))
+                    item.setData(0, Qt.ForegroundRole, QColor("red"))
 
     def run_QfieldLoginDialog(self):
         self.dlg2 = LoginQfieldDialog()
@@ -4512,7 +4519,7 @@ class Layman(QObject):
                 print("form was killed before response")
         if message[0:8] == "importl_":
             try:
-                self.progressColor(message[8:100], True)
+                self.progressColor(message[8:100], False)
             except:
                 pass
             if self.locale == "cs":
@@ -4671,10 +4678,10 @@ class Layman(QObject):
         except:
             print("current dialog")
     def _onExportLayerSuccessful(self, layerName):
-        try:
-            self.progressColor(layerName, True)
-        except:
-            pass
+        # try:
+        #     self.progressColor(layerName, True)
+        # except:
+        #     pass
         if self.locale == "cs":
             iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+layerName+" byla úspěšně nahrána "), Qgis.Success, duration=3)
         else:
@@ -5004,23 +5011,24 @@ class Layman(QObject):
         msgbox.addButton(QMessageBox.No)
         msgbox.setDefaultButton(QMessageBox.No)
         reply = msgbox.exec()
-        if (reply == QMessageBox.Yes):
+        
+        def deleteMapThread(name):
             name = self.removeUnacceptableChars(name)
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
             response = requests.delete(url, headers = self.getAuthHeader(self.authCfg))           
             #response = self.requestWrapper("DELETE", url, payload = None, files = None)
-            if (response.status_code == 200):
-                if self.locale == "cs":             
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
-                else:             
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
+            if (response.status_code == 200):                
+                self.successWrapper.emit([" Kompozice  " + name + " byla úspešně smazána."," Composition  " + name + " was sucessfully deleted."])
+                # if self.locale == "cs":             
+                #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
+                # else:             
+                #     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
             else:
                 self.showErr.emit([" Kompozice  " + name + " nebyla smazána.", " Composition  " + name + " was not sucessfully deleted."], "code: " + str(response.status_code), str(response.content), Qgis.Warning)          
 
             try:            
                 self.refreshCompositeList()## pro import map form
-                self.dlg.treeWidget_listLayers.clear()
-                self.dlg.treeWidget_listLayers.addTopLevelItem(item)
+                self.dlg.treeWidget_listLayers.clear()                
                 self.dlg.pushButton_deleteMap.setEnabled(False)
                 self.dlg.pushButton_editMeta.setEnabled(False)
                 self.dlg.pushButton_setMapPermissions.setEnabled(False)
@@ -5041,7 +5049,8 @@ class Layman(QObject):
                 checked = True
             print(checked)
             self.loadMapsThread(checked)
-          
+        if (reply == QMessageBox.Yes):
+            threading.Thread(target=lambda: deleteMapThread(name)).start()          
     def deleteLayerFromCanvas(self, name):
         lay = QgsProject.instance().mapLayersByName(name)[0]
         if (lay != None and lay.type() != QgsMapLayer.VectorLayer):
@@ -6082,8 +6091,7 @@ class Layman(QObject):
             else:
                 self.exportLayerFailed.emit(layer_name)
             self.importedLayer = layer_name
-            self.processingList[q][2] = 1
-            #self.writeState(1)
+            self.processingList[q][2] = 1         
             QgsMessageLog.logMessage("export")
 
          
