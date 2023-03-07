@@ -160,6 +160,19 @@
     <string>Export time series</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="pushButton_errLog">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>240</y>
+     <width>171</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Copy error log</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

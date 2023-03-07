@@ -2126,11 +2126,14 @@ class Layman(QObject):
         self.dlg.progressBar.hide()
         self.dlg.label_import.hide()
         self.dlg.pushButton.setEnabled(False)      
+        self.dlg.pushButton_errLog.hide()
+        self.dlg.pushButton_errLog.clicked.connect(self.copyErrLog)
         self.dlg.treeWidget.itemPressed.connect(self.enableButtonImport)      
         self.dlg.treeWidget.itemSelectionChanged.connect(lambda: self.disableExport())
         self.dlg.treeWidget.setCurrentItem(self.dlg.treeWidget.topLevelItem(0),0)
         layers = QgsProject.instance().mapLayers().values()
         mix = list()
+        self.initLogFile()
         root = QgsProject.instance().layerTreeRoot()      
         layers = []    
         for child in root.children():
@@ -2159,12 +2162,19 @@ class Layman(QObject):
         self.dlg.setWindowModality(Qt.ApplicationModal)
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
         self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
+        self.dlg.pushButton_errLog.setStyleSheet("#pushButton_errLog {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #c0332c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_errLog:hover{background: #c21c13 ;}#pushButton_errLog:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.selectSelectedLayer()
         self.dlg.treeWidget.header().resizeSection(0,250)
         self.dlg.show()
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         result = self.dlg.exec_()
+    def initLogFile(self):
+        filename = tempFile = tempfile.gettempdir() + os.sep + "import_log.txt"  
+        if os.path.exists(filename):    
+            open(filename, 'w').close()
+        else:           
+            open(filename, 'x').close()        
     def setBatchLengthZero(self):
         self.batchLength = 0
     def get_layers_in_order(self,node, layers):
@@ -3525,25 +3535,40 @@ class Layman(QObject):
         items = list()
         for i in range (0, len(self.dlg.treeWidget.selectedItems())):
             items.append(self.dlg.treeWidget.selectedItems()[i].text(0))
-        
+        question = True            
+        if len(items) > 1:
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Chcete opravdu smazat vybrané vrstvy?")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Do you want delete selected layers?")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.Yes):                
+                question = False
         for j in range (0, len(items)):
-            self.layerDelete(items[j])
-    def layerDelete(self, name):
+            
+            self.layerDelete(items[j], question)
+    def layerDelete(self, name, question = True):
         title = name
-        if self.locale == "cs":
-            msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Chcete opravdu smazat vrstvu "+str(name)+"?")
+        if question:
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Chcete opravdu smazat vrstvu "+str(name)+"?")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Do you want delete layer "+str(name)+"?")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
         else:
-            msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Do you want delete layer "+str(name)+"?")
-        msgbox.addButton(QMessageBox.Yes)
-        msgbox.addButton(QMessageBox.No)
-        msgbox.setDefaultButton(QMessageBox.No)
-        reply = msgbox.exec()
+            reply = QMessageBox.Yes             
         if (reply == QMessageBox.Yes):
             if (self.checkLayersInComopsitions(name) == True):
                 if self.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Tato vrstva je obsažena v některých mapových kompozicích. Pokud budete pokračovat, bude smazána také z těchto kompozic.")
+                    msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Vrstva " +name +" je obsažena v některých mapových kompozicích. Pokud budete pokračovat, bude smazána také z těchto kompozic.")
                 else:
-                    msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "This layers is included in other compositions. It will be deleted from every composition.")
+                    msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Layer " +name +"  is included in other compositions. It will be deleted from every composition.")
                 msgbox.addButton(QMessageBox.Yes)
                 msgbox.addButton(QMessageBox.No)
                 msgbox.setDefaultButton(QMessageBox.No)
@@ -4710,6 +4735,10 @@ class Layman(QObject):
             self.progressColor(layerName, False)
         except:
             pass
+        try:
+            self.dlg.pushButton_errLog.show()
+        except:
+            pass            
         if self.locale == "cs":
             iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+layerName+" nebyla nahrána "), Qgis.Warning)
         else:
@@ -5390,7 +5419,7 @@ class Layman(QObject):
             if os.path.exists(layer_filename):
                 os.remove(layer_filename)
             else:
-                print("The file does not exist")
+                pass
             epsg = layer.crs().authid()
             if not epsg in self.supportedEpsg:
                 epsg = QgsProject.instance().crs().authid()
@@ -5408,11 +5437,11 @@ class Layman(QObject):
             if os.path.exists(sld_filename):
                 os.remove(sld_filename)
             else:
-                print("The file does not exist")
+                pass
             if os.path.exists(qml_filename):
                 os.remove(qml_filename)
             else:
-                print("The file does not exist")
+                pass
             result3 = False
             layer.saveSldStyle(sld_filename)
             self.insertPictureToQML(layer)
@@ -5655,6 +5684,7 @@ class Layman(QObject):
                 return False  
         return True    
     def callPostRequest(self, layers):
+        self.dlg.pushButton_errLog.hide()
         self.ThreadsA = set()
         for thread in threading.enumerate():
             self.ThreadsA.add(thread.name)
@@ -5779,21 +5809,21 @@ class Layman(QObject):
                 self.setChunkSizeBigger()
             self.postInChunks(layer_name, "patch")
         else:
-            self.patchLayer(layer_name, data)   
+            response = self.patchLayer(layer_name, data)   
         if progress:
 
             self.importedLayer = layer_name
             self.processingList[q][2] = 1
-            try:
-                response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), headers = self.getAuthHeader(self.authCfg))
-                #response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), payload = None, files = None)
-                if (response.status_code == 400):
-                    time.sleep(3)
-                    #response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), payload = None, files = None)
+            if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
+                try:
                     response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), headers = self.getAuthHeader(self.authCfg))
-            except:
-                self.showErr.emit(["Připojení se serverem selhalo!", "Connection with server failed!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning)                
-                return
+                    #response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), payload = None, files = None)
+                    if (response.status_code == 400):
+                        time.sleep(3)                    
+                        response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), headers = self.getAuthHeader(self.authCfg))
+                except:
+                    self.showErr.emit(["Připojení se serverem selhalo!", "Connection with server failed!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning)                
+                    return
 
             if (response.status_code == 200):
                 try:
@@ -5806,6 +5836,7 @@ class Layman(QObject):
             else:
                 #QgsMessageLog.logMessage("importn_"+layer_name)
                 self.exportLayerFailed.emit(layer_name)
+                self.writePostLog(str(layer_name), str(response.status_code), str(response.content))
            ## self.writeState(1)
             QgsMessageLog.logMessage("exportPatch")
             try:
@@ -6079,7 +6110,8 @@ class Layman(QObject):
         if progress:
       
             #response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), headers = self.getAuthHeader(self.authCfg))
-            response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), payload = None, files = None)
+            if (os.path.getsize(geoPath) > self.CHUNK_SIZE): 
+                response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), payload = None, files = None)
             if (response.status_code == 200):
                 try:
                     self.uploaded = self.uploaded + 1
@@ -6088,13 +6120,23 @@ class Layman(QObject):
                 self.exportLayerSuccessful.emit(layer_name)
             elif (response.status_code == 413):
                 QgsMessageLog.logMessage("importl_"+layer_name)
+                self.writePostLog(str(layer_name), str(response.status_code), str(response.content))
             else:
                 self.exportLayerFailed.emit(layer_name)
+                self.writePostLog(str(layer_name), str(response.status_code), str(response.content))
             self.importedLayer = layer_name
             self.processingList[q][2] = 1         
             QgsMessageLog.logMessage("export")
 
-         
+    def writePostLog(self, name, code, ret):        
+        filename = tempFile = tempfile.gettempdir() + os.sep + "import_log.txt"
+        with open(filename, 'a') as file:    
+            file.write(name + ";" + code +";"+ ret)      
+    def copyErrLog(self):            
+        filename = tempFile = tempfile.gettempdir() + os.sep + "import_log.txt"
+        with open(filename, 'r') as file:
+            file_contents = file.read()
+        PyQt5.QtGui.QGuiApplication.clipboard().setText(file_contents)
     def getLayerGroupTest(self):
         if self.run == False:
             self.run = True
@@ -7073,6 +7115,8 @@ class Layman(QObject):
         url = self.URI+'/rest/' + self.laymanUsername + "/layers/"        
         #r = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
         r = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)
+        return r
+        
        
 
     def getTempPath(self, name):
