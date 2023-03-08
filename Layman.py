@@ -1685,6 +1685,12 @@ class Layman(QObject):
         self.dlg.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
         self.dlg.pushButton_removeRead.setEnabled(False)
         self.dlg.pushButton_removeWrite.setEnabled(False)
+        ## combobox full text part
+        self.dlg.comboBox_users.setEditable(True)
+        self.dlg.comboBox_users.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+        self.dlg.comboBox_users.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+        ##
+
         uri = self.URI + "/rest/users"
         usersDict = dict()
         if self.locale == "cs":
@@ -1754,6 +1760,12 @@ class Layman(QObject):
         self.dlg.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
         self.dlg.pushButton_removeRead.setEnabled(False)
         self.dlg.pushButton_removeWrite.setEnabled(False)
+        ## combobox full text part
+        self.dlg.comboBox_users.setEditable(True)
+        self.dlg.comboBox_users.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+        self.dlg.comboBox_users.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+        ##
+
         uri = self.URI + "/rest/users"
         usersDict = dict()
         if self.locale == "cs":
@@ -2756,7 +2768,7 @@ class Layman(QObject):
         self.dlg.treeWidget.itemClicked.connect(self.enableDeleteButton)
         self.dlg.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
         self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
-        self.dlg.treeWidget.itemClicked.connect(self.showThumbnail2)
+        self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.dlg.treeWidget.selectedItems()[0])).start())        
         self.dlg.filter.valueChanged.connect(self.filterResults)
         self.dlg.treeWidget.setColumnWidth(0, 300)
         self.dlg.treeWidget.setColumnWidth(2, 80)
@@ -3188,8 +3200,11 @@ class Layman(QObject):
         else:
             self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)
            # self.dlg.pushButton_wfs.setEnabled(True)
-    def onWfsButton(self, enable, button):    
-        button.setEnabled(enable)
+    def onWfsButton(self, enable, button):
+        try:    
+            button.setEnabled(enable)
+        except:
+            pass            
     def checkFileType(self, name, workspace):
         name = self.layerNamesDict[name]   
         url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(name)
