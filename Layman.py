@@ -7926,7 +7926,7 @@ class Layman(QObject):
 
         return _ch
 
-    def reorderInGroup(self,groupPositions, groupsSet):
+    def reorderInGroup(self,groupPositions, groupsSet):      
         from collections import OrderedDict
         root = QgsProject.instance().layerTreeRoot()
         for groupName in groupsSet:
@@ -7944,7 +7944,8 @@ class Layman(QObject):
             arr = list()
             for item in reversed(groupPositions):
                 if item[0] == groupName:
-                    res = [x for x in mLNEDkeys if re.search(item[1], x)]               
+                    #res = [x for x in mLNEDkeys if re.search(item[1], x)]       
+                    res = [x for x in mLNEDkeys if item[1] in x]              
                     arr.append(str(res).replace("]","").replace("[","").replace("'",""))               
             print(arr)
             print(mLNED)
