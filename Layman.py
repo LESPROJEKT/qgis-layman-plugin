@@ -7949,7 +7949,11 @@ class Layman(QObject):
                     arr.append(str(res).replace("]","").replace("[","").replace("'",""))               
             print(arr)
             print(mLNED)
-            mLNEDsorted = [mLNED[k].clone() for k in arr]
+            try:
+                mLNEDsorted = [mLNED[k].clone() for k in arr]
+            except Exception as e:
+                print("reorder failed" + str(e)) 
+                return               
             group.insertChildNodes(0,mLNEDsorted)  # group instead of root
             for n in mLNED.values():
                 group.removeChildNode(n)  # group instead of root
