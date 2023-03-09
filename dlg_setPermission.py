@@ -36,6 +36,7 @@ class SetPermissionDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(SetPermissionDialog, self).__init__(parent)
+        self.setObjectName("PermissionsDialog")
         # Set up the user interface from Designer through FORM_CLASS.
         # After self.setupUi() you can access any designer object by doing
         # self.<objectname>, and you can use autoconnect slots - see

@@ -2892,11 +2892,11 @@ class Layman(QObject):
     def askForMapPermissionChanges(self,layerName, userDict, type):
         self.failed = list()
         self.statusHelper = True
-        included = False
-        for name in layerName:
-            if (self.checkLayersInComopsitions(name)):
-                included = True
-        if (included):
+        #included = False
+        # for name in layerName:
+        #     if (self.checkLayersInComopsitions(name)):
+        #         included = True
+        if (False):
             if self.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Vybrané vrstvy jsou obsaženy v existujících mapových kompozicích. Chcete nastavit stejná práva i pro tyto dotčené kompozice?")
             else:
@@ -2923,9 +2923,9 @@ class Layman(QObject):
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
             reply = msgbox.exec()
-            if (reply == QMessageBox.Yes):         
+            if (reply == QMessageBox.Yes):  
                 threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
-                threading.Thread(target=lambda: self.updateAllLayersPermission(userDict, layerName)).start()
+                threading.Thread(target=lambda: self.updateAllLayersPermission(userDict, layerName, False)).start()
             else:
                 threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
         else:
@@ -2944,11 +2944,10 @@ class Layman(QObject):
                 if '/geoserver/' in layer['url']:
                     return True
         return False
-    def updateAllLayersPermission(self, userDict, layerName):
-        
-        try:
+    def updateAllLayersPermission(self, userDict, layerName, loaded = False):      
+        if loaded:
             composition = self.instance.getComposition()
-        except:
+        else:
             url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+layerName[0]+"/file"
             #r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
             r = self.requestWrapper("GET", url, payload = None, files = None)
@@ -2958,7 +2957,6 @@ class Layman(QObject):
         userNamesRead = list()
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":
-
                 userNamesRead.append("EVERYONE")          
             else:
                 userNamesRead.append(userDict[pom])
@@ -2968,30 +2966,27 @@ class Layman(QObject):
                 userNamesWrite.append("EVERYONE")
             else:
                 userNamesWrite.append(userDict[pom])
-        data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}
+        data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}       
         for layer in composition['layers']:
-            
+            name = None
             if (layer['className'] == 'OpenLayers.Layer.Vector'):
                 name = layer['protocol']['LAYERS']
             if (layer['className'] == 'HSLayers.Layer.WMS'):
                 name = layer['params']['LAYERS']
-            try:
+            if name is not None:
                 response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.getAuthHeader(self.authCfg))
                 #response = self.requestWrapper("PATCH", self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data)
                 if (response.status_code != 200):                      
                     self.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning)
-            except:
-                print("neni mozne updatovat prava, nebyl nalezen name")
-            
-    def updatePermissions(self,layerName, userDict, type, check=False):
-
+            else:
+                print("there is not possible set permissions for layer")
+          
+    def updatePermissions(self,layerName, userDict, type, check=False):       
         itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
         itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
-        userNamesRead = list()       
-        print(userDict)       
+        userNamesRead = list()  
         for pom in itemsTextListRead:         
-            if pom == "VŠICHNI":
-            
+            if pom == "VŠICHNI":            
                 userNamesRead.append("EVERYONE")          
             else:
                 print(pom)
@@ -3008,22 +3003,20 @@ class Layman(QObject):
                 userNamesWrite.append(userDict[pom])
         data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}     
         
-
+      
         for layer in layerName:
             layer = self.removeUnacceptableChars(layer)      
             
-            response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer, data = data,  headers = self.getAuthHeader(self.authCfg))
-            #response = self.requestWrapper("PATCH", self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer, data, files = None)
-      
+            response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer, data = data,  headers = self.getAuthHeader(self.authCfg))  
             if (response.status_code != 200):
                 self.failed.append(layer)         
                 self.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning)
                 self.statusHelper = False
-        ## rekurzivni zmeny
+                   
+        ## rekurzivni zmeny        
         if (type == "maps" and check):
-
             if self.statusHelper:
-                layerList = list()
+                layerList = list()              
                 for i in range (0,len(self.compositeList)):
                     if self.compositeList[i]['name'] == self.removeUnacceptableChars(layerName[0]):
                         for j in range (0,len(self.compositeList[i]['layers'])):
@@ -3031,12 +3024,11 @@ class Layman(QObject):
                                 layerList.append(self.compositeList[i]['layers'][j]['params']['LAYERS'])
                             if self.compositeList[i]['layers'][j]['className'] == "OpenLayers.Layer.Vector":                            
                                 layerList.append(self.removeUnacceptableChars(self.compositeList[i]['layers'][j]['title']))
-                self.updatePermissions(layerList,userDict, "layers")
+                print("updating permissions for layers:" + str(layerList))
+                threading.Thread(target=self.updatePermissions(layerList,userDict, "layers")).start()
                 return
             else:
-                self.permissionInfo.emit(False, self.failed, 0) 
-                  
-               #QgsMessageLog.logMessage("permissionsDoneF")
+                self.permissionInfo.emit(False, self.failed, 0)              
 
         elif (type == "layers" and check):
             for name in layerName:
@@ -3044,7 +3036,7 @@ class Layman(QObject):
                 for comp in compositionList:
                     self.updatePermissions([comp],userDict, "maps", False)
                     return      
-        else:
+        else:      
             if (self.statusHelper and self.info == 0):
                 print(self.failed)
                 self.permissionInfo.emit(True, self.failed, 0)
@@ -3190,16 +3182,17 @@ class Layman(QObject):
         self.checkSelectedCount()
         threading.Thread(target=self.checkServiceButtons).start()
 
-    def checkServiceButtons(self):           
+    def checkServiceButtons(self): 
         if self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "vector":
-            self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)
-            #self.dlg.pushButton_wfs.setEnabled(True)
+            if self.dlg.objectName() == "AddLayerDialog":           
+                self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)      
         elif self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "raster":
-            self.enableWfsButton.emit(False, self.dlg.pushButton_wfs)
-           # self.dlg.pushButton_wfs.setEnabled(False)
+            if self.dlg.objectName() == "AddLayerDialog":           
+                self.enableWfsButton.emit(False, self.dlg.pushButton_wfs)        
         else:
-            self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)
-           # self.dlg.pushButton_wfs.setEnabled(True)
+            if self.dlg.objectName() == "AddLayerDialog":           
+                self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)
+        
     def onWfsButton(self, enable, button):
         try:    
             button.setEnabled(enable)
@@ -4005,7 +3998,8 @@ class Layman(QObject):
                 self.dlg.label_thumbnail.setPixmap(smaller_pixmap)
                 self.dlg.label_thumbnail.setAlignment(Qt.AlignCenter)
             except:
-                self.dlg.label_thumbnail.setText('  Unable to load thumbnail.')
+                pass
+                #self.dlg.label_thumbnail.setText('  Unable to load thumbnail.')
 
     def showThumbnailMap2(self, it, workspace):
         
@@ -4023,7 +4017,8 @@ class Layman(QObject):
                 smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
                 self.dlg.label_thumbnail.setPixmap(smaller_pixmap)      
             except:
-                self.dlg.label_thumbnail.setText('       Unable to load thumbnail.')
+                pass
+                #self.dlg.label_thumbnail.setText('       Unable to load thumbnail.')
     def setup_oauth(self, authcfg_id, authcfg_name):
       
         if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e' and authcfg_id != '7f22y3g': ## prozatím pro test toto id ma wagtail
@@ -8257,7 +8252,13 @@ class Layman(QObject):
                 QMessageBox.information(None, "Error", "Layman server not respond!")
             self.disableEnvironment()
             return
-
+        if res is None:
+            if self.locale == "cs":
+                QMessageBox.information(None, "Error", "Layman server neodpověděl!")
+            else:
+                QMessageBox.information(None, "Error", "Layman server not respond!")            
+            self.logout()
+            return               
         if 'code' in res:
            # if res['message'] == 'User already reserved username.': # res['code'] == 34, code 35 je pokud již jiný uživatel má účet, který chceme registrovat
            if res['code'] == 34: # res['code'] == 34, code 35 je pokud již jiný uživatel má účet, který chceme registrovat (code 35 pravděpodobně nemůže nastat)
@@ -8266,13 +8267,9 @@ class Layman(QObject):
 
                 self.laymanUsername = res['detail']['username']
                 print("username is: " + self.laymanUsername )
-                url = self.liferayServer.replace('https:\\','').replace('.cz','').replace('http:\\','').replace('www.','').replace('.com','')
-                # try:
+                url = self.liferayServer.replace('https:\\','').replace('.cz','').replace('http:\\','').replace('www.','').replace('.com','')               
                 self.setPluginLabel.emit('<a href="'+self.liferayServer+'">' + url + '</a>')
                     
-                # except:
-                #     pass                    
-                
                 
            if res['code'] == 32:
                 self.disableEnvironment()
