@@ -4690,9 +4690,12 @@ class Layman(QObject):
             try:
                 thread.join()
             except:
-                pass
+                pass     
+        # print("xxxx")
+        # print(groupsSet, groupsPosition)
         for g in groups:                               
-            self.reorderToTop(g[0], groupsSet, groupsPosition, g[1])                
+            self.reorderToTop(g[0], groupsSet, groupsPosition, g[1])      
+        self.newReorder(groupsPosition, groupsSet)                      
     def loadAllComposites(self):
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'
 
@@ -7969,11 +7972,33 @@ class Layman(QObject):
                 root.removeChildNode(ch)
        # try:
         #self.reorderInGroup(groupsPositions, groupsSet)
+        
+        ##  {'Jiný'} [['Jiný', 'Biogeoregions in Europe', 3], ['Jiný', 'Bioregions Pilots', 2], ['Jiný', 'Biogeoregions in Europe - labels', 1], ['Jiný', 'Harmonized CORINE Land Cover 2012', 0]]
         #except:
          #   print("error in reorder group")
 
 
         return _ch
+    def newReorder(self, groupsPositions, groupsSet):
+        for group_name in groupsSet:
+            root = QgsProject.instance().layerTreeRoot()
+            new_order = list()
+            for g in groupsPositions:
+                new_order.append(g[1])
+            # Find the group you want to reorder
+            
+            
+            for cha in root.children():
+                i = 0
+                for name in new_order:
+                    i = i + 1
+                    print(name)
+                    for ch in cha.children():  
+                            
+                        if ch.name() == name:
+                            _ch = ch.clone()
+                            cha.insertChildNode(i, _ch)
+                            cha.removeChildNode(ch)
 
     def reorderInGroup(self,groupPositions, groupsSet):      
         
