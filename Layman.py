@@ -138,6 +138,8 @@ class Layman(QObject):
     setPluginLabel = pyqtSignal(str)
     enableWfsButton = pyqtSignal(bool, QPushButton)
     successWrapper = pyqtSignal(list)
+    setVisibility = pyqtSignal(QgsMapLayer)
+    loadStyle = pyqtSignal(QgsMapLayer)
 
 
 
@@ -350,6 +352,8 @@ class Layman(QObject):
         self.setPluginLabel.connect(self.onSetPluginLabel)
         self.enableWfsButton.connect(self.onWfsButton)
         self.successWrapper.connect(self.onSuccess)
+        self.setVisibility.connect(self._setVisibility)
+        self.loadStyle.connect(self._loadStyle)
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -4664,7 +4668,20 @@ class Layman(QObject):
             try:
                 self.dlg.label_thumbnail.setText(' ')
             except:
-                pass           
+                pass  
+    def _loadStyle(self, layer):
+        if (isinstance(layer, QgsVectorLayer)):
+            style = self.getStyle(layer.name())                  
+            layerName = layer.name()
+            if (style[0] == 200):
+                if (style[1] == "sld"):
+                    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                    layer.loadSldStyle(tempf)
+                    layer.triggerRepaint()
+                if (style[1] == "qml"):
+                    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                    layer.loadNamedStyle(tempf)
+                    layer.triggerRepaint()                     
     def onRasterUpload(self, progress, max):   
         self.dlg.progressBar.setMaximum(max)
         self.dlg.progressBar.setValue(progress)   
@@ -4904,41 +4921,46 @@ class Layman(QObject):
                 self.loadService2(data,service, name)
 
     def afterCompositionLoaded(self):
-        try:
-            self.prj.layerWasAdded.disconnect()
-        except:
-            pass
-        print("afterCompositionLoaded")       
-        if self.instance.getPermissions() == "w" or self.instance.getPermissions() == "n" :
-            ## startuje naslouchani na zmenu do groupy
-            prj = QgsProject().instance()
-            root = prj.layerTreeRoot()           
-            composition = self.instance.getComposition()
-           
-            self.project.removeAll.connect(self.removeSignals)        
+        
+        # try:
+        #     self.prj.layerWasAdded.disconnect()
+        # except:
+        #     pass
+        print("afterCompositionLoaded")      
+        
+        if self.instance.getPermissions() == "w" or self.instance.getPermissions() == "n" :            
+            # startuje naslouchani na zmenu do groupy
+            # prj = QgsProject().instance()
+            # root = prj.layerTreeRoot()           
+            # composition = self.instance.getComposition()
+            
+            # self.project.removeAll.connect(self.removeSignals)        
             layers = self.project.mapLayers().values() 
             self.instance.setIds(layers)
             for layer in layers:                
-                layerType = layer.type()
-                if layerType == QgsMapLayer.VectorLayer:
-                    layer.editingStopped.connect(self.layerEditStopped)
-                    layer.styleChanged.connect(self.layerStyleToUpdate)
-            self.menu_CurrentCompositionDialog.setEnabled(True)  
-            self.processingRequest = False
-            composition = self.instance.getComposition()
-            self.backupComposition = copy.deepcopy(composition)    
-            root = self.project.layerTreeRoot()           
-        try:
-            self.dlg.pushButton_map.setEnabled(True)
-        except:
-            print("different dialog loaded")
-        if self.wrongLayers:
-            self.wrongLayers = False
-            if self.locale == "cs":
-               QMessageBox.information(None, "Layman", "Některé vrstvy nebyly načteny.")
-            else:
-               QMessageBox.information(None, "Layman", "Some layers was not loaded")
+                 layerType = layer.type()
+                 if layerType == QgsMapLayer.VectorLayer:
+                     layer.editingStopped.connect(self.layerEditStopped)
+                     layer.styleChanged.connect(self.layerStyleToUpdate)
 
+
+            # self.menu_CurrentCompositionDialog.setEnabled(True)  
+            # self.processingRequest = False
+            # composition = self.instance.getComposition()
+           # self.backupComposition = copy.deepcopy(composition)    
+            # root = self.project.layerTreeRoot()           
+        # try:
+        #     self.dlg.pushButton_map.setEnabled(True)
+        # except:
+        #     print("different dialog loaded")
+
+        # if self.wrongLayers:
+        #     self.wrongLayers = False
+        #     if self.locale == "cs":
+        #        QMessageBox.information(None, "Layman", "Některé vrstvy nebyly načteny.")
+        #     else:
+        #        QMessageBox.information(None, "Layman", "Some layers was not loaded")
+     
         QgsMessageLog.logMessage("layersLoaded")
     def changeVisibility(self, layerTreeNode):        
         if layerTreeNode.nodeType() == 0:
@@ -7083,7 +7105,7 @@ class Layman(QObject):
                 self.processingRequest = False
 
                 composition = self.instance.getComposition()
-                self.backupComposition = copy.deepcopy(composition)   
+                #self.backupComposition = copy.deepcopy(composition)   
                 root = QgsProject.instance().layerTreeRoot()             
                 
                 QgsProject.instance().setTitle(title)
@@ -7486,7 +7508,8 @@ class Layman(QObject):
                         if 'type' in data['layers'][x]['protocol']: ## old
                             if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
                                 if 'workspace' in data:                                    
-                                    repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['workspace'] + "wfs"
+                                    #repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['workspace'] + "wfs"
+                                    repairUrl = repairUrl.replace("hsl-layman", "") + data['workspace'] + "wfs"
 
 
                                 threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
@@ -7496,7 +7519,7 @@ class Layman(QObject):
                                 threads.append(threading.Thread(target=lambda: self.loadWfsExternal(data['layers'][x],epsg, groupName)).start())
                             if (data['layers'][x]['protocol']['format'] == "hs.format.WFS"):
                                 if 'workspace' in data['layers'][x]:                                    
-                                    repairUrl = repairUrl.replace("hsl-layman", "geoserver")
+                                    repairUrl = repairUrl.replace("hsl-layman", "")
 
 
                                 threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
@@ -7513,12 +7536,14 @@ class Layman(QObject):
             threadsB = set()
             for thread in threading.enumerate():
                 threadsB.add(thread.name)
-        self.afterLoadedComposition.emit()
+        
         #QgsMessageLog.logMessage("F")
 
-        #QgsMessageLog.logMessage("reorderGroups")
-        #self.reorderGroups(threads, groups, groupsSet, groupPositions)
+        #QgsMessageLog.logMessage("reorderGroups")  
+        # 
+        #       
         self.reoderComposition.emit(threads, groups, groupsSet, groupPositions)
+        self.afterLoadedComposition.emit()
 
 
     def Title(self, layerName):
@@ -7575,7 +7600,8 @@ class Layman(QObject):
                 rand = random.randint(0,10000)
                 self.currentLayerDict[str(rand)] = rlayer
 
-                self.loadLayer(rlayer)     
+                self.loadLayer(rlayer)   
+                self.setVisibility.emit(rlayer)   
             
             if greyscale:
                 rlayer.pipe().hueSaturationFilter().setGrayscaleMode(1)
@@ -7632,23 +7658,24 @@ class Layman(QObject):
         except:
             print("ignoreExtents works only with qgis 3.10 and higher")
             pass # pro qgis 3.10 a vys
-        self.currentLayer.append(rlayer)
-        if (rlayer.isValid()):
+        self.currentLayer.append(rlayer)        
+     
+        #if (rlayer.isValid()):
+        if True:
             if minRes != None and maxRes != None:
                 rlayer.setMinimumScale(self.resolutionToScale(maxRes))
                 rlayer.setMaximumScale(self.resolutionToScale(minRes))
                 rlayer.setScaleBasedVisibility(True)
-            if (groupName != '' or subgroupName != ''):            
-                self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path
+            if (groupName != '' or subgroupName != ''):                        
+                self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path            
                               
             else:
-                self.params = []
-                self.params.append(visibility)              
-                rand = random.randint(0,10000)
-                self.currentLayerDict[str(rand)] = rlayer
-
-                self.loadLayer(rlayer)    
-            
+                # self.params = []
+                # self.params.append(visibility)              
+                # rand = random.randint(0,10000)               
+                #self.currentLayerDict[str(rand)] = rlayer
+                self.loadLayer(rlayer)  
+                self.setVisibility.emit(rlayer)              
             if greyscale:
                 rlayer.pipe().hueSaturationFilter().setGrayscaleMode(1)
             return True
@@ -7691,7 +7718,8 @@ class Layman(QObject):
                 rand = random.randint(0,10000)
                 self.currentLayerDict[str(rand)] = rlayer
 
-                self.loadLayer(rlayer)                       
+                self.loadLayer(rlayer)   
+                self.setVisibility.emit(rlayer)                     
             if visibility == False:
                 QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
             return True
@@ -7717,6 +7745,13 @@ class Layman(QObject):
                     tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
                     layer.loadNamedStyle(tempf)
                     layer.triggerRepaint()
+    def _setVisibility(self, layer):                    
+        try:
+            visibility = self.instance.getVisibilityForLayer(layer.name())
+            QgsProject.instance().layerTreeRoot().findLayer(layer).setItemVisibilityChecked(visibility)
+        except:
+            print("missing visibility parameter")
+            QgsProject.instance().layerTreeRoot().findLayer(layer).setItemVisibilityChecked(True)                    
     def loadWfsExternal(self, layer, epsg, groupName):
         minRes = layer['minResolution']
         maxRes = layer['maxResolution']  
@@ -7773,14 +7808,16 @@ class Layman(QObject):
                     self.addWmsToGroup(groupName,vlayer, subgroupName)
 
                     self.currentLayer.append(vlayer)
-                    rand = random.randint(0,10000)
-                    self.currentLayerDict[str(rand)] = vlayer
-                    QgsMessageLog.logMessage("loadSymbology" + str(rand))
+                    # rand = random.randint(0,10000)
+                    # self.currentLayerDict[str(rand)] = vlayer
+                    # QgsMessageLog.logMessage("loadSymbology" + str(rand))
+                    self.loadStyle.emit(vlayer)
                 else:                 
                     self.currentLayer.append(vlayer)
                     rand = random.randint(0,10000)
                     self.currentLayerDict[str(rand)] = vlayer     
-                    self.loadLayer(vlayer)                           
+                    self.loadLayer(vlayer)    
+                    self.setVisibility.emit(vlayer)                        
                     #QgsMessageLog.logMessage("loadVector" + str(rand))
      
             else: ### cast pro slozenou geometrii
@@ -7846,7 +7883,8 @@ class Layman(QObject):
             
             return True
         else:
-            QgsProject.instance().addMapLayer(vlayer)
+            self.loadLayer(vlayer) 
+            #QgsProject.instance().addMapLayer(vlayer)
             return False
           
     def forbidRename(self):
@@ -7901,6 +7939,18 @@ class Layman(QObject):
         except:
             print("missing visibility parameter")
             QgsProject.instance().layerTreeRoot().findLayer(layer).setItemVisibilityChecked(True)
+    # def addWmsToGroup(self, groupName,  layer, test= "", i = 1000):
+    #     print(groupName,  layer)
+    #     root = QgsProject.instance().layerTreeRoot()
+    #     # Check if the group exists, and create it if it doesn't
+    #     group = root.findGroup(groupName)
+    #     if group is None:
+    #         group = root.addGroup(groupName) 
+    #     if layer is not None:
+    #         group.addLayer(layer)
+    #     # Add the group to the layer group
+       
+              
     def addLayerToGroup(self, groupName, layer):
         root = QgsProject.instance().layerTreeRoot()
         group = root.findGroup(groupName)
@@ -7909,8 +7959,7 @@ class Layman(QObject):
         time.sleep(1)
         QgsProject.instance().addMapLayer(layer,False)
         group.insertChildNode(1000,QgsLayerTreeLayer(layer))
-    def reorderToTop(self, name,groupsSet, groupsPositions, i= 1000):
-        
+    def reorderToTop(self, name,groupsSet, groupsPositions, i= 1000):        
         _ch = ""
         root = QgsProject.instance().layerTreeRoot()
         for ch in root.children():
@@ -7919,7 +7968,7 @@ class Layman(QObject):
                 root.insertChildNode(i, _ch)
                 root.removeChildNode(ch)
        # try:
-        self.reorderInGroup(groupsPositions, groupsSet)
+        #self.reorderInGroup(groupsPositions, groupsSet)
         #except:
          #   print("error in reorder group")
 
@@ -7927,7 +7976,8 @@ class Layman(QObject):
         return _ch
 
     def reorderInGroup(self,groupPositions, groupsSet):      
-        from collections import OrderedDict
+        
+        from collections import OrderedDict     
         root = QgsProject.instance().layerTreeRoot()
         for groupName in groupsSet:
             group = root.findGroup(groupName)  # We are interested in group1
@@ -7937,8 +7987,7 @@ class Layman(QObject):
                                                for q in enumerate(listCh)}
             
             # group instead of root
-            mLNED = LayerNamesEnumDict(group.children())
-            print(mLNED)
+            mLNED = LayerNamesEnumDict(group.children())           
             mLNEDkeys = OrderedDict(sorted(LayerNamesEnumDict(group.children()).items(), reverse=reverse_order)).keys()        
             groupPosition = sorted(groupPositions,key=lambda x: x[2])                     
             arr = list()
@@ -7947,13 +7996,13 @@ class Layman(QObject):
                     #res = [x for x in mLNEDkeys if re.search(item[1], x)]       
                     res = [x for x in mLNEDkeys if item[1] in x]              
                     arr.append(str(res).replace("]","").replace("[","").replace("'",""))               
-            print(arr)
-            print(mLNED)
+   
             try:
                 mLNEDsorted = [mLNED[k].clone() for k in arr]
             except Exception as e:
                 print("reorder failed" + str(e)) 
-                return               
+                return
+                               
             group.insertChildNodes(0,mLNEDsorted)  # group instead of root
             for n in mLNED.values():
                 group.removeChildNode(n)  # group instead of root
