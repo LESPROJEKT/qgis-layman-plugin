@@ -140,6 +140,7 @@ class Layman(QObject):
     successWrapper = pyqtSignal(list)
     setVisibility = pyqtSignal(QgsMapLayer)
     loadStyle = pyqtSignal(QgsMapLayer)
+    emitMessageBox = pyqtSignal(list)
 
 
 
@@ -354,6 +355,7 @@ class Layman(QObject):
         self.successWrapper.connect(self.onSuccess)
         self.setVisibility.connect(self._setVisibility)
         self.loadStyle.connect(self._loadStyle)
+        self.emitMessageBox.connect(self._onEmitMessageBox)
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -3044,11 +3046,9 @@ class Layman(QObject):
         else:      
             if (self.statusHelper and self.info == 0):
                 print(self.failed)
-                self.permissionInfo.emit(True, self.failed, 0)
-                #QgsMessageLog.logMessage("permissionsDoneT")
+                self.permissionInfo.emit(True, self.failed, 0)                
             else:
-                self.permissionInfo.emit(False, self.failed, 0)
-                #QgsMessageLog.logMessage("permissionsDoneF")
+                self.permissionInfo.emit(False, self.failed, 0)               
     def afterPermissionDone(self, success, failed, info):
         #self.info = self.info + 1
         try:
@@ -4170,8 +4170,7 @@ class Layman(QObject):
         self.params.append(layerName)
         self.params.append(service)
         self.dlg.progressBar_loader.show()
-        self.readLayerJson2(layerName,service)
-        #QgsMessageLog.logMessage("readlayerjson")
+        self.readLayerJson2(layerName,service)     
     def readLayerJson2(self,layerName, service):     
         for i in range (0, len(self.dlg.treeWidget.selectedItems())):
             name = self.dlg.treeWidget.selectedItems()[i].text(0)
@@ -4184,9 +4183,7 @@ class Layman(QObject):
         if self.checkLayerOnLayman(layerName):
             layerNameTitle =layerName
             layerName = self.removeUnacceptableChars(layerName)        
-            url = self.URI+'/rest/'+workspace+'/layers/'+layerName
-
-           # r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+            url = self.URI+'/rest/'+workspace+'/layers/'+layerName       
             r = self.requestWrapper("GET", url, payload = None, files = None)
             try:
                 data = r.json()            
@@ -4198,8 +4195,7 @@ class Layman(QObject):
                 try:
                     wmsUrl = data['wms']['url']
                 except:
-                    self.showErr.emit(["Vrstva není k dispozici!", "Layer is not available!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)
-                    # QgsMessageLog.logMessage("wrongLoaded")
+                    self.showErr.emit(["Vrstva není k dispozici!", "Layer is not available!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)                
                     return
                 format = 'png'
                 epsg = 'EPSG:5514'
@@ -4223,8 +4219,7 @@ class Layman(QObject):
                 try:
                     wfsUrl = data['wfs']['url']
                 except:
-                    self.showErr.emit(["Vrstva není k dispozici!", "Layer is not available!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)
-                    #QgsMessageLog.logMessage("wrongLoaded")
+                    self.showErr.emit(["Vrstva není k dispozici!", "Layer is not available!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)                 
                     return
                 print("loading WFS")
                 success = self.loadWfs(wfsUrl, layerName, layerNameTitle)           
@@ -4235,9 +4230,8 @@ class Layman(QObject):
                         QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
             QgsMessageLog.logMessage("disableProgressBar")
         else:
-
-            QgsMessageLog.logMessage("readJson")
-
+            self.emitMessageBox.emit(["Vrstva "+layerName+ " nelze nahrát","Something went wrong with layer: " + layerName])          
+    
     def write_log_message(self,message, tag, level):   
         if message[0:15] == "notifyTwoGroups":
             if self.locale == "cs":
@@ -4282,14 +4276,7 @@ class Layman(QObject):
             try:
                 self.dlg.progressBar_loader.hide()
             except:
-                print("progressbar doesnt exist")
-        if message == "successLoadComp":
-            try:
-                self.dlg.label_loading.hide()
-                self.dlg.progressBar_loader.hide()             
-                self.importMapEnvironmnet(True)
-            except:
-                pass
+                print("progressbar doesnt exist")       
 
         if message == "layersUploaded":         
             try:
@@ -4314,11 +4301,6 @@ class Layman(QObject):
                 self.dlg.progressBar_loader.hide()
             except:
                 pass
-        if message == "readJson":
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Tato vrstva nelze nahrát")
-            else:
-                QMessageBox.information(None, "Layman", "Something went wrong with this layer.")
         if message == "authOptained":
             self.authOptained()
             self.getToken()
@@ -4331,11 +4313,7 @@ class Layman(QObject):
                 self.dlg.progressBar_loader.show()
             except:
                 pass
-        if message == "disconnectCrsChanged":
-            try:
-                QgsProject.instance().crsChanged.disconnect()
-            except:
-                print("signal crsChanged was not connected") 
+       
       
         if message =="showThumbnail2":
             self.showThumbnail2(self.params[0])
@@ -4523,22 +4501,7 @@ class Layman(QObject):
             except:
                 pass          
 
-        if message[0:15] == "permissionsDone":
-            self.info = self.info + 1
-            try:
-                self.dlg.progressBar_loader.hide()             
-                if self.statusHelper:
-                    if self.locale == "cs":
-                        QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
-                    else:
-                        QMessageBox.information(None, "Saved", "Permissions was saved successfully.")
-                else:
-                    if self.locale == "cs":
-                        QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu/mapu: " + str(self.failed).replace("[","").replace("]",""))
-                    else:
-                        QMessageBox.information(None, "Error", "Permissions was not saved for layer/map: " + str(self.failed).replace("[","").replace("]",""))
-            except:
-                print("form was killed before response")
+        
         if message[0:8] == "importl_":
             try:
                 self.progressColor(message[8:100], False)
@@ -4624,12 +4587,7 @@ class Layman(QObject):
             try:
                 self.dlg.progressBar.hide()
             except:
-                pass
-        if message == "path added":
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Parametr path byl modifikován."), Qgis.Success, duration=3)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Parameter path was modified."), Qgis.Success, duration=3)
+                pass 
         if message == "addRaster":
             try:
                 self.dlg.progressBar.hide()
@@ -4669,11 +4627,11 @@ class Layman(QObject):
         self.dlg.progressBar.setMaximum(max)
         self.dlg.progressBar.setValue(progress)   
     def reorderGroups(self, threads, groups, groupsSet, groupsPosition):
-        for thread in threads:
-            try:
-                thread.join()
-            except:
-                pass  
+        # for thread in threads:
+        #     try:
+        #         thread.join()
+        #     except:
+        #         pass  
         for g in groups:                               
             self.reorderToTop(g[0], groupsSet, groupsPosition, g[1])      
         self.reorderGroup(groupsPosition, groupsSet)                      
@@ -8432,6 +8390,11 @@ class Layman(QObject):
             self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url) 
                 
         return response
+    def _onEmitMessageBox(self, message):    
+        if self.locale == "cs":
+            QMessageBox.information(None, "Layman", message[0])
+        else:
+            QMessageBox.information(None, "Layman", message[1])
     def run(self):
         """Run method that loads and starts the plugin"""
 
