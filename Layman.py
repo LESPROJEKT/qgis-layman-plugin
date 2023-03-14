@@ -119,7 +119,6 @@ from qgis.PyQt.QtNetwork import (
     QNetworkReply,
     QNetworkRequest,
 )
-
 from Layman.qfield.cloud_converter import CloudConverter
 
 from PyQt5.QtCore import pyqtSignal, QObject
@@ -162,16 +161,13 @@ class Layman(QObject):
         self.plugin_dir = os.path.dirname(__file__)
 
         ## init global variables
-        self.client_id = None
-        self.filename = None
-        self.layerName = None
+        self.client_id = None    
         self.client_secret = None
         self.username = 'browser'
-        self.EPSG = 'EPSG:3857'
+        #self.EPSG = 'EPSG:3857'
         self.composite = None
         self.thread1 = None
-        self.compositeList = []
-        self.compositeListOld = []
+        self.compositeList = []      
         self.CHUNK_SIZE = 1048576 ## s touto hodnotou pracuje layman klient (cca 1MB soubor)        
         self.URI = None
         self.access_token = None
@@ -182,8 +178,7 @@ class Layman(QObject):
         self.code_verifier = None
         self.code_challenge = None
         self.wrongLayers = False
-        self.Agrimail = ""
-        self.loadedInMemory = False
+        self.Agrimail = ""        
         self.liferayServer = None
         self.laymanServer = None
         self.mapsChanged = set()
@@ -197,23 +192,19 @@ class Layman(QObject):
         self.done = 0
         self.name = ""
         self.millis = 0
-        self.cataloguePosition = 1
-        self.version = "1.0.0"
+        self.cataloguePosition = 1       
         self.initFiles()
         self.layerServices = {}
         self.compositionDict = {}
         self.crsChangedConnect = False
-        self.current = None
-        self.changedLayer = set()
+        self.current = None      
         self.project = QgsProject.instance()
         self.currentLayer = []
         self.currentLayerDict = {}
         self.laymanVersion = None
         self.run = False
         self.isAuthorized = True
-        self.selectedWorkspace = None
-        self.firstStart = True
-        self.isItemChanged = False
+        self.selectedWorkspace = None 
         self.noOverrideLayers = list()
         self.processingRequest = False
         self.settings = QgsSettings()
@@ -228,19 +219,13 @@ class Layman(QObject):
         self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
-        QgsProject.instance().readProject.connect(lambda: self.projectReaded(False))       
-       # self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.getActiveLayer())
+        QgsProject.instance().readProject.connect(lambda: self.projectReaded(False))  
         self.processingList = []
         self.writeState(0)
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt"
         self.watcherState = QFileSystemWatcher()
-        self.watcherState.addPath(path)
-        #self.watcherState.fileChanged.connect(self.notifySuccess)
-        #self.watcherState.fileChanged.connect(self.processingWorker)
-        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt"
-        #self.watcher = QFileSystemWatcher()
-        #self.watcher.addPath(path)
-        #self.watcher.fileChanged.connect(self.authOptained)
+        self.watcherState.addPath(path)  
+        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
         self.dependencies = True
         self.recalculateDPI()
         if os.path.isfile(path):
@@ -3302,8 +3287,7 @@ class Layman(QObject):
         #r = requests.delete(url = userEndpoint, headers = self.getAuthHeader(self.authCfg))
         r = self.requestWrapper("DELETE", userEndpoint, payload = None, files = None)
         QgsApplication.authManager().clearCachedConfig(self.authCfg)         
-        ## flush variables
-        self.loadedInMemory = False       
+        ## flush variables             
         try:
             self.textbox.setText("Layman")
             self.dlg.close() 
@@ -3321,7 +3305,7 @@ class Layman(QObject):
         self.current = None
         self.liferayServer = None     
         self.compositeList = []
-        self.compositeListOld = []
+       
      
     def disableEnvironment(self):
         self.menu_saveLocalFile.setEnabled(False)
@@ -4655,7 +4639,7 @@ class Layman(QObject):
             except:
                 self.showErr.emit([" Připojení k serveru selhalo!", " Connection with server failed!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url) 
             self.compositeList.append (map)
-        self.loadedInMemory = True
+        
     def _onReprojectionFailed(self, layerName):        
         if self.locale == "cs":
             iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+layerName+" má nastavenou špatnou projekci!"), Qgis.Warning)
@@ -4741,7 +4725,7 @@ class Layman(QObject):
                 self.disableEnvironment()
                 return
             self.compositeList.append(map)
-        self.loadedInMemory = True       
+           
     def readMapJson(self,name, service, workspace=""):
         QgsProject.instance().setTitle(name)
         url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'
@@ -8169,7 +8153,7 @@ class Layman(QObject):
         self.disableEnvironment()   
         self.textbox.setText("Layman")
         ## flush variables
-        self.loadedInMemory = False
+       
         self.menu_UserInfoDialog.setEnabled(True)
         self.laymanUsername = ""
         self.isAuthorized = False
@@ -8179,7 +8163,7 @@ class Layman(QObject):
             self.current = None
         self.liferayServer = None
         self.compositeList = []
-        self.compositeListOld = []
+       
     def openAuthLiferayUrl2(self, load="", autoLog = False): 
         
         if hasattr(self, 'dlg'):            
