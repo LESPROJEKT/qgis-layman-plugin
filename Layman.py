@@ -229,12 +229,9 @@ class Layman(QObject):
         self.dependencies = True
         self.recalculateDPI()
         if os.path.isfile(path):
-
-            self.authFileTime =os.path.getmtime(path)
-        
+            self.authFileTime =os.path.getmtime(path)        
         else:
-            self.authFileTime = 0
-     #   global dlgGetLayers
+            self.authFileTime = 0 
         self.dlgGetLayers= GetLayersDialog()
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
@@ -450,7 +447,6 @@ class Layman(QObject):
         self.dlg.radioButton_wms.hide()
         self.dlg.radioButton_wfs.hide()
         self.dlg.label_raster.hide()
-
         self.dlg.treeWidget_layers.header().resizeSection(0,230);
         self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #3bc4ff;}#pushButton_setPermissions:disabled{background: #64818b ;}")
         self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #3bc4ff;}#pushButton_new:disabled{background: #64818b ;}")
@@ -501,11 +497,8 @@ class Layman(QObject):
                 self.dlg.pushButton_save.setEnabled(False)
                 self.dlg.pushButton_delete.setEnabled(False)
                 self.dlg.pushButton_qfield.setEnabled(False)   
-                self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))      
-                # if self.locale == "cs":
-                #     QMessageBox.information(None, "Chyba připojení", "Uživatel již není příhlášen!")                    
-                # else:
-                #     QMessageBox.information(None, "Connection error", "The user is not logged in!")
+                self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))    
+
                 return
             for i in reversed(range (0, len(composition['layers']))):                
                 layerList.append(self.removeUnacceptableChars(composition['layers'][i]['title']))
@@ -660,36 +653,7 @@ class Layman(QObject):
                 iterator +=1
                 self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
 
-                     
-            #notActive = set(layerList) - set(layersInCanvas)        
-            
-            # for layer in notActive:
-            #     #item = QListWidgetItem()
-            #     item = QTreeWidgetItem()
-            #     #if  layer not in self.unloadedLayers:
-            #     # cell = QComboBox()
-            #     # cell.addItems(['No change','Add'])
-                
-            #     if self.locale == "cs":
-            #         item.setText(0,layer + " (Smazána z projektu)")
-            #         item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
-            #         item.setData(0, QtCore.Qt.CheckStateRole, None)
-            #     else:
-            #         item.setText(0, layer + " (Removed from canvas)")
-            #         item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
-            #         item.setData(0, QtCore.Qt.CheckStateRole, None)
-                
-            #     brush = QBrush()
-            #     brush.setColor(QColor(255,17,0))
-            #     item.setForeground(0,brush)
-            #     item.setCheckState(0,0)
-            #     if self.locale == "cs":
-            #         item.setToolTip(0,"Tato vrstva se nevyskytuje v mapovém okně QGIS, ale je obsažena v kompozici.")
-            #     else:
-            #         item.setToolTip(0,"This layer does not appear in the QGIS map window, but is included in the composition.")
-            #     #self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
-            #     self.dlg.treeWidget_layers.addTopLevelItem(item)
-            #     self.layersWasModified()
+       
 
             if self.laymanUsername != self.instance.getWorkspace():
                 self.dlg.pushButton_setPermissions.setEnabled(False)
@@ -6431,34 +6395,20 @@ class Layman(QObject):
         dpi = 25.4 / 0.28
         mpu = QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, units)    
         return denominator / (mpu * 39.37 * dpi)    
-    # def scaleToResolution(self, scale):
-    #     # calculate the resolution
-    #     dpi = 96
-    #     inch_per_m = 39.37
-    #     resolution = scale * dpi / (inch_per_m * QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, QgsUnitTypes.DistanceFeet))
-    #     # print the resolution
-    #     print(resolution)
-    #     return resolution
+
     def resolutionRounder(self,x):
         rounded = int(round(x / 5000.0) * 5000)
         power = len(str(rounded)) - 1
         first_digit = int(str(rounded)[0])
         return first_digit * 10**power    
     def resolutionToScale(self, resolution):
-        # define the resolution
-        #resolution = 17000
-
-        # calculate the scale
-        # dpi = 96
-        # inch_per_m = 39.37
-        # scale = resolution * (inch_per_m * QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, QgsUnitTypes.DistanceFeet)) / dpi      
-        # print(scale)
-        # return scale
         map_settings = iface.mapCanvas().mapSettings()
-        crs = map_settings.destinationCrs()
-        units = crs.mapUnits()
-        dpi = 25.4 / 0.28  # assume 96 dpi 
-        return self.resolutionRounder(round(resolution * 39.37 * dpi))
+        crs = map_settings.destinationCrs()        
+        dpi = 25.4 / 0.28  #  96 dpi         
+        if resolution < 0.72: ##  hranice spatneho zaorouhleni
+            return round(resolution * 39.37 * dpi, -3)
+        else:
+            return self.resolutionRounder(round(resolution * 39.37 * dpi))
     def getGreyScaleMode(self, layer):
         pipe  = layer.pipe()        
         greyscale = False if pipe.hueSaturationFilter().grayscaleMode() == 0 else True
