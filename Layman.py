@@ -4825,7 +4825,7 @@ class Layman(QObject):
                 reply = msgbox.exec()
                 if (reply == QMessageBox.Yes):
                     iface.newProject()
-                    projection = data['projection'].replace("epsg:","")
+                    projection = data['projection'].replace("epsg:","").replace("EPSG:","")
                     crs=QgsCoordinateReferenceSystem(int(projection))
 
 
@@ -6548,15 +6548,19 @@ class Layman(QObject):
       
         
         QgsMessageLog.logMessage("addRaster")
-    def getStyle(self, layer_name):
+    def getStyle(self, layer_name, style = None):
+        if style is not None:
+            suffix = ".sld"
+            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name) + suffix
+            with open(tempf, 'wb') as f:
+                f.write(style.encode())
+            return 200, suffix.replace(".","")
         if self.selectedWorkspace:
-            #response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
-            response = self.requestWrapper("GET", self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
+            response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
+            #response = self.requestWrapper("GET", self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
         else:
-            response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
-            #response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
-        
-   
+            #response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
+            response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))      
         res = response.content
         res = res.decode("utf-8")
         if (res[0:5] == "<qgis" and response.status_code == 200):
@@ -7000,6 +7004,7 @@ class Layman(QObject):
         input = input.replace("ť","t")
         input = input.replace("-","_")
         input = input.replace(".","_")
+        input = input.replace(",","")
         input = input.replace(":","")
         input = input.replace("/","_")
         input = input.replace("(","")
@@ -7496,11 +7501,12 @@ class Layman(QObject):
                 QMessageBox.information(None, "Layman", "WMS není pro vrstu "+layerNameTitle+ " k dispozici.")
             else:
                 QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
-    def loadLayer(self, layer):
+    def loadLayer(self, layer, style = None):
         QgsProject.instance().addMapLayer(layer)
 
         if (isinstance(layer, QgsVectorLayer)):
-            style = self.getStyle(layer.name())
+            
+            style = self.getStyle(layer.name(), style)
                     #code = self.getSLD(layerName)
             layerName = layer.name()
             if (style[0] == 200):
@@ -7522,11 +7528,16 @@ class Layman(QObject):
     def loadWfsExternal(self, layer, epsg, groupName):
         minRes = layer['minResolution']
         maxRes = layer['maxResolution']  
+        if "style" in layer:
+            style = layer['style']
+        else:
+            style = None             
         #wfs_url = "http://gis.nature.cz/arcgis/services/Aplikace/Opendata/MapServer/WFSServer?service=WFS&version=auto&request=GetFeature&typeName=Opendata:Velkoplosna_zvlaste_chranena_uzemi__VZCHU_&SRSNAME=EPSG:4326"                   
         wfs_url = layer["protocol"]["url"]+"?service=WFS&version=auto&request=GetFeature&typeName="+layer["name"]+"&SRSNAME=" + epsg                   
         layer = QgsVectorLayer(wfs_url, layer['title'], 'WFS')
         print(layer.isValid())
-        self.loadLayer(layer) 
+        
+        self.loadLayer(layer, style) 
         if (layer.isValid()):         
             if minRes != None and maxRes != None:
                 print("set scale")
@@ -8356,8 +8367,8 @@ class Layman(QObject):
     def requestWrapper(self, type, url, payload = None, files = None):    
         response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files)            
         if response.status_code != 200:
-            self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url) 
-                
+            self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)             
+           
         return response
     def _onEmitMessageBox(self, message):    
         if self.locale == "cs":
