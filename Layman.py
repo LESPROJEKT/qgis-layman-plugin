@@ -3169,14 +3169,12 @@ class Layman(QObject):
         threading.Thread(target=self.checkServiceButtons).start()
 
     def checkServiceButtons(self): 
-        if self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "vector":
-            if self.dlg.objectName() == "AddLayerDialog":           
+        if self.dlg.objectName() == "AddLayerDialog":  
+            if self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "vector":                     
                 self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)      
-        elif self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "raster":
-            if self.dlg.objectName() == "AddLayerDialog":           
+            elif self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "raster":                
                 self.enableWfsButton.emit(False, self.dlg.pushButton_wfs)        
-        else:
-            if self.dlg.objectName() == "AddLayerDialog":           
+            else:          
                 self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)
         
     def onWfsButton(self, enable, button):
@@ -4604,8 +4602,9 @@ class Layman(QObject):
                     layer.loadNamedStyle(tempf)
                     layer.triggerRepaint()                     
     def onRasterUpload(self, progress, max):   
-        self.dlg.progressBar.setMaximum(max)
-        self.dlg.progressBar.setValue(progress)   
+        if self.dlg.objectName() == "ImportLayerDialog":
+            self.dlg.progressBar.setMaximum(max)
+            self.dlg.progressBar.setValue(progress)   
     def reorderGroups(self, threads, groups, groupsSet, groupsPosition):
         # for thread in threads:
         #     try:
