@@ -32,7 +32,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Layman - Add Map</string>
+   <string>Layman - Browse metadata cataloque</string>
   </property>
   <widget class="QPushButton" name="pushButton">
    <property name="geometry">

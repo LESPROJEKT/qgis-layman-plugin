@@ -215,6 +215,7 @@ class Layman(QObject):
         self.qLogged = False
         self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
         self.schemaVersion = "2.0.0"
+        self.port = "7070"
         self.DPI = self.getDPI()
         self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']
       #  self.uri = 'http://layman.lesprojekt.cz/rest/'
@@ -1581,6 +1582,18 @@ class Layman(QObject):
         for item in self.currentSet:
             if item[0] == layerName:
                 return item[1]
+    def setPortValue(self, index):
+        if index == 0:
+            self.saveToIni("port", "7070") 
+            self.port = "7070"
+        elif index == 1:
+            self.saveToIni("port", "7071")  
+            self.port = "7071" 
+        elif index == 2:
+            self.saveToIni("port", "7072") 
+            self.port = "7072"  
+        if index in (0,1,2) and self.port:            
+            self.showSuccess(["Port byl uložen.","Port has been saved."])                                                       
     def run_UserInfoDialog(self):        
         self.recalculateDPI()
         self.dlg = UserInfoDialog()
@@ -1590,7 +1603,24 @@ class Layman(QObject):
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.dlg.label_older.setCursor(QCursor(Qt.PointingHandCursor))
         self.dlg.label_older.mousePressEvent = lambda event: self.getOldVersion()  
-        
+        self.dlg.comboBox_port.addItem("7070")
+        self.dlg.comboBox_port.addItem("7071")
+        self.dlg.comboBox_port.addItem("7072")
+        port = self.getConfigItem("port") 
+        if not port:
+            self.dlg.comboBox_port.setCurrentIndex(0)
+            self.port = "7070"
+        else:
+            if port == "7070":
+                self.port = "7070"
+                self.dlg.comboBox_port.setCurrentIndex(0)
+            elif port == "7071":
+                self.port = "7071"
+                self.dlg.comboBox_port.setCurrentIndex(1) 
+            elif port == "7072":
+                self.port = "7072"
+                self.dlg.comboBox_port.setCurrentIndex(2) 
+        self.dlg.comboBox_port.currentIndexChanged.connect(self.setPortValue)                                                        
         if self.liferayServer != None and self.laymanUsername != "":
             userEndpoint = self.URI + "/rest/current-user"
             #r = requests.get(url = userEndpoint,  headers = self.getAuthHeader(self.authCfg))
@@ -1614,7 +1644,7 @@ class Layman(QObject):
             self.dlg.label_avversion.setText(versionCheck[1])
             if versionCheck[0] == True:
                 self.dlg.label_avversion.hide()
-                self.dlg.label_5.hide()
+                #self.dlg.label_5.hide()
                 self.dlg.pushButton_update.setEnabled(False)
         else:
             self.dlg.label_version.setText(self.getVersion())
@@ -1622,7 +1652,7 @@ class Layman(QObject):
             self.dlg.label_avversion.setText(versionCheck[1])
             if versionCheck[0] == True:
                 self.dlg.label_avversion.hide()
-                self.dlg.label_5.hide()
+                #self.dlg.label_5.hide()
                 self.dlg.pushButton_update.setEnabled(False)
             self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
@@ -2591,6 +2621,8 @@ class Layman(QObject):
             self.appendIniItem("mapCheckbox", "1")
         if value == 0:
             self.appendIniItem("mapCheckbox", "0")
+    def saveToIni(self, key, value):
+        self.appendIniItem(key, value)               
     def checkAllLayers(self, checked):
         if checked:
             iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
@@ -3990,7 +4022,7 @@ class Layman(QObject):
             "persistToken": False,
             "queryPairs": {
             },
-            "redirectPort": 7070,
+            "redirectPort": int(self.port),
             "redirectUrl": "client/oauthn2-liferay/callback",
             "refreshTokenUrl": "",
             "requestTimeout": 60,
@@ -4016,7 +4048,7 @@ class Layman(QObject):
             "persistToken": False,
             "queryPairs": {
             },
-            "redirectPort": 7070,
+            "redirectPort": int(self.port),
             "redirectUrl": "client/oauthn2-liferay/callback",
             "refreshTokenUrl": "",
             "requestTimeout": 60,
@@ -4793,7 +4825,7 @@ class Layman(QObject):
                 reply = msgbox.exec()
                 if (reply == QMessageBox.Yes):
                     iface.newProject()
-                    projection = data['projection'].replace("epsg:","")
+                    projection = data['projection'].replace("epsg:","").replace("EPSG:","")
                     crs=QgsCoordinateReferenceSystem(int(projection))
 
 
@@ -6516,15 +6548,19 @@ class Layman(QObject):
       
         
         QgsMessageLog.logMessage("addRaster")
-    def getStyle(self, layer_name):
+    def getStyle(self, layer_name, style = None):
+        if style is not None:
+            suffix = ".sld"
+            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name) + suffix
+            with open(tempf, 'wb') as f:
+                f.write(style.encode())
+            return 200, suffix.replace(".","")
         if self.selectedWorkspace:
-            #response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
-            response = self.requestWrapper("GET", self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
+            response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
+            #response = self.requestWrapper("GET", self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
         else:
-            response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
-            #response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
-        
-   
+            #response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
+            response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))      
         res = response.content
         res = res.decode("utf-8")
         if (res[0:5] == "<qgis" and response.status_code == 200):
@@ -6968,6 +7004,7 @@ class Layman(QObject):
         input = input.replace("ť","t")
         input = input.replace("-","_")
         input = input.replace(".","_")
+        input = input.replace(",","")
         input = input.replace(":","")
         input = input.replace("/","_")
         input = input.replace("(","")
@@ -7464,11 +7501,12 @@ class Layman(QObject):
                 QMessageBox.information(None, "Layman", "WMS není pro vrstu "+layerNameTitle+ " k dispozici.")
             else:
                 QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
-    def loadLayer(self, layer):
+    def loadLayer(self, layer, style = None):
         QgsProject.instance().addMapLayer(layer)
 
         if (isinstance(layer, QgsVectorLayer)):
-            style = self.getStyle(layer.name())
+            
+            style = self.getStyle(layer.name(), style)
                     #code = self.getSLD(layerName)
             layerName = layer.name()
             if (style[0] == 200):
@@ -7490,11 +7528,16 @@ class Layman(QObject):
     def loadWfsExternal(self, layer, epsg, groupName):
         minRes = layer['minResolution']
         maxRes = layer['maxResolution']  
+        if "style" in layer:
+            style = layer['style']
+        else:
+            style = None             
         #wfs_url = "http://gis.nature.cz/arcgis/services/Aplikace/Opendata/MapServer/WFSServer?service=WFS&version=auto&request=GetFeature&typeName=Opendata:Velkoplosna_zvlaste_chranena_uzemi__VZCHU_&SRSNAME=EPSG:4326"                   
         wfs_url = layer["protocol"]["url"]+"?service=WFS&version=auto&request=GetFeature&typeName="+layer["name"]+"&SRSNAME=" + epsg                   
         layer = QgsVectorLayer(wfs_url, layer['title'], 'WFS')
         print(layer.isValid())
-        self.loadLayer(layer) 
+        
+        self.loadLayer(layer, style) 
         if (layer.isValid()):         
             if minRes != None and maxRes != None:
                 print("set scale")
@@ -8267,7 +8310,10 @@ class Layman(QObject):
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'
         config = configparser.RawConfigParser()
         config.read(file)
-        return config.get('DEFAULT',key)
+        try:
+            return config.get('DEFAULT', key)
+        except configparser.NoOptionError:
+            return None
     def saveIni(self):
 
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'
@@ -8321,14 +8367,19 @@ class Layman(QObject):
     def requestWrapper(self, type, url, payload = None, files = None):    
         response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files)            
         if response.status_code != 200:
-            self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url) 
-                
+            self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)             
+           
         return response
     def _onEmitMessageBox(self, message):    
         if self.locale == "cs":
             QMessageBox.information(None, "Layman", message[0])
         else:
             QMessageBox.information(None, "Layman", message[1])
+    def showSuccess(self, msg):   
+        if self.locale == "cs":
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[0]), Qgis.Success, duration=3)
+        else:
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[1]), Qgis.Success, duration=3)           
     def run(self):
         """Run method that loads and starts the plugin"""
 
