@@ -1981,17 +1981,17 @@ class Layman(QObject):
             self.addR = self.dlg.pushButton_addRaster.isEnabled()
             self.dlg.pushButton_addRaster.setEnabled(False)
 
-    def loadExternalWMS(self):
-        layers = QgsProject.instance().mapLayers().values()
-        for layer in layers:
-            layerType = layer.type()
-            if layerType == QgsMapLayer.RasterLayer:
-                if(str(layer)[-5:-2] == "wms"):               
-                    self.dlg.comboBox_wms.addItem(layer.name())                  
-                    self.WMSenable = True
+    # def loadExternalWMS(self):
+    #     layers = QgsProject.instance().mapLayers().values()
+    #     for layer in layers:
+    #         layerType = layer.type()
+    #         if layerType == QgsMapLayer.RasterLayer:
+    #             if(str(layer)[-5:-2] == "wms"):               
+    #                 self.dlg.comboBox_wms.addItem(layer.name())                  
+    #                 self.WMSenable = True
 
-                else:
-                    self.WMSenable = False
+    #             else:
+    #                 self.WMSenable = False
 
    
     def run_DeleteMapDialog(self):
@@ -2965,7 +2965,7 @@ class Layman(QObject):
                 response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.getAuthHeader(self.authCfg))
                 #response = self.requestWrapper("PATCH", self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data)
                 if (response.status_code != 200):                      
-                    self.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
+                    self.showErr.emit(["Práva nebyla uložena! - " + name,"Permissions was not saved' - "+ name], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
             else:
                 print("there is not possible set permissions for layer")
           
@@ -3031,8 +3031,7 @@ class Layman(QObject):
             else:
                 self.permissionInfo.emit(False, self.failed, 0)               
     def afterPermissionDone(self, success, failed, info):
-        #self.info = self.info + 1
-        try:
+        if self.dlg.objectName() == "PermissionsDialog":
             self.dlg.progressBar_loader.hide()             
             if success:
                 if self.locale == "cs":
@@ -3045,8 +3044,7 @@ class Layman(QObject):
                     QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu/mapu: " + str(failed).replace("[","").replace("]",""))
                 else:
                     QMessageBox.information(None, "Error", "Permissions was not saved for layer/map: " + str(failed).replace("[","").replace("]",""))
-        except:
-            print("form was killed before response")
+
     def disableExport(self):
         if self.dlg.treeWidget.selectedItems() == []:
             self.dlg.pushButton.setEnabled(False)
@@ -4610,7 +4608,8 @@ class Layman(QObject):
         #     try:
         #         thread.join()
         #     except:
-        #         pass  
+        #         pass 
+    
         for g in groups:                               
             self.reorderToTop(g[0], groupsSet, groupsPosition, g[1])      
         self.reorderGroup(groupsPosition, groupsSet)                      
@@ -6547,12 +6546,15 @@ class Layman(QObject):
       
         
         QgsMessageLog.logMessage("addRaster")
+    def saveExternalStyle(self,style, layer_name):
+        suffix = ".sld"
+        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name) + suffix
+        with open(tempf, 'wb') as f:
+            f.write(style.encode())        
     def getStyle(self, layer_name, style = None):
         if style is not None:
             suffix = ".sld"
-            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name) + suffix
-            with open(tempf, 'wb') as f:
-                f.write(style.encode())
+            self.saveExternalStyle(style, layer_name)     
             return 200, suffix.replace(".","")
         if self.selectedWorkspace:
             response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
@@ -7291,7 +7293,7 @@ class Layman(QObject):
                                 threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
                                 
                         if "format" in data['layers'][x]['protocol']:    
-                            if (data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):   
+                            if (data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):                            
                                 threads.append(threading.Thread(target=lambda: self.loadWfsExternal(data['layers'][x],epsg, groupName)).start())
                             if (data['layers'][x]['protocol']['format'] == "hs.format.WFS"):
                                 if 'workspace' in data['layers'][x]:                                    
@@ -7524,19 +7526,19 @@ class Layman(QObject):
         except:
             print("missing visibility parameter")
             QgsProject.instance().layerTreeRoot().findLayer(layer).setItemVisibilityChecked(True)                    
-    def loadWfsExternal(self, layer, epsg, groupName):
+    def loadWfsExternal(self, layer, epsg, groupName):       
+        layer_name = layer["name"]
         minRes = layer['minResolution']
         maxRes = layer['maxResolution']  
         if "style" in layer:
             style = layer['style']
         else:
-            style = None             
-        #wfs_url = "http://gis.nature.cz/arcgis/services/Aplikace/Opendata/MapServer/WFSServer?service=WFS&version=auto&request=GetFeature&typeName=Opendata:Velkoplosna_zvlaste_chranena_uzemi__VZCHU_&SRSNAME=EPSG:4326"                   
+            style = None    
         wfs_url = layer["protocol"]["url"]+"?service=WFS&version=auto&request=GetFeature&typeName="+layer["name"]+"&SRSNAME=" + epsg                   
         layer = QgsVectorLayer(wfs_url, layer['title'], 'WFS')
         print(layer.isValid())
         
-        self.loadLayer(layer, style) 
+        
         if (layer.isValid()):         
             if minRes != None and maxRes != None:
                 print("set scale")
@@ -7545,7 +7547,13 @@ class Layman(QObject):
                 layer.setScaleBasedVisibility(True)
                 print(layer.hasScaleBasedVisibility())
         if (groupName != ''):                    
-            self.addWmsToGroup(groupName,layer,"")                
+            self.addWmsToGroup(groupName,layer,"")      
+            self.saveExternalStyle(style, layer_name)
+            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name)+ ".sld"
+            layer.loadSldStyle(tempf)
+            layer.triggerRepaint()  
+        else:
+            self.loadLayer(layer, style)                     
     def loadWfs(self, url, layerName,layerNameTitle, groupName = '', subgroupName = '', visibility= '', everyone=False, minRes= 0, maxRes=None):                    
         layerName = self.removeUnacceptableChars(layerName)        
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()       
