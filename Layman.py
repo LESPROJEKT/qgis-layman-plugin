@@ -2678,8 +2678,8 @@ class Layman(QObject):
     def loadMapsThread(self, onlyOwn):        
         self.dlg.treeWidget.clear()
         url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title'
-
-        r = requests.get(url = url,  headers = self.getAuthHeader(self.authCfg))
+        r = self.requestWrapper("GET", url, payload = None, files = None)
+        #r = requests.get(url = url,  headers = self.getAuthHeader(self.authCfg))
         data = r.json()     
         if onlyOwn and self.isAuthorized:
             for row in range(0, len(data)):
@@ -2691,7 +2691,8 @@ class Layman(QObject):
             QgsMessageLog.logMessage("loadMaps")
         elif not self.isAuthorized:
             url = self.URI+'/rest/maps?order_by=title'
-            r = requests.get(url = url,  headers = self.getAuthHeader(self.authCfg))
+            r = self.requestWrapper("GET", url, payload = None, files = None)
+           # r = requests.get(url = url,  headers = self.getAuthHeader(self.authCfg))
             dataAll = r.json()
             permissions = ""
             for row in range(0, len(dataAll)):
@@ -2702,7 +2703,8 @@ class Layman(QObject):
                 self.dlg.treeWidget.addTopLevelItem(item)
         else:
             url = self.URI+'/rest/maps?order_by=title'
-            r = requests.get(url = url,  headers = self.getAuthHeader(self.authCfg))
+            r = self.requestWrapper("GET", url, payload = None, files = None)
+           # r = requests.get(url = url,  headers = self.getAuthHeader(self.authCfg))
             dataAll = r.json()
             permissions = ""
             for row in range(0, len(dataAll)):
@@ -3786,7 +3788,7 @@ class Layman(QObject):
         title = layer_name       
         layer_name = self.removeUnacceptableChars(layer_name)
         layer = QgsProject.instance().mapLayersByName(title)[0]
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0"):
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32602:
             tempFile = self.getTempPath(os.path.basename(layer_name))
             stylePath = tempFile + ".qml"
             layer.saveNamedStyle(stylePath)
@@ -5363,12 +5365,9 @@ class Layman(QObject):
                 hasIcon = True         
             layerCrs = layer.crs().authid()
             crs = QgsCoordinateReferenceSystem(layerCrs)# původně bylo
-            layer_filename = filePath
-            ## transform test
+            layer_filename = filePath          
             if os.path.exists(layer_filename):
-                os.remove(layer_filename)
-            else:
-                pass
+                os.remove(layer_filename)        
             epsg = layer.crs().authid()
             if not epsg in self.supportedEpsg:
                 epsg = QgsProject.instance().crs().authid()
@@ -5377,20 +5376,13 @@ class Layman(QObject):
                 processing.run('qgis:reprojectlayer', parameter)
             except:
                 print("wrong reprojection")
-                return False
-            ## transforma test
-          
-
+                return False   
             sld_filename = filePath.replace("geojson", "sld").lower()
             qml_filename = filePath.replace("geojson", "qml").lower()
             if os.path.exists(sld_filename):
-                os.remove(sld_filename)
-            else:
-                pass
+                os.remove(sld_filename)        
             if os.path.exists(qml_filename):
-                os.remove(qml_filename)
-            else:
-                pass
+                os.remove(qml_filename)       
             result3 = False
             layer.saveSldStyle(sld_filename)
             self.insertPictureToQML(layer)
@@ -6033,7 +6025,7 @@ class Layman(QObject):
                 self.reprojectionFailed.emit(layer_name)
                 return      
         geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0"):
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32602:
             stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
         else:
             stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
@@ -6895,7 +6887,7 @@ class Layman(QObject):
 
         geoPath = self.getTempPath(self.layerName)
 
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0"):
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0")  and qgis.core.Qgis.QGIS_VERSION_INT <= 32602:
             stylePath = self.getTempPath(self.layerName).replace("geojson", "qml")
         else:
             stylePath = self.getTempPath(self.layerName).replace("geojson", "sld")      
@@ -7796,7 +7788,7 @@ class Layman(QObject):
         url = self.URI + "/rest/"+self.laymanUsername+"/layers"
         name = self.removeUnacceptableChars(title)
         geoPath = self.getTempPath(name).lower()
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0"):
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32602:
             stylePath = self.getTempPath(name).replace("geojson", "qml").lower()
         else:
             stylePath = self.getTempPath(self.layerName).replace("geojson", "sld")
