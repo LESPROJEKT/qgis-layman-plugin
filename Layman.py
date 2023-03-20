@@ -5033,7 +5033,8 @@ class Layman(QObject):
             print(checked)
             self.loadMapsThread(checked)
         if (reply == QMessageBox.Yes):
-            threading.Thread(target=lambda: deleteMapThread(name)).start()          
+            deleteMapThread(name)
+            #threading.Thread(target=lambda: deleteMapThread(name)).start()          
     def deleteLayerFromCanvas(self, name):
         lay = QgsProject.instance().mapLayersByName(name)[0]
         if (lay != None and lay.type() != QgsMapLayer.VectorLayer):
