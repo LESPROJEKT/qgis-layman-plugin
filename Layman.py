@@ -3776,7 +3776,7 @@ class Layman(QObject):
         title = layer_name       
         layer_name = self.removeUnacceptableChars(layer_name)
         layer = QgsProject.instance().mapLayersByName(title)[0]
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32602:
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
             tempFile = self.getTempPath(os.path.basename(layer_name))
             stylePath = tempFile + ".qml"
             layer.saveNamedStyle(stylePath)
@@ -6055,7 +6055,7 @@ class Layman(QObject):
                 self.reprojectionFailed.emit(layer_name)
                 return      
         geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32602:
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
             stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
         else:
             stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
@@ -6917,7 +6917,7 @@ class Layman(QObject):
 
         geoPath = self.getTempPath(self.layerName)
 
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0")  and qgis.core.Qgis.QGIS_VERSION_INT <= 32602:
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0")  and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
             stylePath = self.getTempPath(self.layerName).replace("geojson", "qml")
         else:
             stylePath = self.getTempPath(self.layerName).replace("geojson", "sld")      
@@ -7799,10 +7799,10 @@ class Layman(QObject):
         url = self.URI + "/rest/"+self.laymanUsername+"/layers"
         name = self.removeUnacceptableChars(title)
         geoPath = self.getTempPath(name).lower()
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32602:
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
             stylePath = self.getTempPath(name).replace("geojson", "qml").lower()
         else:
-            stylePath = self.getTempPath(self.layerName).replace("geojson", "sld")
+            stylePath = self.getTempPath(name).replace("geojson", "sld")
         files = {'style': (stylePath, open(stylePath, 'rb')),} # nahrávám sld
         payload = {
             'file': name.lower()+".geojson",
