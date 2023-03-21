@@ -6569,9 +6569,9 @@ class Layman(QObject):
         except:
             print("symbologie nenalezena")
             return (400,"")
-     
+        
         with open(tempf, 'wb') as f:
-            f.write(response.content)
+            f.write(response.content)                 
         return response.status_code, suffix.replace(".","")
     def getSLD(self, layer_name):
        # response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
@@ -7501,19 +7501,20 @@ class Layman(QObject):
         QgsProject.instance().addMapLayer(layer)
 
         if (isinstance(layer, QgsVectorLayer)):
-            
-            style = self.getStyle(layer.name(), style)
-                    #code = self.getSLD(layerName)
-            layerName = layer.name()
-            if (style[0] == 200):
-                if (style[1] == "sld"):
-                    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
-                    layer.loadSldStyle(tempf)
-                    layer.triggerRepaint()
-                if (style[1] == "qml"):
-                    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
-                    layer.loadNamedStyle(tempf)
-                    layer.triggerRepaint()
+            if style is None:
+                self.loadStyle.emit(layer)
+            else:                
+                style = self.getStyle(layer.name(), style)                    
+                layerName = layer.name()
+                if (style[0] == 200):
+                    if (style[1] == "sld"):
+                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                        layer.loadSldStyle(tempf)
+                        layer.triggerRepaint()
+                    if (style[1] == "qml"):
+                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                        layer.loadNamedStyle(tempf)
+                        layer.triggerRepaint()
     def _setVisibility(self, layer):                    
         try:
             visibility = self.instance.getVisibilityForLayer(layer.name())
