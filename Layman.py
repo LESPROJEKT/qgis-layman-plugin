@@ -7344,14 +7344,16 @@ class Layman(QObject):
         else:
             return layerString
     def loadArcGisRest(self, url, layerName,  groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False):        
-       #r = requests.get(url + "?f=json")
-        r = self.requestWrapper("GET", url + "?f=json", payload = None, files = None)
+        r = requests.get(url + "?f=json")
+        #r = self.requestWrapper("GET", url + "?f=json", payload = None, files = None)
+        print(r.content)
         res = json.loads(r.content)
         id = 0
         for layer in res['layers']:
             if layer['name'] == layerName:
                 id = layer['id']
         rlayer = QgsRasterLayer("url="+url+" layer='"+str(id)+"'", layerName, "arcgismapserver")   
+        print(rlayer.isValid())
         if (rlayer.isValid()):
             if minRes != None and maxRes != None:
                 rlayer.setMinimumScale(self.resolutionToScale(maxRes))
