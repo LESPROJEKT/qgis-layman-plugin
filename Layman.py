@@ -140,6 +140,7 @@ class Layman(QObject):
     setVisibility = pyqtSignal(QgsMapLayer)
     loadStyle = pyqtSignal(QgsMapLayer)
     emitMessageBox = pyqtSignal(list)
+    readCompositionFailed = pyqtSignal()
 
 
 
@@ -326,6 +327,7 @@ class Layman(QObject):
         self.reprojectionFailed.connect(self._onReprojectionFailed)
         self.exportLayerSuccessful.connect(self._onExportLayerSuccessful)
         self.exportLayerFailed.connect(self._onExportLayerFailed)
+        self.readCompositionFailed.connect(self._onReadCompositionFailed)
         self.loadComposition.connect(self.readMapJson2)
         self.afterLoadedComposition.connect(self.afterCompositionLoaded)
         self.permissionInfo.connect(self.afterPermissionDone)
@@ -2490,6 +2492,7 @@ class Layman(QObject):
         else:
             self.dlg.checkBox_own.setEnabled(True)
         self.dlg.pushButton_delete.clicked.connect(lambda: self.deleteMap(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)),self.getCompositionIndexByName(self.dlg.treeWidget.selectedItems()[0].text(0))))
+        
         self.dlg.filter.valueChanged.connect(self.filterResults)
         self.dlg.filter.valueChanged.connect(self.disableButtonsAddMap)
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
@@ -2881,26 +2884,8 @@ class Layman(QObject):
                     return False
     def askForMapPermissionChanges(self,layerName, userDict, type):
         self.failed = list()
-        self.statusHelper = True
-        #included = False
-        # for name in layerName:
-        #     if (self.checkLayersInComopsitions(name)):
-        #         included = True
-        if (False):
-            if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Vybrané vrstvy jsou obsaženy v existujících mapových kompozicích. Chcete nastavit stejná práva i pro tyto dotčené kompozice?")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Selected layers are included in existing map compositions. Do you want set same permissions for these affected map compositions?")
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            reply = msgbox.exec()
-            if (reply == QMessageBox.Yes):
-                threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type, True)).start()
-            else:
-                threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type, False)).start()
-        else:
-            threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type)).start()
+        self.statusHelper = True       
+        threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type)).start()
     def askForLayerPermissionChanges(self,layerName, userDict, type):
         self.failed = list()
         self.statusHelper = True
@@ -3170,12 +3155,15 @@ class Layman(QObject):
 
     def checkServiceButtons(self): 
         if self.dlg.objectName() == "AddLayerDialog":  
-            if self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "vector":                     
-                self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)      
-            elif self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "raster":                
-                self.enableWfsButton.emit(False, self.dlg.pushButton_wfs)        
-            else:          
-                self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)
+            if self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "vector": 
+                if self.dlg.objectName() == "AddLayerDialog":                      
+                    self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)      
+            elif self.checkFileType(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1)) == "raster":
+                if self.dlg.objectName() == "AddLayerDialog":                  
+                    self.enableWfsButton.emit(False, self.dlg.pushButton_wfs)        
+            else:
+                if self.dlg.objectName() == "AddLayerDialog":            
+                    self.enableWfsButton.emit(True, self.dlg.pushButton_wfs)
         
     def onWfsButton(self, enable, button):
         try:    
@@ -4342,17 +4330,17 @@ class Layman(QObject):
                         self.currentLayerDict[num].loadNamedStyle(tempf)
                         self.currentLayerDict[num].triggerRepaint()
 
-        if message == "loadLayer":            
-            QgsProject.instance().addMapLayer(self.currentLayer[0])
+        # if message == "loadLayer":            
+        #     QgsProject.instance().addMapLayer(self.currentLayer[0])
 
-            try:
-                visibility = self.instance.getVisibilityForLayer(self.currentLayer[0].name())
-                QgsProject.instance().layerTreeRoot().findLayer(self.currentLayer[0]).setItemVisibilityChecked(visibility)
-            except:
-                print("missing visibility parameter")
-                QgsProject.instance().layerTreeRoot().findLayer(self.currentLayer[0]).setItemVisibilityChecked(True)
+        #     try:
+        #         visibility = self.instance.getVisibilityForLayer(self.currentLayer[0].name())
+        #         QgsProject.instance().layerTreeRoot().findLayer(self.currentLayer[0]).setItemVisibilityChecked(visibility)
+        #     except:
+        #         print("missing visibility parameter")
+        #         QgsProject.instance().layerTreeRoot().findLayer(self.currentLayer[0]).setItemVisibilityChecked(True)
       
-            del self.currentLayer[0]
+        #     del self.currentLayer[0]
 
         if message == "layerDeleteFromCompositeWrong":
             if self.locale == "cs":
@@ -4679,6 +4667,13 @@ class Layman(QObject):
                 self.dlg.progressBar.hide()
         except:
             pass
+    def _onReadCompositionFailed(self):
+        if self.locale == "cs":
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Špatný formát kompozice."), Qgis.Warning, duration=3)
+        else:
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Wrong format of composition"), Qgis.Warning, duration=3)     
+        if self.dlg.objectName() == "AddMapDialog":
+            self.dlg.progressBar_loader.hide()
     def _onExportLayerFailed(self, layerName):
         try:
             self.progressColor(layerName, False)
@@ -4863,25 +4858,7 @@ class Layman(QObject):
                  layerType = layer.type()
                  if layerType == QgsMapLayer.VectorLayer:
                      layer.editingStopped.connect(self.layerEditStopped)
-                     layer.styleChanged.connect(self.layerStyleToUpdate)
-
-
-            # self.menu_CurrentCompositionDialog.setEnabled(True)  
-            # self.processingRequest = False
-            # composition = self.instance.getComposition()
-           # self.backupComposition = copy.deepcopy(composition)    
-            # root = self.project.layerTreeRoot()           
-        # try:
-        #     self.dlg.pushButton_map.setEnabled(True)
-        # except:
-        #     print("different dialog loaded")
-
-        # if self.wrongLayers:
-        #     self.wrongLayers = False
-        #     if self.locale == "cs":
-        #        QMessageBox.information(None, "Layman", "Některé vrstvy nebyly načteny.")
-        #     else:
-        #        QMessageBox.information(None, "Layman", "Some layers was not loaded")
+                     layer.styleChanged.connect(self.layerStyleToUpdate)       
      
         QgsMessageLog.logMessage("layersLoaded")
     def changeVisibility(self, layerTreeNode):        
@@ -4984,6 +4961,58 @@ class Layman(QObject):
             self.current = None
             self.dlg.close()
     def deleteMap(self,name, x):
+   
+        if self.locale == "cs":
+            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Chcete opravdu smazat kompozici "+name+"?")
+        else:
+            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Do you want really delete composition "+name+"?")
+
+        msgbox.addButton(QMessageBox.Yes)
+        msgbox.addButton(QMessageBox.No)
+        msgbox.setDefaultButton(QMessageBox.No)
+        reply = msgbox.exec()
+        if (reply == QMessageBox.Yes):
+            name = self.removeUnacceptableChars(name)
+            url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
+            response = requests.delete(url, headers = self.getAuthHeader(self.authCfg))           
+            if (response.status_code == 200):
+                if self.locale == "cs":             
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
+                else:             
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
+            else:
+                if self.locale == "cs":             
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla smazána."), Qgis.Warning)
+                else:              
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)
+
+            try:
+                del (self.compositeList[x])
+                self.refreshCompositeList()## pro import map form
+                self.dlg.treeWidget_listLayers.clear()
+                self.dlg.treeWidget_listLayers.addTopLevelItem(item)
+                self.dlg.pushButton_deleteMap.setEnabled(False)
+                self.dlg.pushButton_editMeta.setEnabled(False)
+                self.dlg.pushButton_setMapPermissions.setEnabled(False)
+                self.dlg.pushButton.setEnabled(False)
+                self.dlg.pushButton_addRaster.setEnabled(False)
+
+            except:
+                pass
+            print("cvxcv" + str(x))
+            try:
+                checked = self.getConfigItem("mapcheckbox")
+                print(checked)
+            except:
+                checked = False
+            if checked == "0":
+                checked = False
+            if checked == "1":
+                checked = True
+            print(checked)
+            self.loadMapsThread(checked)
+            
+    def deleteMapX(self,name, x):
    
         if self.locale == "cs":
             msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Chcete opravdu smazat kompozici "+name+"?")
@@ -7174,6 +7203,7 @@ class Layman(QObject):
             try:
                 print(layerName)
             except:
+                self.readCompositionFailed.emit()
                 print("wrong format of composition")
                 return
 
@@ -7210,7 +7240,7 @@ class Layman(QObject):
                         if 'time' in r.json()['wms']:       
                             timeDimension = r.json()['wms']                    
                     except:
-                        print("chyba v nalezeni prav")
+                        print("permissions not found")
 
                     if groupName != "":
                         groups.append([groupName, len(data['layers']) - i])
@@ -7220,12 +7250,8 @@ class Layman(QObject):
                         groups.append([layerNameTitle, len(data['layers']) - i]) 
                     legends = "0"                        
                     if "legends" in data['layers'][x]:
-                        legends = "1"
-                    print(legends)
-                    
-                    threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)).start())
-                   
-
+                        legends = "1"   
+                    threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)).start())                   
                 if className == 'ArcGISRest':
                    
                     url = data['layers'][x]['url']
@@ -7306,8 +7332,7 @@ class Layman(QObject):
         while (self.ThreadsA != threadsB):
             threadsB = set()
             for thread in threading.enumerate():
-                threadsB.add(thread.name)  
-    
+                threadsB.add(thread.name) 
         self.reoderComposition.emit(threads, groups, groupsSet, groupPositions)
         self.afterLoadedComposition.emit()
 
@@ -7351,8 +7376,8 @@ class Layman(QObject):
         id = 0
         for layer in res['layers']:
             if layer['name'] == layerName:
-                id = layer['id']
-        rlayer = QgsRasterLayer("url="+url+" layer='"+str(id)+"'", layerName, "arcgismapserver")   
+                id = layer['id']    
+        rlayer = QgsRasterLayer("url="+url+" layer='"+str(id)+"'", layerName, "arcgismapserver")          
         print(rlayer.isValid())
         if (rlayer.isValid()):
             if minRes != None and maxRes != None:
@@ -7419,39 +7444,24 @@ class Layman(QObject):
                 quri.setParam("authcfg", self.authCfg)   # <---- here my authCfg url parameter
         quri.setParam("contextualWMSLegend", legend)
         quri.setParam("url", url)        
-        rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')
-       
-        try:
-            print("extents")            
-        except:
-            print("ignoreExtents works only with qgis 3.10 and higher")
-            pass # pro qgis 3.10 a vys
-        self.currentLayer.append(rlayer)        
-     
-        #if (rlayer.isValid()):
-        if True:
-            if minRes != None and maxRes != None:
-                rlayer.setMinimumScale(self.resolutionToScale(maxRes))
-                rlayer.setMaximumScale(self.resolutionToScale(minRes))
-                rlayer.setScaleBasedVisibility(True)
-            if (groupName != '' or subgroupName != ''):                        
-                self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path            
+        rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')       
+        
+    
+        
+        if minRes != None and maxRes != None:
+            rlayer.setMinimumScale(self.resolutionToScale(maxRes))
+            rlayer.setMaximumScale(self.resolutionToScale(minRes))
+            rlayer.setScaleBasedVisibility(True)
+        if (groupName != '' or subgroupName != ''):                        
+            self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path            
                               
-            else:
-                # self.params = []
-                # self.params.append(visibility)              
-                # rand = random.randint(0,10000)               
-                #self.currentLayerDict[str(rand)] = rlayer
-                self.loadLayer(rlayer)  
-                self.setVisibility.emit(rlayer)              
-            if greyscale:
-                rlayer.pipe().hueSaturationFilter().setGrayscaleMode(1)
-            return True
-        else:
-            rand = random.randint(0,10000)
-            self.currentLayerDict[str(rand)] = rlayer
-            self.loadLayer(rlayer)          
-            return False
+        else:             
+            self.loadLayer(rlayer)  
+            self.setVisibility.emit(rlayer)              
+        if greyscale:
+            rlayer.pipe().hueSaturationFilter().setGrayscaleMode(1)
+        return True
+
     def loadXYZ(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName= '', visibility= '', i = -1, minRes= 0, maxRes=None):
 
 
@@ -7493,10 +7503,7 @@ class Layman(QObject):
             return True
         else:
             return False
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "WMS není pro vrstu "+layerNameTitle+ " k dispozici.")
-            else:
-                QMessageBox.information(None, "Layman", "WMS for layer "+layerNameTitle+ " is not available.")
+
     def loadLayer(self, layer, style = None):
         QgsProject.instance().addMapLayer(layer)
 
@@ -8369,9 +8376,9 @@ class Layman(QObject):
 
     def requestWrapper(self, type, url, payload = None, files = None):    
         response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files)            
-        if response.status_code != 200:
+        if response.status_code != 200:           
             self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)             
-           
+            
         return response
     def _onEmitMessageBox(self, message):    
         if self.locale == "cs":
