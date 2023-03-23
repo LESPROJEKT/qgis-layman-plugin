@@ -257,6 +257,8 @@ class Layman(QObject):
         self.toolbar = self.iface.addToolBar(u'Layman')
         self.toolbar.setObjectName(u'Layman')
         QgsApplication.messageLog().messageReceived.connect(self.write_log_message)
+        QgsProject.instance().layerWasAdded.connect(self.on_layers_added)  
+        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)     
 
         #print "** INITIALIZING Atlas"
 
@@ -434,6 +436,268 @@ class Layman(QObject):
             enabled_flag=True,
             parent=self.iface.mainWindow())
     #--------------------------------------------------------------------------
+    def refreshCurrentForm(self, layerAdded = None):
+        
+        self.dlg.treeWidget_layers.clear()
+        layerList = list()
+        serviceList = list()
+        self.instance.refreshComposition()
+        composition = self.instance.getComposition()
+        for i in reversed(range (0, len(composition['layers']))):                
+            layerList.append(self.removeUnacceptableChars(composition['layers'][i]['title']))
+            serviceList.append(composition['layers'][i]['className'])
+
+        layers = QgsProject.instance().mapLayers().values()
+        
+        layersInCanvas = []
+        self.layerIds = list()
+        layersArr = list()
+        layers = self.getLayersOrder()
+        print(layers)
+        print("xx")
+        for layer in layers:
+            layersArr.append(layer)
+
+        if layerAdded:
+            layersArr.append(layerAdded)
+        for layer in layersArr:  ## q
+
+
+            self.layerIds.append([self.removeUnacceptableChars(layer.name()), layer.id()])
+            layerType = layer.type()                
+            item = QTreeWidgetItem()
+            item.setText(0, layer.name())               
+            layersInCanvas.append(self.removeUnacceptableChars(layer.name()))
+            print(self.removeUnacceptableChars(layer.name()), layerList)
+            print(serviceList)
+            if self.removeUnacceptableChars(layer.name()) in layerList:
+                i = layerList.index(self.removeUnacceptableChars(layer.name()))
+
+                if serviceList[i] == 'OpenLayers.Layer.Vector':                       
+                    item.setText(1, "WFS")
+                if serviceList[i] == 'HSLayers.Layer.WMS':                       
+                    item.setText(1, "WMS")
+                if serviceList[i] == 'XYZ':                        
+                    item.setText(1, "XYZ")
+                item.setCheckState(0,2)
+                if self.locale == "cs":
+                    item.setToolTip(0,"Tato vrstva je zobrazena a je součástí načtené kompozice.")
+                else:
+                    item.setToolTip(0,"This layer is displayed and is part of the loaded composition.")
+                if layerType == QgsMapLayer.VectorLayer:
+                    layer.editingStopped.connect(self.layerEditStopped)
+            # i = i + 1
+            else:
+                item.setCheckState(0,0)      
+                if self.locale == "cs":
+                    item.setToolTip(0,"Tato vrstva není součástí kompozice.")
+                else:
+                    item.setToolTip(0,"This layer is not part of the composition.")
+            
+                type = self.getSource(layer)
+            
+                if isinstance(layer, QgsRasterLayer):
+                    item.setText(1, "WMS")
+                if isinstance(layer, QgsVectorLayer):
+                    #item.setText(1, "WFS")
+                    item.setText(1, "WMS")
+                if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
+                    item.setText(1, "WFS")                      
+                #self.setGuiForItem(itemService)
+                self.setGuiForItem(item)
+                if layerType == QgsMapLayer.VectorLayer:
+                    try:
+                        layer.editingStopped.disconnect()
+                    except:
+                        print("connect to stopEditing not exists")
+
+            
+            self.dlg.treeWidget_layers.addTopLevelItem(item)
+        
+        iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
+        notActive = set(layerList) - set(layersInCanvas)  
+        for layer in notActive:
+            #item = QListWidgetItem()
+            item = QTreeWidgetItem()
+            #if  layer not in self.unloadedLayers:
+            # cell = QComboBox()
+            # cell.addItems(['No change','Add'])
+            
+            if self.locale == "cs":
+                item.setText(0,layer + " (Smazána z projektu)")
+                item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+                item.setData(0, QtCore.Qt.CheckStateRole, None)
+            else:
+                item.setText(0, layer + " (Removed from canvas)")
+                item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+                item.setData(0, QtCore.Qt.CheckStateRole, None)
+            
+            brush = QBrush()
+            brush.setColor(QColor(255,17,0))
+            item.setForeground(0,brush)
+            item.setCheckState(0,0)
+            if self.locale == "cs":
+                item.setToolTip(0,"Tato vrstva se nevyskytuje v mapovém okně QGIS, ale je obsažena v kompozici.")
+            else:
+                item.setToolTip(0,"This layer does not appear in the QGIS map window, but is included in the composition.")
+            #self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
+            self.dlg.treeWidget_layers.addTopLevelItem(item)
+            self.layersWasModified()
+        urlServer = self.URI.replace("/client", "")
+        self.addAvailableServices(layersArr,iterator, notActive)
+        return
+        while iterator.value():
+            item = iterator.value()                
+            cell = QComboBox()
+            cell.currentTextChanged.connect(self.comboBoxChanged)
+            cellServices = QComboBox()
+            for layer in layersArr:
+                print(self.URI, layer.dataProvider().uri().uri())
+                if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(item.text(0)):
+                    if isinstance(layer, QgsRasterLayer) and "geoserver" in layer.dataProvider().dataSourceUri():
+                        cellServices.addItems(['WMS','WFS'])
+                    if isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
+                        cellServices.addItems(['WMS'])
+                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS':
+                        cellServices.addItems(['WMS','WFS'])
+                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer not in layer.dataProvider().uri().uri():
+                        cellServices.addItems(['WFS'])         
+                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer in layer.dataProvider().uri().uri():
+                        cellServices.addItems(['WFS', 'WMS'])                                                        
+
+            if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
+                if self.locale == "cs":
+                    cell.addItems(['Beze změny','Přepsat data'])
+                else:
+                    cell.addItems(['No change','Overwrite geometry'])
+            elif item.text(0).replace(" (Smazána z projektu)", "").replace(" (Removed from canvas)", "") in  notActive:
+                if self.locale == "cs":
+                    cell.addItems(['Beze změny','Smazat'])
+                else:
+                    cell.addItems(['No change','Remove'])                        
+            else:
+                if self.checkExistingLayer(item.text(0)):           
+                    if self.locale == "cs":
+                        cell.addItems(['Beze změny','Přidat ze serveru','Přidat a přepsat'])
+                    else:
+                        cell.addItems(['No change','Add from server','Add and overwrite' ])
+                else:
+                    if self.locale == "cs":
+                        cell.addItems(['Beze změny','Přidat'])
+                    else:
+                        cell.addItems(['No change','Add'])
+
+            self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
+
+            self.dlg.treeWidget_layers.setItemWidget(item,1, cellServices)   
+            ## qpushbutton   
+                                            
+            if self.instance.getServiceForLayer(item.text(0)) in (["HSLayers.Layer.WMS", "XYZ"]):
+                cellButton = QPushButton("...", None)
+                #size = QSize(22, 22)
+                #cellButton.setFixedSize(size)
+                cellButton.clicked.connect(self.showLayerProperties)
+                self.dlg.treeWidget_layers.setItemWidget(item,3, cellButton)
+            ##
+            iterator +=1
+            self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
+    def addLayerToCurrentForm(self, layer):  
+        notActive = set(layerList) - set(layersInCanvas)  
+        item = QTreeWidgetItem()
+        item.setText(0, layer.name())  
+        item.setCheckState(0,0)      
+        if self.locale == "cs":
+            item.setToolTip(0,"Tato vrstva není součástí kompozice.")
+        else:
+            item.setToolTip(0,"This layer is not part of the composition.")
+            
+        type = self.getSource(layer)
+            
+        if isinstance(layer, QgsRasterLayer):
+            item.setText(1, "WMS")
+        if isinstance(layer, QgsVectorLayer):
+                    #item.setText(1, "WFS")
+            item.setText(1, "WMS")
+        if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
+            item.setText(1, "WFS")                      
+                #self.setGuiForItem(itemService)
+        self.setGuiForItem(item)  
+        layersArr = list()
+        layers = self.getLayersOrder()
+        for layer in layers:
+            layersArr.append(layer)     
+        self.dlg.treeWidget_layers.addTopLevelItem(item) 
+        ###  
+        iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
+        self.addAvailableServices(layersArr,iterator)
+    def addAvailableServices(self, layersArr, iterator, notActive):
+        while iterator.value():
+            item = iterator.value()                
+            cell = QComboBox()
+            cell.currentTextChanged.connect(self.comboBoxChanged)
+            cellServices = QComboBox()
+            for layer in layersArr:
+                print(self.URI, layer.dataProvider().uri().uri())
+                if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(item.text(0)):
+                    if isinstance(layer, QgsRasterLayer) and "geoserver" in layer.dataProvider().dataSourceUri():
+                        cellServices.addItems(['WMS','WFS'])
+                    if isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
+                        cellServices.addItems(['WMS'])
+                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS':
+                        cellServices.addItems(['WMS','WFS'])
+                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer not in layer.dataProvider().uri().uri():
+                        cellServices.addItems(['WFS'])         
+                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer in layer.dataProvider().uri().uri():
+                        cellServices.addItems(['WFS', 'WMS'])                                                        
+
+            if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
+                if self.locale == "cs":
+                    cell.addItems(['Beze změny','Přepsat data'])
+                else:
+                    cell.addItems(['No change','Overwrite geometry'])
+            elif item.text(0).replace(" (Smazána z projektu)", "").replace(" (Removed from canvas)", "") in  notActive:
+                if self.locale == "cs":
+                    cell.addItems(['Beze změny','Smazat'])
+                else:
+                    cell.addItems(['No change','Remove'])                        
+            else:
+                if self.checkExistingLayer(item.text(0)):           
+                    if self.locale == "cs":
+                        cell.addItems(['Beze změny','Přidat ze serveru','Přidat a přepsat'])
+                    else:
+                        cell.addItems(['No change','Add from server','Add and overwrite' ])
+                else:
+                    if self.locale == "cs":
+                        cell.addItems(['Beze změny','Přidat'])
+                    else:
+                        cell.addItems(['No change','Add'])
+
+            self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
+
+            self.dlg.treeWidget_layers.setItemWidget(item,1, cellServices)   
+            ## qpushbutton   
+                                            
+            if self.instance.getServiceForLayer(item.text(0)) in (["HSLayers.Layer.WMS", "XYZ"]):
+                cellButton = QPushButton("...", None)
+                #size = QSize(22, 22)
+                #cellButton.setFixedSize(size)
+                cellButton.clicked.connect(self.showLayerProperties)
+                self.dlg.treeWidget_layers.setItemWidget(item,3, cellButton)
+            ##
+            iterator +=1
+            self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
+    def on_layers_added(self, layer):
+        # This function will be called whenever new layers are added to the project
+        #print("New layer(s) added:", [layer.name() for layer in layers])    
+        print("xx")
+        if self.dlg.objectName() == "CurrentCompositionDialog": 
+            #self.addLayerToCurrentForm(layer)       
+            self.refreshCurrentForm(layer)
+    def on_layers_removed(self, layer):
+        print("removed")
+        print(layer)       
+        if self.dlg.objectName() == "CurrentCompositionDialog":                 
+            self.refreshCurrentForm()     
     def run_CurrentCompositionDialog(self):
         self.recalculateDPI()
         self.modified = False
@@ -503,159 +767,162 @@ class Layman(QObject):
                 self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))    
 
                 return
-            for i in reversed(range (0, len(composition['layers']))):                
-                layerList.append(self.removeUnacceptableChars(composition['layers'][i]['title']))
-                serviceList.append(composition['layers'][i]['className'])
+                   
+            ######################
+            self.refreshCurrentForm()
+            # for i in reversed(range (0, len(composition['layers']))):                
+            #     layerList.append(self.removeUnacceptableChars(composition['layers'][i]['title']))
+            #     serviceList.append(composition['layers'][i]['className'])
      
-            layers = QgsProject.instance().mapLayers().values()
-            layersInCanvas = []
-            self.layerIds = list()
-            layersArr = list()
-            layers = self.getLayersOrder()
-            for layer in layers:
-                layersArr.append(layer)
+            # layers = QgsProject.instance().mapLayers().values()
+            # layersInCanvas = []
+            # self.layerIds = list()
+            # layersArr = list()
+            # layers = self.getLayersOrder()
+            # for layer in layers:
+            #     layersArr.append(layer)
 
            
-            for layer in layersArr:  ## q
+            # for layer in layersArr:  ## q
 
 
-                self.layerIds.append([self.removeUnacceptableChars(layer.name()), layer.id()])
-                layerType = layer.type()                
-                item = QTreeWidgetItem()
-                item.setText(0, layer.name())               
-                layersInCanvas.append(self.removeUnacceptableChars(layer.name()))
-                print(self.removeUnacceptableChars(layer.name()), layerList)
-                print(serviceList)
-                if self.removeUnacceptableChars(layer.name()) in layerList:
-                    i = layerList.index(self.removeUnacceptableChars(layer.name()))
+            #     self.layerIds.append([self.removeUnacceptableChars(layer.name()), layer.id()])
+            #     layerType = layer.type()                
+            #     item = QTreeWidgetItem()
+            #     item.setText(0, layer.name())               
+            #     layersInCanvas.append(self.removeUnacceptableChars(layer.name()))
+            #     print(self.removeUnacceptableChars(layer.name()), layerList)
+            #     print(serviceList)
+            #     if self.removeUnacceptableChars(layer.name()) in layerList:
+            #         i = layerList.index(self.removeUnacceptableChars(layer.name()))
 
-                    if serviceList[i] == 'OpenLayers.Layer.Vector':                       
-                        item.setText(1, "WFS")
-                    if serviceList[i] == 'HSLayers.Layer.WMS':                       
-                        item.setText(1, "WMS")
-                    if serviceList[i] == 'XYZ':                        
-                        item.setText(1, "XYZ")
-                    item.setCheckState(0,2)
-                    if self.locale == "cs":
-                        item.setToolTip(0,"Tato vrstva je zobrazena a je součástí načtené kompozice.")
-                    else:
-                        item.setToolTip(0,"This layer is displayed and is part of the loaded composition.")
-                    if layerType == QgsMapLayer.VectorLayer:
-                        layer.editingStopped.connect(self.layerEditStopped)
-                   # i = i + 1
-                else:
-                    item.setCheckState(0,0)      
-                    if self.locale == "cs":
-                        item.setToolTip(0,"Tato vrstva není součástí kompozice.")
-                    else:
-                        item.setToolTip(0,"This layer is not part of the composition.")
+            #         if serviceList[i] == 'OpenLayers.Layer.Vector':                       
+            #             item.setText(1, "WFS")
+            #         if serviceList[i] == 'HSLayers.Layer.WMS':                       
+            #             item.setText(1, "WMS")
+            #         if serviceList[i] == 'XYZ':                        
+            #             item.setText(1, "XYZ")
+            #         item.setCheckState(0,2)
+            #         if self.locale == "cs":
+            #             item.setToolTip(0,"Tato vrstva je zobrazena a je součástí načtené kompozice.")
+            #         else:
+            #             item.setToolTip(0,"This layer is displayed and is part of the loaded composition.")
+            #         if layerType == QgsMapLayer.VectorLayer:
+            #             layer.editingStopped.connect(self.layerEditStopped)
+            #        # i = i + 1
+            #     else:
+            #         item.setCheckState(0,0)      
+            #         if self.locale == "cs":
+            #             item.setToolTip(0,"Tato vrstva není součástí kompozice.")
+            #         else:
+            #             item.setToolTip(0,"This layer is not part of the composition.")
                    
-                    type = self.getSource(layer)
+            #         type = self.getSource(layer)
                   
-                    if isinstance(layer, QgsRasterLayer):
-                        item.setText(1, "WMS")
-                    if isinstance(layer, QgsVectorLayer):
-                        #item.setText(1, "WFS")
-                        item.setText(1, "WMS")
-                    if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
-                        item.setText(1, "WFS")                      
-                    #self.setGuiForItem(itemService)
-                    self.setGuiForItem(item)
-                    if layerType == QgsMapLayer.VectorLayer:
-                        try:
-                            layer.editingStopped.disconnect()
-                        except:
-                            print("connect to stopEditing not exists")
+            #         if isinstance(layer, QgsRasterLayer):
+            #             item.setText(1, "WMS")
+            #         if isinstance(layer, QgsVectorLayer):
+            #             #item.setText(1, "WFS")
+            #             item.setText(1, "WMS")
+            #         if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
+            #             item.setText(1, "WFS")                      
+            #         #self.setGuiForItem(itemService)
+            #         self.setGuiForItem(item)
+            #         if layerType == QgsMapLayer.VectorLayer:
+            #             try:
+            #                 layer.editingStopped.disconnect()
+            #             except:
+            #                 print("connect to stopEditing not exists")
 
                 
-                self.dlg.treeWidget_layers.addTopLevelItem(item)
+            #     self.dlg.treeWidget_layers.addTopLevelItem(item)
               
-            iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
-            notActive = set(layerList) - set(layersInCanvas)  
-            for layer in notActive:
-                #item = QListWidgetItem()
-                item = QTreeWidgetItem()
-                #if  layer not in self.unloadedLayers:
-                # cell = QComboBox()
-                # cell.addItems(['No change','Add'])
+            # iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
+            # notActive = set(layerList) - set(layersInCanvas)  
+            # for layer in notActive:
+            #     #item = QListWidgetItem()
+            #     item = QTreeWidgetItem()
+            #     #if  layer not in self.unloadedLayers:
+            #     # cell = QComboBox()
+            #     # cell.addItems(['No change','Add'])
                 
-                if self.locale == "cs":
-                    item.setText(0,layer + " (Smazána z projektu)")
-                    item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
-                    item.setData(0, QtCore.Qt.CheckStateRole, None)
-                else:
-                    item.setText(0, layer + " (Removed from canvas)")
-                    item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
-                    item.setData(0, QtCore.Qt.CheckStateRole, None)
+            #     if self.locale == "cs":
+            #         item.setText(0,layer + " (Smazána z projektu)")
+            #         item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+            #         item.setData(0, QtCore.Qt.CheckStateRole, None)
+            #     else:
+            #         item.setText(0, layer + " (Removed from canvas)")
+            #         item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+            #         item.setData(0, QtCore.Qt.CheckStateRole, None)
                 
-                brush = QBrush()
-                brush.setColor(QColor(255,17,0))
-                item.setForeground(0,brush)
-                item.setCheckState(0,0)
-                if self.locale == "cs":
-                    item.setToolTip(0,"Tato vrstva se nevyskytuje v mapovém okně QGIS, ale je obsažena v kompozici.")
-                else:
-                    item.setToolTip(0,"This layer does not appear in the QGIS map window, but is included in the composition.")
-                #self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
-                self.dlg.treeWidget_layers.addTopLevelItem(item)
-                self.layersWasModified()
-            urlServer = self.URI.replace("/client", "")
-            while iterator.value():
-                item = iterator.value()                
-                cell = QComboBox()
-                cell.currentTextChanged.connect(self.comboBoxChanged)
-                cellServices = QComboBox()
-                for layer in layersArr:
-                    print(self.URI, layer.dataProvider().uri().uri())
-                    if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(item.text(0)):
-                        if isinstance(layer, QgsRasterLayer) and "geoserver" in layer.dataProvider().dataSourceUri():
-                            cellServices.addItems(['WMS','WFS'])
-                        if isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
-                            cellServices.addItems(['WMS'])
-                        if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS':
-                            cellServices.addItems(['WMS','WFS'])
-                        if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer not in layer.dataProvider().uri().uri():
-                            cellServices.addItems(['WFS'])         
-                        if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer in layer.dataProvider().uri().uri():
-                            cellServices.addItems(['WFS', 'WMS'])                                                        
+            #     brush = QBrush()
+            #     brush.setColor(QColor(255,17,0))
+            #     item.setForeground(0,brush)
+            #     item.setCheckState(0,0)
+            #     if self.locale == "cs":
+            #         item.setToolTip(0,"Tato vrstva se nevyskytuje v mapovém okně QGIS, ale je obsažena v kompozici.")
+            #     else:
+            #         item.setToolTip(0,"This layer does not appear in the QGIS map window, but is included in the composition.")
+            #     #self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
+            #     self.dlg.treeWidget_layers.addTopLevelItem(item)
+            #     self.layersWasModified()
+            # urlServer = self.URI.replace("/client", "")
+            # while iterator.value():
+            #     item = iterator.value()                
+            #     cell = QComboBox()
+            #     cell.currentTextChanged.connect(self.comboBoxChanged)
+            #     cellServices = QComboBox()
+            #     for layer in layersArr:
+            #         print(self.URI, layer.dataProvider().uri().uri())
+            #         if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(item.text(0)):
+            #             if isinstance(layer, QgsRasterLayer) and "geoserver" in layer.dataProvider().dataSourceUri():
+            #                 cellServices.addItems(['WMS','WFS'])
+            #             if isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
+            #                 cellServices.addItems(['WMS'])
+            #             if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS':
+            #                 cellServices.addItems(['WMS','WFS'])
+            #             if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer not in layer.dataProvider().uri().uri():
+            #                 cellServices.addItems(['WFS'])         
+            #             if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer in layer.dataProvider().uri().uri():
+            #                 cellServices.addItems(['WFS', 'WMS'])                                                        
 
-                if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
-                    if self.locale == "cs":
-                        cell.addItems(['Beze změny','Přepsat data'])
-                    else:
-                        cell.addItems(['No change','Overwrite geometry'])
-                elif item.text(0).replace(" (Smazána z projektu)", "").replace(" (Removed from canvas)", "") in  notActive:
-                    if self.locale == "cs":
-                        cell.addItems(['Beze změny','Smazat'])
-                    else:
-                        cell.addItems(['No change','Remove'])                        
-                else:
-                    if self.checkExistingLayer(item.text(0)):           
-                        if self.locale == "cs":
-                            cell.addItems(['Beze změny','Přidat ze serveru','Přidat a přepsat'])
-                        else:
-                            cell.addItems(['No change','Add from server','Add and overwrite' ])
-                    else:
-                        if self.locale == "cs":
-                            cell.addItems(['Beze změny','Přidat'])
-                        else:
-                            cell.addItems(['No change','Add'])
+            #     if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
+            #         if self.locale == "cs":
+            #             cell.addItems(['Beze změny','Přepsat data'])
+            #         else:
+            #             cell.addItems(['No change','Overwrite geometry'])
+            #     elif item.text(0).replace(" (Smazána z projektu)", "").replace(" (Removed from canvas)", "") in  notActive:
+            #         if self.locale == "cs":
+            #             cell.addItems(['Beze změny','Smazat'])
+            #         else:
+            #             cell.addItems(['No change','Remove'])                        
+            #     else:
+            #         if self.checkExistingLayer(item.text(0)):           
+            #             if self.locale == "cs":
+            #                 cell.addItems(['Beze změny','Přidat ze serveru','Přidat a přepsat'])
+            #             else:
+            #                 cell.addItems(['No change','Add from server','Add and overwrite' ])
+            #         else:
+            #             if self.locale == "cs":
+            #                 cell.addItems(['Beze změny','Přidat'])
+            #             else:
+            #                 cell.addItems(['No change','Add'])
 
-                self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
+            #     self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
 
-                self.dlg.treeWidget_layers.setItemWidget(item,1, cellServices)   
-                ## qpushbutton   
+            #     self.dlg.treeWidget_layers.setItemWidget(item,1, cellServices)   
+            #     ## qpushbutton   
                                                  
-                if self.instance.getServiceForLayer(item.text(0)) in (["HSLayers.Layer.WMS", "XYZ"]):
-                    cellButton = QPushButton("...", None)
-                    #size = QSize(22, 22)
-                    #cellButton.setFixedSize(size)
-                    cellButton.clicked.connect(self.showLayerProperties)
-                    self.dlg.treeWidget_layers.setItemWidget(item,3, cellButton)
-                ##
-                iterator +=1
-                self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
-
+            #     if self.instance.getServiceForLayer(item.text(0)) in (["HSLayers.Layer.WMS", "XYZ"]):
+            #         cellButton = QPushButton("...", None)
+            #         #size = QSize(22, 22)
+            #         #cellButton.setFixedSize(size)
+            #         cellButton.clicked.connect(self.showLayerProperties)
+            #         self.dlg.treeWidget_layers.setItemWidget(item,3, cellButton)
+            #     ##
+            #     iterator +=1
+            #     self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
+            ################################
        
 
             if self.laymanUsername != self.instance.getWorkspace():
@@ -4999,7 +5266,7 @@ class Layman(QObject):
 
             except:
                 pass
-            print("cvxcv" + str(x))
+           
             try:
                 checked = self.getConfigItem("mapcheckbox")
                 print(checked)
@@ -5049,7 +5316,7 @@ class Layman(QObject):
 
             except:
                 pass
-            print("cvxcv" + str(x))
+        
             try:
                 checked = self.getConfigItem("mapcheckbox")
                 print(checked)

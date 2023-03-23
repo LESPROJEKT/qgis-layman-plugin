@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>DialogBase</class>
- <widget class="QDialog" name="DialogBase">
+ <class>CurrentCompositionDialog</class>
+ <widget class="QDialog" name="CurrentCompositionDialog">
   <property name="windowModality">
    <enum>Qt::NonModal</enum>
   </property>
