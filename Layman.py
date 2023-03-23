@@ -689,12 +689,17 @@ class Layman(QObject):
             iterator +=1
             self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
     def on_layers_added(self, layer):  
-        print("xx")
-        if self.dlg.objectName() == "CurrentCompositionDialog":           
-            self.refreshCurrentForm(layer)
-    def on_layers_removed(self):    
-        if self.dlg.objectName() == "CurrentCompositionDialog":                 
-            self.refreshCurrentForm()     
+        try:
+            if self.dlg.objectName() == "CurrentCompositionDialog":           
+                self.refreshCurrentForm(layer)
+        except:
+            pass                
+    def on_layers_removed(self):  
+        try:  
+            if self.dlg.objectName() == "CurrentCompositionDialog":                 
+                self.refreshCurrentForm()  
+        except:
+            pass                      
     def run_CurrentCompositionDialog(self):
         self.recalculateDPI()
         self.modified = False
