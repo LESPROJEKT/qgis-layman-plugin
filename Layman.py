@@ -141,6 +141,7 @@ class Layman(QObject):
     loadStyle = pyqtSignal(QgsMapLayer)
     emitMessageBox = pyqtSignal(list)
     readCompositionFailed = pyqtSignal()
+    onRefreshCurrentForm = pyqtSignal()
 
 
 
@@ -343,6 +344,7 @@ class Layman(QObject):
         self.setVisibility.connect(self._setVisibility)
         self.loadStyle.connect(self._loadStyle)
         self.emitMessageBox.connect(self._onEmitMessageBox)
+        self.onRefreshCurrentForm.connect(self.on_layers_removed)
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -686,16 +688,11 @@ class Layman(QObject):
             ##
             iterator +=1
             self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
-    def on_layers_added(self, layer):
-        # This function will be called whenever new layers are added to the project
-        #print("New layer(s) added:", [layer.name() for layer in layers])    
+    def on_layers_added(self, layer):  
         print("xx")
-        if self.dlg.objectName() == "CurrentCompositionDialog": 
-            #self.addLayerToCurrentForm(layer)       
+        if self.dlg.objectName() == "CurrentCompositionDialog":           
             self.refreshCurrentForm(layer)
-    def on_layers_removed(self, layer):
-        print("removed")
-        print(layer)       
+    def on_layers_removed(self):    
         if self.dlg.objectName() == "CurrentCompositionDialog":                 
             self.refreshCurrentForm()     
     def run_CurrentCompositionDialog(self):
@@ -4039,6 +4036,7 @@ class Layman(QObject):
         self.writeValuesToProject(self.URI, composition['name'])   
         QgsMessageLog.logMessage("updateMapDone")
         QgsMessageLog.logMessage("layersUploaded")
+        self.onRefreshCurrentForm.emit()
     def updateLayerStyle(self, layer_name, workspace):
         title = layer_name       
         layer_name = self.removeUnacceptableChars(layer_name)
