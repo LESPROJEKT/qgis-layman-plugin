@@ -469,9 +469,7 @@ class Layman(QObject):
             layerType = layer.type()                
             item = QTreeWidgetItem()
             item.setText(0, layer.name())               
-            layersInCanvas.append(self.removeUnacceptableChars(layer.name()))
-            print(self.removeUnacceptableChars(layer.name()), layerList)
-            print(serviceList)
+            layersInCanvas.append(self.removeUnacceptableChars(layer.name()))        
             if self.removeUnacceptableChars(layer.name()) in layerList:
                 i = layerList.index(self.removeUnacceptableChars(layer.name()))
 
@@ -504,7 +502,8 @@ class Layman(QObject):
                     #item.setText(1, "WFS")
                     item.setText(1, "WMS")
                 if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
-                    item.setText(1, "WFS")                      
+                    item.setText(1, "WFS")   
+                                                        
                 #self.setGuiForItem(itemService)
                 self.setGuiForItem(item)
                 if layerType == QgsMapLayer.VectorLayer:
@@ -645,12 +644,14 @@ class Layman(QObject):
                         cellServices.addItems(['WMS','WFS'])
                     if isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
                         cellServices.addItems(['WMS'])
-                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS':
+                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS' and not self.isLayerPostgres(layer):
                         cellServices.addItems(['WMS','WFS'])
                     if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer not in layer.dataProvider().uri().uri():
                         cellServices.addItems(['WFS'])         
                     if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer in layer.dataProvider().uri().uri():
-                        cellServices.addItems(['WFS', 'WMS'])                                                        
+                        cellServices.addItems(['WFS', 'WMS'])            
+                    if isinstance(layer, QgsVectorLayer) and self.isLayerPostgres(layer):
+                        cellServices.addItems(['Postgis'])                                                                        
 
             if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
                 if self.locale == "cs":
@@ -663,7 +664,7 @@ class Layman(QObject):
                 else:
                     cell.addItems(['No change','Remove'])                        
             else:
-                if self.checkExistingLayer(item.text(0)):           
+                if self.checkExistingLayer(item.text(0)) and not self.isLayerPostgres(layer):           
                     if self.locale == "cs":
                         cell.addItems(['Beze změny','Přidat ze serveru','Přidat a přepsat'])
                     else:
@@ -8659,7 +8660,14 @@ class Layman(QObject):
         if self.locale == "cs":
             iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[0]), Qgis.Success, duration=3)
         else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[1]), Qgis.Success, duration=3)           
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[1]), Qgis.Success, duration=3)      
+    def isLayerPostgres(self, layer):
+        provider = layer.dataProvider()
+        print(provider.name())
+        if provider.name() == "postgres":
+            return True
+        else:
+            return False         
     def run(self):
         """Run method that loads and starts the plugin"""
 
