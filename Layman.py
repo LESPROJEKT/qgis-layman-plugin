@@ -111,6 +111,7 @@ from .currentComposition import CurrentComposition
 from .dlg_LoginQfield import LoginQfieldDialog
 from .dlg_showQProject import ShowQProjectDialog
 from .dlg_timeSeries import TimeSeriesDialog
+from .dlg_errMsg import ErrMsgDialog
 
 from typing import Any, Dict, List, Optional, Union
 from qgis.PyQt.QtNetwork import (
@@ -850,34 +851,28 @@ class Layman(QObject):
             iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", text[1]), Qgis.Success, duration=3)           
     def showMessageBar(self, text, info, err, typ, url):    
         widget = QWidget()
-        layout = QHBoxLayout()        
+        layout = QHBoxLayout() 
+        layout.setAlignment(Qt.AlignCenter)       
         #layout.addWidget(QLabel("Layman - "+ text[0] if self.locale == "cs" else text[1]))
         button = QPushButton("Více informací" if self.locale == "cs" else "More info")
         label2 = iface.messageBar().createMessage("Layman:", text[0] if self.locale == "cs" else text[1])
         layout.addWidget(label2)
         layout.addWidget(button)
         widget.setLayout(layout)
-
-        def showMessageBox():
-            msg = QMessageBox()
-            msg.setWindowTitle("Layman")            
-            msg.setText(text[0] +" - "+ str(info) if self.locale == "cs" else text[1] +" - " + str(info))
-            clipboard_button = QPushButton("Kopírovat do schránky" if self.locale == "cs" else "Copy to clipboard", msg)          
-            clipboard_button.setStyleSheet("color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 6px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;") # Add the stylesheet             
-            msg.addButton(clipboard_button, QMessageBox.ActionRole)
-            clipboard_button.clicked.connect(copy_to_clipboard)
-            msg.layout().addWidget(clipboard_button, 1, 1)    
-            msg.layout().setRowStretch(0, 1) 
-            msg.layout().setColumnStretch(0, 1) 
-            msg.layout().setColumnStretch(2, 1)
-            msg.exec_()
+        def showDlg():
+            self.dlgErr = ErrMsgDialog()            
+            self.dlgErr.pushButton_copyMsg.setStyleSheet("color: #fff !important; text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 6px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;") # Add the stylesheet             
+            self.dlgErr.pushButton_copyMsg.clicked.connect(copy_to_clipboard)
+            self.dlgErr.plainTextEdit.setPlainText(text[0] +" - "+ str(info) if self.locale == "cs" else text[1] +" - " + str(info))
+            self.dlgErr.show()
 
         def copy_to_clipboard():
             message = str(err) if url == "" else str(err) + "\n" + "requested url: " + url
             clipboard = PyQt5.QtGui.QGuiApplication.clipboard()
             clipboard.setText(message)
+            self.dlgErr.close()
         
-        button.clicked.connect(showMessageBox)
+        button.clicked.connect(showDlg)
 
         
         self.iface.messageBar().pushWidget(widget, typ)            
