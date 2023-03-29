@@ -2350,11 +2350,12 @@ class Layman(QObject):
 
         self.dlg.comboBox_server.currentIndexChanged.connect(lambda: self.setServers(servers, self.dlg.comboBox_server.currentIndex()))
         if (os.path.isfile(os.getenv("HOME") + os.sep + ".layman" + os.sep +'layman_user.INI')):
-            config = self.loadIni()
-            if len(config['DEFAULT']['login']) > 0:
-                self.Agrimail = config['DEFAULT']['login']
-                self.dlg.pushButton_Connect.setEnabled(True)  
-            self.dlg.lineEdit_userName.setText(config['DEFAULT']['login'])
+            config = self.loadIni()   
+            if 'login' in config['DEFAULT']:
+                if len(config['DEFAULT']['login']) > 0:
+                    self.Agrimail = config['DEFAULT']['login']
+                    self.dlg.pushButton_Connect.setEnabled(True)  
+                self.dlg.lineEdit_userName.setText(config['DEFAULT']['login'])
 
             for i in range (0, self.dlg.comboBox_server.count()):              
                 print(self.authCfg)
