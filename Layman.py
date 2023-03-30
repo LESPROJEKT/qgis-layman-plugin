@@ -2363,8 +2363,9 @@ class Layman(QObject):
                     if self.authCfg == "a67e5fd":
                         self.dlg.comboBox_server.setCurrentIndex(len(servers) - 1)
                     else:
-                        if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
-                            self.dlg.comboBox_server.setCurrentIndex(i)
+                        if "server" in config['DEFAULT']:
+                            if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
+                                self.dlg.comboBox_server.setCurrentIndex(i)
 
 
         else:
