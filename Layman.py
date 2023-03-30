@@ -5969,10 +5969,14 @@ class Layman(QObject):
                     else:
                         return              
         for item in layers:
-            if not bulk:   
-                self.postRequest(item.text(0), False, True, False)
-            else:
-                self.postRequest(item.text(0), False, True, True)                   
+            layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+            if self.isLayerPostgres(layer):
+                self.postPostreLayer(layer)
+            else:                
+                if not bulk:   
+                    self.postRequest(item.text(0), False, True, False)
+                else:
+                    self.postRequest(item.text(0), False, True, True)                   
         #self.dlg.label_progress.setText("")
     def setCurrentLayer(name):
         layers = QgsProject.instance().mapLayersByName(name)
@@ -8667,7 +8671,42 @@ class Layman(QObject):
         if provider.name() == "postgres":
             return True
         else:
-            return False         
+            return False    
+    def find_substring(self, searchable_str, start_str, stop_str):
+        start_index = searchable_str.find(start_str)  
+        if start_index == -1:  #
+            return None
+        start_index += len(start_str)  
+        end_index = searchable_str.find(stop_str, start_index)  
+        if end_index == -1: 
+            return None
+        return searchable_str[start_index:end_index] 
+    def preparePostgresUri(self, layer):
+        uri = layer.dataProvider().dataSourceUri()
+        dbname = self.find_substring(uri, "dbname='", "'")
+        port = self.find_substring(uri, "port=", " ")
+        schema = self.find_substring(uri, 'table="', '".')
+        table = self.find_substring(uri, '"."', '"')
+        geom = self.find_substring(uri, '(', ')')
+        host = self.find_substring(uri, "host=", " ") 
+      
+        return ("postgresql://<username>:<password>@"+host+":"+port+"/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
+    def postPostreLayer(self, layer):
+        uri = self.preparePostgresUri(layer)
+        layer_name = layer.name()
+        stylePath = self.getTempPath(self.removeUnacceptableChars(layer.name())).replace("geojson", "sld")
+        layer.saveSldStyle(stylePath)
+        payload = {                
+                'external_table_uri': uri,
+                'title': layer_name,                
+                'style': open(stylePath, 'rb')
+                }
+        print(payload)
+        files = {'style': open(stylePath, 'rb')}
+        response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', payload, files)
+            
+        status = response.status_code
+        print(status)
     def run(self):
         """Run method that loads and starts the plugin"""
 
