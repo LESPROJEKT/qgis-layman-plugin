@@ -111,7 +111,7 @@ from .currentComposition import CurrentComposition
 from .dlg_LoginQfield import LoginQfieldDialog
 from .dlg_showQProject import ShowQProjectDialog
 from .dlg_timeSeries import TimeSeriesDialog
-
+from .dlg_postgrePass import PostgrePasswordDialog
 from typing import Any, Dict, List, Optional, Union
 from qgis.PyQt.QtNetwork import (
     QHttpMultiPart,
@@ -5926,6 +5926,10 @@ class Layman(QObject):
                 return False  
         return True    
     def callPostRequest(self, layers):
+        def showPostgreDialog(layer):
+            self.dlgPostgres = PostgrePasswordDialog()   
+            self.dlgPostgres.show()
+            self.dlgPostgres.pushButton_pass.clicked.connect(lambda: self.postPostreLayer(layer, self.dlgPostgres.lineEdit_username.text(), self.dlgPostgres.lineEdit_pass.text()))
         self.dlg.pushButton_errLog.hide()
         self.ThreadsA = set()
         for thread in threading.enumerate():
@@ -5971,12 +5975,15 @@ class Layman(QObject):
         for item in layers:
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
             if self.isLayerPostgres(layer):
-                self.postPostreLayer(layer)
+                showPostgreDialog(layer)
+                #self.postPostreLayer(layer)
             else:                
                 if not bulk:   
                     self.postRequest(item.text(0), False, True, False)
                 else:
-                    self.postRequest(item.text(0), False, True, True)                   
+                    self.postRequest(item.text(0), False, True, True)      
+        
+                                             
         #self.dlg.label_progress.setText("")
     def setCurrentLayer(name):
         layers = QgsProject.instance().mapLayersByName(name)
@@ -8681,7 +8688,7 @@ class Layman(QObject):
         if end_index == -1: 
             return None
         return searchable_str[start_index:end_index] 
-    def preparePostgresUri(self, layer):
+    def preparePostgresUri(self, layer, username, password):
         uri = layer.dataProvider().dataSourceUri()
         dbname = self.find_substring(uri, "dbname='", "'")
         port = self.find_substring(uri, "port=", " ")
@@ -8690,23 +8697,39 @@ class Layman(QObject):
         geom = self.find_substring(uri, '(', ')')
         host = self.find_substring(uri, "host=", " ") 
       
-        return ("postgresql://<username>:<password>@"+host+":"+port+"/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
-    def postPostreLayer(self, layer):
-        uri = self.preparePostgresUri(layer)
+        return ("postgresql://"+username+":"+password+"@"+host+":"+port+"/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
+    def postPostreLayer(self, layer, username, password):
+        uri = self.preparePostgresUri(layer, username, password)
         layer_name = layer.name()
-        stylePath = self.getTempPath(self.removeUnacceptableChars(layer.name())).replace("geojson", "sld")
-        layer.saveSldStyle(stylePath)
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
+            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+            layer.saveNamedStyle(stylePath)
+        else:
+            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+            layer.saveSldStyle(stylePath)
         payload = {                
                 'external_table_uri': uri,
                 'title': layer_name,                
-                'style': open(stylePath, 'rb')
+                'style': open(stylePath, 'rb'),
+                'name': self.removeUnacceptableChars(layer_name)
                 }
         print(payload)
         files = {'style': open(stylePath, 'rb')}
         response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', payload, files)
             
         status = response.status_code
+        if status == 409:
+            print("layer already exists")
+        if status == 200:
+            self.showSuccess(["Vrsta úspěšně uložena.","Layer was successfully saved."])                      
         print(status)
+    def loadPostgisLayer(self):
+        uri = "dbname='your_database' host=localhost port=5432 user='your_username' password='your_password' table='your_table' key='your_id_field' srid=4326"
+        layer = QgsVectorLayer(uri, 'your_layer_name', 'postgres')
+        if not layer.isValid():
+            print("Layer failed to load!")
+        # Add the layer to the map
+        QgsProject.instance().addMapLayer(layer)        
     def run(self):
         """Run method that loads and starts the plugin"""
 
