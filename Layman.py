@@ -634,6 +634,7 @@ class Layman(QObject):
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         self.addAvailableServices(layersArr,iterator)
     def addAvailableServices(self, layersArr, iterator, notActive):
+        urlServer = self.URI.replace("/client", "")
         while iterator.value():
             item = iterator.value()                
             cell = QComboBox()
