@@ -142,6 +142,7 @@ class Layman(QObject):
     emitMessageBox = pyqtSignal(list)
     readCompositionFailed = pyqtSignal()
     onRefreshCurrentForm = pyqtSignal()
+    postgisFound = pyqtSignal(bool)
 
 
 
@@ -345,6 +346,7 @@ class Layman(QObject):
         self.loadStyle.connect(self._loadStyle)
         self.emitMessageBox.connect(self._onEmitMessageBox)
         self.onRefreshCurrentForm.connect(self.on_layers_removed)
+        self.postgisFound.connect(self.on_postgis_found)
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -3009,6 +3011,7 @@ class Layman(QObject):
         self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.pushButton_setPermissions.setEnabled(False)
         self.dlg.label_noUser.hide()
+        self.dlg.pushButton_postgis.hide()  
         try:
             checked = self.getConfigItem("layercheckbox")            
         except:
@@ -3024,6 +3027,7 @@ class Layman(QObject):
         self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
         self.dlg.pushButton.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WMS"))
         self.dlg.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WFS"))
+        self.dlg.pushButton_postgis.clicked.connect(lambda: self.loadPostgisLayer(self.dlg.treeWidget.selectedItems()[0]))
         self.dlg.pushButton_urlWms.clicked.connect(lambda: self.copyLayerUrl(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1),"wms"))
         self.dlg.pushButton_urlWfs.clicked.connect(lambda: self.copyLayerUrl(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1),"wfs"))
         if not self.isAuthorized:
@@ -3033,6 +3037,7 @@ class Layman(QObject):
         self.dlg.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
         self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
         self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.dlg.treeWidget.selectedItems()[0])).start())        
+        self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.checkIfPostgis(self.dlg.treeWidget.selectedItems()[0])).start())        
         self.dlg.filter.valueChanged.connect(self.filterResults)
         self.dlg.treeWidget.setColumnWidth(0, 300)
         self.dlg.treeWidget.setColumnWidth(2, 80)
@@ -3048,6 +3053,7 @@ class Layman(QObject):
         self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
         self.dlg.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #707070 ;}#pushButton_urlWms:disabled{background: #999999 ;}")
         self.dlg.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #707070 ;}#pushButton_urlWfs:disabled{background: #999999 ;}")
+        self.dlg.pushButton_postgis.setStyleSheet("#pushButton_postgis {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_postgis:hover{background: #66ab27 ;}#pushButton_postgis:disabled{background: #64818b ;}")
         self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
         self.threadLayers.start()
         self.dlg.checkBox_own.stateChanged.connect(self.loadLayersThread)     
@@ -4243,11 +4249,21 @@ class Layman(QObject):
             except:
                 pass
                 #self.dlg.label_thumbnail.setText('  Unable to load thumbnail.')
-
+    def checkIfPostgis(self, it):
+        layer = self.removeUnacceptableChars(it.text(0))
+        workspace = it.text(1)
+        url = self.URI+'/rest/'+workspace+'/layers/'+str(layer).lower() 
+        r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        if "db" in r.json():
+            if "external_uri" in r.json()["db"]:
+                self.postgisFound.emit(True)
+            else:
+                self.postgisFound.emit(False)            
+        else:
+            self.postgisFound.emit(False)                 
     def showThumbnailMap2(self, it, workspace):
         
-        map = it ##pro QTreeWidget
-        workspace = workspace
+        map = it ##pro QTreeWidget      
         if self.dlg.checkBox_thumbnail.checkState() == 0:
             try:
                 map = self.removeUnacceptableChars(str(map))
@@ -8724,13 +8740,33 @@ class Layman(QObject):
         if status == 200:
             self.showSuccess(["Vrsta úspěšně uložena.","Layer was successfully saved."])                      
         print(status)
-    def loadPostgisLayer(self):
-        uri = "dbname='your_database' host=localhost port=5432 user='your_username' password='your_password' table='your_table' key='your_id_field' srid=4326"
-        layer = QgsVectorLayer(uri, 'your_layer_name', 'postgres')
+    def loadPostgisLayer(self, it):
+        layer = self.removeUnacceptableChars(it.text(0))
+        workspace = it.text(1)
+        url = self.URI+'/rest/'+workspace+'/layers/'+str(layer).lower() 
+        r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        data = r.json()
+        print(data)
+        table = data["db"]["table"]
+        schema = data["db"]["schema"]
+        geo_column = data["db"]["geo_column"]        
+        host = self.find_substring(data["db"]["external_uri"], "@", ":")
+        port = self.find_substring(data["db"]["external_uri"], ":", r"/")
+        user = self.find_substring(data["db"]["external_uri"], r"://", "@")
+        srid = str(4326)
+        dbname = data["db"]["external_uri"].split("/")[-1]
+        uri = "dbname='"+dbname+"' host="+host+" port="+port+" user='"+user+"' password='testPostres' table='"+table+"' key='"+geo_column+"' srid="+srid
+        layer = QgsVectorLayer(uri, it.text(0), 'postgres')
         if not layer.isValid():
-            print("Layer failed to load!")
-        # Add the layer to the map
-        QgsProject.instance().addMapLayer(layer)        
+            print("Layer failed to load!")      
+        QgsProject.instance().addMapLayer(layer)     
+    def on_postgis_found(self, found):
+        print("postgis")   
+        print(found)
+        if found:
+            self.dlg.pushButton_postgis.show()       
+        else:
+            self.dlg.pushButton_postgis.hide()            
     def run(self):
         """Run method that loads and starts the plugin"""
 
