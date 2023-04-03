@@ -8749,13 +8749,15 @@ class Layman(QObject):
         print(data)
         table = data["db"]["table"]
         schema = data["db"]["schema"]
-        geo_column = data["db"]["geo_column"]        
-        host = self.find_substring(data["db"]["external_uri"], "@", ":")
-        port = self.find_substring(data["db"]["external_uri"], ":", r"/")
+        geo_column = data["db"]["geo_column"]           
+        address = self.find_substring(data["db"]["external_uri"], "@", "/" )
+        host = address.split(":")[0]
+        port = address.split(":")[1]
         user = self.find_substring(data["db"]["external_uri"], r"://", "@")
         srid = str(4326)
         dbname = data["db"]["external_uri"].split("/")[-1]
-        uri = "dbname='"+dbname+"' host="+host+" port="+port+" user='"+user+"' password='testPostres' table='"+table+"' key='"+geo_column+"' srid="+srid
+        table = '"'+ schema +'"."'+ table + '" (' + geo_column + ') '        
+        uri = "dbname='"+dbname+"' host="+host+" port="+port+" user='"+user+"' table="+ table +" key='id' srid="+srid
         layer = QgsVectorLayer(uri, it.text(0), 'postgres')
         if not layer.isValid():
             print("Layer failed to load!")      
