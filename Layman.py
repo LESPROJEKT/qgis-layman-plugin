@@ -647,14 +647,14 @@ class Layman(QObject):
                         cellServices.addItems(['WMS','WFS'])
                     if isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
                         cellServices.addItems(['WMS'])
-                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS' and not self.isLayerPostgres(layer):
+                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS':
                         cellServices.addItems(['WMS','WFS'])
                     if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer not in layer.dataProvider().uri().uri():
                         cellServices.addItems(['WFS'])         
                     if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer in layer.dataProvider().uri().uri():
                         cellServices.addItems(['WFS', 'WMS'])            
-                    if isinstance(layer, QgsVectorLayer) and self.isLayerPostgres(layer):
-                        cellServices.addItems(['Postgis'])                                                                        
+                    # if isinstance(layer, QgsVectorLayer) and self.isLayerPostgres(layer):
+                    #     cellServices.addItems(['Postgis'])                                                                        
 
             if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
                 if self.locale == "cs":
@@ -1099,8 +1099,7 @@ class Layman(QObject):
     def addService(self, item):
         if item.checkState() == 2:
             print("new layer")
-    def test2(self):
-        print("xxxxxxxxxxxxxx")        
+      
     def projectReaded(self, afterLogged = False):      
         proj = QgsProject.instance()
         server, type_conversion_ok = proj.readEntry("Layman", "Server","")
@@ -1868,7 +1867,7 @@ class Layman(QObject):
             self.saveToIni("port", "7072") 
             self.port = "7072"  
         if index in (0,1,2) and self.port:            
-            self.showSuccess(["Port byl uložen.","Port has been saved."])                                                       
+            self.showQgisBar(["Port byl uložen.","Port has been saved."], Qgis.Success)                                                       
     def run_UserInfoDialog(self):        
         self.recalculateDPI()
         self.dlg = UserInfoDialog()
@@ -2132,8 +2131,6 @@ class Layman(QObject):
             self.dlg.pushButton_range_2.setEnabled(False)
         self.dlg.show()
         result = self.dlg.exec_()
-   
-
     
     def getActiveLayer(self):
         layer = iface.activeLayer()
@@ -5947,6 +5944,7 @@ class Layman(QObject):
             self.dlgPostgres = PostgrePasswordDialog()   
             self.dlgPostgres.show()
             self.dlgPostgres.pushButton_pass.clicked.connect(lambda: self.postPostreLayer(layer, self.dlgPostgres.lineEdit_username.text(), self.dlgPostgres.lineEdit_pass.text()))
+            self.dlgPostgres.pushButton_pass.setStyleSheet("#pushButton_pass {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_pass:hover{background: #66ab27 ;}#pushButton_pass:disabled{background: #64818b ;}")
         self.dlg.pushButton_errLog.hide()
         self.ThreadsA = set()
         for thread in threading.enumerate():
@@ -6872,7 +6870,9 @@ class Layman(QObject):
         tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name) + suffix
         with open(tempf, 'wb') as f:
             f.write(style.encode())        
-    def getStyle(self, layer_name, style = None):
+    def getStyle(self, layer_name, style = None, workspace = None):
+        if workspace:
+            self.selectedWorkspace = workspace
         if style is not None:
             suffix = ".sld"
             self.saveExternalStyle(style, layer_name)     
@@ -7341,8 +7341,7 @@ class Layman(QObject):
             print("removechars exception")
         return input
 
-    def test (self):
-        item = self.dlgGetLayers.items.currentItem().text()     
+ 
 
     def isLayerInComposite(self, x):
         layers =[]
@@ -8684,11 +8683,11 @@ class Layman(QObject):
             QMessageBox.information(None, "Layman", message[0])
         else:
             QMessageBox.information(None, "Layman", message[1])
-    def showSuccess(self, msg):   
+    def showQgisBar(self, msg, type):   
         if self.locale == "cs":
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[0]), Qgis.Success, duration=3)
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[0]), type, duration=3)
         else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[1]), Qgis.Success, duration=3)      
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[1]), type, duration=3)      
     def isLayerPostgres(self, layer):
         provider = layer.dataProvider()
         print(provider.name())
@@ -8737,13 +8736,18 @@ class Layman(QObject):
         status = response.status_code
         if status == 409:
             print("layer already exists")
+            self.showQgisBar(["Vrsta "+layer_name+ " již existuje!","Layer "+layer_name+ " already exists!"], Qgis.Warning)  
         if status == 200:
-            self.showSuccess(["Vrsta úspěšně uložena.","Layer was successfully saved."])                      
+            self.showQgisBar(["Vrsta "+layer_name+ " úspěšně uložena.","Layer "+layer_name+ " was successfully saved."], Qgis.Success)  
+            self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")                    
         print(status)
+        self.dlgPostgres.close()
+        
     def loadPostgisLayer(self, it):
-        layer = self.removeUnacceptableChars(it.text(0))
+        layerName = self.removeUnacceptableChars(it.text(0))
+        
         workspace = it.text(1)
-        url = self.URI+'/rest/'+workspace+'/layers/'+str(layer).lower() 
+        url = self.URI+'/rest/'+workspace+'/layers/'+str(layerName).lower() 
         r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
         data = r.json()
         print(data)
@@ -8758,9 +8762,22 @@ class Layman(QObject):
         dbname = data["db"]["external_uri"].split("/")[-1]
         table = '"'+ schema +'"."'+ table + '" (' + geo_column + ') '        
         uri = "dbname='"+dbname+"' host="+host+" port="+port+" user='"+user+"' table="+ table +" key='id' srid="+srid
+        style = self.getStyle(layerName, None, workspace)
         layer = QgsVectorLayer(uri, it.text(0), 'postgres')
+        # response = requests.get(self.URI+'/rest/'+workspace+'/layers/' + layer+ '/style', headers = self.getAuthHeader(self.authCfg))
+        
         if not layer.isValid():
-            print("Layer failed to load!")      
+            self.showQgisBar((["Vrstva nebyla úspěšně načtena.","Layer was not successfully loaded."], Qgis.Warning)     )
+            print("Layer failed to load!")  
+        ## load style 
+        if (style[0] == 200):
+            if (style[1] == "sld"):
+                tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                layer.loadSldStyle(tempf)
+                   
+            if (style[1] == "qml"):
+                tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                layer.loadNamedStyle(tempf)
         QgsProject.instance().addMapLayer(layer)     
     def on_postgis_found(self, found):
         print("postgis")   
