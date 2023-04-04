@@ -2410,7 +2410,10 @@ class Layman(QObject):
             self.get_layers_in_order(child, layers)
         for layer in layers:
             if (layer.type() == QgsMapLayer.VectorLayer):
-                layerType = 'vector layer'
+                if self.isLayerPostgres(layer):
+                    layerType = 'postgres'
+                else:
+                    layerType = 'vector layer'
             if (layer.type() == QgsMapLayer.RasterLayer):	
                 if layer.dataProvider().name() == "arcgismapserver":	
                     layerType = 'arcgis layer'	
@@ -2429,6 +2432,8 @@ class Layman(QObject):
                         self.dlg.treeWidget.addTopLevelItem(item)
                 if (layerType == 'raster layer'):
                     self.dlg.treeWidget.addTopLevelItem(item)
+                if (layerType == 'postgres'):
+                    self.dlg.treeWidget.addTopLevelItem(item)    
         self.dlg.setWindowModality(Qt.ApplicationModal)
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
         self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
@@ -8763,6 +8768,7 @@ class Layman(QObject):
         table = '"'+ schema +'"."'+ table + '" (' + geo_column + ') '        
         uri = "dbname='"+dbname+"' host="+host+" port="+port+" user='"+user+"' table="+ table +" key='id' srid="+srid
         style = self.getStyle(layerName, None, workspace)
+        print(style)
         layer = QgsVectorLayer(uri, it.text(0), 'postgres')
         # response = requests.get(self.URI+'/rest/'+workspace+'/layers/' + layer+ '/style', headers = self.getAuthHeader(self.authCfg))
         
