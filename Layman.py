@@ -950,7 +950,7 @@ class Layman(QObject):
                 print (server == self.URI)
                 print(afterLogged, self.laymanUsername !="")                
                 if self.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Tento projekt obsahuje odkaz na Layman server. Chcete nastavit ho nastavit jako aktuální kompozici?")
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Tento projekt obsahuje odkaz na Layman server. Chcete ho nastavit jako aktuální kompozici?")
                 else:
                     msgbox = QMessageBox(QMessageBox.Question, "Layman", "This project includes link to Layman server. Do you want set the project as current composition?")
                 msgbox.addButton(QMessageBox.Yes)
