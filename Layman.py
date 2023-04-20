@@ -1712,7 +1712,7 @@ class Layman(QObject):
             self.saveToIni("port", "7072") 
             self.port = "7072"  
         if index in (0,1,2) and self.port:            
-            self.showSuccess(["Port byl uložen.","Port has been saved."], Qgis.Success)                                                       
+            self.showQgisBar(["Port byl uložen.","Port has been saved."], Qgis.Success)                                                       
     def run_UserInfoDialog(self):        
         self.recalculateDPI()
         self.dlg = UserInfoDialog()
@@ -2922,8 +2922,7 @@ class Layman(QObject):
         self.dlg.treeWidget.clear()
         if self.laymanUsername and self.isAuthorized:  
             url = self.URI+'/rest/'+self.laymanUsername+'/layers'
-            r = self.requestWrapper("GET", url, payload = None, files = None)
-           # r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+            r = self.requestWrapper("GET", url, payload = None, files = None)           
             data = r.json()
             if onlyOwn:                
                 for row in range(0, len(data)):                   
