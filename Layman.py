@@ -112,6 +112,7 @@ from .dlg_LoginQfield import LoginQfieldDialog
 from .dlg_showQProject import ShowQProjectDialog
 from .dlg_timeSeries import TimeSeriesDialog
 from .dlg_errMsg import ErrMsgDialog
+from .dlg_postgrePass import PostgrePasswordDialog
 
 from typing import Any, Dict, List, Optional, Union
 from qgis.PyQt.QtNetwork import (
@@ -143,6 +144,7 @@ class Layman(QObject):
     emitMessageBox = pyqtSignal(list)
     readCompositionFailed = pyqtSignal()
     onRefreshCurrentForm = pyqtSignal()
+    postgisFound = pyqtSignal(bool)
 
 
 
@@ -346,6 +348,8 @@ class Layman(QObject):
         self.loadStyle.connect(self._loadStyle)
         self.emitMessageBox.connect(self._onEmitMessageBox)
         self.onRefreshCurrentForm.connect(self.on_layers_removed)
+        self.postgisFound.connect(self.on_postgis_found)
+        
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -1708,7 +1712,7 @@ class Layman(QObject):
             self.saveToIni("port", "7072") 
             self.port = "7072"  
         if index in (0,1,2) and self.port:            
-            self.showSuccess(["Port byl uložen.","Port has been saved."])                                                       
+            self.showSuccess(["Port byl uložen.","Port has been saved."], Qgis.Success)                                                       
     def run_UserInfoDialog(self):        
         self.recalculateDPI()
         self.dlg = UserInfoDialog()
@@ -2253,7 +2257,10 @@ class Layman(QObject):
             self.get_layers_in_order(child, layers)
         for layer in layers:
             if (layer.type() == QgsMapLayer.VectorLayer):
-                layerType = 'vector layer'
+                if self.isLayerPostgres(layer):
+                    layerType = 'postgres'
+                else:
+                    layerType = 'vector layer'
             if (layer.type() == QgsMapLayer.RasterLayer):	
                 if layer.dataProvider().name() == "arcgismapserver":	
                     layerType = 'arcgis layer'	
@@ -2272,6 +2279,8 @@ class Layman(QObject):
                         self.dlg.treeWidget.addTopLevelItem(item)
                 if (layerType == 'raster layer'):
                     self.dlg.treeWidget.addTopLevelItem(item)
+                if (layerType == 'postgres'):
+                    self.dlg.treeWidget.addTopLevelItem(item)                      
         self.dlg.setWindowModality(Qt.ApplicationModal)
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
         self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
@@ -2853,6 +2862,7 @@ class Layman(QObject):
         self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.pushButton_setPermissions.setEnabled(False)
         self.dlg.label_noUser.hide()
+        self.dlg.pushButton_postgis.hide() 
         try:
             checked = self.getConfigItem("layercheckbox")            
         except:
@@ -2868,6 +2878,7 @@ class Layman(QObject):
         self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
         self.dlg.pushButton.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WMS"))
         self.dlg.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WFS"))
+        self.dlg.pushButton_postgis.clicked.connect(lambda: self.loadPostgisLayer(self.dlg.treeWidget.selectedItems()[0]))
         self.dlg.pushButton_urlWms.clicked.connect(lambda: self.copyLayerUrl(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1),"wms"))
         self.dlg.pushButton_urlWfs.clicked.connect(lambda: self.copyLayerUrl(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1),"wfs"))
         if not self.isAuthorized:
@@ -2876,7 +2887,8 @@ class Layman(QObject):
         self.dlg.treeWidget.itemClicked.connect(self.enableDeleteButton)
         self.dlg.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
         self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
-        self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.dlg.treeWidget.selectedItems()[0])).start())        
+        self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.dlg.treeWidget.selectedItems()[0])).start())      
+        self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.checkIfPostgis(self.dlg.treeWidget.selectedItems()[0])).start())          
         self.dlg.filter.valueChanged.connect(self.filterResults)
         self.dlg.treeWidget.setColumnWidth(0, 300)
         self.dlg.treeWidget.setColumnWidth(2, 80)
@@ -2892,6 +2904,7 @@ class Layman(QObject):
         self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
         self.dlg.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #707070 ;}#pushButton_urlWms:disabled{background: #999999 ;}")
         self.dlg.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #707070 ;}#pushButton_urlWfs:disabled{background: #999999 ;}")
+        self.dlg.pushButton_postgis.setStyleSheet("#pushButton_postgis {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_postgis:hover{background: #66ab27 ;}#pushButton_postgis:disabled{background: #64818b ;}")
         self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
         self.threadLayers.start()
         self.dlg.checkBox_own.stateChanged.connect(self.loadLayersThread)     
@@ -4063,11 +4076,18 @@ class Layman(QObject):
                     somethingChanged = True             
 
 
-    # def showThumbnail(self, it):
-    #     self.params = list()
-    #     self.params.append(it)
-    #     self.showThumbnail2(it)
-    #     #QgsMessageLog.logMessage("showThumbnail2")
+    def checkIfPostgis(self, it):
+        layer = self.removeUnacceptableChars(it.text(0))
+        workspace = it.text(1)
+        url = self.URI+'/rest/'+workspace+'/layers/'+str(layer).lower() 
+        r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        if "db" in r.json():
+            if "external_uri" in r.json()["db"]:
+                self.postgisFound.emit(True)
+            else:
+                self.postgisFound.emit(False)            
+        else:
+            self.postgisFound.emit(False) 
     def showThumbnail2(self, it):        
         layer = it.text(0) ##pro QTreeWidget
         workspace = it.text(1)
@@ -4091,7 +4111,6 @@ class Layman(QObject):
     def showThumbnailMap2(self, it, workspace):
         
         map = it ##pro QTreeWidget
-        workspace = workspace
         if self.dlg.checkBox_thumbnail.checkState() == 0:
             try:
                 map = self.removeUnacceptableChars(str(map))
@@ -5771,6 +5790,11 @@ class Layman(QObject):
                 return False  
         return True    
     def callPostRequest(self, layers):
+        def showPostgreDialog(layer):
+            self.dlgPostgres = PostgrePasswordDialog()   
+            self.dlgPostgres.show()
+            self.dlgPostgres.pushButton_pass.clicked.connect(lambda: self.postPostreLayer(layer, self.dlgPostgres.lineEdit_username.text(), self.dlgPostgres.lineEdit_pass.text()))
+            self.dlgPostgres.pushButton_pass.setStyleSheet("#pushButton_pass {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_pass:hover{background: #66ab27 ;}#pushButton_pass:disabled{background: #64818b ;}")
         self.dlg.pushButton_errLog.hide()
         self.ThreadsA = set()
         for thread in threading.enumerate():
@@ -5814,11 +5838,15 @@ class Layman(QObject):
                     else:
                         return              
         for item in layers:
-            if not bulk:   
-                self.postRequest(item.text(0), False, True, False)
-            else:
-                self.postRequest(item.text(0), False, True, True)                   
-        #self.dlg.label_progress.setText("")
+            layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+            if self.isLayerPostgres(layer):
+                showPostgreDialog(layer)
+                #self.postPostreLayer(layer)
+            else:                
+                if not bulk:   
+                    self.postRequest(item.text(0), False, True, False)
+                else:
+                    self.postRequest(item.text(0), False, True, True)
     def setCurrentLayer(name):
         layers = QgsProject.instance().mapLayersByName(name)
         if(len(layers) >1):
@@ -6689,7 +6717,9 @@ class Layman(QObject):
         tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name) + suffix
         with open(tempf, 'wb') as f:
             f.write(style.encode())        
-    def getStyle(self, layer_name, style = None):
+    def getStyle(self, layer_name, style = None, workspace = None):
+        if workspace:
+            self.selectedWorkspace = workspace
         if style is not None:
             suffix = ".sld"
             self.saveExternalStyle(style, layer_name)     
@@ -8505,7 +8535,111 @@ class Layman(QObject):
         if self.locale == "cs":
             iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[0]), Qgis.Success, duration=3)
         else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[1]), Qgis.Success, duration=3)           
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[1]), Qgis.Success, duration=3)       
+    def showQgisBar(self, msg, type):   
+        if self.locale == "cs":
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[0]), type, duration=3)
+        else:
+            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[1]), type, duration=3)      
+    def isLayerPostgres(self, layer):
+        provider = layer.dataProvider()
+        print(provider.name())
+        if provider.name() == "postgres":
+            return True
+        else:
+            return False    
+    def find_substring(self, searchable_str, start_str, stop_str):
+        start_index = searchable_str.find(start_str)  
+        if start_index == -1:  #
+            return None
+        start_index += len(start_str)  
+        end_index = searchable_str.find(stop_str, start_index)  
+        if end_index == -1: 
+            return None
+        return searchable_str[start_index:end_index] 
+    def preparePostgresUri(self, layer, username, password):
+        uri = layer.dataProvider().dataSourceUri()
+        dbname = self.find_substring(uri, "dbname='", "'")
+        port = self.find_substring(uri, "port=", " ")
+        schema = self.find_substring(uri, 'table="', '".')
+        table = self.find_substring(uri, '"."', '"')
+        geom = self.find_substring(uri, '(', ')')
+        host = self.find_substring(uri, "host=", " ") 
+      
+        return ("postgresql://"+username+":"+password+"@"+host+":"+port+"/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
+    def postPostreLayer(self, layer, username, password):
+        uri = self.preparePostgresUri(layer, username, password)
+        layer_name = layer.name()
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
+            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+            layer.saveNamedStyle(stylePath)
+        else:
+            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+            layer.saveSldStyle(stylePath)
+        payload = {                
+                'external_table_uri': uri,
+                'title': layer_name,                
+                'style': open(stylePath, 'rb'),
+                'name': self.removeUnacceptableChars(layer_name)
+                }
+        print(payload)
+        files = {'style': open(stylePath, 'rb')}
+        response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', payload, files)
+            
+        status = response.status_code
+        if status == 409:
+            print("layer already exists")
+            self.showQgisBar(["Vrsta "+layer_name+ " již existuje!","Layer "+layer_name+ " already exists!"], Qgis.Warning)  
+        if status == 200:
+            self.showQgisBar(["Vrsta "+layer_name+ " úspěšně uložena.","Layer "+layer_name+ " was successfully saved."], Qgis.Success)  
+            self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")                    
+        print(status)
+        self.dlgPostgres.close()
+        
+    def loadPostgisLayer(self, it):
+        layerName = self.removeUnacceptableChars(it.text(0))
+        
+        workspace = it.text(1)
+        url = self.URI+'/rest/'+workspace+'/layers/'+str(layerName).lower() 
+        r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        data = r.json()
+        print(data)
+        table = data["db"]["table"]
+        schema = data["db"]["schema"]
+        geo_column = data["db"]["geo_column"]           
+        address = self.find_substring(data["db"]["external_uri"], "@", "/" )
+        host = address.split(":")[0]
+        port = address.split(":")[1]
+        user = self.find_substring(data["db"]["external_uri"], r"://", "@")
+        srid = str(4326)
+        dbname = data["db"]["external_uri"].split("/")[-1]
+        table = '"'+ schema +'"."'+ table + '" (' + geo_column + ') '        
+        uri = "dbname='"+dbname+"' host="+host+" port="+port+" user='"+user+"' table="+ table +" key='id' srid="+srid
+        style = self.getStyle(layerName, None, workspace)
+        print(style)
+        layer = QgsVectorLayer(uri, it.text(0), 'postgres')
+        # response = requests.get(self.URI+'/rest/'+workspace+'/layers/' + layer+ '/style', headers = self.getAuthHeader(self.authCfg))
+        
+        if not layer.isValid():
+            self.showQgisBar((["Vrstva nebyla úspěšně načtena.","Layer was not successfully loaded."], Qgis.Warning)     )
+            print("Layer failed to load!")  
+        ## load style 
+        if (style[0] == 200):
+            if (style[1] == "sld"):
+                tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                layer.loadSldStyle(tempf)
+                   
+            if (style[1] == "qml"):
+                tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                layer.loadNamedStyle(tempf)
+        QgsProject.instance().addMapLayer(layer)     
+    def on_postgis_found(self, found):
+        print("postgis")   
+        print(found)
+        if found:
+            self.dlg.pushButton_postgis.show()       
+        else:
+            self.dlg.pushButton_postgis.hide()                       
     def run(self):
         """Run method that loads and starts the plugin"""
 
