@@ -5026,8 +5026,8 @@ class Layman(QObject):
         if checked:            
             for i in range (0, len(composition['layers'])):           
                 if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):              
-                    composition['layers'][i]['maxResolution'] = int(self.scaleToResolution(layer.minimumScale()))
-                    composition['layers'][i]['minResolution'] = int(self.scaleToResolution(layer.maximumScale()))
+                    composition['layers'][i]['maxResolution'] = (self.scaleToResolution(layer.minimumScale()))
+                    composition['layers'][i]['minResolution'] = (self.scaleToResolution(layer.maximumScale()))
                     
         else:
             for i in range (0, len(composition['layers'])):           
@@ -6579,10 +6579,10 @@ class Layman(QObject):
                 url = param[1]
         crs = layer.crs().authid()
         if layer.hasScaleBasedVisibility():
-            minScale = int(self.scaleToResolution(layer.minimumScale()))           
+            minScale = (self.scaleToResolution(layer.minimumScale()))           
         else:
             minScale = None
-        composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution": minScale,"minResolution":int(self.scaleToResolution(layer.maximumScale())),"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+        composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution": minScale,"minResolution":(self.scaleToResolution(layer.maximumScale())),"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
     def scaleToResolution(self, denominator):   
         map_settings = iface.mapCanvas().mapSettings()
         crs = map_settings.destinationCrs()
@@ -6824,10 +6824,10 @@ class Layman(QObject):
                 #layerName = self.removeUnacceptableChars(layer.name()).lower() 
                 layerName = self.removeUnacceptableChars(layer.name()).lower() 
                 if layer.hasScaleBasedVisibility():
-                    minScale = int(self.scaleToResolution(layer.minimumScale()))                    
+                    minScale = (self.scaleToResolution(layer.minimumScale()))                    
                 else:
                     minScale = None    
-                composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":layer.name(),"className":"OpenLayers.Layer.Vector","style": "","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":int(self.scaleToResolution(layer.maximumScale())),"name": str(title),"opacity":1 ,"protocol":{"format": "hs.format.externalWFS","url": url},"ratio":1.5,"visibility": layerTreeNode.isVisible(),"dimensions":{}})
+                composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":layer.name(),"className":"OpenLayers.Layer.Vector","style": "","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.scaleToResolution(layer.maximumScale())),"name": str(title),"opacity":1 ,"protocol":{"format": "hs.format.externalWFS","url": url},"ratio":1.5,"visibility": layerTreeNode.isVisible(),"dimensions":{}})
             elif (isinstance(layer,QgsVectorLayer))  or layer.dataProvider().uri().uri() == "":
 
                 layers = []
@@ -6847,7 +6847,7 @@ class Layman(QObject):
                     self.dlg.progressBar_loader.show()
                     layerName = self.removeUnacceptableChars(layers[i].name()).lower()                   
                     if layers[i].hasScaleBasedVisibility():
-                        minScale = int(self.scaleToResolution(layers[i].minimumScale()))
+                        minScale = (self.scaleToResolution(layers[i].minimumScale()))
                     
                     else:
                         minScale = None
@@ -6858,18 +6858,18 @@ class Layman(QObject):
                                 self.saveXYZ(layers[i])
                             else:
                                 wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'_wms/ows'
-                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":int(self.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5, "visibility": True,"dimensions":{}})
+                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5, "visibility": True,"dimensions":{}})
                                                
                     elif service == 'wfs':
                         wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'/wfs'
                         styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ str(layerName) + "/style"
 
-                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":int(self.scaleToResolution(layers[i].maximumScale())),"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.scaleToResolution(layers[i].maximumScale())),"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
 
 
                     else:
                         wmsUrl = self.URI.replace("/client", "") +'/geoserver/'+self.laymanUsername+'_wms/ows'
-                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":int(self.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
                     successful = successful + 1
                 print("saving layer records to composition")
                
