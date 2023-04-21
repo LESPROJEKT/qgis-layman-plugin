@@ -145,6 +145,7 @@ class Layman(QObject):
     readCompositionFailed = pyqtSignal()
     onRefreshCurrentForm = pyqtSignal()
     postgisFound = pyqtSignal(bool)
+    showExportInfo = pyqtSignal(str)
 
 
 
@@ -349,6 +350,7 @@ class Layman(QObject):
         self.emitMessageBox.connect(self._onEmitMessageBox)
         self.onRefreshCurrentForm.connect(self.on_layers_removed)
         self.postgisFound.connect(self.on_postgis_found)
+        self.showExportInfo.connect(self.showExportedCompositionInfo)
         
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
@@ -719,6 +721,7 @@ class Layman(QObject):
         self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.pushButton_qfield.setEnabled(False)
         self.dlg.label_readonly.hide()
+        self.dlg.label_log.hide()
         self.dlg.radioButton_wms.hide()
         self.dlg.radioButton_wfs.hide()
         self.dlg.label_raster.hide()
@@ -8642,7 +8645,11 @@ class Layman(QObject):
         if found:
             self.dlg.pushButton_postgis.show()       
         else:
-            self.dlg.pushButton_postgis.hide()                       
+            self.dlg.pushButton_postgis.hide()    
+    def showExportedCompositionInfo(self, info):
+        self.dlg.label_log.show()
+        self.dlg.label_log.setText(info)
+                                       
     def run(self):
         """Run method that loads and starts the plugin"""
 
