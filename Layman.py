@@ -8520,10 +8520,14 @@ class Layman(QObject):
             print("group is selected")
 
     def requestWrapper(self, type, url, payload = None, files = None):    
-        response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files)            
+        try:
+            response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files)        
+        except Exception as ex:     
+            info = str(ex)            
+            self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
+            return
         if response.status_code != 200:           
-            self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)             
-            
+            self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url) 
         return response
     def _onEmitMessageBox(self, message):    
         if self.locale == "cs":
