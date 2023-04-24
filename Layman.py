@@ -3667,7 +3667,7 @@ class Layman(QObject):
 
    
     def syncOrder2(self, layers):
-        self.showExportInfo.emit("Aktualizace pořadí vrstev")
+        self.showExportInfo.emit("Aktualizace pořadí vrstev" if self.locale == "cs" else "Update layer order")
         serverOrder = self.instance.getLayerNamesList()
         composition = self.instance.getComposition()   
         if len(serverOrder) != len(QgsProject.instance().mapLayers()):
@@ -3771,7 +3771,7 @@ class Layman(QObject):
         self.dlg.progressBar_loader.show()
         self.dlg.pushButton_save.setEnabled(False)
     def updateVisibilityInComposition(self):
-        self.showExportInfo.emit("Aktualizace viditelnost vrstev")
+        self.showExportInfo.emit("Aktualizace viditelnost vrstev" if self.locale == "cs" else "Update layer visibility")
         composition = self.instance.getComposition()
         root = QgsProject.instance().layerTreeRoot()
         sublayers = root.children()     
@@ -6738,7 +6738,7 @@ class Layman(QObject):
     def addLayerToComposite2(self,composition, layersList):        
         print(layersList)
         for layer in layersList:
-            self.showExportInfo.emit("Nahrávání vrstvy: " + layer.name())
+            self.showExportInfo.emit("Nahrávání vrstvy: " + layer.name() if self.locale == "cs" else "Uploading layer: " + layer.name())
             if (isinstance(layer,QgsRasterLayer)) and layer.dataProvider().uri().uri() != "":
                 print("External WMS detected")
                 self.addExternalWMSToComposite(layer.name())
@@ -6899,7 +6899,7 @@ class Layman(QObject):
         df=pd.DataFrame([composition])
         df.to_clipboard(index=False,header=False)
     def patchMap2(self, attempt=0):
-        self.showExportInfo.emit("Ukládání kompozice")
+        self.showExportInfo.emit("Ukládání kompozice" if self.locale == "cs" else "Saving composition")
         composition = self.instance.getComposition()        
         tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
         with open(tempFile, 'w') as outfile:
