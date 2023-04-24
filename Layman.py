@@ -8624,7 +8624,7 @@ class Layman(QObject):
         # response = requests.get(self.URI+'/rest/'+workspace+'/layers/' + layer+ '/style', headers = self.getAuthHeader(self.authCfg))
         
         if not layer.isValid():
-            self.showQgisBar((["Vrstva nebyla úspěšně načtena.","Layer was not successfully loaded."], Qgis.Warning)     )
+            self.showQgisBar(["Vrstva nebyla úspěšně načtena.","Layer was not successfully loaded."], Qgis.Warning)
             print("Layer failed to load!")  
         ## load style 
         if (style[0] == 200):
