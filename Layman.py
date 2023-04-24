@@ -2393,7 +2393,7 @@ class Layman(QObject):
             self.dlg.comboBox_server.setCurrentIndex(int(QgsSettings().value("laymanLastServer")))
         if not server:
             self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2())
-        self.dlg.pushButton_Continue.clicked.connect(lambda: self.getToken())
+        #self.dlg.pushButton_Continue.clicked.connect(lambda: self.getToken())
 
         self.dlg.pushButton_NoLogin.clicked.connect(lambda: self.withoutLogin(servers, self.dlg.comboBox_server.currentIndex()))
         self.dlg.pushButton_Continue.setEnabled(False)
@@ -2789,9 +2789,10 @@ class Layman(QObject):
             #url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
             url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
             #url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
-         
-        r = requests.get(url = url)        
+        r = self.requestWrapper("GET", url, payload = None, files = None) 
+        #r = requests.get(url = url)        
         self.mickaRet = r.json()
+        
 
 
         for record in self.mickaRet['records']:
@@ -3476,18 +3477,7 @@ class Layman(QObject):
     def deleteLayerThrowCompositions(self, name, title):
 
         name = self.removeUnacceptableChars(name).lower()
-        # for x in range (0,len(self.compositeList)):
 
-        #     for i in range (0,len(self.compositeList[x]['layers'])):
-        #          try:
-        #              if (name == self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title'])):
-        #                 inComposite = True
-        #                 print("inComposite")
-
-
-        #                 threading.Thread(target=lambda: self.deteteLayerFromCompositeThread(x, i, name, title)).start()
-        #          except:
-        #              print("nesprávný formát kompozice: " + name)
     def checkLayersInComopsitions(self, name):
         name = self.removeUnacceptableChars(name)      
         inComposite = False
@@ -5196,8 +5186,7 @@ class Layman(QObject):
             print(checked)
             self.loadMapsThread(checked)
         if (reply == QMessageBox.Yes):
-            deleteMapThread(name)
-            #threading.Thread(target=lambda: deleteMapThread(name)).start()          
+            deleteMapThread(name)           
     def deleteLayerFromCanvas(self, name):
         lay = QgsProject.instance().mapLayersByName(name)[0]
         if (lay != None and lay.type() != QgsMapLayer.VectorLayer):
@@ -8025,42 +8014,41 @@ class Layman(QObject):
         except:
             pass  
 ############################################# auth part############################
-    def startThread(self):
-        self.thread1 = threading.Thread(target=self.refreshToken)
-        self.thread1.start()
+    # def startThread(self):      
+    #     self.thread1 = threading.Thread(target=self.refreshToken)
+    #     self.thread1.start()
 
-    def refreshToken(self):
-        #self.expires_in = 60
-        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "tsts.txt"
-        i = 0 
-        tokenEndpoint = self.liferayServer+"/o/oauth2/token"
-        while (i < self.expires_in):
-            f = open(path, "a")
-            f.write(str(i))
+    # def refreshToken(self):
+    #     #self.expires_in = 60
+    #     path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "tsts.txt"
+    #     i = 0 
+    #     tokenEndpoint = self.liferayServer+"/o/oauth2/token"
+    #     while (i < self.expires_in):            
+    #         f = open(path, "a")
+    #         f.write(str(i))
 
-            f.close()
-            time.sleep(1)
-            if i == self.expires_in - 4:
+    #         f.close()
+    #         time.sleep(1)
+    #         if i == self.expires_in - 4:
 
 
-                data = {'grant_type':'refresh_token',
-                        'refresh_token': self.refresh_token,
-                        'client_id': self.client_id,   ##'id-3462f94b-875c-9185-4ced-b69841f24b3',
-                        'redirect_uri':'http://localhost:3857/client/authn/oauth2-liferay/callback',
-                        'code_verifier':self.code_verifier  ##'test'
-                        }
-
-                #r = requests.post(url = tokenEndpoint, data = data, headers = self.getAuthHeader(self.authCfg))
-                r = self.requestWrapper("POST", tokenEndpoint, data, files = None)
-                res = self.fromByteToJson(r.content)
-                self.access_token = res['access_token']
-                self.refresh_token = res['refresh_token']
-                self.expires_in = res['expires_in']
-                print(self.access_token)
-                self.setAuthHeader()
-                i = 0
-            else:
-                i += 1
+    #             data = {'grant_type':'refresh_token',
+    #                     'refresh_token': self.refresh_token,
+    #                     'client_id': self.client_id,   ##'id-3462f94b-875c-9185-4ced-b69841f24b3',
+    #                     'redirect_uri':'http://localhost:3857/client/authn/oauth2-liferay/callback',
+    #                     'code_verifier':self.code_verifier  ##'test'
+    #                     }
+        
+    #             r = self.requestWrapper("POST", tokenEndpoint, data, files = None)
+    #             res = self.fromByteToJson(r.content)
+    #             self.access_token = res['access_token']
+    #             self.refresh_token = res['refresh_token']
+    #             self.expires_in = res['expires_in']
+    #             print(self.access_token)
+    #             self.setAuthHeader()
+    #             i = 0
+    #         else:
+    #             i += 1
 
 
     def authOptained(self):
@@ -8087,9 +8075,7 @@ class Layman(QObject):
             url = QUrl(self.URI+ "/rest/current-user")
             xx = QNetworkRequest(url)   
             i = 0
-            success = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))             
-            # if success[0] == False:
-            #     success  = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))           
+            success = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))      
             if success[0] == True:
                 header = (xx.rawHeader(QByteArray(b"Authorization")))                
                 authHeader ={
@@ -8103,7 +8089,6 @@ class Layman(QObject):
                     QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
                 return False
         else:
-
             return ""
 
     def getCodeVerifier(self):
@@ -8128,56 +8113,56 @@ class Layman(QObject):
         f.close()
         return ret
 
-    def getToken(self):
-        self.saveIni()
+    # def getToken(self):      
+    #     self.saveIni()
 
-        tokenEndpoint = self.liferayServer+"/o/oauth2/token"
-        # data to be sent to api
-        data = {'grant_type':'authorization_code',
-                'client_id': self.client_id,
-                'redirect_uri':'http://localhost:3857/client/authn/oauth2-liferay/callback',
-                'code_verifier': self.code_verifier,
-                'code': self.getAuthCode()}
+    #     tokenEndpoint = self.liferayServer+"/o/oauth2/token"
+    #     # data to be sent to api
+    #     data = {'grant_type':'authorization_code',
+    #             'client_id': self.client_id,
+    #             'redirect_uri':'http://localhost:3857/client/authn/oauth2-liferay/callback',
+    #             'code_verifier': self.code_verifier,
+    #             'code': self.getAuthCode()}
 
-        # sending post request and saving response as response object
+    #     # sending post request and saving response as response object
         
-       # r = requests.post(url = tokenEndpoint, data = data, headers = self.getAuthHeader(self.authCfg))        
-        r = self.requestWrapper("POST", tokenEndpoint, data, files = None)
-        res = self.fromByteToJson(r.content)        
-        try:
-            print(res['access_token'])
-            print(res['expires_in'])
-            print(res['refresh_token'])
-        except:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Message", "Autorizace nebyla úspěšná! Prosím zkuste to znovu.")
-            else:
-                QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
-            return
-        self.access_token = res['access_token']
-        self.refresh_token = res['refresh_token']
-        self.expires_in = res['expires_in']
-        self.setAuthHeader()
-        data ={
-            'access_token': res['access_token'],
-            'refresh_token': res['refresh_token'],
-            'expires_in':res['expires_in']
-            }
-        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "tokens.json"
-        with open(path, 'w') as outfile:
-            json.dump(data, outfile)
-        self.registerUserIfNotExists()
-        self.startThread()       
+    #    # r = requests.post(url = tokenEndpoint, data = data, headers = self.getAuthHeader(self.authCfg))        
+    #     r = self.requestWrapper("POST", tokenEndpoint, data, files = None)
+    #     res = self.fromByteToJson(r.content)        
+    #     try:
+    #         print(res['access_token'])
+    #         print(res['expires_in'])
+    #         print(res['refresh_token'])
+    #     except:
+    #         if self.locale == "cs":
+    #             QMessageBox.information(None, "Message", "Autorizace nebyla úspěšná! Prosím zkuste to znovu.")
+    #         else:
+    #             QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
+    #         return
+    #     self.access_token = res['access_token']
+    #     self.refresh_token = res['refresh_token']
+    #     self.expires_in = res['expires_in']
+    #     self.setAuthHeader()
+    #     data ={
+    #         'access_token': res['access_token'],
+    #         'refresh_token': res['refresh_token'],
+    #         'expires_in':res['expires_in']
+    #         }
+    #     path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "tokens.json"
+    #     with open(path, 'w') as outfile:
+    #         json.dump(data, outfile)
+    #     self.registerUserIfNotExists()
+    #     self.startThread()       
 
-        ### authconfig
-        authcfg_id = self.authCfg
-        if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
-            QgsApplication.authManager().clearAllCachedConfigs()
-            self.setup_oauth(self.authCfg, self.liferayServer)
+    #     ### authconfig
+    #     authcfg_id = self.authCfg
+    #     if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
+    #         QgsApplication.authManager().clearAllCachedConfigs()
+    #         self.setup_oauth(self.authCfg, self.liferayServer)
 
-        ##authconfig end
+    #     ##authconfig end
 
-        self.dlg.close()
+    #     self.dlg.close()
 
 
 
@@ -8275,20 +8260,7 @@ class Layman(QObject):
     def onSetPluginLabel(self,string):
         self.textbox.setOpenExternalLinks(True)
         self.textbox.setText(string)        
-    def checkAuthChange(self):
-        i = 0
-        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt"
-        while(i < 500):
-            if self.authFileTime == os.path.getmtime(path):
-                pass
-            else:
-                self.authFileTime = os.path.getmtime(path)
-                QgsMessageLog.logMessage("authOptained")
-                #self.authOptained()
-                i = i + 500
-                
-            i = i +1
-            time.sleep(0.5)
+   
     def getUserName(self):
         userEndpoint = self.URI+ "/rest/current-user"
        # r = requests.get(url = userEndpoint, headers = self.getAuthHeader(self.authCfg))
@@ -8324,20 +8296,13 @@ class Layman(QObject):
         authHeader = self.getAuthHeader(self.authCfg)        
         print(authHeader)
         if (authHeader):
-            if self.registerUserIfNotExists():
-                #threading.Thread(target=self.loadAllCompositesT).start() ## načteme kompozice do pole ve vláknu
+            if self.registerUserIfNotExists():   
                 if not autoLog:
                     self.saveIni()
                 self.name = self.getUserName()
-
-
-                 ## layman version
-
                 url = self.URI+ "/rest/about/version"
-                print(url)
-                #r = requests.get(url = url)
-                r = self.requestWrapper("GET", url, payload = None, files = None)
-                #print (r.content)
+                print(url)              
+                r = self.requestWrapper("GET", url, payload = None, files = None)                
                 try:
                     res = self.fromByteToJson(r.content)
                     print(res['about']['applications']['layman']['version'])
@@ -8366,14 +8331,12 @@ class Layman(QObject):
                         self.dlg.close()                
                 if load != "":
                     print("loading current")
-                    url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+load+'/file'
-                    #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+                    url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+load+'/file'                
                     r = self.requestWrapper("GET", url, payload = None, files = None)
                     data = r.json()                    
                     self.instance = CurrentComposition(self.URI, load, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)
                     self.instance.setComposition(data)
                     self.current = load
-
 
                 self.projectReaded(True)
                 threading.Thread(target=lambda: self.fillCompositionDict()).start()
