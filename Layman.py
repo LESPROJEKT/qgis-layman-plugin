@@ -145,6 +145,7 @@ class Layman(QObject):
     readCompositionFailed = pyqtSignal()
     onRefreshCurrentForm = pyqtSignal()
     postgisFound = pyqtSignal(bool)
+    showExportInfo = pyqtSignal(str)
 
 
 
@@ -349,6 +350,7 @@ class Layman(QObject):
         self.emitMessageBox.connect(self._onEmitMessageBox)
         self.onRefreshCurrentForm.connect(self.on_layers_removed)
         self.postgisFound.connect(self.on_postgis_found)
+        self.showExportInfo.connect(self.showExportedCompositionInfo)
         
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
@@ -553,61 +555,7 @@ class Layman(QObject):
         urlServer = self.URI.replace("/client", "")
         self.addAvailableServices(layersArr,iterator, notActive)
         return
-        while iterator.value():
-            item = iterator.value()                
-            cell = QComboBox()
-            cell.currentTextChanged.connect(self.comboBoxChanged)
-            cellServices = QComboBox()
-            for layer in layersArr:
-                print(self.URI, layer.dataProvider().uri().uri())
-                if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(item.text(0)):
-                    if isinstance(layer, QgsRasterLayer) and "geoserver" in layer.dataProvider().dataSourceUri():
-                        cellServices.addItems(['WMS','WFS'])
-                    if isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
-                        cellServices.addItems(['WMS'])
-                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS':
-                        cellServices.addItems(['WMS','WFS'])
-                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer not in layer.dataProvider().uri().uri():
-                        cellServices.addItems(['WFS'])         
-                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer in layer.dataProvider().uri().uri():
-                        cellServices.addItems(['WFS', 'WMS'])                                                        
-
-            if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
-                if self.locale == "cs":
-                    cell.addItems(['Beze změny','Přepsat data'])
-                else:
-                    cell.addItems(['No change','Overwrite geometry'])
-            elif item.text(0).replace(" (Smazána z projektu)", "").replace(" (Removed from canvas)", "") in  notActive:
-                if self.locale == "cs":
-                    cell.addItems(['Beze změny','Smazat'])
-                else:
-                    cell.addItems(['No change','Remove'])                        
-            else:
-                if self.checkExistingLayer(item.text(0)):           
-                    if self.locale == "cs":
-                        cell.addItems(['Beze změny','Přidat ze serveru','Přidat a přepsat'])
-                    else:
-                        cell.addItems(['No change','Add from server','Add and overwrite' ])
-                else:
-                    if self.locale == "cs":
-                        cell.addItems(['Beze změny','Přidat'])
-                    else:
-                        cell.addItems(['No change','Add'])
-
-            self.dlg.treeWidget_layers.setItemWidget(item,2, cell)
-
-            self.dlg.treeWidget_layers.setItemWidget(item,1, cellServices)   
-            ## qpushbutton   
-                                            
-            if self.instance.getServiceForLayer(item.text(0)) in (["HSLayers.Layer.WMS", "XYZ"]):
-                cellButton = QPushButton("...", None)
-                #size = QSize(22, 22)
-                #cellButton.setFixedSize(size)
-                cellButton.clicked.connect(self.showLayerProperties)
-                self.dlg.treeWidget_layers.setItemWidget(item,3, cellButton)
-            ##
-            iterator +=1
-            self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
+        
     def addLayerToCurrentForm(self, layer):  
         notActive = set(layerList) - set(layersInCanvas)  
         item = QTreeWidgetItem()
@@ -719,6 +667,7 @@ class Layman(QObject):
         self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.pushButton_qfield.setEnabled(False)
         self.dlg.label_readonly.hide()
+        self.dlg.label_log.hide()
         self.dlg.radioButton_wms.hide()
         self.dlg.radioButton_wfs.hide()
         self.dlg.label_raster.hide()
@@ -3718,6 +3667,7 @@ class Layman(QObject):
 
    
     def syncOrder2(self, layers):
+        self.showExportInfo.emit("Aktualizace pořadí vrstev")
         serverOrder = self.instance.getLayerNamesList()
         composition = self.instance.getComposition()   
         if len(serverOrder) != len(QgsProject.instance().mapLayers()):
@@ -3821,6 +3771,7 @@ class Layman(QObject):
         self.dlg.progressBar_loader.show()
         self.dlg.pushButton_save.setEnabled(False)
     def updateVisibilityInComposition(self):
+        self.showExportInfo.emit("Aktualizace viditelnost vrstev")
         composition = self.instance.getComposition()
         root = QgsProject.instance().layerTreeRoot()
         sublayers = root.children()     
@@ -3844,29 +3795,20 @@ class Layman(QObject):
     
     def updateCompositionThread(self):        
         composition = self.instance.getComposition()
-
         i= 0
         for item in self.currentSet:
             service = self.instance.getServiceForLayer(item[0])
             if service == "HSLayers.Layer.WMS" and item[1] == "WFS":
-                self.wms_wfs3(item[0], i, item[1])
-                pass
+                self.wms_wfs3(item[0], i, item[1])                
             if service == "OpenLayers.Layer.Vector" and item[1] == "WMS":                
                 self.wms_wfs3(item[0], i, item[1])
-            i = i +1
-     
-        if True:
-            duplicityCheck = self.saveMapLayers()
-            if not duplicityCheck:
-                QgsMessageLog.logMessage("layersLoaded")            
-                return
-            self.modified = False
-        else:
-            composition = self.instance.getComposition()          
-            if composition != self.backupComposition:
-                print("composition will be updated")
-                self.backupComposition = copy.deepcopy(composition)
-
+            i = i +1    
+        
+        duplicityCheck = self.saveMapLayers()
+        if not duplicityCheck:
+            QgsMessageLog.logMessage("layersLoaded")            
+            return
+        self.modified = False 
         if len(self.stylesToUpdate) > 0:
             layerList = set()
             for layer in self.stylesToUpdate:
@@ -3882,13 +3824,13 @@ class Layman(QObject):
                     except:
                         print("neni v poli")
         
-        self.updateVisibilityInComposition()        
-        
+        self.updateVisibilityInComposition()       
         self.syncOrder2(self.getLayersOrder())    
         self.patchMap2()        
         self.writeValuesToProject(self.URI, composition['name'])   
         QgsMessageLog.logMessage("updateMapDone")
         QgsMessageLog.logMessage("layersUploaded")
+        self.showExportInfo.emit("F")
         self.onRefreshCurrentForm.emit()
     def updateLayerStyle(self, layer_name, workspace):
         title = layer_name       
@@ -6796,7 +6738,7 @@ class Layman(QObject):
     def addLayerToComposite2(self,composition, layersList):        
         print(layersList)
         for layer in layersList:
-
+            self.showExportInfo.emit("Nahrávání vrstvy: " + layer.name())
             if (isinstance(layer,QgsRasterLayer)) and layer.dataProvider().uri().uri() != "":
                 print("External WMS detected")
                 self.addExternalWMSToComposite(layer.name())
@@ -6957,6 +6899,7 @@ class Layman(QObject):
         df=pd.DataFrame([composition])
         df.to_clipboard(index=False,header=False)
     def patchMap2(self, attempt=0):
+        self.showExportInfo.emit("Ukládání kompozice")
         composition = self.instance.getComposition()        
         tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
         with open(tempFile, 'w') as outfile:
@@ -7861,16 +7804,6 @@ class Layman(QObject):
         except:
             print("missing visibility parameter")
             QgsProject.instance().layerTreeRoot().findLayer(layer).setItemVisibilityChecked(True)
-    # def addWmsToGroup(self, groupName,  layer, test= "", i = 1000):
-    #     print(groupName,  layer)
-    #     root = QgsProject.instance().layerTreeRoot()
-    #     # Check if the group exists, and create it if it doesn't
-    #     group = root.findGroup(groupName)
-    #     if group is None:
-    #         group = root.addGroup(groupName) 
-    #     if layer is not None:
-    #         group.addLayer(layer)
-    #     # Add the group to the layer group
        
               
     def addLayerToGroup(self, groupName, layer):
@@ -8605,7 +8538,14 @@ class Layman(QObject):
         if found:
             self.dlg.pushButton_postgis.show()       
         else:
-            self.dlg.pushButton_postgis.hide()                       
+            self.dlg.pushButton_postgis.hide()    
+    def showExportedCompositionInfo(self, info):
+        if info != "F":
+            self.dlg.label_log.show()
+            self.dlg.label_log.setText(info)
+        else:
+            self.dlg.label_log.hide()            
+                                       
     def run(self):
         """Run method that loads and starts the plugin"""
 
