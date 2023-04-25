@@ -6685,7 +6685,7 @@ class Layman(QObject):
     def checkExistingLayer(self, layerName):
         layerName = self.removeUnacceptableChars(layerName)
         url = self.URI+'/rest/'+self.laymanUsername+"/layers"
-        r = self.request("get", url, self.getAuthHeader(self.authCfg))       
+        r = self.requestWrapper("GET", url, payload = None, files = None)      
         if not r:
             return
         data = r.json()
