@@ -51,7 +51,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Liferay username:</string>
+    <string>Wagtail username:</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_layman">

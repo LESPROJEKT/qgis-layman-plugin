@@ -1620,14 +1620,13 @@ class Layman(QObject):
                 self.dlg.comboBox_port.setCurrentIndex(2) 
         self.dlg.comboBox_port.currentIndexChanged.connect(self.setPortValue)                                                        
         if self.liferayServer != None and self.laymanUsername != "":
-            userEndpoint = self.URI + "/rest/current-user"
-            #r = requests.get(url = userEndpoint,  headers = self.getAuthHeader(self.authCfg))
+            userEndpoint = self.URI + "/rest/current-user"            
             r = self.requestWrapper("GET", userEndpoint, payload = None, files = None)
             res = r.text
             res = self.fromByteToJson(r.content)
             versionCheck = self.checkVersion()
             self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))            
-            if self.isAuthorized:
+            if self.isAuthorized:                
                 self.dlg.label_layman.setText(res['claims']['preferred_username'])
                 self.dlg.label_agrihub.setText(res['claims']['email'])
             else:
@@ -1641,16 +1640,14 @@ class Layman(QObject):
                        
             self.dlg.label_avversion.setText(versionCheck[1])
             if versionCheck[0] == True:
-                self.dlg.label_avversion.hide()
-                #self.dlg.label_5.hide()
+                self.dlg.label_avversion.hide()            
                 self.dlg.pushButton_update.setEnabled(False)
         else:
             self.dlg.label_version.setText(self.getVersion())
             versionCheck = self.checkVersion()
             self.dlg.label_avversion.setText(versionCheck[1])
             if versionCheck[0] == True:
-                self.dlg.label_avversion.hide()
-                #self.dlg.label_5.hide()
+                self.dlg.label_avversion.hide()           
                 self.dlg.pushButton_update.setEnabled(False)
             self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
@@ -1696,7 +1693,7 @@ class Layman(QObject):
             self.dlg.comboBox_users.addItem('EVERYONE')
         for i in range (0, userCount):           
             usersDict[res[i]['name'] if res[i]['name'] !="" else res[i]['username']] = res[i]['username']
-            usersDictReversed[res[i]['username']] = res[i]['name'] if res[i]['name'] !="" else res[i]['username']
+            usersDictReversed[res[i]['username']] = res[i]['name'] if res[i]['name'] !="" else res[i]['username']          
             self.dlg.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username'])      
         mapName = self.removeUnacceptableChars(mapName)
         uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName        
@@ -2911,6 +2908,7 @@ class Layman(QObject):
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
             else:
+                print(userDict[pom])
                 userNamesWrite.append(userDict[pom])
         data = {'access_rights.read': self.listToString(userNamesRead),   'access_rights.write': self.listToString(userNamesWrite)}       
         for layer in composition['layers']:
@@ -2920,8 +2918,15 @@ class Layman(QObject):
             if (layer['className'] == 'HSLayers.Layer.WMS'):
                 name = layer['params']['LAYERS']
             if name is not None:
-                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.getAuthHeader(self.authCfg))       
-                if (response.status_code != 200):                      
+                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.getAuthHeader(self.authCfg))  
+                
+                if (response.status_code != 200):        
+                    try:
+                        if self.fromByteToJson(response.content)["code"] == 15:
+                            print("layer not present")
+                            return
+                    except:
+                        pass                                      
                     self.showErr.emit(["Práva nebyla uložena! - " + name,"Permissions was not saved' - "+ name], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
             else:
                 print("there is not possible set permissions for layer")
@@ -2930,13 +2935,14 @@ class Layman(QObject):
         itemsTextListRead =  [str(self.dlg.listWidget_read.item(i).text()) for i in range(self.dlg.listWidget_read.count())]
         itemsTextListWrite =  [str(self.dlg.listWidget_write.item(i).text()) for i in range(self.dlg.listWidget_write.count())]
         userNamesRead = list()  
+        print(itemsTextListRead)
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":            
                 userNamesRead.append("EVERYONE")          
             else:
                 print(pom)
                 if "," in pom:
-                    pom = pom.split(", ")[1]
+                    pom = pom.split(", ")[1]                                
                 userNamesRead.append(userDict[pom])
         userNamesWrite = list()      
         for pom in itemsTextListWrite:
@@ -7824,7 +7830,13 @@ class Layman(QObject):
             if self.registerUserIfNotExists():   
                 if not autoLog:
                     self.saveIni()
-                self.name = self.getUserName()
+                try:    
+                    self.name = self.getUserName()
+                except:
+                    if self.locale == "cs":
+                        QMessageBox.information(None, "Message", "Autorizace nebyla úspěšná!")
+                    else:
+                        QMessageBox.information(None, "Message", "Autorization was not sucessfull!")                    
                 url = self.URI+ "/rest/about/version"
                 print(url)              
                 r = self.requestWrapper("GET", url, payload = None, files = None)                
