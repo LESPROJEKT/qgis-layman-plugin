@@ -1,4 +1,4 @@
-https://www.agrihub.cz,https://www.agrihub.cz,id-db181713-5e17-81fc-0c08-d72fa67e5fc,secret-f2eb1859-2e47-1ca4-32d6-a96c747a7259,a67e5fc,agrihub.cz
+https://www.agrihub.cz,https://www.agrihub.cz,4Rxx6yTVL8EUs6pcL0btIGyj51l8mq4KKyGmT1jO,W8sdiJM1QeCekyyKZWbOCcPkCONSms3HAzUNnsorQAYziSyNASxIFhqRMW8NDxRDbq46GJsDMtfqmhCciYCx7AM0MzcmGLpOFDkiwLSitynPWEkutGsnSr7ED7yW8MBD,a67e5fc,agrihub.cz
 https://www.smartafrihub.com,https://www.smartafrihub.com,id-8679cb4c-dc93-caff-0274-587fb723a14,secret-da27e84a-3186-a174-fe58-0f425dad7f1,h985e12,smartafrihub
 https://hub.polirural.eu,https://hub.polirural.eu/client,id-9bff6e4c-b794-7462-3d49-e01e9a17ec43,secret-a271d025-fe55-85c7-5a6d-a76e9a6504e,t781x25,polirural
 https://hub.sieusoil.eu,https://hub.sieusoil.eu/client,id-8679cb4c-dc93-caff-0274-587fb723a14,secret-da27e84a-3186-a174-fe58-0f425dad7f1,c512b25,sieusoil

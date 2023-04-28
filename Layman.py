@@ -1627,7 +1627,8 @@ class Layman(QObject):
             versionCheck = self.checkVersion()
             self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))            
             if self.isAuthorized:                
-                self.dlg.label_layman.setText(res['claims']['preferred_username'])
+                #self.dlg.label_layman.setText(res['claims']['preferred_username'])
+                self.dlg.label_layman.setText(res['username'])
                 self.dlg.label_agrihub.setText(res['claims']['email'])
             else:
                 self.dlg.label_layman.setText("Anonymous")
@@ -3856,7 +3857,7 @@ class Layman(QObject):
                 pass
     def setup_oauth(self, authcfg_id, authcfg_name):
       
-        if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e' and authcfg_id != '7f22y3g': ## prozatím pro test toto id ma wagtail
+        if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e' and authcfg_id != '7f22y3g' and authcfg_id != 'a67e5fc': ## prozatím pro test toto id ma wagtail
             cfgjson = {
             "accessMethod": 0,
             "apiKey": "",
