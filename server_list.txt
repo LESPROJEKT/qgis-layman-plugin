@@ -8,4 +8,5 @@ https://watlas.lesprojekt.cz,https://watlas.lesprojekt.cz/client,hG8sWyPJ7ysgrIH
 https://atlas2.kraj-lbc.cz,https://atlas2.kraj-lbc.cz/client,QgIs,ALxZPpoKnwOOXbPUEMleNEVGiBlDSiltdtTUK66aWT65TWYoQMommHgX5K543yjBOn0Ac7wz9s59RDfjkqTvqnJ3FZ8ZMnK3tSQaSfteyZI3r5We5kd3z1EsksbuAxUM,7f22y3d,atlas2.kraj-lbc
 https://hub4everybody.com,https://hub4everybody.com/client,QgIs,GiKAdcDuNXY8oIlsLmRLc9O0mgduCu8flTiz3w9jIhJz0SGHQVeZVGVMji1ww44AusI80mhrm6qVUuTd84XXdr7L6WsmB3hhhurdwgh0olAOajILLtQORHQWDvQdASyI,7f22y3e,hub4everybody
 https://ng.smartafrihub.com,https://ng.smartafrihub.com/client,QgIs,iT9EzxOugbh6VNKXvlUYjyhS7mVaHA3z3Waggq1eDlmq7RRh76yyzAd1WoEx3FSMC0PDSttqUuHszAwPm3rti3lVuwcEsvCnJJIrHegT8bBTz6veVVqbJvMXOn8DuseU,7f22y3g,ng.smartafrihub
+https://ng-geoportal.kraj-lbc.cz,https://ng-geoportal.kraj-lbc.cz/client,szVQuc8dapTscqc1pX6YwgL16gnflIC299BUzk0m,HoR1hAAHfK7YSGFyCFTDLcjRVyBEjZaP12Hxunq7hpS655VBvqXoHOercDh00Ef4NQHwYWlaBP8dLTS1MI0aExnTCZdq5LUcP0SEYx8Wf6ThV5Vme5U7yWAIPmLkvgiY,7f22y3h,ng-geoportal.kraj-lbc.cz
 https://www.agrihub.cz,http://157.230.109.174/client,id-db181713-5e17-81fc-0c08-d72fa67e5fc,secret-f2eb1859-2e47-1ca4-32d6-a96c747a7259,a67e5fd,test HUB

@@ -3857,7 +3857,7 @@ class Layman(QObject):
                 pass
     def setup_oauth(self, authcfg_id, authcfg_name):
       
-        if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e' and authcfg_id != '7f22y3g' and authcfg_id != 'a67e5fc': ## prozatím pro test toto id ma wagtail
+        if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e' and authcfg_id != '7f22y3g' and authcfg_id != 'a67e5fc' and authcfg_id != '7f22y3h': ## prozatím pro test toto id ma wagtail
             cfgjson = {
             "accessMethod": 0,
             "apiKey": "",
@@ -8097,6 +8097,34 @@ class Layman(QObject):
             self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")                    
         print(status)
         self.dlgPostgres.close()
+    def patchPostreLayer(self, layer, username, password):
+        uri = self.preparePostgresUri(layer, username, password)
+        layer_name = layer.name()
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
+            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+            layer.saveNamedStyle(stylePath)
+        else:
+            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+            layer.saveSldStyle(stylePath)
+        payload = {                
+                'external_table_uri': uri,
+                'title': layer_name,                
+                'style': open(stylePath, 'rb'),
+                'name': self.removeUnacceptableChars(layer_name)
+                }
+        print(payload)
+        files = {'style': open(stylePath, 'rb')}
+        response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', payload, files)
+            
+        status = response.status_code
+        if status == 409:
+            print("layer already exists")
+            self.showQgisBar(["Vrsta "+layer_name+ " již existuje!","Layer "+layer_name+ " already exists!"], Qgis.Warning)  
+        if status == 200:
+            self.showQgisBar(["Vrsta "+layer_name+ " úspěšně uložena.","Layer "+layer_name+ " was successfully saved."], Qgis.Success)  
+            self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")                    
+        print(status)
+        self.dlgPostgres.close()        
         
     def loadPostgisLayer(self, it):
         layerName = self.removeUnacceptableChars(it.text(0))
