@@ -7122,7 +7122,8 @@ class Layman(QObject):
         quri.setParam("format", 'image/png')  
         quri.setParam("crs", epsg)
         quri.setParam("dpiMode", '7')
-        quri.setParam("featureCount", '10')   
+        quri.setParam("featureCount", '10')  
+        quri.setParam("IgnoreReportedLayerExtents", '1')   
         if (self.isAuthorized):
             if not everyone:
                 quri.setParam("authcfg", self.authCfg)   # <---- here my authCfg url parameter
