@@ -65,7 +65,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import (QByteArray, QCoreApplication, QDir,
                           QFileSystemWatcher, QObject, QRegExp, QSettings,
                           QSize, Qt, QTranslator, QUrl, pyqtSignal,
-                          qVersion)
+                          qVersion, QTimer)
 from PyQt5.QtGui import (QBrush, QColor, QCursor, QDoubleValidator, QIcon,
                          QPixmap, QRegExpValidator)
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
@@ -254,6 +254,10 @@ class Layman(QObject):
             print("Directory " , tempDir ,  " Created ")
         except FileExistsError:
             print("Directory " , tempDir ,  " already exists")
+            
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.refreshWfsLayers)
+        self.timer.start(10000)             
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -8098,6 +8102,7 @@ class Layman(QObject):
         print(status)
         self.dlgPostgres.close()
         layer.afterCommitChanges.connect(self.patchPostreLayer)
+   
         
     def patchPostreLayer(self):  
         def patchPostreLayerThread():
@@ -8170,7 +8175,15 @@ class Layman(QObject):
             self.dlg.label_log.setText(info)
         else:
             self.dlg.label_log.hide()            
-                                       
+    def refreshWfsLayers(self):        
+        project = QgsProject.instance()      
+        layers = project.mapLayers().values()      
+        for layer in layers:      
+            if layer.type() == QgsMapLayerType.VectorLayer and layer.dataProvider().name() == 'WFS':              
+                layer.dataProvider().reloadData() 
+                # layer.triggerRepaint()        
+            # if layer.type() == QgsMapLayerType.RasterLayer:
+            #     layer.triggerRepaint()                                              
     def run(self):
         """Run method that loads and starts the plugin"""
 
