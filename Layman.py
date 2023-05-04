@@ -620,11 +620,12 @@ class Layman(QObject):
                 self.refreshCurrentForm()  
         except:
             pass                      
-    def run_CurrentCompositionDialog(self):
+    def run_CurrentCompositionDialog(self, refresh = False):
         self.recalculateDPI()
         self.modified = False
-        self.dlg = CurrentCompositionDialog()
-        self.dlg.show()
+        if not refresh:
+            self.dlg = CurrentCompositionDialog()
+            self.dlg.show()
         self.dlg.pushButton_close.setEnabled(False)
         self.dlg.pushButton_close.hide()
         self.dlg.pushButton_editMeta.setEnabled(False)
@@ -3435,8 +3436,8 @@ class Layman(QObject):
     def afterCloseNewMapDialog(self):
         self.dlg.close()
         self.dlg = self.old_dlg
-        self.dlg.close()
-        self.run_CurrentCompositionDialog()
+        # self.dlg.close()
+        self.run_CurrentCompositionDialog(True)
     def afterClosePermissionMapDialog(self):
         self.dlg = self.old_dlg
 
@@ -8170,20 +8171,18 @@ class Layman(QObject):
             else:
                 self.dlg.pushButton_postgis.hide()    
     def showExportedCompositionInfo(self, info):
-        if info != "F":
-            self.dlg.label_log.show()
-            self.dlg.label_log.setText(info)
-        else:
-            self.dlg.label_log.hide()            
+        if self.dlg.objectName() == "CurrentCompositionDialog":
+            if info != "F":
+                self.dlg.label_log.show()
+                self.dlg.label_log.setText(info)
+            else:
+                self.dlg.label_log.hide()            
     def refreshWfsLayers(self):        
         project = QgsProject.instance()      
         layers = project.mapLayers().values()      
         for layer in layers:      
             if layer.type() == QgsMapLayerType.VectorLayer and layer.dataProvider().name() == 'WFS':              
-                layer.dataProvider().reloadData() 
-                # layer.triggerRepaint()        
-            # if layer.type() == QgsMapLayerType.RasterLayer:
-            #     layer.triggerRepaint()                                              
+                layer.dataProvider().reloadData()                                    
     def run(self):
         """Run method that loads and starts the plugin"""
 
