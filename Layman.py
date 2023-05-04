@@ -65,7 +65,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import (QByteArray, QCoreApplication, QDir,
                           QFileSystemWatcher, QObject, QRegExp, QSettings,
                           QSize, Qt, QTranslator, QUrl, pyqtSignal,
-                          qVersion)
+                          qVersion, QTimer)
 from PyQt5.QtGui import (QBrush, QColor, QCursor, QDoubleValidator, QIcon,
                          QPixmap, QRegExpValidator)
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
@@ -254,6 +254,10 @@ class Layman(QObject):
             print("Directory " , tempDir ,  " Created ")
         except FileExistsError:
             print("Directory " , tempDir ,  " already exists")
+            
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.refreshWfsLayers)
+        self.timer.start(10000)             
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -5503,8 +5507,7 @@ class Layman(QObject):
         for item in layers:
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
             if self.isLayerPostgres(layer):
-                showPostgreDialog(layer)
-                #self.postPostreLayer(layer)
+                showPostgreDialog(layer)                
             else:                
                 if not bulk:   
                     self.postRequest(item.text(0), False, True, False)
@@ -8087,8 +8090,8 @@ class Layman(QObject):
                 }
         print(payload)
         files = {'style': open(stylePath, 'rb')}
+      
         response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', payload, files)
-            
         status = response.status_code
         if status == 409:
             print("layer already exists")
@@ -8098,35 +8101,30 @@ class Layman(QObject):
             self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")                    
         print(status)
         self.dlgPostgres.close()
-    def patchPostreLayer(self, layer, username, password):
-        uri = self.preparePostgresUri(layer, username, password)
-        layer_name = layer.name()
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
-            layer.saveNamedStyle(stylePath)
-        else:
-            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
-            layer.saveSldStyle(stylePath)
-        payload = {                
-                'external_table_uri': uri,
-                'title': layer_name,                
-                'style': open(stylePath, 'rb'),
-                'name': self.removeUnacceptableChars(layer_name)
-                }
-        print(payload)
-        files = {'style': open(stylePath, 'rb')}
-        response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', payload, files)
-            
-        status = response.status_code
-        if status == 409:
-            print("layer already exists")
-            self.showQgisBar(["Vrsta "+layer_name+ " již existuje!","Layer "+layer_name+ " already exists!"], Qgis.Warning)  
-        if status == 200:
-            self.showQgisBar(["Vrsta "+layer_name+ " úspěšně uložena.","Layer "+layer_name+ " was successfully saved."], Qgis.Success)  
-            self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")                    
-        print(status)
-        self.dlgPostgres.close()        
+        layer.afterCommitChanges.connect(self.patchPostreLayer)
+   
         
+    def patchPostreLayer(self):  
+        def patchPostreLayerThread():
+            layer = iface.activeLayer()
+            layer_name = layer.name()
+            if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
+                stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+                layer.saveNamedStyle(stylePath)
+            else:
+                stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+                layer.saveSldStyle(stylePath)
+            payload = {
+                    'title': layer_name,                
+                    'style': open(stylePath, 'rb'),
+                    'name': self.removeUnacceptableChars(layer_name)
+                    }
+            print(payload)
+            files = {'style': open(stylePath, 'rb')}
+            response = self.requestWrapper("PATCH", self.URI+'/rest/'+self.laymanUsername+'/layers/'+ self.removeUnacceptableChars(layer_name), payload, files)     
+        threading.Thread(target=lambda: patchPostreLayerThread()).start()    
+ 
+              
     def loadPostgisLayer(self, it):
         layerName = self.removeUnacceptableChars(it.text(0))
         
@@ -8163,6 +8161,7 @@ class Layman(QObject):
                 tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
                 layer.loadNamedStyle(tempf)
         QgsProject.instance().addMapLayer(layer)     
+        layer.afterCommitChanges.connect(self.patchPostreLayer)
     def on_postgis_found(self, found):
         print("postgis")   
         if self.dlg.objectName() == "AddLayerDialog":
@@ -8176,7 +8175,15 @@ class Layman(QObject):
             self.dlg.label_log.setText(info)
         else:
             self.dlg.label_log.hide()            
-                                       
+    def refreshWfsLayers(self):        
+        project = QgsProject.instance()      
+        layers = project.mapLayers().values()      
+        for layer in layers:      
+            if layer.type() == QgsMapLayerType.VectorLayer and layer.dataProvider().name() == 'WFS':              
+                layer.dataProvider().reloadData() 
+                # layer.triggerRepaint()        
+            # if layer.type() == QgsMapLayerType.RasterLayer:
+            #     layer.triggerRepaint()                                              
     def run(self):
         """Run method that loads and starts the plugin"""
 
