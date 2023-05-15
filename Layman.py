@@ -3991,22 +3991,15 @@ class Layman(QObject):
                     self.dlg.label_info.setText("Composition name already exists!")
            
             self.dlg.label_info.setStyleSheet("color: red;")
-
-        
-        #----------------------------------------------------------
+             
     def readLayerJson(self,layerName, service):
-        self.params = list()
-        self.params.append(layerName)
-        self.params.append(service)
-        self.dlg.progressBar_loader.show()
-        self.readLayerJson2(layerName,service)     
-    def readLayerJson2(self,layerName, service):     
+        self.dlg.progressBar_loader.show()         
         for i in range (0, len(self.dlg.treeWidget.selectedItems())):
             name = self.dlg.treeWidget.selectedItems()[i].text(0)
             workspace = self.dlg.treeWidget.selectedItems()[i].text(1)
             self.selectedWorkspace = workspace
             threading.Thread(target=lambda: self.readLayerJsonThread(name,service, workspace)).start()           
-        QgsMessageLog.logMessage("disableProgressBar")
+         
     def readLayerJsonThread(self, layerName,service, workspace):
         layerName = self.layerNamesDict[layerName]
         if self.checkLayerOnLayman(layerName):
@@ -4140,11 +4133,8 @@ class Layman(QObject):
             try:
                 self.dlg.progressBar_loader.show()
             except:
-                pass
-       
-      
-        if message =="showThumbnail2":
-            self.showThumbnail2(self.params[0])
+                pass       
+
         if message =="requestError":
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Chyba spojení se serverem!"), Qgis.Error, duration=3)
@@ -4156,8 +4146,7 @@ class Layman(QObject):
             else:
                 QMessageBox.information(None, "Layman", "Composition is not in valid format.")
             self.dlg.progressBar_loader.hide()
-        if message == "readlayerjson":            
-            self.readLayerJson2(self.params[0],self.params[1])
+   
         if message[:13] == "loadSymbology": ## slovník random
             num = message[13:]
             if (isinstance(self.currentLayerDict[num], QgsVectorLayer)):
@@ -4172,31 +4161,7 @@ class Layman(QObject):
                         tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
                         self.currentLayerDict[num].loadNamedStyle(tempf)
                         self.currentLayerDict[num].triggerRepaint()
-        if message[:10] == "loadVector": ## slovník random
-            num = message[10:]
-            QgsProject.instance().addMapLayer(self.currentLayerDict[num])
-
-
-            if (isinstance(self.currentLayerDict[num], QgsVectorLayer)):
-                style = self.getStyle(self.currentLayerDict[num].name())           
-                layerName = self.currentLayerDict[num].name()
-                if (style[0] == 200):
-                    if (style[1] == "sld"):
-                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
-                        self.currentLayerDict[num].loadSldStyle(tempf)
-                        self.currentLayerDict[num].triggerRepaint()
-                    if (style[1] == "qml"):
-                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
-                        self.currentLayerDict[num].loadNamedStyle(tempf)
-                        self.currentLayerDict[num].triggerRepaint()
-
-        if message == "layerDeleteFromCompositeWrong":
-            if self.locale == "cs":
-
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Vrsta v kompozici nebyla smazána."), Qgis.Warning)
-            else:
-
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Layer in composition was not successfully deleted."), Qgis.Warning)
+        
         if message == "refreshComposite":
             try:
                 self.refreshCompositeList()        ## pouze pro import Form
@@ -4589,16 +4554,7 @@ class Layman(QObject):
             r = self.requestWrapper("GET", url, payload = None, files = None)
             data = r.json()
             self.instance = CurrentComposition(self.URI, name, workspace, self.getAuthHeader(self.authCfg),self.laymanUsername)
-            self.instance.setComposition(data)       
-
-            if QgsProject.instance().crs().authid() == 'EPSG:5514':
-                if QgsProject.instance().crs().toProj() == '+proj=krovak +lat_0=49.5 +lon_0=24.8333333333333 +alpha=30.2881397527778 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs':
-
-                    if self.locale == "cs":
-                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Používáte EPSG: 5514. Doporučujeme používat tranformaci 5514-1623"), Qgis.Success, duration=10)
-                   
-                    else:
-                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "You are using EPSG: 5514. We recommend using the transformation 5514-1623 "), Qgis.Success, duration=10)
+            self.instance.setComposition(data)   
         else:
             print("workspace nepredan")       
         self.readMapJsonThread(name,service)
@@ -5995,8 +5951,7 @@ class Layman(QObject):
                                     else:
                                         QgsMessageLog.logMessage("wrongCrs")
                                 else:
-                                    QgsMessageLog.logMessage("invalid")
-                            #print("vrstva již existuje")
+                                    QgsMessageLog.logMessage("invalid")                            
 
                         else:
                             self.batchLength = self.batchLength - 1
