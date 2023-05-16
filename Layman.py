@@ -173,8 +173,7 @@ class Layman(QObject):
         self.authCfg =""
         self.authCfg = "957je05"
         self.importedLayer = None
-        self.batchLength = 0
-        self.focusedLayer = None
+        self.batchLength = 0     
         self.modified = False
         self.stylesToUpdate = set()
         self.done = 0
@@ -204,8 +203,7 @@ class Layman(QObject):
         self.schemaVersion = "2.0.0"
         self.port = "7070"
         self.DPI = self.getDPI()
-        self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']
-      #  self.uri = 'http://layman.lesprojekt.cz/rest/'
+        self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']      
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
         QgsProject.instance().readProject.connect(lambda: self.projectReaded(False))  
         self.processingList = []
@@ -239,7 +237,6 @@ class Layman(QObject):
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&Layman')
-        # TODO: We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(u'Layman')
         self.toolbar.setObjectName(u'Layman')
         QgsApplication.messageLog().messageReceived.connect(self.write_log_message)
@@ -1852,15 +1849,10 @@ class Layman(QObject):
             self.dlg.pushButton_range.setEnabled(False)
             self.dlg.pushButton_range_2.setEnabled(False)
         self.dlg.show()
-        result = self.dlg.exec_()
-   
+        result = self.dlg.exec_()  
 
     
-    def getActiveLayer(self):
-        layer = iface.activeLayer()
-        self.layerOldName = layer.name()
-        QMessageBox.information(None, "Layman", self.layerOldName )
-        self.focusedLayer = layer
+
     def initFiles(self):
         tempFileFolder = tempfile.gettempdir() + os.sep + "atlas"
         if not os.path.exists(tempFileFolder):
@@ -4001,17 +3993,16 @@ class Layman(QObject):
             threading.Thread(target=lambda: self.readLayerJsonThread(name,service, workspace)).start()           
          
     def readLayerJsonThread(self, layerName,service, workspace):
+        layerNameTitle =layerName
         layerName = self.layerNamesDict[layerName]
-        if self.checkLayerOnLayman(layerName):
-            layerNameTitle =layerName
+        if self.checkLayerOnLayman(layerName):            
             layerName = self.removeUnacceptableChars(layerName)        
             url = self.URI+'/rest/'+workspace+'/layers/'+layerName       
             r = self.requestWrapper("GET", url, payload = None, files = None)
             try:
                 data = r.json()            
             except:
-                self.showErr.emit(["Vrstva není k dispozici!", "Layer is not available!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)
-                         
+                self.showErr.emit(["Vrstva není k dispozici!", "Layer is not available!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)                         
                 return      
             if (service == "WMS"):
                 try:
@@ -6253,11 +6244,7 @@ class Layman(QObject):
         print(legend[0])
         
         if legend[0] == "1":
-            composition["legends"] = legend[1]
-            
-
-            
-      
+            composition["legends"] = legend[1]         
         
         QgsMessageLog.logMessage("addRaster")
     def saveExternalStyle(self,style, layer_name):
@@ -6541,9 +6528,9 @@ class Layman(QObject):
         url = self.URI+'/rest/'+self.laymanUsername+"/layers/" + layerName     
         r = self.requestWrapper("DELETE", url, payload = None, files = None)
 
-    def getActiveLayer(self):
-        layer = self.iface.activeLayer()
-        return layer
+    # def getActiveLayer(self):
+    #     layer = self.iface.activeLayer()
+    #     return layer
 
     def createComposite(self, name, title, setCurrent = False):         
         if QgsProject.instance().crs().authid() not in self.supportedEpsg:
@@ -7324,7 +7311,7 @@ class Layman(QObject):
                 QMessageBox.information(None, "Layman", "Vrstva s kombinovanou geometií nemůže být přejmenována.")
             else:
                 QMessageBox.information(None, "Layman", "Layer with mixed geometry can´t be renamed.")
-            self.focusedLayer.setName(self.layerOldName)
+ 
 
 
 
@@ -7488,64 +7475,24 @@ class Layman(QObject):
         layman_original_parameter = "file"
         resumableTotalChunks = len(arr)
         #print ("resumable" + resumableFilename)
-        try:
-            for i in range (1, len(arr)+1):  ##chunky jsou počítané od 1 proto +1
+       
+        for i in range (1, len(arr)+1):  ##chunky jsou počítané od 1 proto +1
                 
-                file = arr[i-1] # rozsekaná část souboru
-                resumableChunkNumber = i  # cislo casti
-                payload = {
-                'file' : "chunk"+str(i)+".geojson",
-                'resumableFilename': resumableFilename,
-                'layman_original_parameter': layman_original_parameter,
-                'resumableChunkNumber': i,
-                'resumableTotalChunks': resumableTotalChunks
-                }
+            file = arr[i-1] # rozsekaná část souboru
+            resumableChunkNumber = i  # cislo casti
+            payload = {
+            'file' : "chunk"+str(i)+".geojson",
+            'resumableFilename': resumableFilename,
+            'layman_original_parameter': layman_original_parameter,
+            'resumableChunkNumber': i,
+            'resumableTotalChunks': resumableTotalChunks
+            }
 
-                f = open(filePath + os.sep+"chunk"+str(i)+".geojson", "wb")
-                f.write(bytearray(arr[i-1]))
-                f.close()
-                files = {'file': (layer_name.lower().replace(" ", "_")+".geojson", open(filePath +os.sep+ "chunk"+str(i)+".geojson", 'rb')),}
-                #response = requests.post(url, files = files, data=payload, headers = self.getAuthHeader(self.authCfg))
-                response = self.requestWrapper("POST", url, payload, files)
-         
-        except:
-            pass  
-############################################# auth part############################
-    # def startThread(self):      
-    #     self.thread1 = threading.Thread(target=self.refreshToken)
-    #     self.thread1.start()
-
-    # def refreshToken(self):
-    #     #self.expires_in = 60
-    #     path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "tsts.txt"
-    #     i = 0 
-    #     tokenEndpoint = self.liferayServer+"/o/oauth2/token"
-    #     while (i < self.expires_in):            
-    #         f = open(path, "a")
-    #         f.write(str(i))
-
-    #         f.close()
-    #         time.sleep(1)
-    #         if i == self.expires_in - 4:
-
-
-    #             data = {'grant_type':'refresh_token',
-    #                     'refresh_token': self.refresh_token,
-    #                     'client_id': self.client_id,   ##'id-3462f94b-875c-9185-4ced-b69841f24b3',
-    #                     'redirect_uri':'http://localhost:3857/client/authn/oauth2-liferay/callback',
-    #                     'code_verifier':self.code_verifier  ##'test'
-    #                     }
-        
-    #             r = self.requestWrapper("POST", tokenEndpoint, data, files = None)
-    #             res = self.fromByteToJson(r.content)
-    #             self.access_token = res['access_token']
-    #             self.refresh_token = res['refresh_token']
-    #             self.expires_in = res['expires_in']
-    #             print(self.access_token)
-    #             self.setAuthHeader()
-    #             i = 0
-    #         else:
-    #             i += 1
+            f = open(filePath + os.sep+"chunk"+str(i)+".geojson", "wb")
+            f.write(bytearray(arr[i-1]))
+            f.close()
+            files = {'file': (layer_name.lower().replace(" ", "_")+".geojson", open(filePath +os.sep+ "chunk"+str(i)+".geojson", 'rb')),}   
+            response = self.requestWrapper("POST", url, payload, files)              
 
 
     def authOptained(self):
@@ -7965,18 +7912,10 @@ class Layman(QObject):
             self.dlg.label_progress.setText("Sucessfully exported: 1 / 1")            
         self.dlg.progressBar.hide()        
     def layerChanged(self):
-
-
         if (iface.activeLayer() != None and isinstance(iface.activeLayer(), QgsVectorLayer)):
             self.menu_saveLocalFile.setEnabled(True)
         else:
             self.menu_saveLocalFile.setEnabled(False)
-        try:
-            layer = iface.activeLayer()
-            self.layerOldName = layer.name()
-            self.focusedLayer = layer
-        except:
-            print("group is selected")
 
     def requestWrapper(self, type, url, payload = None, files = None):    
         try:
@@ -8118,8 +8057,7 @@ class Layman(QObject):
                 layer.loadNamedStyle(tempf)
         QgsProject.instance().addMapLayer(layer)     
         layer.afterCommitChanges.connect(self.patchPostreLayer)
-    def on_postgis_found(self, found):
-        print("postgis")   
+    def on_postgis_found(self, found):    
         if self.dlg.objectName() == "AddLayerDialog":
             if found:
                 self.dlg.pushButton_postgis.show()       
