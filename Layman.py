@@ -130,6 +130,7 @@ class Layman(QObject):
     onRefreshCurrentForm = pyqtSignal()
     postgisFound = pyqtSignal(bool)
     showExportInfo = pyqtSignal(str)
+    cleanTemp =  pyqtSignal(str)
 
 
 
@@ -330,6 +331,7 @@ class Layman(QObject):
         self.onRefreshCurrentForm.connect(self.on_layers_removed)
         self.postgisFound.connect(self.on_postgis_found)
         self.showExportInfo.connect(self.showExportedCompositionInfo)
+        self.cleanTemp.connect(self._cleanTemp)
         
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""       
@@ -477,12 +479,10 @@ class Layman(QObject):
             
                 if isinstance(layer, QgsRasterLayer):
                     item.setText(1, "WMS")
-                if isinstance(layer, QgsVectorLayer):
-                    #item.setText(1, "WFS")
+                if isinstance(layer, QgsVectorLayer):                
                     item.setText(1, "WMS")
                 if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
-                    item.setText(1, "WFS")                      
-                #self.setGuiForItem(itemService)
+                    item.setText(1, "WFS") 
                 self.setGuiForItem(item)
                 if layerType == QgsMapLayer.VectorLayer:
                     try:
@@ -2153,16 +2153,13 @@ class Layman(QObject):
         elif isinstance(node, QgsLayerTreeGroup):
             for child in node.children():
                 self.get_layers_in_order(child, layers)        
-    def run_login(self, server = False):
-        
+    def run_login(self, server = False):        
         if server or self.current != None:
             server = True
             proj = QgsProject.instance()
             server, type_conversion_ok = proj.readEntry("Layman", "Server","")
-            name, type_conversion_ok = proj.readEntry("Layman", "Name","")
-            
+            name, type_conversion_ok = proj.readEntry("Layman", "Name","")            
         self.recalculateDPI()
-
         self.dlg = ConnectionManagerDialog()      
         self.dlg.show()    
         if not self.dependencies:
@@ -2172,8 +2169,7 @@ class Layman(QObject):
         self.dlg.pushButton_Connect.setEnabled(False)      
         path = self.plugin_dir + os.sep + "server_list.txt"
         servers = self.csvToArray(path)
-        self.dlg.label_APIKey_2.setToolTip("Username is important only with first login")
-        
+        self.dlg.label_APIKey_2.setToolTip("Username is important only with first login")       
         
 
 
@@ -2215,8 +2211,7 @@ class Layman(QObject):
                     self.dlg.pushButton_Connect.setEnabled(True)  
                 self.dlg.lineEdit_userName.setText(config['DEFAULT']['login'])
 
-            for i in range (0, self.dlg.comboBox_server.count()):              
-                print(self.authCfg)
+            for i in range (0, self.dlg.comboBox_server.count()):   
                 if not server:
                     if self.authCfg == "a67e5fd":
                         self.dlg.comboBox_server.setCurrentIndex(len(servers) - 1)
@@ -2224,25 +2219,18 @@ class Layman(QObject):
                         if "server" in config['DEFAULT']:
                             if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
                                 self.dlg.comboBox_server.setCurrentIndex(i)
-
-
         else:
             try:
                 os.makedirs(os.getenv("HOME") + os.sep + ".layman")
             except:
                 print("layman directory already exists")       
             self.dlg.pushButton_Connect.setEnabled(True)
-
-
-
         self.dlg.lineEdit_userName.textChanged.connect(self.checkUsername)
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
         if QgsSettings().value("laymanLastServer") != None:
             self.dlg.comboBox_server.setCurrentIndex(int(QgsSettings().value("laymanLastServer")))
         if not server:
-            self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2())
-        #self.dlg.pushButton_Continue.clicked.connect(lambda: self.getToken())
-
+            self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2())     
         self.dlg.pushButton_NoLogin.clicked.connect(lambda: self.withoutLogin(servers, self.dlg.comboBox_server.currentIndex()))
         self.dlg.pushButton_Continue.setEnabled(False)
         registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
@@ -2252,6 +2240,9 @@ class Layman(QObject):
             self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
         else:
             self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
+        pushbuttons = self.findChildren(QPushButton)
+        for button in pushbuttons:
+            print(button.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}"))
         self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
         self.dlg.pushButton_Connect.setStyleSheet("#pushButton_Connect {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Connect:hover{background: #66ab27 ;}#pushButton_Connect:disabled{background: #64818b ;}")
         self.dlg.pushButton_Continue.setStyleSheet("#pushButton_Continue {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Continue:hover{background: #66ab27 ;} #pushButton_Continue:disabled{background: #64818b ;}")        
@@ -5212,6 +5203,16 @@ class Layman(QObject):
             result3 = False
             layer.saveSldStyle(sld_filename)
         return layer_filename
+    def _cleanTemp(self, basename):     
+        temp_dir = tempfile.gettempdir()     
+        files = [f for f in os.listdir(temp_dir) if f.startswith(basename)]       
+        print(files) 
+        for file in files:
+            try:
+                print(temp_dir + os.sep + file)
+                os.remove(temp_dir + os.sep + file)
+            except OSError as e:
+                pass       
     def checkValidAttributes(self, layer_name):
         layers = QgsProject.instance().mapLayersByName(layer_name)
         if len(layers) > 1:
@@ -5573,7 +5574,7 @@ class Layman(QObject):
                 QgsMessageLog.logMessage("layersUploaded")
             except:
                 pass
-            
+        self.cleanTemp.emit(self.removeUnacceptableChars(layer_name))    
     def returnPathIfFileExists(self, path, ext, onlyExt = False):        
         pathWithoutExt = path.replace(ext,"")
         ext = ext.lower()
@@ -5710,9 +5711,7 @@ class Layman(QObject):
             data['crs'] = 'EPSG:4326'
             response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)
             print(response.content)
-            res = self.fromByteToJson(response.content)
-
-            
+            res = self.fromByteToJson(response.content)            
             try:
                 if res['code'] == 4:
                     QgsMessageLog.logMessage("unsupportedCRS")
@@ -5826,7 +5825,7 @@ class Layman(QObject):
             self.importedLayer = layer_name
             self.processingList[q][2] = 1         
             QgsMessageLog.logMessage("export")
-
+        self.cleanTemp.emit(self.removeUnacceptableChars(layer_name))
     def writePostLog(self, name, code, ret):        
         filename = tempFile = tempfile.gettempdir() + os.sep + "import_log.txt"
         with open(filename, 'a') as file:    
@@ -5930,7 +5929,10 @@ class Layman(QObject):
                             self.dlg.label_import.show()
                             q = self.setProcessingItem(layer_name)
                             if (isinstance(layers[0], QgsVectorLayer)):
-                                threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
+                                if layers[0].crs().authid() in self.supportedEPSG:
+                                    threading.Thread(target=lambda: self.patchThread(layer_name,data, q, True)).start()
+                                else:
+                                    QgsMessageLog.logMessage("wrongCrs")                                    
                             if (isinstance(layers[0], QgsRasterLayer)):
                                 if layers[0].isValid():
                                     if layers[0].crs().authid() in self.supportedEPSG:
@@ -5942,7 +5944,7 @@ class Layman(QObject):
                                     else:
                                         QgsMessageLog.logMessage("wrongCrs")
                                 else:
-                                    QgsMessageLog.logMessage("invalid")                            
+                                    QgsMessageLog.logMessage("invalid")                           
 
                         else:
                             self.batchLength = self.batchLength - 1
@@ -5987,7 +5989,10 @@ class Layman(QObject):
 
                         if (isinstance(layers[0], QgsVectorLayer)):
                             if thread:
-                                threading.Thread(target=lambda: self.postThread(layer_name,data, q,True)).start()
+                                if layers[0].crs().authid() in self.supportedEPSG:
+                                    threading.Thread(target=lambda: self.postThread(layer_name,data, q,True)).start()
+                                else:
+                                    QgsMessageLog.logMessage("wrongCrs")                                    
                             else:
                                 self.postThread(layer_name,data, q,True)
                         if (isinstance(layers[0], QgsRasterLayer)):
@@ -6019,92 +6024,12 @@ class Layman(QObject):
     def setProcessingItem(self, layer_name):
         queue = len(self.processingList)
         self.processingList.append([queue, layer_name, 0])
-        return queue
-    def postRequest2(self, layer_name):
-        nameCheck = True
-        validExtent = True
-        layers = QgsProject.instance().mapLayersByName(layer_name)
-        layers[0].setName(layer_name)
-        if len(layers) > 1:
-            for l in layers:
-                if (isinstance(l, QgsVectorLayer)):
-                    layers.clear()
-                    layers.append(l)
-                    break
-
-
-
-        if (re.match('[0-9]{1}', layer_name)): ## nesmí být nesmysl v názvu na prvním místě
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Není povoleno číslo v prvním znaku.")
-            else:
-                QMessageBox.information(None, "Layman", "Number in first character is not allowed.")
-            nameCheck = False
-
-        #print(layer_name)
-
-
-        if not self.checkWgsExtent(layers[0]):
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Prostorový rozsah vrstvy je mimo rozsah WGS 84. (EPSG: 4326)")
-            else:
-                QMessageBox.information(None, "Layman", "Extent of layer is out of WGS 84 range. (EPSG: 4326)")
-            validExtent = False
-
-        if (nameCheck and validExtent):
-
-            crs = layers[0].crs().authid()
-            crs = "EPSG:4326"
-            data = { 'name' :  str(layer_name).lower(), 'title' : str(layer_name), 'crs' : str(crs) }
-
-            if (self.checkValidAttributes(layer_name)):
-                if (self.checkExistingLayer(layer_name)):
-
-                   # print("vrstva již existuje")
-                    if self.locale == "cs":
-                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Vrstva "+layer_name+" již na serveru existuje. Chcete přepsat její geometrii?")
-                    else:
-                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Layer "+layer_name+" already exists in server. Do you want overwrite it´s geometry?")
-                    msgbox.addButton(QMessageBox.Yes)
-                    msgbox.addButton(QMessageBox.No)
-                    msgbox.setDefaultButton(QMessageBox.No)
-                    reply = msgbox.exec()
-                    if (reply == QMessageBox.Yes):
-
-                        threading.Thread(target=lambda: self.patchThread(layer_name,data, False)).start()
-                        #print("vrstva již existuje")
-
-                    else:
-                        pass
-                else:
-
-                    self.layerName = layer_name            
-                    if(True): ##Pravděpodobně nebude třeba testovat EPSG, pokud se detekuje, je vrstva transformována.                  
-                        self.dlg.progressBar.show()
-                        self.dlg.label_import.show()
-                        threading.Thread(target=lambda: self.postThread(layer_name,data, False)).start()
-
-                    else:
-                        if self.locale == "cs":
-                            QMessageBox.information(None, "Layman", "Použijte EPSG:4326")
-                        else:
-                            QMessageBox.information(None, "Layman", "Use EPSG:4326")
-            else:
-                if self.locale == "cs":
-                    QMessageBox.information(None, "Layman", "Vrstva "+layer_name+" nemá atributy!")
-                else:
-                    QMessageBox.information(None, "Layman", "Layer "+layer_name+" does not have attributes!")
-
-    
-
-    
+        return queue  
     def isXYZ(self, name):
         layer = QgsProject.instance().mapLayersByName(name)[0]
         params = layer.dataProvider().dataSourceUri().split("&")
         layers = list()
-        for p in params:
-            #param = p.split("=")
-            print(p)
+        for p in params:  
             if(str(p) == "type=xyz"):
                 return True
 
@@ -6116,8 +6041,7 @@ class Layman(QObject):
         params = layer.dataProvider().dataSourceUri().split("&")
         composition = self.instance.getComposition()
         for p in params:
-            param = p.split("=")
-            #print(p)
+            param = p.split("=")            
             if(param[0] == "url"):
                 url = param[1]
         crs = layer.crs().authid()
