@@ -2007,6 +2007,7 @@ class Layman(QObject):
         self.getRegex()
       
     def prepareTSUpdate(self, items, regex, title):
+        resamplingMethod = self.dlg.comboBox_resampling.currentText()
         if not self.checkRegex(items, regex):
             print("regex nesedí na názvy")
             if self.locale == "cs":
@@ -2022,9 +2023,11 @@ class Layman(QObject):
             self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 1")
         else:
             self.dlg.label_progress.setText("Sucessfully exported: 0 / 1")
-        threading.Thread(target=lambda: self.timeSeries(items, regex, title)).start()
+        threading.Thread(target=lambda: self.timeSeries(items, regex, title, resamplingMethod)).start()
 
-    def timeSeries(self, items, regex, title):         
+    def timeSeries(self, items, regex, title, resamplingMethod="No value"):    
+        if resamplingMethod == "No value":
+            resamplingMethod = ""     
         print("time series")        
         name = self.removeUnacceptableChars(title)
         rasters = list()
@@ -2056,7 +2059,8 @@ class Layman(QObject):
                 'title': title,
                 'crs': crs,
                 'time_regex': regex,
-                'style': open(stylePath, 'rb')
+                'style': open(stylePath, 'rb'),
+                'overview_resampling': resamplingMethod
                 }    
         print(payload)
         url = self.URI+'/rest/'+self.laymanUsername+'/layers'        
@@ -2081,20 +2085,22 @@ class Layman(QObject):
         self.recalculateDPI()
         self.dlg = ImportLayerDialog()
         self.dlg.label_progress.hide()
-        self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))
-        self.dlg.pushButton_timeSeries.clicked.connect(lambda: self.showTSDialog())        
-        self.dlg.pushButton_timeSeries.hide()
+        self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))       
         if self.locale == "cs":
             self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 0")
         else:
             self.dlg.label_progress.setText("Sucessfully exported: 0 / 0")
         self.dlg.progressBar.hide()
+        resamplingMethods = ["No value", "nearest", "average", "rms", "bilinear", "gauss", "cubic", "cubicspline", "average_magphase", "mode"]
+        self.dlg.comboBox_resampling.addItems(resamplingMethods)
+        self.dlg.comboBox_resampling.setEnabled(False)
         self.dlg.label_import.hide()
         self.dlg.pushButton.setEnabled(False)      
         self.dlg.pushButton_errLog.hide()
         self.dlg.pushButton_errLog.clicked.connect(self.copyErrLog)
         self.dlg.treeWidget.itemPressed.connect(self.enableButtonImport)      
         self.dlg.treeWidget.itemSelectionChanged.connect(lambda: self.disableExport())
+        self.dlg.treeWidget.itemSelectionChanged.connect(lambda: self.checkIfRasterInSelected())        
         self.dlg.treeWidget.setCurrentItem(self.dlg.treeWidget.topLevelItem(0),0)
         layers = QgsProject.instance().mapLayers().values()
         mix = list()
@@ -3002,6 +3008,15 @@ class Layman(QObject):
             self.dlg.pushButton.setEnabled(False)
         else:
             self.dlg.pushButton.setEnabled(True)
+    def checkIfRasterInSelected(self):
+        value = False
+        for item in self.dlg.treeWidget.selectedItems():
+            layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+            if isinstance(layer, QgsRasterLayer):
+               value = True 
+        self.dlg.comboBox_resampling.setEnabled(value)
+            
+                            
     def disableButtonsAddMap(self):
         self.dlg.pushButton_setPermissions.setEnabled(False)
         self.dlg.pushButton_delete.setEnabled(False)
@@ -4129,20 +4144,20 @@ class Layman(QObject):
                 QMessageBox.information(None, "Layman", "Composition is not in valid format.")
             self.dlg.progressBar_loader.hide()
    
-        if message[:13] == "loadSymbology": ## slovník random
-            num = message[13:]
-            if (isinstance(self.currentLayerDict[num], QgsVectorLayer)):
-                style = self.getStyle(self.currentLayerDict[num].name())                  
-                layerName = self.currentLayerDict[num].name()
-                if (style[0] == 200):
-                    if (style[1] == "sld"):
-                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
-                        self.currentLayerDict[num].loadSldStyle(tempf)
-                        self.currentLayerDict[num].triggerRepaint()
-                    if (style[1] == "qml"):
-                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
-                        self.currentLayerDict[num].loadNamedStyle(tempf)
-                        self.currentLayerDict[num].triggerRepaint()
+        # if message[:13] == "loadSymbology": ## slovník random
+        #     num = message[13:]
+        #     if (isinstance(self.currentLayerDict[num], QgsVectorLayer)):
+        #         style = self.getStyle(self.currentLayerDict[num].name())                  
+        #         layerName = self.currentLayerDict[num].name()
+        #         if (style[0] == 200):
+        #             if (style[1] == "sld"):
+        #                 tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+        #                 self.currentLayerDict[num].loadSldStyle(tempf)
+        #                 self.currentLayerDict[num].triggerRepaint()
+        #             if (style[1] == "qml"):
+        #                 tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+        #                 self.currentLayerDict[num].loadNamedStyle(tempf)
+        #                 self.currentLayerDict[num].triggerRepaint()
         
         if message == "refreshComposite":
             try:
@@ -5406,6 +5421,7 @@ class Layman(QObject):
                 return False  
         return True    
     def callPostRequest(self, layers):
+        resamplingMethod = self.dlg.comboBox_resampling.currentText()
         def showPostgreDialog(layer):
             self.dlgPostgres = PostgrePasswordDialog()   
             self.dlgPostgres.show()
@@ -5416,8 +5432,7 @@ class Layman(QObject):
         for thread in threading.enumerate():
             self.ThreadsA.add(thread.name)
         self.uploaded = 0
-        self.batchLength = len(layers)
-        
+        self.batchLength = len(layers)        
         if self.checkIfAllLayerAreRaster(layers):
             if self.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Layman", "Je vybráno více rastrových vrstev. Chcete je exportovat jako časové? Symbologie bude přebrána z prvního rastru.")
@@ -5459,9 +5474,9 @@ class Layman(QObject):
                 showPostgreDialog(layer)                
             else:                
                 if not bulk:   
-                    self.postRequest(item.text(0), False, True, False)
+                    self.postRequest(item.text(0), False, True, False, resamplingMethod)
                 else:
-                    self.postRequest(item.text(0), False, True, True)
+                    self.postRequest(item.text(0), False, True, True, resamplingMethod)
     def setCurrentLayer(name):
         layers = QgsProject.instance().mapLayersByName(name)
         if(len(layers) >1):
@@ -5624,7 +5639,9 @@ class Layman(QObject):
           file.write(filedata)
 
    
-    def postRasterThread(self, layer,data, q,progress, patch):
+    def postRasterThread(self, layer,data, q,progress, patch, resamplingMethod = "No value"):
+        if resamplingMethod == "No value":
+            resamplingMethod = ""
         QgsMessageLog.logMessage("enableProgress")
         data['crs'] = layer.crs().authid()        
         stylePath = self.getTempPath(self.removeUnacceptableChars(layer.name())).replace("geojson", "sld")
@@ -5662,13 +5679,15 @@ class Layman(QObject):
                 'file': [name.lower()+ext,name.lower() + self.returnPathIfFileExists(path,ext, True)],
                 'title': title,
                 'crs': str(layer.crs().authid()),
-                'style': open(stylePath, 'rb')
+                'style': open(stylePath, 'rb'),
+                'overview_resampling': resamplingMethod
                 }
             else:
                 payload = {
                 'file': name.lower()+ext,
                 'title': title,
-                'crs': str(layer.crs().authid())
+                'crs': str(layer.crs().authid()),
+                'overview_resampling': resamplingMethod
                 }
             files = {'style': open(stylePath, 'rb')}    
             response = self.requestWrapper("POST", url, payload, files)          
@@ -5894,7 +5913,7 @@ class Layman(QObject):
                     dimension = elt.text
                     check = False
                     return dimension
-    def postRequest(self, layer_name, auto=False, thread=False, bulk = False):
+    def postRequest(self, layer_name, auto=False, thread=False, bulk = False, resamplingMethod = "No value"):
         nameCheck = True
         validExtent = True
         layers = QgsProject.instance().mapLayersByName(layer_name)    
@@ -5938,7 +5957,7 @@ class Layman(QObject):
                                     if layers[0].crs().authid() in self.supportedEPSG:
                                         ext = layers[0].dataProvider().dataSourceUri()[-4:]
                                         if ext.lower() != ".bmp":
-                                            threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()
+                                            threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True, resamplingMethod)).start()
                                         else:
                                             QgsMessageLog.logMessage("BmpNotSupported")
                                     else:
@@ -5962,9 +5981,9 @@ class Layman(QObject):
                                     ext = layers[0].dataProvider().dataSourceUri()[-4:]
                                     if ext.lower() != ".bmp":
                                         if thread:
-                                            threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True)).start()
+                                            threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True, resamplingMethod)).start()
                                         else:
-                                            self.postRasterThread(layers[0],data, q,True, True)
+                                            self.postRasterThread(layers[0],data, q,True, True, resamplingMethod)
                                     else:
                                         QgsMessageLog.logMessage("BmpNotSupported")
                                 else:
@@ -6001,9 +6020,9 @@ class Layman(QObject):
                                     ext = layers[0].dataProvider().dataSourceUri()[-4:]
                                     if ext.lower() != ".bmp":
                                         if thread:
-                                            threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, False)).start()
+                                            threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, False, resamplingMethod)).start()
                                         else:
-                                            self.postRasterThread(layers[0],data, q,True, False)
+                                            self.postRasterThread(layers[0],data, q,True, False, resamplingMethod)
 
                                     else:
                                         QgsMessageLog.logMessage("BmpNotSupported")
