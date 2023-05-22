@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>450</width>
-    <height>320</height>
+    <height>343</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -48,7 +48,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>277</y>
+     <y>307</y>
      <width>171</width>
      <height>27</height>
     </rect>
@@ -61,7 +61,7 @@
    <property name="geometry">
     <rect>
      <x>260</x>
-     <y>277</y>
+     <y>307</y>
      <width>180</width>
      <height>28</height>
     </rect>
@@ -109,7 +109,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>235</y>
+     <y>265</y>
      <width>171</width>
      <height>23</height>
     </rect>
@@ -125,7 +125,7 @@
    <property name="geometry">
     <rect>
      <x>-140</x>
-     <y>237</y>
+     <y>267</y>
      <width>141</width>
      <height>10</height>
     </rect>
@@ -138,7 +138,7 @@
    <property name="geometry">
     <rect>
      <x>270</x>
-     <y>241</y>
+     <y>271</y>
      <width>371</width>
      <height>16</height>
     </rect>
@@ -147,30 +147,40 @@
     <string/>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_timeSeries">
-   <property name="geometry">
-    <rect>
-     <x>170</x>
-     <y>240</y>
-     <width>171</width>
-     <height>27</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Export time series</string>
-   </property>
-  </widget>
   <widget class="QPushButton" name="pushButton_errLog">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>240</y>
+     <y>270</y>
      <width>171</width>
      <height>27</height>
     </rect>
    </property>
    <property name="text">
     <string>Copy error log</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>230</y>
+     <width>171</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Raster resampling method:</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="comboBox_resampling">
+   <property name="geometry">
+    <rect>
+     <x>260</x>
+     <y>230</y>
+     <width>181</width>
+     <height>22</height>
+    </rect>
    </property>
   </widget>
  </widget>
