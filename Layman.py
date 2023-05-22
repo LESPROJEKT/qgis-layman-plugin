@@ -2715,7 +2715,7 @@ class Layman(QObject):
             self.dlg.checkBox_own.setCheckState(2)
             checked = True
   
-        self.dlg.pushButton_delete.clicked.connect(lambda: self.callDeleteLayer(self.dlg.treeWidget.selectedItems()))
+        self.dlg.pushButton_delete.clicked.connect(lambda: self.callDeleteLayer(self.dlg.treeWidget.selectedItems(), self.layerNamesDict))
         self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
         self.dlg.pushButton.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WMS"))
         self.dlg.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WFS"))
@@ -3464,7 +3464,7 @@ class Layman(QObject):
     def saveEditedToComposite(self,x):
         self.compositeList[x]['abstract'] =  self.dlg.lineEdit_abstract.text()
         self.compositeList[x]['title'] =  self.dlg.lineEdit_title.text()
-    def callDeleteLayer(self, layers):       
+    def callDeleteLayer(self, layers, layerNames):       
         items = list()
         for i in range (0, len(self.dlg.treeWidget.selectedItems())):
             items.append(self.dlg.treeWidget.selectedItems()[i].text(0))
@@ -3482,9 +3482,10 @@ class Layman(QObject):
                 question = False
         for j in range (0, len(items)):
             
-            self.layerDelete(items[j], question)
-    def layerDelete(self, name, question = True):
+            self.layerDelete(items[j], layerNames, question)
+    def layerDelete(self, name,layerNames, question = True):
         title = name
+        name = layerNames[title]
         if question:
             if self.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Chcete opravdu smazat vrstvu "+str(name)+"?")
@@ -3507,7 +3508,7 @@ class Layman(QObject):
                 msgbox.setDefaultButton(QMessageBox.No)
                 reply = msgbox.exec()
                 if (reply == QMessageBox.Yes):
-                    name = self.removeUnacceptableChars(name).lower()
+                    # name = self.removeUnacceptableChars(name).lower()
                     threading.Thread(target=lambda: self.layerDeleteThread(name)).start()
                     self.dlg.progressBar_loader.show()                    
                     self.deleteLayerThrowCompositions(name, title)
@@ -5669,7 +5670,7 @@ class Layman(QObject):
             if patch:           
                 url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars(layer_name)
                 r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
-                r = self.requestWrapper("DELETE", url, payload = None, files = None)
+                #r = self.requestWrapper("DELETE", url, payload = None, files = None)
 
            
             url = self.URI + "/rest/"+self.laymanUsername+"/layers"
