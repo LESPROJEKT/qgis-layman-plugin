@@ -7501,60 +7501,7 @@ class Layman(QObject):
         f.close()
         return ret
 
-    # def getToken(self):      
-    #     self.saveIni()
-
-    #     tokenEndpoint = self.liferayServer+"/o/oauth2/token"
-    #     # data to be sent to api
-    #     data = {'grant_type':'authorization_code',
-    #             'client_id': self.client_id,
-    #             'redirect_uri':'http://localhost:3857/client/authn/oauth2-liferay/callback',
-    #             'code_verifier': self.code_verifier,
-    #             'code': self.getAuthCode()}
-
-    #     # sending post request and saving response as response object
-        
-    #    # r = requests.post(url = tokenEndpoint, data = data, headers = self.getAuthHeader(self.authCfg))        
-    #     r = self.requestWrapper("POST", tokenEndpoint, data, files = None)
-    #     res = self.fromByteToJson(r.content)        
-    #     try:
-    #         print(res['access_token'])
-    #         print(res['expires_in'])
-    #         print(res['refresh_token'])
-    #     except:
-    #         if self.locale == "cs":
-    #             QMessageBox.information(None, "Message", "Autorizace nebyla úspěšná! Prosím zkuste to znovu.")
-    #         else:
-    #             QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
-    #         return
-    #     self.access_token = res['access_token']
-    #     self.refresh_token = res['refresh_token']
-    #     self.expires_in = res['expires_in']
-    #     self.setAuthHeader()
-    #     data ={
-    #         'access_token': res['access_token'],
-    #         'refresh_token': res['refresh_token'],
-    #         'expires_in':res['expires_in']
-    #         }
-    #     path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "tokens.json"
-    #     with open(path, 'w') as outfile:
-    #         json.dump(data, outfile)
-    #     self.registerUserIfNotExists()
-    #     self.startThread()       
-
-    #     ### authconfig
-    #     authcfg_id = self.authCfg
-    #     if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
-    #         QgsApplication.authManager().clearAllCachedConfigs()
-    #         self.setup_oauth(self.authCfg, self.liferayServer)
-
-    #     ##authconfig end
-
-    #     self.dlg.close()
-
-
-
-
+    
     def setAuthHeader(self):
         self.authHeader ={
           "Authorization": "Bearer " + self.access_token,
@@ -7910,10 +7857,15 @@ class Layman(QObject):
         table = self.find_substring(uri, '"."', '"')
         geom = self.find_substring(uri, '(', ')')
         host = self.find_substring(uri, "host=", " ") 
-      
-        return ("postgresql://"+username+":"+password+"@"+host+":"+port+"/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
+        if ("localhost" in host or "127.0.0.1" in host):
+            host = host.replace("localhost","host.docker.internal")
+            host = host.replace("127.0.0.1","host.docker.internal")
+            return ("postgresql://"+username+":"+password+"@"+host+":5432/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
+        else:    
+            return ("postgresql://"+username+":"+password+"@"+host+":"+port+"/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
     def postPostreLayer(self, layer, username, password):
         uri = self.preparePostgresUri(layer, username, password)
+        print(uri)
         layer_name = layer.name()
         if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
             stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
@@ -7981,7 +7933,11 @@ class Layman(QObject):
         user = self.find_substring(data["db"]["external_uri"], r"://", "@")
         srid = str(4326)
         dbname = data["db"]["external_uri"].split("/")[-1]
-        table = '"'+ schema +'"."'+ table + '" (' + geo_column + ') '        
+        table = '"'+ schema +'"."'+ table + '" (' + geo_column + ') '  
+        
+        if ("host.docker.internal" in host):
+            host = host.replace("host.docker.internal","localhost")            
+              
         uri = "dbname='"+dbname+"' host="+host+" port="+port+" user='"+user+"' table="+ table +" key='id' srid="+srid
         style = self.getStyle(layerName, None, workspace)
         print(style)
