@@ -2436,11 +2436,6 @@ class Layman(QObject):
     def run_AddMapDialog(self):
         self.recalculateDPI()
         self.dlg = AddMapDialog()
-        self.dlg.pushButton.setEnabled(False)
-        self.dlg.pushButton_mapWFS.setEnabled(False)
-        self.dlg.pushButton_mapWFS.setEnabled(True)
-        self.dlg.pushButton.hide()
-        self.dlg.pushButton_mapWFS.hide()
         self.dlg.label_info.hide()     
         self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnailMap2(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)), self.dlg.treeWidget.selectedItems()[0].text(1)  ) ).start())
         self.dlg.treeWidget.itemClicked.connect(self.enableButton)
@@ -2449,8 +2444,6 @@ class Layman(QObject):
         self.dlg.treeWidget.setColumnWidth(0, 300)
         self.dlg.treeWidget.setColumnWidth(2, 80)
         self.dlg.label_noUser.hide()
-        self.dlg.pushButton.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WMS'))
-        self.dlg.pushButton_mapWFS.clicked.connect(lambda: self.readMapJson(self.dlg.treeWidget.selectedItems()[0].text(0), 'WFS'))
         self.dlg.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
         self.dlg.pushButton_map.clicked.connect(lambda: self.readMapJson(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)), 'WFS', self.dlg.treeWidget.selectedItems()[0].text(1)))
         self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)), True))
@@ -2485,8 +2478,7 @@ class Layman(QObject):
         if not self.isAuthorized:
             self.dlg.label_noUser.show()
         try:
-            checked = self.getConfigItem("mapcheckbox")
-            print(checked)
+            checked = self.getConfigItem("mapcheckbox")   
         except:
             checked = False
         if checked == "0":
@@ -2496,7 +2488,6 @@ class Layman(QObject):
             self.dlg.checkBox_own.setCheckState(2)
             checked = True
         threading.Thread(target=lambda: self.loadMapsThread(checked)).start()
-
         result = self.dlg.exec_()
 
     def writeValuesToProject(self, server, name):
@@ -2615,32 +2606,29 @@ class Layman(QObject):
         dataAll = r.json()
         for row in range(0, len(dataAll)):
             self.compositionDict[dataAll[row]['name']] = dataAll[row]['title']       
-    def getNameByTitle(self, val):        
+    def getNameByTitle(self, val, refresh=True):   
+        ret = None     
         for key, value in self.compositionDict.items():
-             if val == value:                 
-                 return key
+            if val == value:   
+                ret = key              
+                return ret
+        ## if title not found refresh dict
+        if ret == None and refresh:
+            self.fillCompositionDict()
+            ret = self.getNameByTitle(val, False)
+            return ret
+                     
     def loadMickaMaps(self, query = ""):
         self.dlg.progressBar_loader.show()
         self.dlg.treeWidget.clear()       
-        uri = self.URI.replace("/client", "")
-        #url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27service%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
+        uri = self.URI.replace("/client", "")       
         if query == "":
-            url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"
-           # url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"
+            url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"           
         else:
-            
-            #url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
-            url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
-            #url = "https://hub.lesprojekt.cz/micka/csw/?request=GetRecords&query=type%3D%27application%27%20AND%20AnyText%20like%20%27*"+query+"*%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
-        r = self.requestWrapper("GET", url, payload = None, files = None) 
-        #r = requests.get(url = url)        
-        self.mickaRet = r.json()
-        
-
-
-        for record in self.mickaRet['records']:
-
-          
+            url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"            
+        r = self.requestWrapper("GET", url, payload = None, files = None)         
+        self.mickaRet = r.json() 
+        for record in self.mickaRet['records']:          
             if "title" in record:
                 item = QTreeWidgetItem([record['title']])
                 self.dlg.treeWidget.addTopLevelItem(item)
@@ -4515,7 +4503,7 @@ class Layman(QObject):
                 return
             self.compositeList.append(map)
            
-    def readMapJson(self,name, service, workspace=""):
+    def readMapJson(self,name, service, workspace=""):        
         QgsProject.instance().setTitle(name)
         url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'       
         
