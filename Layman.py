@@ -116,7 +116,7 @@ class Layman(QObject):
     loadComposition = pyqtSignal(str,str,str)
     afterLoadedComposition = pyqtSignal()
     permissionInfo = pyqtSignal(bool,list, int)
-    reoderComposition = pyqtSignal(list,list,set,list)
+    reoderComposition = pyqtSignal(list,set,list)
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)
     tsSuccess = pyqtSignal()
     processingRaster = pyqtSignal(int,int)
@@ -4392,11 +4392,13 @@ class Layman(QObject):
         if self.dlg.objectName() == "ImportLayerDialog":
             self.dlg.progressBar.setMaximum(max)
             self.dlg.progressBar.setValue(progress)   
-    def reorderGroups(self, threads, groups, groupsSet, groupsPosition):
+    def reorderGroups(self, groups, groupsSet, groupsPosition):
     
         for g in groups:                               
-            self.reorderToTop(g[0], groupsSet, groupsPosition, g[1])      
-        self.reorderGroup(groupsPosition, groupsSet)                      
+            self.reorderToTop(g[0], groupsSet, groupsPosition, g[1])    
+      
+        self.reorderGroup(groupsPosition, groupsSet)    
+                         
     def loadAllComposites(self):
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'        
        
@@ -4613,11 +4615,11 @@ class Layman(QObject):
 
                 self.loadService2(data,service, name)
 
-    def afterCompositionLoaded(self):        
-     
-        print("afterCompositionLoaded")      
+    def afterCompositionLoaded(self):      
         
-        if self.instance.getPermissions() == "w" or self.instance.getPermissions() == "n" :            
+        permissions = self.instance.getPermissions()
+        print("afterCompositionLoaded") 
+        if permissions == "w" or permissions == "n" :            
             # startuje naslouchani na zmenu do groupy
             # prj = QgsProject().instance()
             # root = prj.layerTreeRoot()           
@@ -4629,7 +4631,7 @@ class Layman(QObject):
                  layerType = layer.type()
                  if layerType == QgsMapLayer.VectorLayer:
                      layer.editingStopped.connect(self.layerEditStopped)
-                     layer.styleChanged.connect(self.layerStyleToUpdate)       
+                     layer.styleChanged.connect(self.layerStyleToUpdate)    
      
         QgsMessageLog.logMessage("layersLoaded")
     def changeVisibility(self, layerTreeNode):        
@@ -6716,16 +6718,16 @@ class Layman(QObject):
                 QMessageBox.information(None, "Layman", "Map composition is corrupted!")
             return      
 
-        self.service3 = threading.Thread(target=lambda: self.loadservice3(data))
-        self.service3.start()
-
+        #self.service3 = threading.Thread(target=lambda: self.loadservice3(data))
+        #self.service3.start()
+        self.loadservice3(data)
     def loadservice3(self, data):
         groupName = ''
         threads = list()
 
-        self.ThreadsA = set()
-        for thread in threading.enumerate():
-            self.ThreadsA.add(thread.name)
+        # self.ThreadsA = set()
+        # for thread in threading.enumerate():
+        #     self.ThreadsA.add(thread.name)
         i=1
         groups = list()
         groupPositions = list()
@@ -6792,7 +6794,7 @@ class Layman(QObject):
                     repairUrl = data['layers'][x]['url']
                     repairUrl = self.convertUrlFromHex(repairUrl)                    
                     everyone = False
-                    try:
+                    try:                        
                         workspace =  repairUrl.split("geoserver/")[1].split("_wms")[0]
                         #url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(data['layers'][x]['title'])
 
@@ -6814,12 +6816,14 @@ class Layman(QObject):
                     legends = "0"                        
                     if "legends" in data['layers'][x]:
                         legends = "1"   
-                    threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)).start())                   
+                    #threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)).start())                   
+                    self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)                  
                 if className == 'ArcGISRest':
                    
                     url = data['layers'][x]['url']
                     layerNameTitle = data['layers'][x]['title']
-                    threads.append(threading.Thread(target=lambda: self.loadArcGisRest(url, layerNameTitle)).start())
+                    #threads.append(threading.Thread(target=lambda: self.loadArcGisRest(url, layerNameTitle)).start())
+                    self.loadArcGisRest(url, layerNameTitle)
                     
                 if className == 'XYZ':                   
                     layerName = data['layers'][x]['title']
@@ -6840,7 +6844,8 @@ class Layman(QObject):
                         groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
                         groups.append([layerNameTitle, len(data['layers']) - i])
-                    threads.append(threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)).start())
+                    #threads.append(threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)).start())
+                    self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)
                   
 
                 if className == 'OpenLayers.Layer.Vector' or className == 'Vector':
@@ -6872,34 +6877,41 @@ class Layman(QObject):
                                     repairUrl = repairUrl.replace("hsl-layman", "") + data['workspace'] + "wfs"
 
 
-                                threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
+                                #threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
+                                self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)
                                 
                         if "format" in data['layers'][x]['protocol']:    
                             if (data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):                            
-                                threads.append(threading.Thread(target=lambda: self.loadWfsExternal(data['layers'][x],epsg, groupName)).start())
+                                #threads.append(threading.Thread(target=lambda: self.loadWfsExternal(data['layers'][x],epsg, groupName)).start())
+                                self.loadWfsExternal(data['layers'][x],epsg, groupName)
                             if (data['layers'][x]['protocol']['format'] == "hs.format.WFS"):
                                 if 'workspace' in data['layers'][x]:                                    
                                     repairUrl = repairUrl.replace("hsl-layman", "")
 
 
-                                threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
+                                #threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
+                                self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)
                    
                     except:                        
-                        threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())                        
+                        #threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())                        
+                        self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)                      
 
                 
             else:
                 self.wrongLayers = True              
             i = i + 1
-        threadsB = set()
-        while (self.ThreadsA != threadsB):
-            threadsB = set()
-            for thread in threading.enumerate():
-                threadsB.add(thread.name) 
-        self.reoderComposition.emit(threads, groups, groupsSet, groupPositions)
-        self.afterLoadedComposition.emit()
+        # threadsB = set()
+        # while (self.ThreadsA != threadsB):
+        #     threadsB = set()
+        #     for thread in threading.enumerate():
+        #         threadsB.add(thread.name) 
+        #self.reoderComposition.emit(groups, groupsSet, groupPositions)
+        
+        self.reorderGroups(groups, groupsSet, groupPositions)
+        self.afterCompositionLoaded()
+        #self.afterLoadedComposition.emit()
 
-
+    
     def Title(self, layerName):
         layerName = self.removeUnacceptableChars(layerName)
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName      

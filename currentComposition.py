@@ -73,7 +73,7 @@ class CurrentComposition(object):
 
     def getComposition(self):
         return self.composition    
-    def refreshComposition(self):
+    def refreshComposition(self):      
         url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name+'/file'     
         r = requests.get(url = url, headers = self.header)
         data = r.json()
@@ -82,17 +82,16 @@ class CurrentComposition(object):
         url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name+'/file'     
         r = requests.get(url = url, headers = self.header)
         data = r.json()
-        try:
-            self.user in data['access_rights']['write']
-        except:
-            print("n")
-            return "n"
-        if self.user in data['access_rights']['write'] or "EVERYONE" in data['access_rights']['write']:
-            print("w")
-            return "w"
-        if self.user in data['access_rights']['read'] or "EVERYONE" in data['access_rights']['read']:
-            print("r")
-            return "r"     
+        if 'access_rights' in data and 'write' in data['access_rights']:
+            if self.user in data['access_rights']['write'] or "EVERYONE" in data['access_rights']['write']:
+                print("w")
+                return "w"
+        if 'access_rights' in data and 'read' in data['access_rights']:
+            if self.user in data['access_rights']['read'] or "EVERYONE" in data['access_rights']['read']:
+                print("r")
+                return "r"
+        print("n")
+        return "n"
     def hasLaymanLayer(self):
         for layer in self.composition['layers']:
             if layer['className'] == "OpenLayers.Layer.Vector":
