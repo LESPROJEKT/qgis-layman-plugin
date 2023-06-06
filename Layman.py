@@ -4553,67 +4553,45 @@ class Layman(QObject):
         layer = iface.activeLayer()
         self.stylesToUpdate.add(layer)
         print("symbology was changed")
-    def readMapJsonThread(self,name, service):
-
-        nameWithDiacritics = name
-        name = self.removeUnacceptableChars(name)
-
-       
-        if False: ## je nactena mapa?
-     
-
-            url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name   +'/file'
-            r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-            data = r.json()
-            #print(data)
-
-            self.addComposite(data,service, name)
-            QgsMessageLog.logMessage("refreshComposite")
-
-
-        else:
-            print("debug in readMapJson - false")
-            workspace = self.getCompositionWorkspace(name)
-            self.selectedWorkspace = workspace           
-            try:
-                url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'
-            except:
-                QgsMessageLog.logMessage("compositionSchemaError")
-                return
+    def readMapJsonThread(self,name, service):        
+        name = self.removeUnacceptableChars(name) 
+        print("debug in readMapJson - false")
+        workspace = self.getCompositionWorkspace(name)
+        self.selectedWorkspace = workspace           
+        try:
+            url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'
+        except:
+            QgsMessageLog.logMessage("compositionSchemaError")
+            return
             #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
-            r = self.requestWrapper("GET", url, payload = None, files = None)
-            data = r.json()
+        r = self.requestWrapper("GET", url, payload = None, files = None)
+        data = r.json()
             ## rozvetveni zdali chce uzivatel otevrit kompozici v novem projektu
             #layers = iface.mapCanvas().layers() ## pokud neexistuej vrstva otazka nema smysl
-            layers = QgsProject.instance().mapLayers()
-
-            if len(layers) > 0:
-                if self.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.")
-                else:
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content.")
-                msgbox.addButton(QMessageBox.Yes)
-                msgbox.addButton(QMessageBox.No)
-                msgbox.setDefaultButton(QMessageBox.No)
-                reply = msgbox.exec()
-                if (reply == QMessageBox.Yes):
-                    iface.newProject()
-                    projection = data['projection'].replace("epsg:","").replace("EPSG:","")
-                    crs=QgsCoordinateReferenceSystem(int(projection))
-
-
-                    self.crsChangedConnect = False
-                    QgsProject.instance().setCrs(crs)
-                    self.crsChangedConnect = True
-                    QgsProject.instance().setTitle(data['title'])
-
-                    self.loadService2(data,service, name)
-                else:
-                    self.loadService2(data,service, name)
-
+        layers = QgsProject.instance().mapLayers()
+        if len(layers) > 0:
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.")
             else:
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content.")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.Yes):
+                iface.newProject()
+                projection = data['projection'].replace("epsg:","").replace("EPSG:","")
+                crs=QgsCoordinateReferenceSystem(int(projection))
+                self.crsChangedConnect = False
+                QgsProject.instance().setCrs(crs)
+                self.crsChangedConnect = True
+                QgsProject.instance().setTitle(data['title'])
 
                 self.loadService2(data,service, name)
+            else:
+                self.loadService2(data,service, name)
+        else:
+            self.loadService2(data,service, name)
 
     def afterCompositionLoaded(self):      
         
@@ -6703,14 +6681,8 @@ class Layman(QObject):
         for row in range(0, len(data)):
             if name == data[row]['name']:
                 return data[row]['workspace']
-    def loadService2(self, data, service, groupName = ''):
-        success = True
-        notify = False
-        groupName = ''
-
-        try:
-            test = data['layers']
-        except:
+    def loadService2(self, data, service, groupName = ''):    
+        if not 'layers' in data:       
             print("corrupted composition")
             if self.locale == "cs":
                 QMessageBox.information(None, "Layman", "Kompozice je poškozena!")
@@ -6724,10 +6696,6 @@ class Layman(QObject):
     def loadservice3(self, data):
         groupName = ''
         threads = list()
-
-        # self.ThreadsA = set()
-        # for thread in threading.enumerate():
-        #     self.ThreadsA.add(thread.name)
         i=1
         groups = list()
         groupPositions = list()
@@ -6796,8 +6764,6 @@ class Layman(QObject):
                     everyone = False
                     try:                        
                         workspace =  repairUrl.split("geoserver/")[1].split("_wms")[0]
-                        #url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(data['layers'][x]['title'])
-
                         r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
                         r = self.requestWrapper("GET", url, payload = None, files = None)
                         if 'EVERYONE' in r.json()['access_rights']['read']:
