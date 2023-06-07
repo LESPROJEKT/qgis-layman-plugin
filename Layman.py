@@ -1088,11 +1088,12 @@ class Layman(QObject):
                 else:
                     self.dlg2.checkBox_greyScale.setCheckState(0)
                 ##set attributes to labels
-                self.dlg2.label_opacity.setText(str(layer['opacity']))
-                self.dlg2.label_max.setText(str(layer['maxResolution']))
-                self.dlg2.label_min.setText(str(layer['minResolution']))
-                self.dlg2.label_visibility.setText(str(layer['visibility']))
+                self.dlg2.label_opacity.setText(str(layer['opacity'] * 100) + " %")
+                self.dlg2.label_max.setText("None" if not layer['maxResolution'] else str(self.resolutionToScale(layer['maxResolution'])))
+                self.dlg2.label_min.setText(str(self.resolutionToScale(layer['minResolution'])))                
+                self.dlg2.checkBox_visibility.setChecked(True if layer['visibility'] else False) 
                 self.dlg2.label_path.setText(str(layer['path']))
+              
                 ##
                 
     def setGrayScaleForLayer(self, layer):       

@@ -9,7 +9,8 @@ FORMS = ../dlg_addLayer.ui \
 ../dlg_setPermission.ui \  
 ../dlg_currentComposition.ui \
 ../dlg_timeSeries.ui \
-../dlg_addMicka.ui 
+../dlg_addMicka.ui \ 
+../dlg_layerProperties.ui
 
 SOURCES = ../Layman.py 
 

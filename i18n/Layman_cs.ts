@@ -198,7 +198,7 @@
     <message>
         <location filename="../dlg_addMap.ui" line="290"/>
         <source>Copy URL</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Kopírovat URL</translation>
     </message>
     <message>
         <location filename="../dlg_addMap.ui" line="303"/>
@@ -342,7 +342,7 @@
         <translation type="obsolete">Vrstvy v Laymanu</translation>
     </message>
     <message>
-        <location filename="../dlg_addMicka.ui" line="60"/>
+        <location filename="../dlg_layerProperties.ui" line="41"/>
         <source>Close</source>
         <translation>Zavřít</translation>
     </message>
@@ -422,7 +422,7 @@
         <translation>Jméno kompozice:</translation>
     </message>
     <message>
-        <location filename="../dlg_editMap.ui" line="281"/>
+        <location filename="../dlg_layerProperties.ui" line="132"/>
         <source>Title:</source>
         <translation>Název:</translation>
     </message>
@@ -633,8 +633,8 @@
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="54"/>
-        <source>Liferay username:</source>
-        <translation>Liferay uživatel:</translation>
+        <source>Wagtail username:</source>
+        <translation type="unfinished">Liferay uživatel:</translation>
     </message>
     <message>
         <location filename="../dlg_ConnectionManager.ui" line="170"/>
@@ -842,9 +842,9 @@
         <translation type="obsolete">Upravit metadata</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="116"/>
+        <location filename="../dlg_layerProperties.ui" line="54"/>
         <source>Save changes</source>
-        <translation type="obsolete">Uložit změny</translation>
+        <translation>Uložit změny</translation>
     </message>
     <message>
         <location filename="../dlg_addMap.ui" line="272"/>
@@ -991,6 +991,61 @@
         <source>Search</source>
         <translation>Hledat</translation>
     </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="29"/>
+        <source>Layman - Layer properties</source>
+        <translation>Layman - Vlastnosti vrstvy</translation>
+    </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="80"/>
+        <source>title</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="93"/>
+        <source>Debug</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="119"/>
+        <source>Opacity:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="158"/>
+        <source>Max resolution:</source>
+        <translation>Maximální rozlišení:</translation>
+    </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="184"/>
+        <source>Min resolution:</source>
+        <translation>Minimální rozlišení:</translation>
+    </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="210"/>
+        <source>Visibility:</source>
+        <translation>Viditelnost:</translation>
+    </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="223"/>
+        <source>Group:</source>
+        <translation>Skupina:</translation>
+    </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="249"/>
+        <source>Single tile:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="262"/>
+        <source>Base layer:</source>
+        <translation>Základní vrstva</translation>
+    </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="288"/>
+        <source>Grey scale:</source>
+        <translation>Odstíny šedi:</translation>
+    </message>
 </context>
 <context>
     <name>ImportLayerDialog</name>
@@ -1026,29 +1081,29 @@
     </message>
     <message>
         <location filename="../dlg_importLayer.ui" line="160"/>
-        <source>Export time series</source>
-        <translation type="unfinished">Exportovat</translation>
+        <source>Copy error log</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../dlg_importLayer.ui" line="173"/>
-        <source>Copy error log</source>
+        <source>Raster resampling method:</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="5245"/>
+        <location filename="../Layman.py" line="4855"/>
         <source>&amp;Layman</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="375"/>
+        <location filename="../Layman.py" line="348"/>
         <source>Current Row Number</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="381"/>
+        <location filename="../Layman.py" line="353"/>
         <source>Login</source>
         <translation>Přihlásit se</translation>
     </message>
@@ -1058,42 +1113,42 @@
         <translation type="obsolete">Uložit jako JSON a QML</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="399"/>
+        <location filename="../Layman.py" line="371"/>
         <source>Load from JSON</source>
         <translation>Načíst z JSON</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="408"/>
+        <location filename="../Layman.py" line="380"/>
         <source>Export layer to server</source>
         <translation>Exportovat vrstvu na server</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="415"/>
+        <location filename="../Layman.py" line="387"/>
         <source>Load layer from server</source>
         <translation>Načíst vrstvu ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="422"/>
+        <location filename="../Layman.py" line="394"/>
         <source>Load map from server</source>
         <translation>Načíst mapu ze serveru</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="429"/>
+        <location filename="../Layman.py" line="401"/>
         <source>Current composition</source>
         <translation>Aktuální kompozice</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="443"/>
+        <location filename="../Layman.py" line="415"/>
         <source>User info</source>
         <translation>Informace o uživateli</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="390"/>
+        <location filename="../Layman.py" line="362"/>
         <source>Save as to JSON and SLD</source>
         <translation>Uloži jako JSON a SLD</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="436"/>
+        <location filename="../Layman.py" line="408"/>
         <source>Browse the metadata catalog</source>
         <translation>Prohlížet metadatový katalog</translation>
     </message>
