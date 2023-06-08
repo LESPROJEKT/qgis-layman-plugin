@@ -573,9 +573,9 @@ class Layman(QObject):
 
             if (self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text(0)))):
                 if self.locale == "cs":
-                    cell.addItems(['Beze změny','Přepsat data'])
+                    cell.addItems(['Beze změny','Přepsat data','Smazat'])
                 else:
-                    cell.addItems(['No change','Overwrite geometry'])
+                    cell.addItems(['No change','Overwrite geometry','Remove'])
             elif item.text(0).replace(" (Smazána z projektu)", "").replace(" (Removed from canvas)", "") in  notActive:
                 if self.locale == "cs":
                     cell.addItems(['Beze změny','Smazat'])
@@ -655,7 +655,6 @@ class Layman(QObject):
             self.instance.refreshComposition()
             composition = self.instance.getComposition()
             print(composition)
-
             self.dlg.pushButton_editMeta.setEnabled(True)
             self.dlg.pushButton_new.setEnabled(True)
             self.dlg.pushButton_setPermissions.setEnabled(True)
@@ -835,7 +834,7 @@ class Layman(QObject):
                 else:
                     combobox.setCurrentIndex(1)
             if item.checkState(column) == 0:
-                combobox.setCurrentIndex(0)
+                combobox.setCurrentIndex(2)
 
     def addService(self, item):
         if item.checkState() == 2:
@@ -1089,8 +1088,8 @@ class Layman(QObject):
                     self.dlg2.checkBox_greyScale.setCheckState(0)
                 ##set attributes to labels
                 self.dlg2.label_opacity.setText(str(layer['opacity'] * 100) + " %")
-                self.dlg2.label_max.setText("None" if not layer['maxResolution'] else str(self.resolutionToScale(layer['maxResolution'])))
-                self.dlg2.label_min.setText(str(self.resolutionToScale(layer['minResolution'])))                
+                self.dlg2.label_max.setText("None" if not layer['maxResolution'] else "1:"+str(self.resolutionToScale(layer['maxResolution'])))
+                self.dlg2.label_min.setText("1:"+str(int(self.resolutionToScale(layer['minResolution']))))                
                 self.dlg2.checkBox_visibility.setChecked(True if layer['visibility'] else False) 
                 self.dlg2.label_path.setText(str(layer['path']))
               
@@ -4039,7 +4038,8 @@ class Layman(QObject):
                         QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
             QgsMessageLog.logMessage("disableProgressBar")
         else:
-            self.emitMessageBox.emit(["Vrstva "+layerName+ " nelze nahrát","Something went wrong with layer: " + layerName])          
+            self.emitMessageBox.emit(["Vrstva "+layerName+ " nelze nahrát","Something went wrong with layer: " + layerName])      
+            QgsMessageLog.logMessage("disableProgressBar")    
     
     def write_log_message(self,message, tag, level):   
         if message[0:15] == "notifyTwoGroups":
@@ -5608,8 +5608,11 @@ class Layman(QObject):
         with open(filepath, 'w') as file:
           file.write(filedata)
 
-   
-    def postRasterThread(self, layer,data, q,progress, patch, resamplingMethod = "No value"):
+    
+    def postRasterThread(self, layers,data, q,progress, patch, resamplingMethod = "No value"):
+        for lay in layers:
+            if lay.dataProvider().name() != 'wms':
+                layer = lay
         if resamplingMethod == "No value":
             resamplingMethod = ""
         QgsMessageLog.logMessage("enableProgress")
@@ -5638,10 +5641,7 @@ class Layman(QObject):
         if (os.path.getsize(path) > self.CHUNK_SIZE):
             if patch:           
                 url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars(layer_name)
-                r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
-                #r = self.requestWrapper("DELETE", url, payload = None, files = None)
-
-           
+                r = requests.delete(url,headers = self.getAuthHeader(self.authCfg)) 
             url = self.URI + "/rest/"+self.laymanUsername+"/layers"
             name = self.removeUnacceptableChars(layer_name)           
             if externalFile:
@@ -5927,7 +5927,7 @@ class Layman(QObject):
                                     if layers[0].crs().authid() in self.supportedEPSG:
                                         ext = layers[0].dataProvider().dataSourceUri()[-4:]
                                         if ext.lower() != ".bmp":
-                                            threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True, resamplingMethod)).start()
+                                            threading.Thread(target=lambda: self.postRasterThread(layers,data, q,True, True, resamplingMethod)).start()
                                         else:
                                             QgsMessageLog.logMessage("BmpNotSupported")
                                     else:
@@ -5951,9 +5951,9 @@ class Layman(QObject):
                                     ext = layers[0].dataProvider().dataSourceUri()[-4:]
                                     if ext.lower() != ".bmp":
                                         if thread:
-                                            threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, True, resamplingMethod)).start()
+                                            threading.Thread(target=lambda: self.postRasterThread(layers,data, q,True, True, resamplingMethod)).start()
                                         else:
-                                            self.postRasterThread(layers[0],data, q,True, True, resamplingMethod)
+                                            self.postRasterThread(layers,data, q,True, True, resamplingMethod)
                                     else:
                                         QgsMessageLog.logMessage("BmpNotSupported")
                                 else:
@@ -5990,9 +5990,9 @@ class Layman(QObject):
                                     ext = layers[0].dataProvider().dataSourceUri()[-4:]
                                     if ext.lower() != ".bmp":
                                         if thread:
-                                            threading.Thread(target=lambda: self.postRasterThread(layers[0],data, q,True, False, resamplingMethod)).start()
+                                            threading.Thread(target=lambda: self.postRasterThread(layers,data, q,True, False, resamplingMethod)).start()
                                         else:
-                                            self.postRasterThread(layers[0],data, q,True, False, resamplingMethod)
+                                            self.postRasterThread(layers,data, q,True, False, resamplingMethod)
 
                                     else:
                                         QgsMessageLog.logMessage("BmpNotSupported")

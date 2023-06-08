@@ -1034,12 +1034,12 @@
     <message>
         <location filename="../dlg_layerProperties.ui" line="249"/>
         <source>Single tile:</source>
-        <translation type="unfinished"></translation>
+        <translation>Tiled/Dlaždicovat:</translation>
     </message>
     <message>
         <location filename="../dlg_layerProperties.ui" line="262"/>
         <source>Base layer:</source>
-        <translation>Základní vrstva</translation>
+        <translation>Podkladová vrstva</translation>
     </message>
     <message>
         <location filename="../dlg_layerProperties.ui" line="288"/>
@@ -1052,42 +1052,42 @@
     <message>
         <location filename="../dlg_importLayer.ui" line="35"/>
         <source>Layman - Export Layer to server</source>
-        <translation type="unfinished">Layman - Export vrstvy na server</translation>
+        <translation>Layman - Export vrstvy na server</translation>
     </message>
     <message>
         <location filename="../dlg_importLayer.ui" line="57"/>
         <source>Export layer</source>
-        <translation type="unfinished">Exportovat vrstvu</translation>
+        <translation>Exportovat vrstvu</translation>
     </message>
     <message>
         <location filename="../dlg_importLayer.ui" line="70"/>
         <source>Close</source>
-        <translation type="unfinished">Zavřít</translation>
+        <translation>Zavřít</translation>
     </message>
     <message>
         <location filename="../dlg_importLayer.ui" line="96"/>
         <source>Layer</source>
-        <translation type="unfinished">Vrstva</translation>
+        <translation>Vrstva</translation>
     </message>
     <message>
         <location filename="../dlg_importLayer.ui" line="101"/>
         <source>Type</source>
-        <translation type="unfinished">Typ</translation>
+        <translation>Typ</translation>
     </message>
     <message>
         <location filename="../dlg_importLayer.ui" line="134"/>
         <source>Processing data:</source>
-        <translation type="unfinished">Probíhá nahrávání:</translation>
+        <translation>Probíhá nahrávání:</translation>
     </message>
     <message>
         <location filename="../dlg_importLayer.ui" line="160"/>
         <source>Copy error log</source>
-        <translation type="unfinished"></translation>
+        <translation>Kopírovat log</translation>
     </message>
     <message>
         <location filename="../dlg_importLayer.ui" line="173"/>
         <source>Raster resampling method:</source>
-        <translation type="unfinished"></translation>
+        <translation>Interpolace rastru:</translation>
     </message>
 </context>
 <context>
