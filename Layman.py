@@ -6140,10 +6140,10 @@ class Layman(QObject):
             self.existLayer = False
             print(dimension)
             if dimension == "":
-                composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS" if not arc else "ArcGISRest","dimensions":{},"singleTile":False, "greyscale": greyScale,  "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+                composition['layers'].append({"metadata":{},"visibility":True,"opacity":layer.opacity(),"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS" if not arc else "ArcGISRest","dimensions":{},"singleTile":False, "greyscale": greyScale,  "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
             else:              
 
-                composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS" if not arc else "ArcGISRest","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
+                composition['layers'].append({"metadata":{},"visibility":True,"opacity":layer.opacity(),"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS" if not arc else "ArcGISRest","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
            
         else:           
             for p in params:
@@ -6270,7 +6270,7 @@ class Layman(QObject):
                     minScale = (self.scaleToResolution(layer.minimumScale()))                    
                 else:
                     minScale = None    
-                composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":layer.name(),"className":"OpenLayers.Layer.Vector","style": "","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.scaleToResolution(layer.maximumScale())),"name": str(title),"opacity":1 ,"protocol":{"format": "hs.format.externalWFS","url": url},"ratio":1.5,"visibility": layerTreeNode.isVisible(),"dimensions":{}})
+                composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":layer.name(),"className":"OpenLayers.Layer.Vector","style": "","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.scaleToResolution(layer.maximumScale())),"name": str(title),"protocol":{"format": "hs.format.externalWFS","url": url},"ratio":1.5,"visibility": layerTreeNode.isVisible(),"dimensions":{}})
             elif (isinstance(layer,QgsVectorLayer))  or layer.dataProvider().uri().uri() == "":
 
                 layers = []
@@ -6301,18 +6301,18 @@ class Layman(QObject):
                                 self.saveXYZ(layers[i])
                             else:
                                 wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'_wms/ows'
-                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5, "visibility": True,"dimensions":{}})
+                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5, "visibility": True,"dimensions":{}})
                                                
                     elif service == 'wfs':
                         wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'/wfs'
                         styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ str(layerName) + "/style"
 
-                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.scaleToResolution(layers[i].maximumScale())),"name": str(layerName),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.scaleToResolution(layers[i].maximumScale())),"name": str(layerName),"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
 
 
                     else:
                         wmsUrl = self.URI.replace("/client", "") +'/geoserver/'+self.laymanUsername+'_wms/ows'
-                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":1,"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
                     successful = successful + 1
                 print("saving layer records to composition")
                

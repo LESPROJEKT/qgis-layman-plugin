@@ -1014,12 +1014,12 @@
     <message>
         <location filename="../dlg_layerProperties.ui" line="158"/>
         <source>Max resolution:</source>
-        <translation>Maximální rozlišení:</translation>
+        <translation type="obsolete">Maximální rozlišení:</translation>
     </message>
     <message>
         <location filename="../dlg_layerProperties.ui" line="184"/>
         <source>Min resolution:</source>
-        <translation>Minimální rozlišení:</translation>
+        <translation type="obsolete">Minimální rozlišení:</translation>
     </message>
     <message>
         <location filename="../dlg_layerProperties.ui" line="210"/>
@@ -1045,6 +1045,16 @@
         <location filename="../dlg_layerProperties.ui" line="288"/>
         <source>Grey scale:</source>
         <translation>Odstíny šedi:</translation>
+    </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="158"/>
+        <source>Max scale:</source>
+        <translation>Maximální měřítko:</translation>
+    </message>
+    <message>
+        <location filename="../dlg_layerProperties.ui" line="184"/>
+        <source>Min scale:</source>
+        <translation>Minimální měřítko</translation>
     </message>
 </context>
 <context>
