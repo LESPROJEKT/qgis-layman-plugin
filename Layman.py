@@ -3608,7 +3608,7 @@ class Layman(QObject):
 
         self.dlg.progressBar_loader.show()
         self.dlg.pushButton_save.setEnabled(False)
-    def updateVisibilityInComposition(self):
+    def updateLayerPropsInComposition(self):
         self.showExportInfo.emit("Aktualizace viditelnost vrstev" if self.locale == "cs" else "Update layer visibility")
         composition = self.instance.getComposition()
         root = QgsProject.instance().layerTreeRoot()
@@ -3620,6 +3620,7 @@ class Layman(QObject):
                         self.modifyPathOfLayer(sublayer.name(),"")
                         self.modifyVisibilityOfLayer(sublayer.name(),sublayer.isVisible())
                         self.modifyScaleOfLayer(sublayer.layer(), sublayer.layer().hasScaleBasedVisibility())
+                        self.modifyOpacity(sublayer)
               
                 if isinstance(sublayer, QgsLayerTreeGroup):
                     for layer in sublayer.findLayers():
@@ -3628,7 +3629,8 @@ class Layman(QObject):
                             self.modifyVisibilityOfLayer(layer.name(),layer.isVisible())
                             if (isinstance(layer, QgsLayerTreeLayer)):
                                 layer = layer.layer()      
-                            self.modifyScaleOfLayer(layer, layer.hasScaleBasedVisibility())                           
+                            self.modifyScaleOfLayer(layer, layer.hasScaleBasedVisibility())       
+                            self.modifyOpacity(layer)                    
         
     
     def updateCompositionThread(self):        
@@ -3662,7 +3664,7 @@ class Layman(QObject):
                     except:
                         print("neni v poli")
         
-        self.updateVisibilityInComposition()       
+        self.updateLayerPropsInComposition()       
         self.syncOrder2(self.getLayersOrder())    
         self.patchMap2()        
         self.writeValuesToProject(self.URI, composition['name'])   
@@ -4611,7 +4613,16 @@ class Layman(QObject):
                  if layerType == QgsMapLayer.VectorLayer:
                      layer.editingStopped.connect(self.layerEditStopped)
                      layer.styleChanged.connect(self.layerStyleToUpdate)    
-     
+        ## load opacity info
+        composition = self.instance.getComposition() 
+        map_layers = QgsProject.instance().mapLayers().values()
+        print(map_layers)
+        for layer in map_layers:
+            for i in range (0, len(composition['layers'])):  
+                if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):      
+                    print(composition['layers'][i]['title'])
+                    print("set opacity to" + str(composition['layers'][i]['opacity']))
+                    layer.setOpacity(composition['layers'][i]['opacity'])      
         QgsMessageLog.logMessage("layersLoaded")
     def changeVisibility(self, layerTreeNode):        
         if layerTreeNode.nodeType() == 0:
@@ -4652,6 +4663,13 @@ class Layman(QObject):
                 if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):              
                     composition['layers'][i]['maxResolution'] = None
                     composition['layers'][i]['minResolution'] = 0 
+    def modifyOpacity(self, layer):
+        self.showExportInfo.emit("Aktualizace průhlednosti vrstev" if self.locale == "cs" else "Update layer opacity")
+        layer = layer.layer()
+        composition = self.instance.getComposition() 
+        for i in range (0, len(composition['layers'])):  
+            if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):            
+                composition['layers'][i]['opacity'] = layer.opacity()                
     def removeSignals(self):
         print("removing signals")
         layers = QgsProject.instance().mapLayers().values()
@@ -6947,14 +6965,11 @@ class Layman(QObject):
             return False
         QgsProject.instance().addMapLayer(layer)
 
-    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False, legend="0"):
-               
+    def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False, legend="0"):               
         layerName = self.parseWMSlayers(layerName) 
         epsg = QgsProject.instance().crs().authid()
-
         url = url.replace("%2F", "/").replace("%3A",":")
-        urlWithParams = 'contextualWMSLegend='+legend+'&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url
-            
+        urlWithParams = 'contextualWMSLegend='+legend+'&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url            
         quri = QgsDataSourceUri()
         try:  
             if timeDimension != {}:  
