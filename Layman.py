@@ -648,9 +648,7 @@ class Layman(QObject):
         self.dlg.listWidget_service.setStyleSheet("#listWidget_service {height:20px;}")
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))           
-        self.dlg.pushButton_qfield.clicked.connect(self.qfieldLogin)
-        self.dlg.pushButton_layerProperties.clicked.connect(self.showLayerProperties)
-        self.dlg.pushButton_layerProperties.hide()   
+        self.dlg.pushButton_qfield.clicked.connect(self.qfieldLogin)  
         if self.current != None:
             self.instance.refreshComposition()
             composition = self.instance.getComposition()

@@ -54,9 +54,9 @@
   <widget class="QPushButton" name="pushButton_close2">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>355</y>
-     <width>171</width>
+     <x>644</x>
+     <y>350</y>
+     <width>181</width>
      <height>28</height>
     </rect>
    </property>
@@ -308,27 +308,14 @@
   <widget class="QPushButton" name="pushButton_copyUrl">
    <property name="geometry">
     <rect>
-     <x>449</x>
-     <y>353</y>
+     <x>20</x>
+     <y>347</y>
      <width>181</width>
      <height>30</height>
     </rect>
    </property>
    <property name="text">
     <string>Copy URL</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButton_layerProperties">
-   <property name="geometry">
-    <rect>
-     <x>650</x>
-     <y>350</y>
-     <width>181</width>
-     <height>28</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Layer properties</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_log">
