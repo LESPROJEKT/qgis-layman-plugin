@@ -1454,14 +1454,12 @@ class Layman(QObject):
         return ret        
     def addExistingLayerToComposition(self, title, composition, type):
         name = self.removeUnacceptableChars(title)       
-
-        self.existLayer = False
-       
+        self.existLayer = False       
         if (type == "wms"):
-            wmsUrl = self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows'
+            wmsUrl = (self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows').replace("/client","")
             composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
         if (type == "wfs"):
-            wfsUrl = self.URI+'/geoserver/'+self.laymanUsername+'/wfs'
+            wfsUrl = (self.URI+'/geoserver/'+self.laymanUsername+'/wfs').replace("/client","")
             composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"OpenLayers.Layer.Vector","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wfsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
 
     def checkIfLayersExists(self):
@@ -7796,7 +7794,8 @@ class Layman(QObject):
             self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
             return
         if response.status_code != 200:           
-            self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url) 
+            self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)        
+               
         return response
     def _onEmitMessageBox(self, message):    
         if self.locale == "cs":
