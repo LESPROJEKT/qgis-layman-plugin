@@ -245,6 +245,7 @@ class Layman(QObject):
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)  
         self.pluginIsActive = False
         self.dockwidget = None
+        self.loggedThrowProject = False
         ## prepare temp dir
         tempDir = tempfile.gettempdir() + os.sep + "atlas"
         try:
@@ -840,7 +841,8 @@ class Layman(QObject):
     def projectReaded(self, afterLogged = False):      
         proj = QgsProject.instance()
         server, type_conversion_ok = proj.readEntry("Layman", "Server","")
-        name, type_conversion_ok = proj.readEntry("Layman", "Name","")        
+        name, type_conversion_ok = proj.readEntry("Layman", "Name","")     
+        print(server , name, self.URI, afterLogged)   
         if server != "" and name != "":
             if server == self.URI and not afterLogged and self.laymanUsername !="":
                 print (server == self.URI)
@@ -875,6 +877,7 @@ class Layman(QObject):
                         msgbox = QMessageBox(QMessageBox.Question, "Layman", "Tento projekt obsahuje odkaz na Layman server. Chcete se k tomuto serveru přihlásit?")
                     else:
                         msgbox = QMessageBox(QMessageBox.Question, "Layman", "This project includes link to Layman server. Do you want login?")
+                               
                     msgbox.addButton(QMessageBox.Yes)
                     msgbox.addButton(QMessageBox.No)
                     msgbox.setDefaultButton(QMessageBox.No)
@@ -888,10 +891,12 @@ class Layman(QObject):
                         path = self.plugin_dir + os.sep + "server_list.txt"
                         servers = self.csvToArray(path)
                         for i in range (0,len(servers)):
-                            if server == servers[i][1]:
-                                self.setServers(servers, i)                                
+                            if server == servers[i][1]:                                
+                                self.setServers(servers, i)                             
+                                  
                                 self.liferayServer = server.replace("/client","")
-                        self.openAuthLiferayUrl2("",True)                
+                        self.openAuthLiferayUrl2("",True)     
+                        self.loggedThrowProject = True           
         else:
             
             self.current = None
@@ -2174,7 +2179,7 @@ class Layman(QObject):
         self.dlg.label_APIKey_2.setToolTip("Username is important only with first login")       
         
 
-
+        
         for i in range (0,len(servers)):
 
             if not server:
@@ -2186,20 +2191,26 @@ class Layman(QObject):
                     else:
                        self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
             else:         
-                
-                if server == servers[i][1] and server != "http://157.230.109.174/client":
-                    self.dlg.comboBox_server.addItem(server.replace("/client",""))
-                    self.setServers(servers, i) 
-                    print("loaded name is "+name)
-                    self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2(name))
-                    break
-                elif server == "http://157.230.109.174/client" and servers[i][1] == server:
-                    self.dlg.comboBox_server.addItem("test HUB")                  
-                    self.setServers(servers, i)
-                    print("loaded name is "+name)
-                    self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2(name))
-                    break
-
+                if not self.loggedThrowProject:
+                    if server == servers[i][1] and server != "http://157.230.109.174/client":
+                        self.dlg.comboBox_server.addItem(server.replace("/client",""))
+                        self.setServers(servers, i) 
+                        print("loaded name is "+name)
+                        self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2(name))
+                        break
+                    elif server == "http://157.230.109.174/client" and servers[i][1] == server:
+                        self.dlg.comboBox_server.addItem("test HUB")                  
+                        self.setServers(servers, i)
+                        print("loaded name is "+name)
+                        self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2(name))
+                        break
+                else:      
+                    if len(servers[i]) == 6:
+                        self.dlg.comboBox_server.addItem(servers[i][5])  
+                    else:
+                       self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))             
+  
+                       
         if self.laymanUsername == "":
             if not server:
                 self.setServers(servers, 0) ## nastavujeme prvni server
@@ -3219,6 +3230,7 @@ class Layman(QObject):
             self.dlg.close()
             
     def logout(self):
+        self.loggedThrowProject = False
         self.disableEnvironment()          
         userEndpoint = self.URI+ "/rest/current-user"
         r = self.requestWrapper("DELETE", userEndpoint, payload = None, files = None)
@@ -3253,10 +3265,10 @@ class Layman(QObject):
         self.menu_ImportLayerDialog.setEnabled(False)   
         self.menu_UserInfoDialog.setEnabled(False)
         self.menu_CurrentCompositionDialog.setEnabled(False)
-    def setServers(self, servers, i):
+    def setServers(self, servers, i):      
         self.URI = servers[i][1]
         self.liferayServer = servers[i][0]
-        self.client_id = servers[i][2]
+        self.client_id = servers[i][2]    
         try:
             self.client_secret = servers[i][3]
             self.authCfg = servers[i][4]
