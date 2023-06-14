@@ -6445,11 +6445,16 @@ class Layman(QObject):
         print("export map")      
         workspace = self.instance.getWorkspace()       
         r = self.requestWrapper("DELETE", self.URI+'/rest/'+workspace+'/maps/'+composition['name'], payload = None, files = None)
-        time.sleep(1)       
-        response = self.requestWrapper("POST", self.URI+'/rest/'+workspace+'/maps', data, files)   
-        self.processingRequest = False        
-        res = self.fromByteToJson(response.content)
-        return response   
+        if r.status_code == 200:
+            time.sleep(1)
+            response = requests.request("POST", self.URI + '/rest/' + workspace + '/maps', data=data, files=files)
+            while response.status_code == 409:                  
+                time.sleep(1)
+                response = requests.request("POST", self.URI + '/rest/' + workspace + '/maps', data=data, files=files)
+            #◄response = self.requestWrapper("POST", self.URI+'/rest/'+workspace+'/maps', data, files)   
+            self.processingRequest = False        
+            res = self.fromByteToJson(response.content)
+            return response   
 
     def deleteLayer(self, layerName):
         url = self.URI+'/rest/'+self.laymanUsername+"/layers/" + layerName     
