@@ -10,7 +10,8 @@ FORMS = ../dlg_addLayer.ui \
 ../dlg_currentComposition.ui \
 ../dlg_timeSeries.ui \
 ../dlg_addMicka.ui \ 
-../dlg_layerProperties.ui
+../dlg_layerProperties.ui \
+../dlg_postgrePass.ui \
 
 SOURCES = ../Layman.py 
 

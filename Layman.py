@@ -2027,8 +2027,10 @@ class Layman(QObject):
             self.dlg.label_progress.setText("Sucessfully exported: 0 / 1")
         threading.Thread(target=lambda: self.timeSeries(items, regex, title, resamplingMethod)).start()
 
-    def timeSeries(self, items, regex, title, resamplingMethod="No value"):    
-        if resamplingMethod == "No value":
+    def timeSeries(self, items, regex, title, resamplingMethod="Není vybrán"):    
+        if self.locale == "cs":
+            resamplingMethod = self.resamplingMethods[resamplingMethod]        
+        if resamplingMethod == "No value" or resamplingMethod == "Není vybrán":
             resamplingMethod = ""     
         print("time series")        
         name = self.removeUnacceptableChars(title)
@@ -2093,7 +2095,22 @@ class Layman(QObject):
         else:
             self.dlg.label_progress.setText("Sucessfully exported: 0 / 0")
         self.dlg.progressBar.hide()
-        resamplingMethods = ["No value", "nearest", "average", "rms", "bilinear", "gauss", "cubic", "cubicspline", "average_magphase", "mode"]
+        self.resamplingMethods = {
+            "Není vybrán": "No value",
+            "Nejbližší": "nearest",
+            "Průměr": "average",
+            "rms": "rms",
+            "Bilineární": "bilinear",
+            "Gaussovská": "gauss",
+            "Kubická": "cubic",
+            "Kubický spline": "cubicspline",
+            "Průměr magnitudy a fáze": "average_magphase",
+            "Modus": "mode"
+        }
+        if self.locale == "cs":
+            resamplingMethods = ["Není vybrán", "Nejbližší", "Průměr", "rms", "Bilineární", "Gaussovská", "Kubická", "Kubický spline", "Průměr magnitudy a fáze", "Modus"]
+        else:            
+            resamplingMethods = ["No value", "nearest", "average", "rms", "bilinear", "gauss", "cubic", "cubicspline", "average_magphase", "mode"]
         self.dlg.comboBox_resampling.addItems(resamplingMethods)
         self.dlg.comboBox_resampling.setEnabled(False)
         self.dlg.label_import.hide()
@@ -5419,8 +5436,10 @@ class Layman(QObject):
             else:
                 return False  
         return True    
-    def callPostRequest(self, layers):
+    def callPostRequest(self, layers):        
         resamplingMethod = self.dlg.comboBox_resampling.currentText()
+        if resamplingMethod == "No value":
+            resamplingMethod = "Není vybrán"
         def showPostgreDialog(layer):
             self.dlgPostgres = PostgrePasswordDialog()   
             self.dlgPostgres.show()
@@ -5638,11 +5657,13 @@ class Layman(QObject):
           file.write(filedata)
 
     
-    def postRasterThread(self, layers,data, q,progress, patch, resamplingMethod = "No value"):
+    def postRasterThread(self, layers,data, q,progress, patch, resamplingMethod = "Není vybrán"):
+        resamplingMethod = self.resamplingMethods[resamplingMethod]
+        print(resamplingMethod)
         for lay in layers:
             if lay.dataProvider().name() != 'wms':
                 layer = lay
-        if resamplingMethod == "No value":
+        if resamplingMethod == "No value" or resamplingMethod == "Není vybrán":
             resamplingMethod = ""
         QgsMessageLog.logMessage("enableProgress")
         data['crs'] = layer.crs().authid()        
@@ -5912,7 +5933,7 @@ class Layman(QObject):
                     dimension = elt.text
                     check = False
                     return dimension
-    def postRequest(self, layer_name, auto=False, thread=False, bulk = False, resamplingMethod = "No value"):
+    def postRequest(self, layer_name, auto=False, thread=False, bulk = False, resamplingMethod = "Není vybrán"):
         nameCheck = True
         validExtent = True
         layers = QgsProject.instance().mapLayersByName(layer_name)    
