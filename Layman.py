@@ -240,7 +240,7 @@ class Layman(QObject):
         self.menu = self.tr(u'&Layman')
         self.toolbar = self.iface.addToolBar(u'Layman')
         self.toolbar.setObjectName(u'Layman')
-        QgsApplication.messageLog().messageReceived.connect(self.write_log_message)
+        QgsApplication.messageLog().messageReceived.connect(self.write_log_message)    
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)  
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)  
         self.pluginIsActive = False
@@ -467,8 +467,7 @@ class Layman(QObject):
                 else:
                     item.setToolTip(0,"This layer is displayed and is part of the loaded composition.")
                 if layerType == QgsMapLayer.VectorLayer:
-                    layer.editingStopped.connect(self.layerEditStopped)
-            # i = i + 1
+                    layer.editingStopped.connect(self.layerEditStopped)            
             else:
                 item.setCheckState(0,0)      
                 if self.locale == "cs":
@@ -725,17 +724,19 @@ class Layman(QObject):
             self.dlg.pushButton_close.setEnabled(False)
             self.dlg.pushButton_save.setEnabled(False)
             self.dlg.pushButton_delete.setEnabled(False)
-        self.dlg.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog())
-        self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers())  
-        self.dlg.pushButton_close2.clicked.connect(lambda: self.dlg.close())
-        self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
-        self.dlg.pushButton_save.clicked.connect(lambda: self.updateComposition())
-        self.dlg.checkBox_all.stateChanged.connect(self.checkAllLayers)
-        self.dlg.pushButton_delete.clicked.connect(lambda: self.deleteCurrentMap())
-        self.dlg.progressBar_loader.hide()      
-        self.dlg.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())       
-        self.dlg.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
-      
+        if not self.dlg.pushButton_save.receivers(self.dlg.pushButton_save.clicked) > 0:
+            self.dlg.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog())
+            self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers())  
+            self.dlg.pushButton_close2.clicked.connect(lambda: self.dlg.close())
+            self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
+        
+            self.dlg.pushButton_save.clicked.connect(lambda: self.updateComposition())
+            self.dlg.checkBox_all.stateChanged.connect(self.checkAllLayers)
+            self.dlg.pushButton_delete.clicked.connect(lambda: self.deleteCurrentMap())
+              
+            self.dlg.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())       
+            self.dlg.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
+        self.dlg.progressBar_loader.hide()
     def comboBoxChanged(self, text):        
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         try:
@@ -814,7 +815,7 @@ class Layman(QObject):
             if item.checkState() == 0:
                 self.noOverrideLayers.append(item.text())
         
-        self.dlg = self.old_dlg
+        self.dlg = self.old_dlg        
         self.updateComposition(False)
     def recalculateDPI(self):
         self.DPI = self.getDPI()
@@ -3552,6 +3553,7 @@ class Layman(QObject):
         self.showExportInfo.emit("Aktualizace pořadí vrstev" if self.locale == "cs" else "Update layer order")
         serverOrder = self.instance.getLayerNamesList()
         composition = self.instance.getComposition()   
+        print(composition)
         if len(serverOrder) != len(QgsProject.instance().mapLayers()):
             print("pocet vrstev na serveru a v projektu je jiný. Není možné synchronizovat pořadí.")
             return   
@@ -3571,7 +3573,7 @@ class Layman(QObject):
         print("order changed to:")
         print(composition['layers'])
     
-    def updateComposition(self, checkD = True):
+    def updateComposition(self, checkD = True):       
         self.currentSet = list()
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         try:
@@ -3608,7 +3610,7 @@ class Layman(QObject):
                 lay.styleChanged.connect(self.layerStyleToUpdate)
             iterator +=1
 
-     
+
         threading.Thread(target=lambda: self.updateCompositionThread()).start()
 
 
@@ -3641,7 +3643,7 @@ class Layman(QObject):
                             self.modifyOpacity(layer)                    
         
     
-    def updateCompositionThread(self):        
+    def updateCompositionThread(self):      
         composition = self.instance.getComposition()
         i= 0
         for item in self.currentSet:
@@ -4627,9 +4629,7 @@ class Layman(QObject):
         print(map_layers)
         for layer in map_layers:
             for i in range (0, len(composition['layers'])):  
-                if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):      
-                    print(composition['layers'][i]['title'])
-                    print("set opacity to" + str(composition['layers'][i]['opacity']))
+                if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):  
                     layer.setOpacity(composition['layers'][i]['opacity'])      
         QgsMessageLog.logMessage("layersLoaded")
     def changeVisibility(self, layerTreeNode):        
@@ -5160,7 +5160,10 @@ class Layman(QObject):
             crs = QgsCoordinateReferenceSystem(layerCrs)# původně bylo
             layer_filename = filePath          
             if os.path.exists(layer_filename):
-                os.remove(layer_filename)        
+                try:
+                    os.remove(layer_filename)        
+                except PermissionError as e:         
+                    print(f"PermissionError exception: {e}")          
             epsg = layer.crs().authid()
             if not epsg in self.supportedEpsg:
                 epsg = QgsProject.instance().crs().authid()
@@ -6439,6 +6442,8 @@ class Layman(QObject):
     def patchMap2(self):
         self.showExportInfo.emit("Ukládání kompozice" if self.locale == "cs" else "Saving composition")
         composition = self.instance.getComposition()        
+        print("composition")
+        print(composition)
         tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
         with open(tempFile, 'w') as outfile:
             json.dump(composition, outfile)
