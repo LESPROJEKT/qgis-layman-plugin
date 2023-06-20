@@ -634,7 +634,7 @@
     <message>
         <location filename="../dlg_userInfo.ui" line="54"/>
         <source>Wagtail username:</source>
-        <translation type="unfinished">Liferay uživatel:</translation>
+        <translation>Wagtail uživatel:</translation>
     </message>
     <message>
         <location filename="../dlg_ConnectionManager.ui" line="170"/>

@@ -1645,14 +1645,14 @@ class Layman(QObject):
                        
             self.dlg.label_avversion.setText(versionCheck[1])
             if versionCheck[0] == True:
-                self.dlg.label_avversion.hide()            
+                #self.dlg.label_avversion.hide()            
                 self.dlg.pushButton_update.setEnabled(False)
         else:
             self.dlg.label_version.setText(self.getVersion())
             versionCheck = self.checkVersion()
             self.dlg.label_avversion.setText(versionCheck[1])
             if versionCheck[0] == True:
-                self.dlg.label_avversion.hide()           
+                #self.dlg.label_avversion.hide()           
                 self.dlg.pushButton_update.setEnabled(False)
             self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
