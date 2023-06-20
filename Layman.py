@@ -5647,15 +5647,25 @@ class Layman(QObject):
 
     def replaceInfiniteInSLD(self, filepath):
         with open(filepath, 'r') as file :
-          filedata = file.read()
-
-        # Replace the target string
-        filedata = filedata.replace('"inf"', '"9999"')
-
-        # Write the file out again
+          filedata = file.read()      
+        filedata = filedata.replace('"inf"', '"9999"')     
         with open(filepath, 'w') as file:
           file.write(filedata)
 
+    def removeUnsupportedLaymanTag(self, stylePath, layer):
+        provider = layer.dataProvider()      
+        stats = provider.bandStatistics(1, QgsRasterBandStats.All, layer.extent(), 0)
+        min_value = stats.minimumValue
+        max_value = stats.maximumValue   
+        with open(stylePath, 'r') as file:
+            sld_style = file.read()
+        if min_value != 0 and 'quantity="0"' in sld_style:        
+            start_tag = r'<sld:Normalize>[\s\S]*?</sld:Normalize>'
+            updated_sld_style = re.sub(start_tag, '', sld_style)                            
+            updated_sld_style = updated_sld_style.replace('quantity="0"', 'quantity="' + str(min_value)+ '"')
+            updated_sld_style = updated_sld_style.replace('quantity="255"', 'quantity="' + str(max_value)+ '"')  
+            with open(stylePath, 'w') as file:
+                file.write(updated_sld_style)
     
     def postRasterThread(self, layers,data, q,progress, patch, resamplingMethod = "Není vybrán"):
         resamplingMethod = self.resamplingMethods[resamplingMethod]
@@ -5669,6 +5679,7 @@ class Layman(QObject):
         data['crs'] = layer.crs().authid()        
         stylePath = self.getTempPath(self.removeUnacceptableChars(layer.name())).replace("geojson", "sld")
         layer.saveSldStyle(stylePath)
+        self.removeUnsupportedLaymanTag(stylePath, layer)
         self.replaceInfiniteInSLD(stylePath)
         layer_name = layer.name()
         title = layer_name
