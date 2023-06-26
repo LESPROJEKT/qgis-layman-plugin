@@ -131,6 +131,7 @@ class Layman(QObject):
     postgisFound = pyqtSignal(bool)
     showExportInfo = pyqtSignal(str)
     cleanTemp =  pyqtSignal(str)
+    getLayers = pyqtSignal(bool)
 
 
 
@@ -333,6 +334,7 @@ class Layman(QObject):
         self.postgisFound.connect(self.on_postgis_found)
         self.showExportInfo.connect(self.showExportedCompositionInfo)
         self.cleanTemp.connect(self._cleanTemp)
+        self.getLayers.connect(self.loadLayersThread)
         
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""       
@@ -2768,8 +2770,8 @@ class Layman(QObject):
         self.dlg.pushButton_postgis.setStyleSheet("#pushButton_postgis {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_postgis:hover{background: #66ab27 ;}#pushButton_postgis:disabled{background: #64818b ;}")
         # self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
         # self.threadLayers.start()
-        self.dlg.progressBar_loader.show()
-        self.loadLayersThread(checked)
+        self.dlg.progressBar_loader.show()        
+        self.getLayers.emit(checked)
         self.dlg.checkBox_own.stateChanged.connect(self.loadLayersThread)     
         if self.isAuthorized:
             self.dlg.checkBox_own.setEnabled(True)
@@ -2785,9 +2787,7 @@ class Layman(QObject):
         self.dlg.treeWidget.clear()
         if self.laymanUsername and self.isAuthorized:              
             url = self.URI+'/rest/'+self.laymanUsername+'/layers'            
-            r = self.requestWrapper("GET", url, payload = None, files = None)     
-            #print(self.getAuthHeader(self.authCfg))      
-            #r = requests.request("GET", url = url, headers=self.getAuthHeader(self.authCfg))        
+            r = self.requestWrapper("GET", url, payload = None, files = None)               
             data = r.json()            
             if onlyOwn:                
                 for row in range(0, len(data)):                   
