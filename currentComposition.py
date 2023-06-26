@@ -144,6 +144,5 @@ class CurrentComposition(object):
                 input = input[:-1]
         except:
             print("removechars exception")
-       # iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Diacritics in name of layer was replaced."), Qgis.Success, duration=3)
-        #print("name after remove: " + input)
+       
         return input        

@@ -442,9 +442,7 @@ class Layman(QObject):
 
         if layerAdded:
             layersArr.append(layerAdded)
-        for layer in layersArr:  ## q
-
-
+        for layer in layersArr:  
             self.layerIds.append([self.removeUnacceptableChars(layer.name()), layer.id()])
             layerType = layer.type()                
             item = QTreeWidgetItem()
@@ -859,7 +857,8 @@ class Layman(QObject):
                 if (reply == QMessageBox.Yes):
                     if self.compositionExists(name):
                         self.current = name
-                        self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)
+                        print(self.URI, name, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)
+                        self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)                   
                     else:
                         self.current = None
                         if self.locale == "cs":
@@ -906,10 +905,17 @@ class Layman(QObject):
         url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file' 
         print(url)  
         print(self.laymanUsername)          
-        r = self.requestWrapper("GET", url, payload = None, files = None)
+        #r = self.requestWrapper("GET", url, payload = None, files = None)
+        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
         print(r.content)
         if r.status_code == 200:
             return True
+        elif self.fromByteToJson(r.content)["code"] == 26:
+            print("compositon was not set because user is not owner")
+            if self.locale == "cs":
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice nebyla nastavena protože aktuální uživatel není vlastník."), Qgis.Warning, duration=3)
+            else:
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Compositon was not set because user is not owner."), Qgis.Warning, duration=3)
         else:
             return False 
     def setGuiForItem(self, item):
@@ -2512,7 +2518,8 @@ class Layman(QObject):
         if checked == "1":
             self.dlg.checkBox_own.setCheckState(2)
             checked = True
-        threading.Thread(target=lambda: self.loadMapsThread(checked)).start()
+        # threading.Thread(target=lambda: self.loadMapsThread(checked)).start()
+        self.loadMapsThread(checked)
         result = self.dlg.exec_()
 
     def writeValuesToProject(self, server, name):
@@ -2727,7 +2734,7 @@ class Layman(QObject):
         if checked == "1":
             self.dlg.checkBox_own.setCheckState(2)
             checked = True
-  
+        
         self.dlg.pushButton_delete.clicked.connect(lambda: self.callDeleteLayer(self.dlg.treeWidget.selectedItems(), self.layerNamesDict))
         self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
         self.dlg.pushButton.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WMS"))
@@ -2759,14 +2766,16 @@ class Layman(QObject):
         self.dlg.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #707070 ;}#pushButton_urlWms:disabled{background: #999999 ;}")
         self.dlg.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #707070 ;}#pushButton_urlWfs:disabled{background: #999999 ;}")
         self.dlg.pushButton_postgis.setStyleSheet("#pushButton_postgis {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_postgis:hover{background: #66ab27 ;}#pushButton_postgis:disabled{background: #64818b ;}")
-        self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
-        self.threadLayers.start()
+        # self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
+        # self.threadLayers.start()
+        self.dlg.progressBar_loader.show()
+        self.loadLayersThread(checked)
         self.dlg.checkBox_own.stateChanged.connect(self.loadLayersThread)     
         if self.isAuthorized:
             self.dlg.checkBox_own.setEnabled(True)
         else:
             self.dlg.checkBox_own.setEnabled(False)
-        self.dlg.progressBar_loader.show()
+        
         self.dlg.label_loading.show()
         self.dlg.show()
         result = self.dlg.exec_()
@@ -2774,10 +2783,12 @@ class Layman(QObject):
     def loadLayersThread(self, onlyOwn=False):
         self.layerNamesDict = dict()
         self.dlg.treeWidget.clear()
-        if self.laymanUsername and self.isAuthorized:  
-            url = self.URI+'/rest/'+self.laymanUsername+'/layers'
-            r = self.requestWrapper("GET", url, payload = None, files = None)           
-            data = r.json()
+        if self.laymanUsername and self.isAuthorized:              
+            url = self.URI+'/rest/'+self.laymanUsername+'/layers'            
+            r = self.requestWrapper("GET", url, payload = None, files = None)     
+            #print(self.getAuthHeader(self.authCfg))      
+            #r = requests.request("GET", url = url, headers=self.getAuthHeader(self.authCfg))        
+            data = r.json()            
             if onlyOwn:                
                 for row in range(0, len(data)):                   
                     if "native_crs" in data[row]:
@@ -6493,15 +6504,10 @@ class Layman(QObject):
         data['access_rights.write'] = self.listToString(write)
         print("export map")      
         workspace = self.instance.getWorkspace()       
-        r = self.requestWrapper("DELETE", self.URI+'/rest/'+workspace+'/maps/'+composition['name'], payload = None, files = None)
-        #if r.status_code == 200:
+        r = self.requestWrapper("DELETE", self.URI+'/rest/'+workspace+'/maps/'+composition['name'], payload = None, files = None)      
         time.sleep(1)
-        response = requests.request("POST", self.URI + '/rest/' + workspace + '/maps', headers=self.getAuthHeader(self.authCfg),data=data, files=files)
-        # print(self.fromByteToJson(response.content))
-        # while self.fromByteToJson(response.content)["code"] == 24:                  
-        #     time.sleep(1)
-        #     response = requests.request("POST", self.URI + '/rest/' + workspace + '/maps',headers=self.getAuthHeader(self.authCfg), data=data, files=files)
-        #response = self.requestWrapper("POST", self.URI+'/rest/'+workspace+'/maps', data, files)   
+        # response = requests.request("POST", self.URI + '/rest/' + workspace + '/maps', headers=self.getAuthHeader(self.authCfg),data=data, files=files)
+        response = self.requestWrapper("POST", self.URI+'/rest/'+workspace+'/maps', data, files)   
         self.processingRequest = False        
         res = self.fromByteToJson(response.content)
         return response   
@@ -7844,11 +7850,11 @@ class Layman(QObject):
     def requestWrapper(self, type, url, payload = None, files = None):    
         try:
             response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files)        
-        except Exception as ex:     
+        except Exception as ex:   
             info = str(ex)            
             self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
             return
-        if response.status_code != 200:           
+        if response.status_code != 200:               
             self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)        
                
         return response
