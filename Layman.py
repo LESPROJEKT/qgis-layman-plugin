@@ -92,7 +92,6 @@ from .dlg_ConnectionManager import ConnectionManagerDialog
 from .dlg_createComposite import CreateCompositeDialog
 from .dlg_currentComposition import CurrentCompositionDialog
 from .dlg_deleteLayerFromMap import DeleteLayerFromMapDialog
-from .dlg_deleteMap import DeleteMapDialog
 from .dlg_editMap import EditMapDialog
 from .dlg_errMsg import ErrMsgDialog
 from .dlg_GetLayers import GetLayersDialog
@@ -132,6 +131,8 @@ class Layman(QObject):
     showExportInfo = pyqtSignal(str)
     cleanTemp =  pyqtSignal(str)
     getLayers = pyqtSignal(bool)
+    layerDeletedSuccessfully = pyqtSignal()
+    mapDeletedSuccessfully = pyqtSignal()
 
 
 
@@ -335,6 +336,8 @@ class Layman(QObject):
         self.showExportInfo.connect(self.showExportedCompositionInfo)
         self.cleanTemp.connect(self._cleanTemp)
         self.getLayers.connect(self.loadLayersThread)
+        self.layerDeletedSuccessfully.connect(self._onLayerDeletedSuccessfully)
+        self.mapDeletedSuccessfully.connect(self._onMapDeletedSuccessfully)
         
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""       
@@ -1977,16 +1980,7 @@ class Layman(QObject):
             self.addR = self.dlg.pushButton_addRaster.isEnabled()
             self.dlg.pushButton_addRaster.setEnabled(False)
    
-    def run_DeleteMapDialog(self):
-        self.recalculateDPI()
-        self.dlg = DeleteMapDialog()
-        self.refreshListWidgetMaps()
-        self.dlg.pushButton.setEnabled(False)
-        self.dlg.treeWidget.itemClicked.connect(self.enableButton)
-        self.dlg.pushButton.clicked.connect(lambda: self.deleteMapFromServer(self.dlg.treeWidget.selectedItems()[0].text(0)))
-        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        self.dlg.show()
-        result = self.dlg.exec_()
+    
     def checkRegex(self, items, regex):
         for item in items:
             if not re.search(regex, item.text(0)):
@@ -2500,10 +2494,7 @@ class Layman(QObject):
         self.dlg.checkBox_own.stateChanged.connect(self.loadMapsThread)
         self.dlg.checkBox_own.stateChanged.connect(self.disableButtonsAddMap)
         self.dlg.checkBox_own.stateChanged.connect(self.rememberValueMap)
-        self.dlg.pushButton_delete.setEnabled(False)
-        self.dlg.pushButton_copyUrl.setEnabled(False)
-        self.dlg.pushButton_setPermissions.setEnabled(False)
-        self.dlg.pushButton_map.setEnabled(False)
+        self.mapDeletedSuccessfully.emit()
         self.dlg.show()
         self.dlg.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl(True))
         self.dlg.progressBar_loader.show()
@@ -2523,7 +2514,7 @@ class Layman(QObject):
         # threading.Thread(target=lambda: self.loadMapsThread(checked)).start()
         self.loadMapsThread(checked)
         result = self.dlg.exec_()
-
+    
     def writeValuesToProject(self, server, name):
         proj = QgsProject.instance()
         proj.writeEntry("Layman", "Server", server)
@@ -3505,8 +3496,7 @@ class Layman(QObject):
             reply = msgbox.exec()
             if (reply == QMessageBox.Yes):                
                 question = False
-        for j in range (0, len(items)):
-            
+        for j in range (0, len(items)):            
             self.layerDelete(items[j], layerNames, question)
     def layerDelete(self, name,layerNames, question = True):
         title = name
@@ -3558,9 +3548,10 @@ class Layman(QObject):
         self.loadLayersThread(checked)
 
         if response.status_code == 200:
-            QgsMessageLog.logMessage("delLay")
+            self.layerDeletedSuccessfully.emit()           
         else:
             self.showErr.emit(["Vrstva nebyla smazána!", "Layer was not deleted!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
+            
     def deleteItemFromTreeWidget(self,name):     
         iterator= QTreeWidgetItemIterator(self.dlg.treeWidget);
         items = []
@@ -4288,24 +4279,9 @@ class Layman(QObject):
                 self.dlg.pushButton_addRaster.setEnabled(True)
                 self.dlg.progressBar.hide()
                 self.dlg.label_import.hide()
-
-
             except:
-                pass
-            
-        
-        if message == "delLay":
-            try:
-                self.dlg.label_thumbnail.setText(' ')
-            except:
-                pass
-            try:
-                if not (self.threadLayers.is_alive()):
+                pass            
 
-                    self.dlg.progressBar_loader.hide()
-
-            except:
-                pass          
 
         
         if message[0:8] == "importl_":
@@ -4788,22 +4764,9 @@ class Layman(QObject):
                 if self.locale == "cs":             
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla smazána."), Qgis.Warning)
                 else:              
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)
-
-            try:
-                del (self.compositeList[x])
-                self.refreshCompositeList()## pro import map form
-                self.dlg.treeWidget_listLayers.clear()
-                self.dlg.treeWidget_listLayers.addTopLevelItem(item)
-                self.dlg.pushButton_deleteMap.setEnabled(False)
-                self.dlg.pushButton_editMeta.setEnabled(False)
-                self.dlg.pushButton_setMapPermissions.setEnabled(False)
-                self.dlg.pushButton.setEnabled(False)
-                self.dlg.pushButton_addRaster.setEnabled(False)
-
-            except:
-                pass
-           
+                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)    
+          
+            self.mapDeletedSuccessfully.emit()
             try:
                 checked = self.getConfigItem("mapcheckbox")
                 print(checked)
@@ -7989,7 +7952,30 @@ class Layman(QObject):
         layers = project.mapLayers().values()      
         for layer in layers:      
             if layer.type() == QgsMapLayerType.VectorLayer and layer.dataProvider().name() == 'WFS':              
-                layer.dataProvider().reloadData()                                    
+                layer.dataProvider().reloadData()     
+    def _onLayerDeletedSuccessfully(self):      
+        if self.dlg.objectName() == "AddLayerDialog":
+            self.dlg.pushButton_postgis.hide()
+            self.dlg.pushButton_wfs.setEnabled(False)
+            self.dlg.pushButton.setEnabled(False)
+            self.dlg.pushButton_setPermissions.setEnabled(False)
+            self.dlg.pushButton_delete.setEnabled(False)
+            self.dlg.pushButton_urlWms.setEnabled(False)
+            self.dlg.pushButton_urlWfs.setEnabled(False)
+            self.dlg.progressBar_loader.hide()
+            self.dlg.label_thumbnail.setText(' ')
+            try:
+                if not (self.threadLayers.is_alive()):
+                    self.dlg.progressBar_loader.hide()
+            except:
+                pass 
+    def _onMapDeletedSuccessfully(self):
+        if self.dlg.objectName() == "AddMapDialog":
+            self.dlg.pushButton_delete.setEnabled(False)
+            self.dlg.pushButton_copyUrl.setEnabled(False)
+            self.dlg.pushButton_setPermissions.setEnabled(False)
+            self.dlg.pushButton_map.setEnabled(False)
+            self.dlg.label_thumbnail.setText(' ')   
     def run(self):
         """Run method that loads and starts the plugin"""
 
