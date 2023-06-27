@@ -7516,36 +7516,10 @@ class Layman(QObject):
                     QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
                 return False
         else:
-            return ""
+            return ""  
+            
 
-    def getCodeVerifier(self):
-        code_verifier = base64.urlsafe_b64encode(os.urandom(40)).decode('utf-8')
-        code_verifier = re.sub('[^a-zA-Z0-9]+', '', code_verifier)
-        self.code_verifier = code_verifier
-        return (code_verifier)
-
-    def getCodeChallenge(self, code_verifier):
-        code_challenge = hashlib.sha256(code_verifier.encode('utf-8')).digest()
-        code_challenge = base64.urlsafe_b64encode(code_challenge).decode('utf-8')
-        code_challenge = code_challenge.replace('=', '')
-        self.code_challenge = code_challenge
-        return (code_challenge)
-
-    
-
-    def getAuthCode(self):
-        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt"
-        f = open(path, "r")
-        ret =  f.read()
-        f.close()
-        return ret
-
-    
-    def setAuthHeader(self):
-        self.authHeader ={
-          "Authorization": "Bearer " + self.access_token,
-          "AuthorizationIssUrl" : self.liferayServer+'/o/oauth2/authorize'
-        }
+ 
 
     def beforeAmp(self, s):
         ret = ""       
