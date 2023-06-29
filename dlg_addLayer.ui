@@ -76,7 +76,7 @@
    </column>
    <column>
     <property name="text">
-     <string>EPSG</string>
+     <string>CRS</string>
     </property>
    </column>
   </widget>
