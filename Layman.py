@@ -275,8 +275,7 @@ class Layman(QObject):
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('Layman', message)
 
-    def rebuildLiferayCache(self):
-        QgsApplication.authManager().rebuildCertTrustCache()
+
     def add_action(
         self,
         icon_path,
@@ -907,10 +906,7 @@ class Layman(QObject):
             self.current = None
     def compositionExists(self,name):     
                         
-        url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file' 
-        print(url)  
-        print(self.laymanUsername)          
-        #r = self.requestWrapper("GET", url, payload = None, files = None)
+        url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file'       
         r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
         print(r.content)
         if r.status_code == 200:
@@ -7650,8 +7646,8 @@ class Layman(QObject):
                     self.instance.setComposition(data)
                     self.current = load
 
-                self.projectReaded(True)
-                threading.Thread(target=lambda: self.fillCompositionDict()).start()
+                self.projectReaded(True)            
+                self.fillCompositionDict()
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
         with open(save_path, 'wb') as fd:
