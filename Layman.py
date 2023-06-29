@@ -2716,7 +2716,7 @@ class Layman(QObject):
         self.dlg.pushButton_delete.setEnabled(False)
         self.dlg.pushButton_setPermissions.setEnabled(False)
         self.dlg.label_noUser.hide()
-        self.dlg.pushButton_postgis.hide() 
+        self.dlg.pushButton_postgis.setEnabled(False) 
         try:
             checked = self.getConfigItem("layercheckbox")            
         except:
@@ -7937,9 +7937,9 @@ class Layman(QObject):
     def on_postgis_found(self, found):    
         if self.dlg.objectName() == "AddLayerDialog":
             if found:
-                self.dlg.pushButton_postgis.show()       
+                self.dlg.pushButton_postgis.setEnabled(True)       
             else:
-                self.dlg.pushButton_postgis.hide()    
+                self.dlg.pushButton_postgis.setEnabled(False)    
     def showExportedCompositionInfo(self, info):
         if self.dlg.objectName() == "CurrentCompositionDialog":
             if info != "F":
@@ -7955,7 +7955,7 @@ class Layman(QObject):
                 layer.dataProvider().reloadData()     
     def _onLayerDeletedSuccessfully(self):      
         if self.dlg.objectName() == "AddLayerDialog":
-            self.dlg.pushButton_postgis.hide()
+            self.dlg.pushButton_postgis.setEnabled(False)
             self.dlg.pushButton_wfs.setEnabled(False)
             self.dlg.pushButton.setEnabled(False)
             self.dlg.pushButton_setPermissions.setEnabled(False)
