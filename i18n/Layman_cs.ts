@@ -1117,7 +1117,7 @@
     <message>
         <location filename="../dlg_importLayer.ui" line="173"/>
         <source>Raster resampling method:</source>
-        <translation>Interpolace rastru:</translation>
+        <translation>Vzorkování rastru:</translation>
     </message>
 </context>
 <context>

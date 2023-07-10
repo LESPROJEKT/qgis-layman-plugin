@@ -5272,8 +5272,7 @@ class Layman(QObject):
                                     file.write(filedata)
                     
                 if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
-                    path = i.symbol().symbolLayer(0).path()
-                    print(type(i.symbol().symbolLayer(0).subSymbol() ))
+                    path = i.symbol().symbolLayer(0).path()                  
                     if path[:4] != "base":
                         if os.path.exists(path):
                             with open(path, "rb") as image_file:
