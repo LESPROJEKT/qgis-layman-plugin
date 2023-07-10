@@ -105,6 +105,7 @@ from .dlg_showQProject import ShowQProjectDialog
 from .dlg_timeSeries import TimeSeriesDialog
 from .dlg_userInfo import UserInfoDialog
 from .resources import *
+from .layman_utils import LaymanUtils
 
 
 class Layman(QObject):
@@ -216,7 +217,8 @@ class Layman(QObject):
         self.watcherState.addPath(path)  
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
         self.dependencies = True
-        self.recalculateDPI()
+        
+        
         if os.path.isfile(path):
             self.authFileTime =os.path.getmtime(path)        
         else:
@@ -230,6 +232,7 @@ class Layman(QObject):
             'i18n',
             'Layman_{}.qm'.format(locale))
         self.locale = locale
+        self.utils = LaymanUtils(self.iface, self.locale)
         if os.path.exists(locale_path):
             self.translator = QTranslator()
             self.translator.load(locale_path)
@@ -238,6 +241,7 @@ class Layman(QObject):
                 QCoreApplication.installTranslator(self.translator)
 
         # Declare instance attributes
+        self.utils.recalculateDPI()
         self.actions = []
         self.menu = self.tr(u'&Layman')
         self.toolbar = self.iface.addToolBar(u'Layman')
@@ -620,7 +624,7 @@ class Layman(QObject):
         except:
             pass                      
     def run_CurrentCompositionDialog(self, refresh = False):
-        self.recalculateDPI()
+        self.utils.recalculateDPI()
         self.modified = False
         if not refresh:
             self.dlg = CurrentCompositionDialog()
@@ -638,15 +642,15 @@ class Layman(QObject):
         self.dlg.radioButton_wfs.hide()
         self.dlg.label_raster.hide()
         self.dlg.treeWidget_layers.header().resizeSection(0,230);
-        self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #3bc4ff;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-        self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #3bc4ff;}#pushButton_new:disabled{background: #64818b ;}")
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
-        self.dlg.pushButton_close2.setStyleSheet("#pushButton_close2 {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close2:hover{background: #66ab27 ;}#pushButton_close2:disabled{background: #64818b ;}")
-        self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
-        self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
-        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #FF8080;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #FF2020 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        self.dlg.pushButton_copyUrl.setStyleSheet("#pushButton_copyUrl {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_copyUrl:hover{background: #66ab27 ;}#pushButton_copyUrl:disabled{background: #64818b ;}")
-        self.dlg.pushButton_qfield.setStyleSheet("#pushButton_qfield {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_qfield:hover{background: #66ab27 ;}#pushButton_qfield:disabled{background: #64818b ;}")
+        self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #3bc4ff;}#pushButton_setPermissions:disabled{background: #64818b ;}")
+        self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #3bc4ff;}#pushButton_new:disabled{background: #64818b ;}")
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        self.dlg.pushButton_close2.setStyleSheet("#pushButton_close2 {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close2:hover{background: #66ab27 ;}#pushButton_close2:disabled{background: #64818b ;}")
+        self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
+        self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
+        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #FF8080;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #FF2020 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        self.dlg.pushButton_copyUrl.setStyleSheet("#pushButton_copyUrl {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_copyUrl:hover{background: #66ab27 ;}#pushButton_copyUrl:disabled{background: #64818b ;}")
+        self.dlg.pushButton_qfield.setStyleSheet("#pushButton_qfield {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_qfield:hover{background: #66ab27 ;}#pushButton_qfield:disabled{background: #64818b ;}")
         self.dlg.listWidget_service.setStyleSheet("#listWidget_service {height:20px;}")
         self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
         self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))           
@@ -767,7 +771,7 @@ class Layman(QObject):
         widget.setLayout(layout)
         def showDlg():
             self.dlgErr = ErrMsgDialog()            
-            self.dlgErr.pushButton_copyMsg.setStyleSheet("color: #fff !important; text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 6px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;") # Add the stylesheet             
+            self.dlgErr.pushButton_copyMsg.setStyleSheet("color: #fff !important; text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 6px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;") # Add the stylesheet             
             self.dlgErr.pushButton_copyMsg.clicked.connect(copy_to_clipboard)
             self.dlgErr.plainTextEdit.setPlainText(text[0] +" - "+ str(info) if self.locale == "cs" else text[1] +" - " + str(info))
             self.dlgErr.show()
@@ -801,7 +805,7 @@ class Layman(QObject):
             print([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, allInfo)
             self.showErr.emit([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, str(allInfo), Qgis.Warning, "")
     def run_LayerDecisionDialog(self, layersToDecision):
-        self.recalculateDPI()
+        self.utils.recalculateDPI()
         self.dlg = LayerDecisionDialog()
         self.dlg.show()
         for layer in layersToDecision:
@@ -819,12 +823,7 @@ class Layman(QObject):
         
         self.dlg = self.old_dlg        
         self.updateComposition(False)
-    def recalculateDPI(self):
-        self.DPI = self.getDPI()
-        if self.DPI < 0.85:
-            self.fontSize = "12px"
-        else:
-            self.fontSize = "10px"
+   
     
     def checkCheckbox(self, item, column):
         
@@ -861,8 +860,8 @@ class Layman(QObject):
                 if (reply == QMessageBox.Yes):
                     if self.compositionExists(name):
                         self.current = name
-                        print(self.URI, name, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)
-                        self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)                   
+                        print(self.URI, name, self.laymanUsername, self.utils.getAuthHeader(self.authCfg),self.laymanUsername)
+                        self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.utils.getAuthHeader(self.authCfg),self.laymanUsername)                   
                     else:
                         self.current = None
                         if self.locale == "cs":
@@ -872,7 +871,7 @@ class Layman(QObject):
             elif server == self.URI and afterLogged:
                 if self.compositionExists(name):
                     self.current = name
-                    self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)
+                    self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.utils.getAuthHeader(self.authCfg),self.laymanUsername)
                 else:
                     self.current = None
             else:
@@ -907,11 +906,11 @@ class Layman(QObject):
     def compositionExists(self,name):     
                         
         url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file'       
-        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
         print(r.content)
         if r.status_code == 200:
             return True
-        elif self.fromByteToJson(r.content)["code"] == 26:
+        elif self.utils.fromByteToJson(r.content)["code"] == 26:
             print("compositon was not set because user is not owner")
             if self.locale == "cs":
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice nebyla nastavena protože aktuální uživatel není vlastník."), Qgis.Warning, duration=3)
@@ -1055,8 +1054,8 @@ class Layman(QObject):
     def run_QfieldLoginDialog(self):
         self.dlg2 = LoginQfieldDialog()
         self.dlg2.show()
-        self.dlg2.pushButton_Connect.setStyleSheet("#pushButton_Connect {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Connect:hover{background: #66ab27 ;}#pushButton_Connect:disabled{background: #64818b ;}")
-        self.dlg2.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        self.dlg2.pushButton_Connect.setStyleSheet("#pushButton_Connect {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Connect:hover{background: #66ab27 ;}#pushButton_Connect:disabled{background: #64818b ;}")
+        self.dlg2.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         
 
         self.dlg2.pushButton_close.clicked.connect(lambda: self.dlg.close())
@@ -1080,8 +1079,8 @@ class Layman(QObject):
     def showLayerProperties(self):
         self.dlg2 = LayerPropertiesDialog()
         self.dlg2.show()        
-        self.dlg2.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
-        self.dlg2.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
+        self.dlg2.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        self.dlg2.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
         
         layerName = self.dlg.treeWidget_layers.selectedItems()[0].text(0)      
         self.dlg2.label_name.setText(layerName)
@@ -1158,7 +1157,7 @@ class Layman(QObject):
           "password": passwd
         }     
         response = self.requestWrapper("POST", url, payload, files = None)
-        res = self.fromByteToJson(response.content)
+        res = self.utils.fromByteToJson(response.content)
         remember = self.dlg2.checkBox_remember.isChecked()
         if remember:
             self.settings.setValue("laymanRememberQfield", remember)
@@ -1172,9 +1171,9 @@ class Layman(QObject):
             self.dlg2 = ShowQProjectDialog()
             self.dlg2.show()
             self.dlg2.progressBar.hide()
-            self.dlg2.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
-            self.dlg2.pushButton_exportCreate.setStyleSheet("#pushButton_exportCreate {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_exportCreate:hover{background: #66ab27 ;}#pushButton_exportCreate:disabled{background: #64818b ;}")
-            self.dlg2.pushButton_export.setStyleSheet("#pushButton_export {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_export:hover{background: #66ab27 ;}#pushButton_export:disabled{background: #64818b ;}")
+            self.dlg2.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+            self.dlg2.pushButton_exportCreate.setStyleSheet("#pushButton_exportCreate {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_exportCreate:hover{background: #66ab27 ;}#pushButton_exportCreate:disabled{background: #64818b ;}")
+            self.dlg2.pushButton_export.setStyleSheet("#pushButton_export {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_export:hover{background: #66ab27 ;}#pushButton_export:disabled{background: #64818b ;}")
             ret = self.getProjectsQfield()
             try:
                 composition = self.instance.getComposition()
@@ -1237,7 +1236,7 @@ class Layman(QObject):
           'Content-Type': 'application/json'
         }        
         response = self.requestWrapper("POST", url, payload, files = None)
-        res = self.fromByteToJson(response.content)        
+        res = self.utils.fromByteToJson(response.content)        
         if response.status_code == 201:            
             self.uploadQFiles(res['id'],"")
         else:
@@ -1312,7 +1311,7 @@ class Layman(QObject):
         }    
         response = self.requestWrapper("GET", url, payload = None, files = None)
 
-        return (self.fromByteToJson(response.content))
+        return (self.utils.fromByteToJson(response.content))
     def postProjectQfield(self):
         url = "https://app.qfield.cloud/api/v1/projects/"
 
@@ -1591,89 +1590,22 @@ class Layman(QObject):
         for item in self.currentSet:
             if item[0] == layerName:
                 return item[1]
-    def setPortValue(self, index):
-        if index == 0:
-            self.saveToIni("port", "7070") 
-            self.port = "7070"
-        elif index == 1:
-            self.saveToIni("port", "7071")  
-            self.port = "7071" 
-        elif index == 2:
-            self.saveToIni("port", "7072") 
-            self.port = "7072"  
-        if index in (0,1,2) and self.port:            
-            self.showQgisBar(["Port byl uložen.","Port has been saved."], Qgis.Success)                                                       
+                                                      
     def run_UserInfoDialog(self):        
-        self.recalculateDPI()
-        self.dlg = UserInfoDialog()
-        self.dlg.show()
-        self.dlg.pushButton_update.setStyleSheet("#pushButton_update {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_update:hover{background: #66ab27 ;}#pushButton_update:disabled{background: #64818b ;}")
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
-        self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.dlg.label_older.setCursor(QCursor(Qt.PointingHandCursor))
-        self.dlg.label_older.mousePressEvent = lambda event: self.getOldVersion()  
-        self.dlg.comboBox_port.addItem("7070")
-        self.dlg.comboBox_port.addItem("7071")
-        self.dlg.comboBox_port.addItem("7072")
-        port = self.getConfigItem("port") 
-        if not port:
-            self.dlg.comboBox_port.setCurrentIndex(0)
-            self.port = "7070"
-        else:
-            if port == "7070":
-                self.port = "7070"
-                self.dlg.comboBox_port.setCurrentIndex(0)
-            elif port == "7071":
-                self.port = "7071"
-                self.dlg.comboBox_port.setCurrentIndex(1) 
-            elif port == "7072":
-                self.port = "7072"
-                self.dlg.comboBox_port.setCurrentIndex(2) 
-        self.dlg.comboBox_port.currentIndexChanged.connect(self.setPortValue)                                                        
-        if self.liferayServer != None and self.laymanUsername != "":
-            userEndpoint = self.URI + "/rest/current-user"            
-            r = self.requestWrapper("GET", userEndpoint, payload = None, files = None)
-            res = r.text
-            res = self.fromByteToJson(r.content)
-            versionCheck = self.checkVersion()
-            self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))            
-            if self.isAuthorized:                
-                #self.dlg.label_layman.setText(res['claims']['preferred_username'])
-                self.dlg.label_layman.setText(res['username'])
-                self.dlg.label_agrihub.setText(res['claims']['email'])
-            else:
-                self.dlg.label_layman.setText("Anonymous")
-            self.dlg.label_server.setText(self.URI)
-
-            self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-            self.dlg.label_version.setText(self.getVersion())
-            self.dlg.label_versionLayman.setText(self.laymanVersion)            
-            self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-                       
-            self.dlg.label_avversion.setText(versionCheck[1])
-            if versionCheck[0] == True:
-                #self.dlg.label_avversion.hide()            
-                self.dlg.pushButton_update.setEnabled(False)
-        else:
-            self.dlg.label_version.setText(self.getVersion())
-            versionCheck = self.checkVersion()
-            self.dlg.label_avversion.setText(versionCheck[1])
-            if versionCheck[0] == True:
-                #self.dlg.label_avversion.hide()           
-                self.dlg.pushButton_update.setEnabled(False)
-            self.dlg.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
-        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
+        self.userInfoDialog = UserInfoDialog(self.utils ,self.iface, self.isAuthorized, self.liferayServer, self.laymanUsername, self.URI, self.laymanVersion)
+        self.userInfoDialog.show()
+     
     def run_SetMapPermission(self, mapName, fromAddMap = False):
-        self.recalculateDPI()
+        self.utils.recalculateDPI()
         self.dlg = SetPermissionDialog()
         self.dlg.show()
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        self.dlg.pushButton_addRead.setStyleSheet("#pushButton_addRead {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addRead:hover{background: #66ab27 ;}#pushButton_addRead:disabled{background: #64818b ;}")
-        self.dlg.pushButton_removeRead.setStyleSheet("#pushButton_removeRead {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeRead:hover{background: #66ab27 ;}#pushButton_removeRead:disabled{background: #64818b ;}")
-        self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
-        self.dlg.pushButton_addWrite.setStyleSheet("#pushButton_addWrite {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addWrite:hover{background: #66ab27 ;}#pushButton_addWrite:disabled{background: #64818b ;}")
-        self.dlg.pushButton_removeWrite.setStyleSheet("#pushButton_removeWrite {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeWrite:hover{background: #66ab27 ;}#pushButton_removeWrite:disabled{background: #64818b ;}")
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        self.dlg.pushButton_addRead.setStyleSheet("#pushButton_addRead {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addRead:hover{background: #66ab27 ;}#pushButton_addRead:disabled{background: #64818b ;}")
+        self.dlg.pushButton_removeRead.setStyleSheet("#pushButton_removeRead {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeRead:hover{background: #66ab27 ;}#pushButton_removeRead:disabled{background: #64818b ;}")
+        self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
+        self.dlg.pushButton_addWrite.setStyleSheet("#pushButton_addWrite {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addWrite:hover{background: #66ab27 ;}#pushButton_addWrite:disabled{background: #64818b ;}")
+        self.dlg.pushButton_removeWrite.setStyleSheet("#pushButton_removeWrite {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeWrite:hover{background: #66ab27 ;}#pushButton_removeWrite:disabled{background: #64818b ;}")
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.progressBar_loader.hide()
         self.dlg.listWidget_read.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
         self.dlg.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
@@ -1697,7 +1629,7 @@ class Layman(QObject):
         else:
             usersDictReversed['EVERYONE'] = 'EVERYONE'   
         r = self.requestWrapper("GET", uri, payload = None, files = None)
-        res = self.fromByteToJson(r.content)
+        res = self.utils.fromByteToJson(r.content)
         userCount = len(res)      
         if self.locale == "cs":
             self.dlg.comboBox_users.addItem('VŠICHNI')
@@ -1710,7 +1642,7 @@ class Layman(QObject):
         mapName = self.removeUnacceptableChars(mapName)
         uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName        
         r = self.requestWrapper("GET", uri, payload = None, files = None)
-        res = self.fromByteToJson(r.content)
+        res = self.utils.fromByteToJson(r.content)
         self.info = 0
         lenRead = len(res['access_rights']['read'])
         lenWrite = len(res['access_rights']['write'])
@@ -1733,7 +1665,7 @@ class Layman(QObject):
             self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog())
 
     def run_SetPermission(self, layerName):
-        self.recalculateDPI()
+        self.utils.recalculateDPI()
         self.dlg = SetPermissionDialog()
         self.dlg.show()
         self.info = 0
@@ -1768,7 +1700,7 @@ class Layman(QObject):
             usersDictReversed['EVERYONE'] = 'EVERYONE'
        # r= requests.get(uri)
         r = self.requestWrapper("GET", uri, payload = None, files = None)
-        res = self.fromByteToJson(r.content)        
+        res = self.utils.fromByteToJson(r.content)        
         userCount = len(res)
         ##nabit combobox
         if self.locale == "cs":
@@ -1786,9 +1718,9 @@ class Layman(QObject):
             layerName[0] = self.layerNamesDict[layerName[0]]
             uri = self.URI + "/rest/"+self.laymanUsername+"/layers/"+layerName[0]
 
-            #r= requests.get(uri,headers = self.getAuthHeader(self.authCfg))
+            #r= requests.get(uri,headers = self.utils.getAuthHeader(self.authCfg))
             r = self.requestWrapper("GET", uri, payload = None, files = None)  
-            res = self.fromByteToJson(r.content)
+            res = self.utils.fromByteToJson(r.content)
 
             lenRead = len(res['access_rights']['read'])
             lenWrite = len(res['access_rights']['write'])
@@ -1812,13 +1744,13 @@ class Layman(QObject):
         #|self.dlg.rejected.connect(lambda: self.afterCloseEditMapDialog())
         self.dlg.rejected.connect(lambda: self.afterClosePermissionMapDialog())
     def run_EditCurrentMap(self):
-        self.recalculateDPI()
+        self.utils.recalculateDPI()
         composition = self.instance.getComposition()
         self.dlg = EditMapDialog()
-        self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_range.setStyleSheet("#pushButton_range {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_range:hover{background: #66ab27 ;}#pushButton_range:disabled{background: #64818b ;}")
-        self.dlg.pushButton_range_2.setStyleSheet("#pushButton_range_2 {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_range_2:hover{background: #66ab27 ;}#pushButton_range_2:disabled{background: #64818b ;}")
+        self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_range.setStyleSheet("#pushButton_range {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_range:hover{background: #66ab27 ;}#pushButton_range:disabled{background: #64818b ;}")
+        self.dlg.pushButton_range_2.setStyleSheet("#pushButton_range_2 {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_range_2:hover{background: #66ab27 ;}#pushButton_range_2:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.dlg.lineEdit_name.hide()
         self.dlg.label_2.hide()
@@ -1871,7 +1803,7 @@ class Layman(QObject):
         if os.path.exists(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt") == False:
             open(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt", "w").close
     def run_CreateCompositeDialog(self, fromImport = False, fromCurrent = False):
-        self.recalculateDPI()
+        self.utils.recalculateDPI()
         self.dlg = CreateCompositeDialog()
         
         self.dlg.label_info.hide()
@@ -1913,9 +1845,9 @@ class Layman(QObject):
         self.dlg.lineEdit_5.setText(str(ext.yMinimum()))
         self.dlg.lineEdit_6.setText(str(ext.yMaximum()))
         self.dlg.pushButton_defaultExtent.clicked.connect(lambda: self.setDefaultExtent(ext))
-        self.dlg.pushButton_defaultExtent.setStyleSheet("#pushButton_defaultExtent {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_defaultExtent:hover{background: #66ab27 ;}#pushButton_defaultExtent:disabled{background: #64818b ;}")
-        self.dlg.pushButton_CreateComposition.setStyleSheet("#pushButton_CreateComposition {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_CreateComposition:hover{background: #66ab27 ;}#pushButton_CreateComposition:disabled{background: #64818b ;}")
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_defaultExtent.setStyleSheet("#pushButton_defaultExtent {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_defaultExtent:hover{background: #66ab27 ;}#pushButton_defaultExtent:disabled{background: #64818b ;}")
+        self.dlg.pushButton_CreateComposition.setStyleSheet("#pushButton_CreateComposition {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_CreateComposition:hover{background: #66ab27 ;}#pushButton_CreateComposition:disabled{background: #64818b ;}")
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
 
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
 
@@ -1994,8 +1926,8 @@ class Layman(QObject):
         return False              
     def showTSDialog(self):
         self.dlg2 = TimeSeriesDialog()
-        self.dlg2.pushButton_timeSeries.setStyleSheet("#pushButton_timeSeries {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_timeSeries:hover{background: #66ab27 ;}")        
-        self.dlg2.pushButton_getRegex.setStyleSheet("#pushButton_getRegex {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_getRegex:hover{background: #66ab27 ;}")        
+        self.dlg2.pushButton_timeSeries.setStyleSheet("#pushButton_timeSeries {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_timeSeries:hover{background: #66ab27 ;}")        
+        self.dlg2.pushButton_getRegex.setStyleSheet("#pushButton_getRegex {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_getRegex:hover{background: #66ab27 ;}")        
         self.dlg2.show()   
         self.dlg2.lineEdit_layerName.hide()   
         for item in self.dlg.treeWidget.selectedItems():
@@ -2046,7 +1978,7 @@ class Layman(QObject):
             rasters.append(layer.source())
         crs = layer.crs().authid()
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
-        r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))        
+        r = requests.delete(url,headers = self.utils.getAuthHeader(self.authCfg))        
         name = self.removeUnacceptableChars(title)
         # Create the zip archive
         if path is None:
@@ -2084,7 +2016,7 @@ class Layman(QObject):
 
         self.tsSuccess.emit()         
     def run_ImportLayerDialog(self):
-        self.recalculateDPI()
+        self.utils.recalculateDPI()
         self.dlg = ImportLayerDialog()
         self.dlg.label_progress.hide()
         self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))       
@@ -2153,9 +2085,9 @@ class Layman(QObject):
                 if (layerType == 'postgres'):
                     self.dlg.treeWidget.addTopLevelItem(item)                      
         self.dlg.setWindowModality(Qt.ApplicationModal)
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
-        self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
-        self.dlg.pushButton_errLog.setStyleSheet("#pushButton_errLog {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #c0332c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_errLog:hover{background: #c21c13 ;}#pushButton_errLog:disabled{background: #64818b ;}")
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
+        self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
+        self.dlg.pushButton_errLog.setStyleSheet("#pushButton_errLog {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #c0332c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_errLog:hover{background: #c21c13 ;}#pushButton_errLog:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.selectSelectedLayer()
         self.dlg.treeWidget.header().resizeSection(0,250)
@@ -2182,7 +2114,7 @@ class Layman(QObject):
             proj = QgsProject.instance()
             server, type_conversion_ok = proj.readEntry("Layman", "Server","")
             name, type_conversion_ok = proj.readEntry("Layman", "Name","")            
-        self.recalculateDPI()
+        self.utils.recalculateDPI()
         self.dlg = ConnectionManagerDialog()      
         self.dlg.show()    
         if not self.dependencies:
@@ -2271,13 +2203,13 @@ class Layman(QObject):
             self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
         pushbuttons = self.findChildren(QPushButton)
         for button in pushbuttons:
-            print(button.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}"))
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_Connect.setStyleSheet("#pushButton_Connect {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Connect:hover{background: #66ab27 ;}#pushButton_Connect:disabled{background: #64818b ;}")
-        self.dlg.pushButton_Continue.setStyleSheet("#pushButton_Continue {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Continue:hover{background: #66ab27 ;} #pushButton_Continue:disabled{background: #64818b ;}")        
+            print(button.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}"))
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_Connect.setStyleSheet("#pushButton_Connect {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Connect:hover{background: #66ab27 ;}#pushButton_Connect:disabled{background: #64818b ;}")
+        self.dlg.pushButton_Continue.setStyleSheet("#pushButton_Continue {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Continue:hover{background: #66ab27 ;} #pushButton_Continue:disabled{background: #64818b ;}")        
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.dlg.pushButton_NoLogin.setStyleSheet("#pushButton_NoLogin {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_NoLogin:hover{background: #66ab27 ;}#pushButton_NoLogin:disabled{background: #64818b ;}")
-        self.dlg.pushButton_logout.setStyleSheet("#pushButton_logout {color: #fff !important;font-size:"+self.fontSize+";text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_logout:hover{background: #66ab27 ;}#pushButton_logout:disabled{background: #64818b ;}")
+        self.dlg.pushButton_NoLogin.setStyleSheet("#pushButton_NoLogin {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_NoLogin:hover{background: #66ab27 ;}#pushButton_NoLogin:disabled{background: #64818b ;}")
+        self.dlg.pushButton_logout.setStyleSheet("#pushButton_logout {color: #fff !important;font-size:"+self.utils.fontSize+";text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_logout:hover{background: #66ab27 ;}#pushButton_logout:disabled{background: #64818b ;}")
         self.dlg.pushButton_logout.clicked.connect(lambda: self.logout())
         
         if self.laymanUsername != "":
@@ -2297,17 +2229,17 @@ class Layman(QObject):
             self.dlg.pushButton_Connect.setEnabled(True)
             self.dlg.comboBox_server.setEnabled(True)
             self.dlg.lineEdit_userName.setEnabled(True)
-
+        self.utils.setAuthCfg(self.authCfg)
         result = self.dlg.exec_()
         self.dlg.rejected.connect(lambda: self.loginReject())
     def run_AddMickaDialog(self):
         self.dlg = AddMickaDialog()
         self.dlg.show()
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_map.setStyleSheet("#pushButton_map {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_map:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_search.setStyleSheet("#pushButton_search {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_search:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_stepRight.setStyleSheet("#pushButton_stepRight {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_stepRight:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_stepLeft.setStyleSheet("#pushButton_stepLeft {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_stepLeft:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_map.setStyleSheet("#pushButton_map {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_map:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_search.setStyleSheet("#pushButton_search {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_search:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_stepRight.setStyleSheet("#pushButton_stepRight {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_stepRight:hover{background: #66ab27 ;}")
+        self.dlg.pushButton_stepLeft.setStyleSheet("#pushButton_stepLeft {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_stepLeft:hover{background: #66ab27 ;}")
 
         QgsMessageLog.logMessage("disableProgressBar")
         threading.Thread(target=lambda: self.loadMickaMaps()).start()
@@ -2457,7 +2389,7 @@ class Layman(QObject):
             urlWithParams = 'contextualWMSLegend=0&crs='+epsg+'&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url.split("?")[0]
         return urlWithParams.replace("'","")
     def run_AddMapDialog(self):
-        self.recalculateDPI()
+        self.utils.recalculateDPI()
         self.dlg = AddMapDialog()
         self.dlg.label_info.hide()     
         self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnailMap2(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)), self.dlg.treeWidget.selectedItems()[0].text(1)  ) ).start())
@@ -2479,14 +2411,14 @@ class Layman(QObject):
         self.dlg.filter.valueChanged.connect(self.filterResults)
         self.dlg.filter.valueChanged.connect(self.disableButtonsAddMap)
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        self.dlg.pushButton_map.setStyleSheet("#pushButton_map {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_map:hover{background: #66ab27 ;}#pushButton_map:disabled{background: #64818b ;}")
-        self.dlg.pushButton_mapWFS.setStyleSheet("#pushButton_mapWFS {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_mapWFS:hover{background: #66ab27 ;}#pushButton_mapWFS:disabled{background: #64818b ;}")
-        self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        self.dlg.pushButton_map.setStyleSheet("#pushButton_map {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_map:hover{background: #66ab27 ;}#pushButton_map:disabled{background: #64818b ;}")
+        self.dlg.pushButton_mapWFS.setStyleSheet("#pushButton_mapWFS {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_mapWFS:hover{background: #66ab27 ;}#pushButton_mapWFS:disabled{background: #64818b ;}")
+        self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        self.dlg.pushButton_copyUrl.setStyleSheet("#pushButton_copyUrl {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_copyUrl:hover{background: #66ab27 ;}#pushButton_copyUrl:disabled{background: #64818b ;}")
+        self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
+        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        self.dlg.pushButton_copyUrl.setStyleSheet("#pushButton_copyUrl {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_copyUrl:hover{background: #66ab27 ;}#pushButton_copyUrl:disabled{background: #64818b ;}")
         self.dlg.checkBox_own.stateChanged.connect(self.loadMapsThread)
         self.dlg.checkBox_own.stateChanged.connect(self.disableButtonsAddMap)
         self.dlg.checkBox_own.stateChanged.connect(self.rememberValueMap)
@@ -2528,7 +2460,7 @@ class Layman(QObject):
         ymax = None
         initRun = True
         url = self.URI+'/client/geoserver/'+self.laymanUsername+'/ows?service=wms&version=1.1.1&request=GetCapabilities'
-        #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))    
+        #r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))    
         r = self.requestWrapper("GET", url, payload = None, files = None)      
         names = list()
         renge = list()
@@ -2582,6 +2514,7 @@ class Layman(QObject):
         self.menu_CurrentCompositionDialog.setEnabled(False)
         self.isAuthorized = False
         self.URI = servers[i][1]
+        self.utils.URI = servers[i][1]
         self.menu_AddLayerDialog.setEnabled(True)    
         self.laymanUsername = "Anonymous"
         self.dlg.pushButton_logout.setEnabled(True)
@@ -2594,17 +2527,16 @@ class Layman(QObject):
     def rememberValueLayer(self, value):
         ## 2 true, 0 false
         if value == 2:
-            self.appendIniItem("layerCheckbox", "1")
+            self.utils.appendIniItem("layerCheckbox", "1")
         if value == 0:
-            self.appendIniItem("layerCheckbox", "0")
+            self.utils.appendIniItem("layerCheckbox", "0")
     def rememberValueMap(self, value):
         ## 2 true, 0 false
         if value == 2:
-            self.appendIniItem("mapCheckbox", "1")
+            self.utils.appendIniItem("mapCheckbox", "1")
         if value == 0:
-            self.appendIniItem("mapCheckbox", "0")
-    def saveToIni(self, key, value):
-        self.appendIniItem(key, value)               
+            self.utils.appendIniItem("mapCheckbox", "0")
+             
     def checkAllLayers(self, checked):
         if checked:
             iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
@@ -2623,7 +2555,7 @@ class Layman(QObject):
                 iterator +=1          
     def fillCompositionDict(self):
         url = self.URI+'/rest/maps'
-        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
         dataAll = r.json()
         for row in range(0, len(dataAll)):
             self.compositionDict[dataAll[row]['name']] = dataAll[row]['title']       
@@ -2700,7 +2632,7 @@ class Layman(QObject):
         QgsMessageLog.logMessage("loadMaps")
 
     def run_AddLayerDialog(self):
-        self.recalculateDPI()
+        self.utils.recalculateDPI()
 
         self.dlg = AddLayerDialog()
         self.dlg.pushButton_layerRedirect.hide()
@@ -2745,16 +2677,16 @@ class Layman(QObject):
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())        
         self.dlg.checkBox_own.stateChanged.connect(self.rememberValueLayer)
         self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showPermissionsDialog(self.dlg.treeWidget.selectedItems()))
-        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
-        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
-        self.dlg.pushButton_wfs.setStyleSheet("#pushButton_wfs {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_wfs:hover{background: #66ab27 ;}#pushButton_wfs:disabled{background: #64818b ;}")
+        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
+        self.dlg.pushButton_wfs.setStyleSheet("#pushButton_wfs {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_wfs:hover{background: #66ab27 ;}#pushButton_wfs:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-        self.dlg.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #707070 ;}#pushButton_urlWms:disabled{background: #999999 ;}")
-        self.dlg.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #707070 ;}#pushButton_urlWfs:disabled{background: #999999 ;}")
-        self.dlg.pushButton_postgis.setStyleSheet("#pushButton_postgis {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_postgis:hover{background: #66ab27 ;}#pushButton_postgis:disabled{background: #64818b ;}")
+        self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
+        self.dlg.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #707070 ;}#pushButton_urlWms:disabled{background: #999999 ;}")
+        self.dlg.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #707070 ;}#pushButton_urlWfs:disabled{background: #999999 ;}")
+        self.dlg.pushButton_postgis.setStyleSheet("#pushButton_postgis {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_postgis:hover{background: #66ab27 ;}#pushButton_postgis:disabled{background: #64818b ;}")
         # self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
         # self.threadLayers.start()
         self.dlg.progressBar_loader.show()        
@@ -2924,11 +2856,11 @@ class Layman(QObject):
             if (layer['className'] == 'HSLayers.Layer.WMS'):
                 name = layer['params']['LAYERS']
             if name is not None:
-                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.getAuthHeader(self.authCfg))  
+                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.authCfg))  
                 
                 if (response.status_code != 200):        
                     try:
-                        if self.fromByteToJson(response.content)["code"] == 15:
+                        if self.utils.fromByteToJson(response.content)["code"] == 15:
                             print("layer not present")
                             return
                     except:
@@ -2964,7 +2896,7 @@ class Layman(QObject):
         for layer in layerName:
             layer = self.removeUnacceptableChars(layer)      
             url = self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer
-            response = requests.patch(url, data = data,  headers = self.getAuthHeader(self.authCfg))  
+            response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.authCfg))  
             if (response.status_code != 200):
                 self.failed.append(layer)         
                 self.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
@@ -3158,7 +3090,7 @@ class Layman(QObject):
         name = self.layerNamesDict[name]   
         url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(name)
         response = self.requestWrapper("GET", url, payload = None, files = None)
-        res = self.fromByteToJson(response.content)
+        res = self.utils.fromByteToJson(response.content)
         if "file" in res:
             return res['file']['file_type']
         else:
@@ -3176,13 +3108,8 @@ class Layman(QObject):
             if (self.WMSenable):
                 self.dlg.pushButton_addWMS.setEnabled(True)
         except:
-            pass
-  
-    def getVersion(self):
-        config = configparser.ConfigParser()
-        config.read(os.path.join(self.plugin_dir ,'metadata.txt'))
-        version = config.get('general', 'version')
-        return(version)
+            pass 
+   
     def checkUsername(self, name):
         n = name.split("@")
         if(len(n[0]) > 0):
@@ -3213,7 +3140,7 @@ class Layman(QObject):
     def copyLayerUrl(self, name, workspace, service):
         url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(name)
         response = self.requestWrapper("GET", url, payload = None, files = None)
-        res = self.fromByteToJson(response.content)
+        res = self.utils.fromByteToJson(response.content)
         if res == None:
             return
         
@@ -3283,6 +3210,7 @@ class Layman(QObject):
         self.menu_CurrentCompositionDialog.setEnabled(False)
     def setServers(self, servers, i):      
         self.URI = servers[i][1]
+        self.utils.URI = servers[i][1]
         self.liferayServer = servers[i][0]
         self.client_id = servers[i][2]    
         try:
@@ -3833,7 +3761,7 @@ class Layman(QObject):
         layer = self.removeUnacceptableChars(it.text(0))
         workspace = it.text(1)
         url = self.URI+'/rest/'+workspace+'/layers/'+str(layer).lower() 
-        r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        r = requests.get(url, headers = self.utils.getAuthHeader(self.authCfg))
         if "db" in r.json():
             if "external_uri" in r.json()["db"]:
                 self.postgisFound.emit(True)
@@ -3849,7 +3777,7 @@ class Layman(QObject):
                 layer = self.layerNamesDict[layer]        
                 url = self.URI+'/rest/' +workspace+'/layers/'+layer+'/thumbnail'
                 
-                r = requests.get(url, headers = self.getAuthHeader(self.authCfg))                  
+                r = requests.get(url, headers = self.utils.getAuthHeader(self.authCfg))                  
                 data = r.content      
                 pixmap = QPixmap(200, 200)
                 pixmap.loadFromData(data)
@@ -3866,7 +3794,7 @@ class Layman(QObject):
             try:
                 map = self.removeUnacceptableChars(str(map))
                 url = self.URI+'/rest/'+workspace+'/maps/'+str(map).lower()+'/thumbnail'            
-                r = requests.get(url, headers = self.getAuthHeader(self.authCfg))               
+                r = requests.get(url, headers = self.utils.getAuthHeader(self.authCfg))               
                 data = r.content             
                 pixmap = QPixmap(200, 200)
                 pixmap.loadFromData(data)
@@ -3970,7 +3898,7 @@ class Layman(QObject):
             ### map check
             url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+str(text)+"/file"
 
-            r = requests.get(url, headers = self.getAuthHeader(self.authCfg)) 
+            r = requests.get(url, headers = self.utils.getAuthHeader(self.authCfg)) 
 
             res = r.json()            
             ch = True
@@ -4498,7 +4426,7 @@ class Layman(QObject):
     def loadAllCompositesT(self):
         self.compositeList = list()
         url = self.URI+'/rest/' + self.laymanUsername + '/maps'
-        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
         try:
             data = r.json()
         except:
@@ -4554,7 +4482,7 @@ class Layman(QObject):
          
             r = self.requestWrapper("GET", url, payload = None, files = None)
             data = r.json()
-            self.instance = CurrentComposition(self.URI, name, workspace, self.getAuthHeader(self.authCfg),self.laymanUsername)
+            self.instance = CurrentComposition(self.URI, name, workspace, self.utils.getAuthHeader(self.authCfg),self.laymanUsername)
             self.instance.setComposition(data)   
         else:
             print("workspace nepredan")       
@@ -4576,7 +4504,7 @@ class Layman(QObject):
         except:
             QgsMessageLog.logMessage("compositionSchemaError")
             return
-            #r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+            #r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
         r = self.requestWrapper("GET", url, payload = None, files = None)
         data = r.json()
             ## rozvetveni zdali chce uzivatel otevrit kompozici v novem projektu
@@ -4700,7 +4628,7 @@ class Layman(QObject):
     def deleteMapFromServer(self,name):
 
         url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
-        response = requests.delete(url, headers = self.getAuthHeader(self.authCfg))        
+        response = requests.delete(url, headers = self.utils.getAuthHeader(self.authCfg))        
        
         if (response.status_code == 200):
             if self.locale == "cs":          
@@ -4750,7 +4678,7 @@ class Layman(QObject):
         if (reply == QMessageBox.Yes):
             name = self.removeUnacceptableChars(name)
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
-            response = requests.delete(url, headers = self.getAuthHeader(self.authCfg))           
+            response = requests.delete(url, headers = self.utils.getAuthHeader(self.authCfg))           
             if (response.status_code == 200):
                 if self.locale == "cs":             
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
@@ -4790,7 +4718,7 @@ class Layman(QObject):
         def deleteMapThread(name):
             name = self.removeUnacceptableChars(name)
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
-            response = requests.delete(url, headers = self.getAuthHeader(self.authCfg))           
+            response = requests.delete(url, headers = self.utils.getAuthHeader(self.authCfg))           
             #response = self.requestWrapper("DELETE", url, payload = None, files = None)
             if (response.status_code == 200):                
                 self.successWrapper.emit([" Kompozice  " + name + " byla úspešně smazána."," Composition  " + name + " was sucessfully deleted."])               
@@ -4995,7 +4923,7 @@ class Layman(QObject):
     def loadLocalFile(self):
         options = QFileDialog.Options()
         dialog = QFileDialog()
-        dialog.setStyleSheet("QPushButton {color: #fff !important;text-transform: uppercase; font-size:"+self.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} QPushButton:hover{background: #66ab27 ;}QPushButton:disabled{background: #64818b ;}");
+        dialog.setStyleSheet("QPushButton {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} QPushButton:hover{background: #66ab27 ;}QPushButton:disabled{background: #64818b ;}");
         try:
             if self.locale == "cs":
                 fileName = dialog.getOpenFileName(None,"Načíst soubor", "","GeoJson Files (*.geojson);;Json Files (*.json)", options=options)
@@ -5413,7 +5341,7 @@ class Layman(QObject):
             self.dlgPostgres = PostgrePasswordDialog()   
             self.dlgPostgres.show()
             self.dlgPostgres.pushButton_pass.clicked.connect(lambda: self.postPostreLayer(layer, self.dlgPostgres.lineEdit_username.text(), self.dlgPostgres.lineEdit_pass.text()))
-            self.dlgPostgres.pushButton_pass.setStyleSheet("#pushButton_pass {color: #fff !important;text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_pass:hover{background: #66ab27 ;}#pushButton_pass:disabled{background: #64818b ;}")
+            self.dlgPostgres.pushButton_pass.setStyleSheet("#pushButton_pass {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_pass:hover{background: #66ab27 ;}#pushButton_pass:disabled{background: #64818b ;}")
         self.dlg.pushButton_errLog.hide()
         self.ThreadsA = set()
         for thread in threading.enumerate():
@@ -5549,11 +5477,11 @@ class Layman(QObject):
             if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
                 try:
                     url = self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)
-                    response = requests.get(url , headers = self.getAuthHeader(self.authCfg))
+                    response = requests.get(url , headers = self.utils.getAuthHeader(self.authCfg))
                     #response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), payload = None, files = None)
                     if (response.status_code == 400):
                         time.sleep(3)                    
-                        response = requests.get(url , headers = self.getAuthHeader(self.authCfg))
+                        response = requests.get(url , headers = self.utils.getAuthHeader(self.authCfg))
                 except:
                     self.showErr.emit(["Připojení se serverem selhalo!", "Connection with server failed!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)                
                     return
@@ -5671,7 +5599,7 @@ class Layman(QObject):
         if (os.path.getsize(path) > self.CHUNK_SIZE):
             if patch:           
                 url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars(layer_name)
-                r = requests.delete(url,headers = self.getAuthHeader(self.authCfg)) 
+                r = requests.delete(url,headers = self.utils.getAuthHeader(self.authCfg)) 
             url = self.URI + "/rest/"+self.laymanUsername+"/layers"
             name = self.removeUnacceptableChars(layer_name)           
             if externalFile:
@@ -5730,7 +5658,7 @@ class Layman(QObject):
             data['crs'] = 'EPSG:4326'
             response = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)
             print(response.content)
-            res = self.fromByteToJson(response.content)            
+            res = self.utils.fromByteToJson(response.content)            
             try:
                 if res['code'] == 4:
                     QgsMessageLog.logMessage("unsupportedCRS")
@@ -6203,11 +6131,11 @@ class Layman(QObject):
             self.saveExternalStyle(style, layer_name)     
             return 200, suffix.replace(".","")
         if self.selectedWorkspace:
-            response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
+            response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.utils.getAuthHeader(self.authCfg))
             #response = self.requestWrapper("GET", self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
         else:
             #response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
-            response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))      
+            response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.utils.getAuthHeader(self.authCfg))      
         res = response.content
         res = res.decode("utf-8")
         if (res[0:5] == "<qgis" and response.status_code == 200):
@@ -6237,7 +6165,7 @@ class Layman(QObject):
     def layerInfoRedirect(self, name):
         url = self.URI+'/rest/'+self.laymanUsername+"/layers/" + name     
         response = self.requestWrapper("GET", url, payload = None, files = None)
-        r = self.fromByteToJson(response.content)
+        r = self.utils.fromByteToJson(response.content)
         try:
             url = r['metadata']['record_url']
             webbrowser.open(url, new=2) ## redirect na micku pro více info
@@ -6252,7 +6180,7 @@ class Layman(QObject):
         else:
             url = self.URI+'/rest/'+self.laymanUsername+"/layers/"+layer_name
         print(url)
-        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))        
+        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))        
         try:
             data = r.json()
 
@@ -6406,7 +6334,7 @@ class Layman(QObject):
         files = {'file': (tempFile, open(tempFile, 'rb')),}       
         data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername,   'access_rights.write': self.laymanUsername}
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
-        response = requests.post(url , files=files, data = data, headers = self.getAuthHeader(self.authCfg))  
+        response = requests.post(url , files=files, data = data, headers = self.utils.getAuthHeader(self.authCfg))  
         if (response.status_code == 200):
             if self.locale == "cs":     
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " byla úspešně vytvořena."), Qgis.Success, duration=3)
@@ -6421,19 +6349,7 @@ class Layman(QObject):
         self.showProgressBar(bar)
         bar.show()
         iface.mainWindow().statusBar().addWidget(bar)
-    def fromByteToJson(self, res):
-        pom = res
-        pom = pom.decode('utf_8')
-        try:
-            pom = json.loads(pom)
-        except:
-            if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Došlo k chybě při komunikaci se serverem.")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "An error occurred while communicating with the server.")
-            return
-
-        return pom
+   
     
     def compositionToClipboard(self):
 
@@ -6464,10 +6380,10 @@ class Layman(QObject):
         workspace = self.instance.getWorkspace()       
         r = self.requestWrapper("DELETE", self.URI+'/rest/'+workspace+'/maps/'+composition['name'], payload = None, files = None)      
         time.sleep(1)
-        # response = requests.request("POST", self.URI + '/rest/' + workspace + '/maps', headers=self.getAuthHeader(self.authCfg),data=data, files=files)
+        # response = requests.request("POST", self.URI + '/rest/' + workspace + '/maps', headers=self.utils.getAuthHeader(self.authCfg),data=data, files=files)
         response = self.requestWrapper("POST", self.URI+'/rest/'+workspace+'/maps', data, files)   
         self.processingRequest = False        
-        res = self.fromByteToJson(response.content)
+        res = self.utils.fromByteToJson(response.content)
         return response   
 
     def deleteLayer(self, layerName):
@@ -6509,7 +6425,7 @@ class Layman(QObject):
                 r = self.requestWrapper("GET", url, payload = None, files = None)
                 data = r.json()
                 print(data)
-                self.instance = CurrentComposition(self.URI, name, self.selectedWorkspace, self.getAuthHeader(self.authCfg),self.laymanUsername)
+                self.instance = CurrentComposition(self.URI, name, self.selectedWorkspace, self.utils.getAuthHeader(self.authCfg),self.laymanUsername)
                 self.instance.setComposition(data)
                 self.compositionDict[name] = title
                 ## sync start
@@ -6549,7 +6465,7 @@ class Layman(QObject):
         layer_name = layer_name.replace(" ", "_")
         layer_name = self.removeUnacceptableChars(layer_name)
         url = self.URI+'/rest/' + self.laymanUsername + "/layers/" + layer_name
-        r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        r = requests.get(url, headers = self.utils.getAuthHeader(self.authCfg))
         #r = self.requestWrapper("GET", url, payload = None, files = None)
         res = r.json()
         read = res['access_rights']['read']
@@ -6557,11 +6473,11 @@ class Layman(QObject):
         data['access_rights.read'] =  self.listToString(read)
         data['access_rights.write'] = self.listToString(write)
         if r.status_code == 200:
-            #r = requests.delete(url, headers = self.getAuthHeader(self.authCfg))  
+            #r = requests.delete(url, headers = self.utils.getAuthHeader(self.authCfg))  
             r = self.requestWrapper("DELETE", url, payload = None, files = None)     
         time.sleep(0.5)
         url = self.URI+'/rest/' + self.laymanUsername + "/layers/"        
-        #r = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.getAuthHeader(self.authCfg))
+        #r = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.utils.getAuthHeader(self.authCfg))
         r = self.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)
         return r       
        
@@ -6574,7 +6490,7 @@ class Layman(QObject):
             return tempFile
     def getExistingLayers(self):
         url = self.URI+'/rest/'+self.laymanUsername+"/layers"
-       # r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+       # r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
         r = self.requestWrapper("GET", url, payload = None, files = None)
         data = r.json()
         for x in range(len(data)):
@@ -6798,7 +6714,7 @@ class Layman(QObject):
                     everyone = False
                     try:                        
                         workspace =  repairUrl.split("geoserver/")[1].split("_wms")[0]
-                        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+                        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
                         r = self.requestWrapper("GET", url, payload = None, files = None)
                         if 'EVERYONE' in r.json()['access_rights']['read']:
                             everyone = True
@@ -7394,7 +7310,7 @@ class Layman(QObject):
     def postInChunks(self, layer_name, reqType):
         if (reqType == "patch"):      
             url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars(layer_name)
-            #r = requests.delete(url,headers = self.getAuthHeader(self.authCfg))
+            #r = requests.delete(url,headers = self.utils.getAuthHeader(self.authCfg))
             r = self.requestWrapper("DELETE", url, payload = None, files = None)
 
 
@@ -7452,29 +7368,7 @@ class Layman(QObject):
         self.menu_AddMapDialog.setEnabled(True)
         self.menu_ImportLayerDialog.setEnabled(True)
         self.menu_UserInfoDialog.setEnabled(True)
-        self.menu_CurrentCompositionDialog.setEnabled(True)
-
-    def getAuthHeader(self, authCfg):        
-        if self.isAuthorized:
-            config = QgsAuthMethodConfig()            
-            url = QUrl(self.URI+ "/rest/current-user")
-            xx = QNetworkRequest(url)   
-            i = 0
-            success = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))      
-            if success[0] == True:
-                header = (xx.rawHeader(QByteArray(b"Authorization")))                
-                authHeader ={
-                  "Authorization": str(header, 'utf-8')
-                }
-                return authHeader
-            else:
-                if self.locale == "cs":
-                    QMessageBox.information(None, "Message", "Autorizace nebyla úspěšná! Prosím zkuste to znovu.")
-                else:
-                    QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
-                return False
-        else:
-            return ""  
+        self.menu_CurrentCompositionDialog.setEnabled(True)  
             
 
  
@@ -7498,13 +7392,13 @@ class Layman(QObject):
         login = login.replace(".","_")
         self.laymanUsername = login
         user = {'username':login}      
-        print("authheader: "+ str(self.getAuthHeader(self.authCfg)))
+        print("authheader: "+ str(self.utils.getAuthHeader(self.authCfg)))
 
-        r = requests.patch(url = userEndpoint, data = user, headers = self.getAuthHeader(self.authCfg))
+        r = requests.patch(url = userEndpoint, data = user, headers = self.utils.getAuthHeader(self.authCfg))
         #r = self.requestWrapper("PATCH", userEndpoint, user, files = None)
         res = r.text
         try:
-            res = self.fromByteToJson(r.content)
+            res = self.utils.fromByteToJson(r.content)
             print (res)
             print(user)
             print(res)
@@ -7566,7 +7460,7 @@ class Layman(QObject):
     def getUserName(self):
         userEndpoint = self.URI+ "/rest/current-user"  
         r = self.requestWrapper("GET", userEndpoint, payload = None, files = None)
-        res = self.fromByteToJson(r.content)      
+        res = self.utils.fromByteToJson(r.content)      
 
         return res['username']
     def connectionLost(self):
@@ -7592,9 +7486,10 @@ class Layman(QObject):
                 self.rememberLastServer(self.dlg.comboBox_server.currentIndex())
                 self.dlg.pushButton_Connect.setEnabled(False)
         self.isAuthorized = True
+        self.utils.isAuthorized = True
         authcfg_id = self.authCfg     
         print(self.setup_oauth(authcfg_id, self.liferayServer))        
-        authHeader = self.getAuthHeader(self.authCfg)        
+        authHeader = self.utils.getAuthHeader(self.authCfg)        
         print(authHeader)
         if (authHeader):
             if self.registerUserIfNotExists():   
@@ -7611,7 +7506,7 @@ class Layman(QObject):
                 print(url)              
                 r = self.requestWrapper("GET", url, payload = None, files = None)                
                 try:
-                    res = self.fromByteToJson(r.content)
+                    res = self.utils.fromByteToJson(r.content)
                     print(res['about']['applications']['layman']['version'])
                     self.laymanVersion = res['about']['applications']['layman']['version']
                 except:
@@ -7619,7 +7514,7 @@ class Layman(QObject):
           
                 ## check for new version
 
-                versionCheck = self.checkVersion()
+                versionCheck = self.utils.checkVersion()
                 if versionCheck[0] == False:
                     if self.locale == "cs":
                         iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Nová verze pluginu Layman k dispozici."), Qgis.Success, duration=15)
@@ -7641,7 +7536,7 @@ class Layman(QObject):
                     url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+load+'/file'                
                     r = self.requestWrapper("GET", url, payload = None, files = None)
                     data = r.json()                    
-                    self.instance = CurrentComposition(self.URI, load, self.laymanUsername, self.getAuthHeader(self.authCfg),self.laymanUsername)
+                    self.instance = CurrentComposition(self.URI, load, self.laymanUsername, self.utils.getAuthHeader(self.authCfg),self.laymanUsername)
                     self.instance.setComposition(data)
                     self.current = load
 
@@ -7708,27 +7603,8 @@ class Layman(QObject):
         self.dlg.close()
         self.disableEnvironment()
         QMessageBox.information(None, "Layman", "Layman plugin was updated. Please restart QGIS.")
-    def checkVersion(self):        
-        r = requests.get("https://gitlab.com/plan4all/layman-qgis-plugin/-/raw/master/metadata.txt?inline=false")
+   
 
-        buf = io.StringIO(r.text)
-        config = configparser.ConfigParser()
-        config.read_file(buf)
-        version = config.get('general', 'version')
-        installedVersion = self.getVersion()
-
-        if installedVersion == version:
-            return [True, version]
-        else:
-            return [False, version]
-    def appendIniItem(self, key, item):
-        file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'
-        config = configparser.RawConfigParser()
-        config.read(file)
-        config.set('DEFAULT',key,item)
-        cfgfile = open(file,'w')
-        config.write(cfgfile, space_around_delimiters=False)  # use flag in case case you need to avoid white space.
-        cfgfile.close()
     def getConfigItem(self, key):
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'
         config = configparser.RawConfigParser()
@@ -7746,10 +7622,10 @@ class Layman(QObject):
                 os.mkdir(dir)
             except OSError:
                 print ("vytváření adresáře selhalo")       
-        self.appendIniItem('login',self.Agrimail)
-        self.appendIniItem('id',self.client_id)
-        self.appendIniItem('server',self.liferayServer)
-        self.appendIniItem('layman',self.URI)   
+        self.utils.appendIniItem('login',self.Agrimail)
+        self.utils.appendIniItem('id',self.client_id)
+        self.utils.appendIniItem('server',self.liferayServer)
+        self.utils.appendIniItem('layman',self.URI)   
     def loadIni(self):
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep +'layman_user.INI'
         config = configparser.ConfigParser()
@@ -7781,7 +7657,7 @@ class Layman(QObject):
 
     def requestWrapper(self, type, url, payload = None, files = None):    
         try:
-            response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files)        
+            response = requests.request(type, url = url, headers=self.utils.getAuthHeader(self.authCfg), data=payload, files=files)        
         except Exception as ex:   
             info = str(ex)            
             self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
@@ -7893,7 +7769,7 @@ class Layman(QObject):
         
         workspace = it.text(1)
         url = self.URI+'/rest/'+workspace+'/layers/'+str(layerName).lower() 
-        r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        r = requests.get(url, headers = self.utils.getAuthHeader(self.authCfg))
         data = r.json()
         print(data)
         table = data["db"]["table"]

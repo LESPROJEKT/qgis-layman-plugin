@@ -26,6 +26,11 @@ import os
 
 from PyQt5 import uic
 from PyQt5 import QtWidgets
+import requests, json
+from PyQt5.QtGui import QCursor
+from PyQt5.QtCore import Qt
+
+from .layman_utils import LaymanUtils
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -33,7 +38,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
+    def __init__(self, utils, iface, isAuthorized, server, laymanUsername, URI,laymanVersion, parent=None):
         """Constructor."""
         super(UserInfoDialog, self).__init__(parent)
         # Set up the user interface from Designer through FORM_CLASS.
@@ -42,3 +47,72 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
+        self.iface = iface
+        self.isAuthorized = isAuthorized        
+        self.server = server
+        self.laymanUsername = laymanUsername
+        self.utils = utils
+        self.URI = URI
+        self.laymanVersion = laymanVersion
+        self.setUi()
+    
+    def setUi(self):
+        self.utils.recalculateDPI()
+        self.pushButton_update.setStyleSheet("#pushButton_update {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_update:hover{background: #66ab27 ;}#pushButton_update:disabled{background: #64818b ;}")
+        self.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
+        self.label_older.setCursor(QCursor(Qt.PointingHandCursor))
+        self.label_older.mousePressEvent = lambda event: self.getOldVersion()  
+        self.comboBox_port.addItem("7070")
+        self.comboBox_port.addItem("7071")
+        self.comboBox_port.addItem("7072")
+        port = self.utils.getConfigItem("port") 
+        if not port:
+            self.comboBox_port.setCurrentIndex(0)
+            self.port = "7070"
+        else:
+            if port == "7070":
+                self.port = "7070"
+                self.comboBox_port.setCurrentIndex(0)
+            elif port == "7071":
+                self.port = "7071"
+                self.comboBox_port.setCurrentIndex(1) 
+            elif port == "7072":
+                self.port = "7072"
+                self.comboBox_port.setCurrentIndex(2) 
+        self.comboBox_port.currentIndexChanged.connect(self.utils.setPortValue)                                                        
+        if self.server != None and self.laymanUsername != "":
+            userEndpoint = self.URI + "/rest/current-user"            
+            r = self.utils.requestWrapper("GET", userEndpoint, payload = None, files = None)
+            res = r.text
+            res = self.utils.fromByteToJson(r.content)
+            versionCheck = self.utils.checkVersion()
+            self.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))            
+            if self.isAuthorized:    
+                self.label_layman.setText(res['username'])
+                self.label_agrihub.setText(res['claims']['email'])
+            else:
+                self.label_layman.setText("Anonymous")
+            self.label_server.setText(self.URI)
+
+            self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
+            self.label_version.setText(self.utils.getVersion())
+            self.label_versionLayman.setText(self.laymanVersion)            
+            self.pushButton_close.clicked.connect(lambda: self.close())
+                       
+            self.label_avversion.setText(versionCheck[1])
+            if versionCheck[0] == True:                   
+                self.pushButton_update.setEnabled(False)
+        else:
+            self.label_version.setText(self.utils.getVersion())
+            versionCheck = self.utils.checkVersion()
+            self.label_avversion.setText(versionCheck[1])
+            if versionCheck[0] == True:                          
+                self.pushButton_update.setEnabled(False)
+            self.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
+        self.pushButton_close.clicked.connect(lambda: self.close())    
+    
+            
+     
+    
+                       
