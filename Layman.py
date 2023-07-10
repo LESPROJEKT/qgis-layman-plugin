@@ -27,8 +27,6 @@ import base64
 import configparser
 import copy
 import csv
-import hashlib
-import io
 import json
 import os
 import os.path
@@ -167,14 +165,11 @@ class Layman(QObject):
         self.expires_in = None
         self.refresh_token = None
         self.laymanUsername = ""
-        self.authHeader = None
-        self.code_verifier = None
-        self.code_challenge = None
+        self.authHeader = None  
         self.wrongLayers = False
         self.Agrimail = ""        
         self.liferayServer = None
-        self.laymanServer = None     
-        self.authCfg =""
+        self.laymanServer = None            
         self.authCfg = "957je05"
         self.importedLayer = None
         self.batchLength = 0     
@@ -193,7 +188,7 @@ class Layman(QObject):
         self.currentLayer = []
         self.currentLayerDict = {}
         self.laymanVersion = None     
-        self.isAuthorized = True
+        self.isAuthorized = False
         self.selectedWorkspace = None 
         self.noOverrideLayers = list()
         self.processingRequest = False
@@ -1394,8 +1389,7 @@ class Layman(QObject):
             threading.Thread(target=lambda: xx.post(request, multi_part)).start()
 
 
-    def crsChanged(self):       
-      
+    def crsChanged(self):     
         if self.strip_accents(self.current) == self.strip_accents(QgsProject.instance().title()):
             if self.crsChangedConnect == True:
                 print("crs changed")              

@@ -41,11 +41,6 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, utils, iface, isAuthorized, server, laymanUsername, URI,laymanVersion, parent=None):
         """Constructor."""
         super(UserInfoDialog, self).__init__(parent)
-        # Set up the user interface from Designer through FORM_CLASS.
-        # After self.setupUi() you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
         self.iface = iface
         self.isAuthorized = isAuthorized        
