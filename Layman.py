@@ -260,21 +260,8 @@ class Layman(QObject):
         self.timer.start(10000)             
 
     # noinspection PyMethodMayBeStatic
-    def tr(self, message):
-        """Get the translation for a string using Qt translation API.
-
-        We implement this ourselves since we do not inherit QObject.
-
-        :param message: String for translation.
-        :type message: str, QString
-
-        :returns: Translated version of message.
-        :rtype: QString
-        """
-        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
+    def tr(self, message):     
         return QCoreApplication.translate('Layman', message)
-
-
     def add_action(
         self,
         icon_path,
@@ -1448,13 +1435,10 @@ class Layman(QObject):
             iterator +=1
         while iterator.value():
             item = iterator.value()
-
-            if item.text(0) in duplicity:
-                
+            if item.text(0) in duplicity:                
                 item.setForeground(0, QColor(255,18,0))
                 ret = True
-            else:
-                
+            else:                
                 item.setForeground(0, QColor(0,0,0))
             iterator +=1        
         return ret        
@@ -2424,7 +2408,7 @@ class Layman(QObject):
         if not self.isAuthorized:
             self.dlg.label_noUser.show()
         try:
-            checked = self.getConfigItem("mapcheckbox")   
+            checked = self.utils.getConfigItem("mapcheckbox")   
         except:
             checked = False
         if checked == "0":
@@ -2626,74 +2610,75 @@ class Layman(QObject):
         QgsMessageLog.logMessage("loadMaps")
 
     def run_AddLayerDialog(self):
-        self.utils.recalculateDPI()
+        self.dlg = AddLayerDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI)
+        #self.utils.recalculateDPI()
 
-        self.dlg = AddLayerDialog()
-        self.dlg.pushButton_layerRedirect.hide()
-        self.dlg.pushButton_layerRedirect.setEnabled(False)
-        self.dlg.pushButton_urlWfs.setEnabled(False)
-        self.dlg.pushButton_urlWms.setEnabled(False)
-        self.dlg.pushButton.setEnabled(False)
-        self.dlg.pushButton_wfs.setEnabled(False)
-        self.dlg.pushButton_delete.setEnabled(False)
-        self.dlg.pushButton_setPermissions.setEnabled(False)
-        self.dlg.label_noUser.hide()
-        self.dlg.pushButton_postgis.setEnabled(False) 
-        try:
-            checked = self.getConfigItem("layercheckbox")            
-        except:
-            checked = False
-        if checked == "0":
-            self.dlg.checkBox_own.setCheckState(0)
-            checked = False
-        if checked == "1":
-            self.dlg.checkBox_own.setCheckState(2)
-            checked = True
+        #self.dlg = AddLayerDialog()
+        # self.dlg.pushButton_layerRedirect.hide()
+        # self.dlg.pushButton_layerRedirect.setEnabled(False)
+        # self.dlg.pushButton_urlWfs.setEnabled(False)
+        # self.dlg.pushButton_urlWms.setEnabled(False)
+        # self.dlg.pushButton.setEnabled(False)
+        # self.dlg.pushButton_wfs.setEnabled(False)
+        # self.dlg.pushButton_delete.setEnabled(False)
+        # self.dlg.pushButton_setPermissions.setEnabled(False)
+        # self.dlg.label_noUser.hide()
+        # self.dlg.pushButton_postgis.setEnabled(False) 
+        # try:
+        #     checked = self.utils.getConfigItem("layercheckbox")            
+        # except:
+        #     checked = False
+        # if checked == "0":
+        #     self.dlg.checkBox_own.setCheckState(0)
+        #     checked = False
+        # if checked == "1":
+        #     self.dlg.checkBox_own.setCheckState(2)
+        #     checked = True
         
-        self.dlg.pushButton_delete.clicked.connect(lambda: self.callDeleteLayer(self.dlg.treeWidget.selectedItems(), self.layerNamesDict))
-        self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
-        self.dlg.pushButton.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WMS"))
-        self.dlg.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WFS"))
-        self.dlg.pushButton_postgis.clicked.connect(lambda: self.loadPostgisLayer(self.dlg.treeWidget.selectedItems()[0]))
-        self.dlg.pushButton_urlWms.clicked.connect(lambda: self.copyLayerUrl(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1),"wms"))
-        self.dlg.pushButton_urlWfs.clicked.connect(lambda: self.copyLayerUrl(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1),"wfs"))
-        if not self.isAuthorized:
-            self.dlg.label_noUser.show()
-            self.dlg.checkBox_own.setEnabled(False)
-        self.dlg.treeWidget.itemClicked.connect(self.enableDeleteButton)
-        self.dlg.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
-        self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
-        self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.dlg.treeWidget.selectedItems()[0])).start())      
-        self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.checkIfPostgis(self.dlg.treeWidget.selectedItems()[0])).start())          
-        self.dlg.filter.valueChanged.connect(self.filterResults)
-        self.dlg.treeWidget.setColumnWidth(0, 300)
-        self.dlg.treeWidget.setColumnWidth(2, 80)
-        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())        
-        self.dlg.checkBox_own.stateChanged.connect(self.rememberValueLayer)
-        self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showPermissionsDialog(self.dlg.treeWidget.selectedItems()))
-        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
-        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
-        self.dlg.pushButton_wfs.setStyleSheet("#pushButton_wfs {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_wfs:hover{background: #66ab27 ;}#pushButton_wfs:disabled{background: #64818b ;}")
-        self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-        self.dlg.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #707070 ;}#pushButton_urlWms:disabled{background: #999999 ;}")
-        self.dlg.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #707070 ;}#pushButton_urlWfs:disabled{background: #999999 ;}")
-        self.dlg.pushButton_postgis.setStyleSheet("#pushButton_postgis {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_postgis:hover{background: #66ab27 ;}#pushButton_postgis:disabled{background: #64818b ;}")
-        # self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
-        # self.threadLayers.start()
-        self.dlg.progressBar_loader.show()        
-        self.getLayers.emit(checked)
-        self.dlg.checkBox_own.stateChanged.connect(self.loadLayersThread)     
-        if self.isAuthorized:
-            self.dlg.checkBox_own.setEnabled(True)
-        else:
-            self.dlg.checkBox_own.setEnabled(False)
+        # self.dlg.pushButton_delete.clicked.connect(lambda: self.callDeleteLayer(self.dlg.treeWidget.selectedItems(), self.layerNamesDict))
+        # self.dlg.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.dlg.treeWidget.selectedItems()[0].text(0)))
+        # self.dlg.pushButton.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WMS"))
+        # self.dlg.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.dlg.treeWidget.selectedItems(), "WFS"))
+        # self.dlg.pushButton_postgis.clicked.connect(lambda: self.loadPostgisLayer(self.dlg.treeWidget.selectedItems()[0]))
+        # self.dlg.pushButton_urlWms.clicked.connect(lambda: self.copyLayerUrl(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1),"wms"))
+        # self.dlg.pushButton_urlWfs.clicked.connect(lambda: self.copyLayerUrl(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.selectedItems()[0].text(1),"wfs"))
+        # if not self.isAuthorized:
+        #     self.dlg.label_noUser.show()
+        #     self.dlg.checkBox_own.setEnabled(False)
+        # self.dlg.treeWidget.itemClicked.connect(self.enableDeleteButton)
+        # self.dlg.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
+        # self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
+        # self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.dlg.treeWidget.selectedItems()[0])).start())      
+        # self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.checkIfPostgis(self.dlg.treeWidget.selectedItems()[0])).start())          
+        # self.dlg.filter.valueChanged.connect(self.filterResults)
+        # self.dlg.treeWidget.setColumnWidth(0, 300)
+        # self.dlg.treeWidget.setColumnWidth(2, 80)
+        # self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())        
+        # self.dlg.checkBox_own.stateChanged.connect(self.rememberValueLayer)
+        # self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showPermissionsDialog(self.dlg.treeWidget.selectedItems()))
+        # self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        # self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        # self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        # self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
+        # self.dlg.pushButton_wfs.setStyleSheet("#pushButton_wfs {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_wfs:hover{background: #66ab27 ;}#pushButton_wfs:disabled{background: #64818b ;}")
+        # self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
+        # self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
+        # self.dlg.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #707070 ;}#pushButton_urlWms:disabled{background: #999999 ;}")
+        # self.dlg.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #707070 ;}#pushButton_urlWfs:disabled{background: #999999 ;}")
+        # self.dlg.pushButton_postgis.setStyleSheet("#pushButton_postgis {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_postgis:hover{background: #66ab27 ;}#pushButton_postgis:disabled{background: #64818b ;}")
+        # # self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
+        # # self.threadLayers.start()
+        # self.dlg.progressBar_loader.show()        
+        # self.getLayers.emit(checked)
+        # self.dlg.checkBox_own.stateChanged.connect(self.loadLayersThread)     
+        # if self.isAuthorized:
+        #     self.dlg.checkBox_own.setEnabled(True)
+        # else:
+        #     self.dlg.checkBox_own.setEnabled(False)
         
-        self.dlg.label_loading.show()
-        self.dlg.show()
-        result = self.dlg.exec_()
+        # self.dlg.label_loading.show()
+        # self.dlg.show()
+        # result = self.dlg.exec_()
 
     def loadLayersThread(self, onlyOwn=False):
         self.layerNamesDict = dict()
@@ -3085,6 +3070,7 @@ class Layman(QObject):
         url = self.URI+'/rest/'+workspace+'/layers/'+self.removeUnacceptableChars(name)
         response = self.requestWrapper("GET", url, payload = None, files = None)
         res = self.utils.fromByteToJson(response.content)
+        print(res)
         if "file" in res:
             return res['file']['file_type']
         else:
@@ -3299,8 +3285,6 @@ class Layman(QObject):
             self.dlg.listWidget.clear()
         except:
             return
-
-
         for i in range (0, len(self.compositeList)):        
            self.dlg.listWidget.addItem(self.compositeList[i]['title'])
         if new:
@@ -3390,7 +3374,6 @@ class Layman(QObject):
         self.run_EditCurrentMap()
           
     def refreshItems(self):
-
          self.dlg.listWidget_listLayers.clear()
          for i in range (0,len(self.compositeList)):         
            self.dlg.listWidget_listLayers.addItem(self.compositeList[i]['title'])
@@ -3400,8 +3383,8 @@ class Layman(QObject):
         self.compositeList[x]['title'] =  self.dlg.lineEdit_title.text()
     def callDeleteLayer(self, layers, layerNames):       
         items = list()
-        for i in range (0, len(self.dlg.treeWidget.selectedItems())):
-            items.append(self.dlg.treeWidget.selectedItems()[i].text(0))
+        for i in range (0, len(layers)):
+            items.append(layers[i].text(0))
         question = True            
         if len(items) > 1:
             if self.locale == "cs":
@@ -3456,7 +3439,7 @@ class Layman(QObject):
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
         response = self.requestWrapper("DELETE", url, payload = None, files = None)      
         try:
-            checked = self.getConfigItem("layercheckbox")
+            checked = self.utils.getConfigItem("layercheckbox")
         except:
             checked = False
         if checked == "0":
@@ -3546,13 +3529,7 @@ class Layman(QObject):
                 lay = QgsProject.instance().mapLayersByName(item.text(0))[0]
                 lay.styleChanged.connect(self.layerStyleToUpdate)
             iterator +=1
-
-
         threading.Thread(target=lambda: self.updateCompositionThread()).start()
-
-
-
-
         self.dlg.progressBar_loader.show()
         self.dlg.pushButton_save.setEnabled(False)
     def updateLayerPropsInComposition(self):
@@ -3636,12 +3613,8 @@ class Layman(QObject):
         files = [('style', open(stylePath, 'rb'))]
         url = self.URI+'/rest/'+workspace+"/layers/" + layer_name
         data = { 'name' :  layer_name, 'title' : str(layer.name())}
-
         url = self.URI+'/rest/'+workspace+"/layers/" + layer_name
-        r = self.requestWrapper("PATCH", url, data, files)      
-        
-
-   
+        r = self.requestWrapper("PATCH", url, data, files)  
     def checkCompositionChanges(self, layers):
         composition = self.instance.getComposition()
         check = False
@@ -3688,8 +3661,6 @@ class Layman(QObject):
     def checkIfMapExist(self, name):
         url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+str(name)+"/file"
         r = self.requestWrapper("GET", url, payload = None, files = None)
-
-
         if (r.status_code == 404):
             return False
         else:
@@ -4686,7 +4657,7 @@ class Layman(QObject):
           
             self.mapDeletedSuccessfully.emit()
             try:
-                checked = self.getConfigItem("mapcheckbox")
+                checked = self.utils.getConfigItem("mapcheckbox")
                 print(checked)
             except:
                 checked = False
@@ -4732,7 +4703,7 @@ class Layman(QObject):
                 pass
         
             try:
-                checked = self.getConfigItem("mapcheckbox")
+                checked = self.utils.getConfigItem("mapcheckbox")
                 print(checked)
             except:
                 checked = False
@@ -7599,14 +7570,14 @@ class Layman(QObject):
         QMessageBox.information(None, "Layman", "Layman plugin was updated. Please restart QGIS.")
    
 
-    def getConfigItem(self, key):
-        file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'
-        config = configparser.RawConfigParser()
-        config.read(file)
-        try:
-            return config.get('DEFAULT', key)
-        except configparser.NoOptionError:
-            return None
+    # def getConfigItem(self, key):
+    #     file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'
+    #     config = configparser.RawConfigParser()
+    #     config.read(file)
+    #     try:
+    #         return config.get('DEFAULT', key)
+    #     except configparser.NoOptionError:
+    #         return None
     def saveIni(self):
 
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'
