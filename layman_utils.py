@@ -49,7 +49,8 @@ class LaymanUtils(QObject):
             self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
             return
         print(response.status_code)
-        if response.status_code != 200:               
+        if response.status_code != 200:             
+            5/0  
             self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)    
         return response        
            
@@ -500,4 +501,9 @@ class LaymanUtils(QObject):
         with open(tempf, 'wb') as f:
             f.write(response.content)                 
         return response.status_code, suffix.replace(".","")                    
-    
+    def getUserName(self):
+        userEndpoint = self.URI+ "/rest/current-user"  
+        r = self.requestWrapper("GET", userEndpoint, payload = None, files = None)
+        res = self.fromByteToJson(r.content)      
+
+        return res['username']
