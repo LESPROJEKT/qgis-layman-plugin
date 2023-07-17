@@ -504,6 +504,18 @@ class LaymanUtils(QObject):
     def getUserName(self):
         userEndpoint = self.URI+ "/rest/current-user"  
         r = self.requestWrapper("GET", userEndpoint, payload = None, files = None)
-        res = self.fromByteToJson(r.content)      
-
+        res = self.fromByteToJson(r.content)
         return res['username']
+    
+    def getUserFullName(self):
+        userEndpoint = self.URI+ "/rest/current-user"  
+        r = self.requestWrapper("GET", userEndpoint, payload = None, files = None)
+        res = self.fromByteToJson(r.content)
+        print(res)
+        return res['claims']['name']
+    
+    
+    def listToString(self, s):
+
+        str1 = ","
+        return (str1.join(s))
