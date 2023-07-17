@@ -35,7 +35,7 @@ from .dlg_setPermission import SetPermissionDialog
 
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QStackedWidget, QPushButton
 from PyQt5 import uic
-from PyQt5.QtCore import QFileInfo, QFile
+from PyQt5.QtCore import QFileInfo, QFile, Qt
 
 from PyQt5.uic import loadUi
 
@@ -95,17 +95,20 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
         return loader
     def setPermissionsWidget(self, option):
-
+        
         self.page1.setVisible(option)
         self.page2.setVisible(not option)
         if option == True:
-            self.setPermissionsUI(self.treeWidget.selectedItems()[0].text(1))
+            names = list()
+            for i in range (0, len(self.treeWidget.selectedItems())):
+                names.append(self.treeWidget.selectedItems()[i].text(0))
+            self.setPermissionsUI(names)
 
     def setUi(self):
         ##
         self.pushButton_setPermissions.clicked.connect(lambda: self.setPermissionsWidget(True))
         self.pushButton_back.clicked.connect(lambda: self.setPermissionsWidget(False))
-
+        self.permissionsConected = False
         self.connectEvents()
         self.utils.recalculateDPI()
 
@@ -119,9 +122,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_delete.setEnabled(False)
         self.pushButton_setPermissions.setEnabled(False)
         self.label_noUser.hide()
-        self.pushButton_postgis.setEnabled(False)
+        self.pushButton_postgis.setEnabled(False)        
         try:
-            checked = self.getConfigItem("layercheckbox")
+            checked = self.utils.getConfigItem("layercheckbox")
         except:
             checked = False
         if checked == "0":
@@ -152,17 +155,17 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.checkBox_own.stateChanged.connect(self.rememberValueLayer)
         # self.pushButton_setPermissions.clicked.connect(lambda: self.showPermissionsDialog(self.treeWidget.selectedItems()))
-        self.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        self.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
-        self.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        self.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
-        self.pushButton_wfs.setStyleSheet("#pushButton_wfs {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_wfs:hover{background: #66ab27 ;}#pushButton_wfs:disabled{background: #64818b ;}")
+        # self.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        # self.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        # self.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        # self.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
+        # self.pushButton_wfs.setStyleSheet("#pushButton_wfs {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_wfs:hover{background: #66ab27 ;}#pushButton_wfs:disabled{background: #64818b ;}")
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-        self.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #707070 ;}#pushButton_urlWms:disabled{background: #999999 ;}")
-        self.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #707070 ;}#pushButton_urlWfs:disabled{background: #999999 ;}")
-        self.pushButton_postgis.setStyleSheet("#pushButton_postgis {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_postgis:hover{background: #66ab27 ;}#pushButton_postgis:disabled{background: #64818b ;}")
-        # self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
+        # self.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
+        # self.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #707070 ;}#pushButton_urlWms:disabled{background: #999999 ;}")
+        # self.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #707070 ;}#pushButton_urlWfs:disabled{background: #999999 ;}")
+        # self.pushButton_postgis.setStyleSheet("#pushButton_postgis {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_postgis:hover{background: #66ab27 ;}#pushButton_postgis:disabled{background: #64818b ;}")
+        # # self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
         # self.threadLayers.start()
         self.progressBar_loader.show()
         self.loadLayersThread(checked)
@@ -191,12 +194,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         
         self.info = 0
         self.pushButton_close.clicked.connect(lambda: self.close())
-        self.pushButton_addRead.setStyleSheet("#pushButton_addRead {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addRead:hover{background: #66ab27 ;}#pushButton_addRead:disabled{background: #64818b ;}")
-        self.pushButton_removeRead.setStyleSheet("#pushButton_removeRead {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeRead:hover{background: #66ab27 ;}#pushButton_removeRead:disabled{background: #64818b ;}")
-        self.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
-        self.pushButton_addWrite.setStyleSheet("#pushButton_addWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addWrite:hover{background: #66ab27 ;}#pushButton_addWrite:disabled{background: #64818b ;}")
-        self.pushButton_removeWrite.setStyleSheet("#pushButton_removeWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeWrite:hover{background: #66ab27 ;}#pushButton_removeWrite:disabled{background: #64818b ;}")
-        self.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        # self.pushButton_addRead.setStyleSheet("#pushButton_addRead {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addRead:hover{background: #66ab27 ;}#pushButton_addRead:disabled{background: #64818b ;}")
+        # self.pushButton_removeRead.setStyleSheet("#pushButton_removeRead {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeRead:hover{background: #66ab27 ;}#pushButton_removeRead:disabled{background: #64818b ;}")
+        # self.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
+        # self.pushButton_addWrite.setStyleSheet("#pushButton_addWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addWrite:hover{background: #66ab27 ;}#pushButton_addWrite:disabled{background: #64818b ;}")
+        # self.pushButton_removeWrite.setStyleSheet("#pushButton_removeWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeWrite:hover{background: #66ab27 ;}#pushButton_removeWrite:disabled{background: #64818b ;}")
+        # self.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.listWidget_read.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
         self.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
         self.pushButton_removeRead.setEnabled(False)
@@ -239,7 +242,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             uri = self.URI + "/rest/"+self.laymanUsername+"/layers/"+layerName[0]
 
             #r= requests.get(uri,headers = self.utils.getAuthHeader(self.authCfg))
-            r = self.requestWrapper("GET", uri, payload = None, files = None)
+            r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
             res = self.utils.fromByteToJson(r.content)
             lenRead = len(res['access_rights']['read'])
             lenWrite = len(res['access_rights']['write'])
@@ -252,12 +255,14 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.listWidget_read.addItem(name)
             self.listWidget_write.addItem(name)
             #self.listWidget_read.addItem(usersDict['EVERYONE'])
-        self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())
-        self.pushButton_save.clicked.connect(lambda: self.askForMapPermissionChanges(layerName, usersDict, "layers"))
-        self.pushButton_addRead.clicked.connect(lambda:  self.checkAddedItemDuplicity("read"))
-        self.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
-        self.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
-        self.pushButton_removeWrite.clicked.connect(lambda: self.listWidget_write.removeItemWidget(self.listWidget_write.takeItem(self.listWidget_write.currentRow())))
+        if not self.permissionsConected:            
+            self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())
+            self.pushButton_save.clicked.connect(lambda: self.askForMapPermissionChanges(layerName, usersDict, "layers"))
+            self.pushButton_addRead.clicked.connect(lambda:  self.checkAddedItemDuplicity("read"))
+            self.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
+            self.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
+            self.pushButton_removeWrite.clicked.connect(lambda: self.listWidget_write.removeItemWidget(self.listWidget_write.takeItem(self.listWidget_write.currentRow())))
+            self.permissionsConected = True
 
 
 
@@ -530,7 +535,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def readLayerJsonThread(self, layerName,service, workspace):
         layerNameTitle =layerName
-        layerName = self.layerNamesDict[layerName]
+        layerName = self.layerNamesDict[layerName]   
         if self.utils.checkLayerOnLayman(layerName, self.selectedWorkspace, self.laymanUsername):
             layerName = self.utils.removeUnacceptableChars(layerName)
             url = self.URI+'/rest/'+workspace+'/layers/'+layerName
@@ -683,11 +688,15 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             
     def askForMapPermissionChanges(self,layerName, userDict, type):
         self.failed = list()
-        self.statusHelper = True       
+        self.statusHelper = True    
+        
         threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type)).start()
     def askForLayerPermissionChanges(self,layerName, userDict, type):
+      
         self.failed = list()
         self.statusHelper = True
+      
+        
         if self.hasLaymanLayer(layerName[0]):
             if self.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
@@ -702,7 +711,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 threading.Thread(target=lambda: self.updateAllLayersPermission(userDict, layerName, False)).start()
             else:
                 threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
-        else:
+        else:            
             threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()            
             
     def updateAllLayersPermission(self, userDict, layerName, loaded = False):      
@@ -736,7 +745,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 name = layer['params']['LAYERS']
             if name is not None:
                 response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.authCfg))  
-                
+                print(response.content)
                 if (response.status_code != 200):        
                     try:
                         if self.utils.fromByteToJson(response.content)["code"] == 15:
@@ -748,7 +757,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 print("there is not possible set permissions for layer")
           
-    def updatePermissions(self,layerName, userDict, type, check=False):       
+    def updatePermissions(self,layerName, userDict, type, check=False):   
+        print(layerName)    
         itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
         itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]
         userNamesRead = list()  
@@ -777,9 +787,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             layer = self.utils.removeUnacceptableChars(layer)      
             url = self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer
             response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))  
+            print(layer)
+            print(response.content)
             if (response.status_code != 200):
                 self.failed.append(layer)         
                 self.utils.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
+                (list,str,str,Qgis.MessageLevel, str)  
                 self.statusHelper = False
                    
         ## rekurzivni zmeny        
@@ -793,7 +806,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                                 layerList.append(self.compositeList[i]['layers'][j]['params']['LAYERS'])
                             if self.compositeList[i]['layers'][j]['className'] == "OpenLayers.Layer.Vector":                            
                                 layerList.append(self.utils.removeUnacceptableChars(self.compositeList[i]['layers'][j]['title']))
-                print("updating permissions for layers:" + str(layerList))
+                print("updating permissions for layers:" + str(layerList))                
                 threading.Thread(target=self.updatePermissions(layerList,userDict, "layers")).start()
                 return
             else:
@@ -802,7 +815,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         elif (type == "layers" and check):
             for name in layerName:
                 compositionList = self.getCompositionsByLayer(name)
-                for comp in compositionList:
+                for comp in compositionList: 
                     self.updatePermissions([comp],userDict, "maps", False)
                     return      
         else:      
@@ -813,16 +826,26 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.permissionInfo.emit(False, self.failed, 0)                
                 
     def afterPermissionDone(self, success, failed, info):
-        if self.objectName() == "PermissionsDialog":
+        if self.objectName() == "AddLayerDialog":
             self.progressBar_loader.hide()             
             if success:
                 if self.locale == "cs":
                     QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
                 else:
-                    QMessageBox.information(None, "Saved", "Permissions was saved successfully.")
-                self.close()                    
+                    QMessageBox.information(None, "Saved", "Permissions was saved successfully.")                
             else:
                 if self.locale == "cs":
-                    QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu/mapu: " + str(failed).replace("[","").replace("]",""))
+                    QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""))
                 else:
-                    QMessageBox.information(None, "Error", "Permissions was not saved for layer/map: " + str(failed).replace("[","").replace("]",""))                
+                    QMessageBox.information(None, "Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                
+                    
+    def removeWritePermissionList(self):
+        self.deleteItem(self.listWidget_read.currentItem().text())
+        self.listWidget_read.removeItemWidget(self.listWidget_read.takeItem(self.listWidget_read.currentRow()))
+    def deleteItem(self, itemName):
+
+        items_list = self.listWidget_write.findItems(itemName, Qt.MatchExactly)
+        for item in items_list:
+            r = self.listWidget_write.row(item)
+            self.listWidget_write.takeItem(r)       
+                    

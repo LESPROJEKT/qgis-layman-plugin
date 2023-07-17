@@ -114,6 +114,10 @@
    <property name="text">
     <string>Load WFS</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/gi.png</normaloff>icons/gi.png</iconset>
+   </property>
   </widget>
   <widget class="QPushButton" name="pushButton_delete">
    <property name="geometry">
@@ -126,6 +130,10 @@
    </property>
    <property name="text">
     <string>Delete layer</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
    </property>
   </widget>
   <widget class="QLabel" name="label_loading">
@@ -172,11 +180,15 @@
    <property name="text">
     <string>Set permissions</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/share_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/share_FILL0_wght500_GRAD0_opsz24.png</iconset>
+   </property>
   </widget>
   <widget class="QLabel" name="label_noUser">
    <property name="geometry">
     <rect>
-     <x>20</x>
+     <x>30</x>
      <y>13</y>
      <width>131</width>
      <height>20</height>
@@ -210,6 +222,10 @@
     <property name="text">
      <string>WMS</string>
     </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>icons/link.png</normaloff>icons/link.png</iconset>
+    </property>
    </widget>
    <widget class="QPushButton" name="pushButton_urlWfs">
     <property name="geometry">
@@ -222,6 +238,10 @@
     </property>
     <property name="text">
      <string>WFS</string>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>icons/link.png</normaloff>icons/link.png</iconset>
     </property>
    </widget>
   </widget>
@@ -250,6 +270,10 @@
    <property name="text">
     <string>Load Postgis</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/database.png</normaloff>icons/database.png</iconset>
+   </property>
   </widget>
   <widget class="QStackedWidget" name="stackedWidget">
    <property name="geometry">
@@ -267,8 +291,8 @@
     <widget class="QPushButton" name="pushButton_save">
      <property name="geometry">
       <rect>
-       <x>20</x>
-       <y>360</y>
+       <x>10</x>
+       <y>420</y>
        <width>101</width>
        <height>27</height>
       </rect>
@@ -276,12 +300,16 @@
      <property name="text">
       <string>Save</string>
      </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
+     </property>
     </widget>
     <widget class="QPushButton" name="pushButton_addWrite">
      <property name="geometry">
       <rect>
-       <x>256</x>
-       <y>300</y>
+       <x>350</x>
+       <y>360</y>
        <width>101</width>
        <height>27</height>
       </rect>
@@ -289,12 +317,16 @@
      <property name="text">
       <string>Add</string>
      </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>icons/add.png</normaloff>icons/add.png</iconset>
+     </property>
     </widget>
     <widget class="QLabel" name="label_3">
      <property name="geometry">
       <rect>
-       <x>257</x>
-       <y>100</y>
+       <x>350</x>
+       <y>120</y>
        <width>55</width>
        <height>16</height>
       </rect>
@@ -306,9 +338,9 @@
     <widget class="QComboBox" name="comboBox_users">
      <property name="geometry">
       <rect>
-       <x>90</x>
+       <x>60</x>
        <y>70</y>
-       <width>381</width>
+       <width>561</width>
        <height>22</height>
       </rect>
      </property>
@@ -316,8 +348,8 @@
     <widget class="QLabel" name="label_4">
      <property name="geometry">
       <rect>
-       <x>20</x>
-       <y>100</y>
+       <x>10</x>
+       <y>120</y>
        <width>55</width>
        <height>16</height>
       </rect>
@@ -329,18 +361,18 @@
     <widget class="QListWidget" name="listWidget_write">
      <property name="geometry">
       <rect>
-       <x>257</x>
-       <y>120</y>
-       <width>211</width>
-       <height>161</height>
+       <x>350</x>
+       <y>140</y>
+       <width>271</width>
+       <height>191</height>
       </rect>
      </property>
     </widget>
     <widget class="QPushButton" name="pushButton_removeWrite">
      <property name="geometry">
       <rect>
-       <x>367</x>
-       <y>300</y>
+       <x>520</x>
+       <y>360</y>
        <width>101</width>
        <height>27</height>
       </rect>
@@ -348,11 +380,15 @@
      <property name="text">
       <string>Remove</string>
      </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
+     </property>
     </widget>
     <widget class="QLabel" name="label">
      <property name="geometry">
       <rect>
-       <x>20</x>
+       <x>10</x>
        <y>70</y>
        <width>55</width>
        <height>16</height>
@@ -365,8 +401,8 @@
     <widget class="QPushButton" name="pushButton_removeRead">
      <property name="geometry">
       <rect>
-       <x>130</x>
-       <y>300</y>
+       <x>180</x>
+       <y>360</y>
        <width>101</width>
        <height>27</height>
       </rect>
@@ -374,12 +410,16 @@
      <property name="text">
       <string>Remove</string>
      </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
+     </property>
     </widget>
     <widget class="QPushButton" name="pushButton_addRead">
      <property name="geometry">
       <rect>
-       <x>20</x>
-       <y>300</y>
+       <x>10</x>
+       <y>360</y>
        <width>101</width>
        <height>27</height>
       </rect>
@@ -387,21 +427,25 @@
      <property name="text">
       <string>Add</string>
      </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>icons/add.png</normaloff>icons/add.png</iconset>
+     </property>
     </widget>
     <widget class="QListWidget" name="listWidget_read">
      <property name="geometry">
       <rect>
-       <x>20</x>
-       <y>120</y>
-       <width>211</width>
-       <height>161</height>
+       <x>10</x>
+       <y>140</y>
+       <width>271</width>
+       <height>191</height>
       </rect>
      </property>
     </widget>
     <widget class="QPushButton" name="pushButton_back">
      <property name="geometry">
       <rect>
-       <x>20</x>
+       <x>10</x>
        <y>10</y>
        <width>93</width>
        <height>28</height>
@@ -410,15 +454,19 @@
      <property name="text">
       <string>Back to list</string>
      </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>icons/back.png</normaloff>icons/back.png</iconset>
+     </property>
     </widget>
    </widget>
    <widget class="QWidget" name="page2">
     <widget class="QTreeWidget" name="treeWidget">
      <property name="geometry">
       <rect>
-       <x>0</x>
+       <x>10</x>
        <y>80</y>
-       <width>591</width>
+       <width>611</width>
        <height>481</height>
       </rect>
      </property>
@@ -449,9 +497,9 @@
     <widget class="QgsFilterLineEdit" name="filter">
      <property name="geometry">
       <rect>
-       <x>0</x>
+       <x>10</x>
        <y>40</y>
-       <width>591</width>
+       <width>611</width>
        <height>24</height>
       </rect>
      </property>
@@ -474,7 +522,7 @@
     <widget class="QCheckBox" name="checkBox_own">
      <property name="geometry">
       <rect>
-       <x>0</x>
+       <x>10</x>
        <y>0</y>
        <width>191</width>
        <height>20</height>

@@ -25,7 +25,7 @@ class LaymanUtils(QObject):
         self.currentLayer = []
         self.connectEvents()
     def connectEvents(self):         
-        self.showErr.connect(self.showMessageBar)
+        self.showErr.connect(self.showMessageError)
         self.setVisibility.connect(self._setVisibility)
         self.loadStyle.connect(self._loadStyle)
         
@@ -61,7 +61,7 @@ class LaymanUtils(QObject):
         else:
             self.fontSize = "10px"  
             
-    def showMessageBar(self, text, info, err, typ, url):     
+    def showMessageError(self, text, info, err, typ, url):     
         widget = QWidget()
         layout = QHBoxLayout() 
         layout.setAlignment(Qt.AlignCenter)       
