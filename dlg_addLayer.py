@@ -31,8 +31,6 @@ from qgis.core import *
 import threading
 import requests
 import pandas as pd
-from .dlg_setPermission import SetPermissionDialog
-
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QStackedWidget, QPushButton
 from PyQt5 import uic
 from PyQt5.QtCore import QFileInfo, QFile, Qt
@@ -154,19 +152,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.setColumnWidth(2, 80)
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.checkBox_own.stateChanged.connect(self.rememberValueLayer)
-        # self.pushButton_setPermissions.clicked.connect(lambda: self.showPermissionsDialog(self.treeWidget.selectedItems()))
-        # self.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        # self.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
-        # self.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        # self.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
-        # self.pushButton_wfs.setStyleSheet("#pushButton_wfs {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_wfs:hover{background: #66ab27 ;}#pushButton_wfs:disabled{background: #64818b ;}")
-        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        # self.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-        # self.pushButton_urlWms.setStyleSheet("#pushButton_urlWms {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWms:hover{background: #707070 ;}#pushButton_urlWms:disabled{background: #999999 ;}")
-        # self.pushButton_urlWfs.setStyleSheet("#pushButton_urlWfs {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #999999;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_urlWfs:hover{background: #707070 ;}#pushButton_urlWfs:disabled{background: #999999 ;}")
-        # self.pushButton_postgis.setStyleSheet("#pushButton_postgis {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_postgis:hover{background: #66ab27 ;}#pushButton_postgis:disabled{background: #64818b ;}")
-        # # self.threadLayers = threading.Thread(target=lambda: self.loadLayersThread(checked))
-        # self.threadLayers.start()
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")       
         self.progressBar_loader.show()
         self.loadLayersThread(checked)
         #self.getLayers.emit(checked)
@@ -193,13 +179,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         
         
         self.info = 0
-        self.pushButton_close.clicked.connect(lambda: self.close())
-        # self.pushButton_addRead.setStyleSheet("#pushButton_addRead {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addRead:hover{background: #66ab27 ;}#pushButton_addRead:disabled{background: #64818b ;}")
-        # self.pushButton_removeRead.setStyleSheet("#pushButton_removeRead {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeRead:hover{background: #66ab27 ;}#pushButton_removeRead:disabled{background: #64818b ;}")
-        # self.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
-        # self.pushButton_addWrite.setStyleSheet("#pushButton_addWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_addWrite:hover{background: #66ab27 ;}#pushButton_addWrite:disabled{background: #64818b ;}")
-        # self.pushButton_removeWrite.setStyleSheet("#pushButton_removeWrite {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_removeWrite:hover{background: #66ab27 ;}#pushButton_removeWrite:disabled{background: #64818b ;}")
-        # self.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        self.pushButton_close.clicked.connect(lambda: self.close())       
         self.listWidget_read.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
         self.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
         self.pushButton_removeRead.setEnabled(False)
@@ -233,15 +213,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         for i in range (0, userCount):
             usersDict[res[i]['name'] if res[i]['name'] !="" else res[i]['username']] = res[i]['username']
             usersDictReversed[res[i]['username']] = res[i]['name'] if res[i]['name'] !="" else res[i]['username']
-            if (res[i]['name'] != self.laymanUsername):
-                    #self.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username']  + ' , ' + res[i]['username'])
+            if (res[i]['name'] != self.laymanUsername):                
                 self.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username'])
 
         if (len(layerName) == 1):
             layerName[0] = self.layerNamesDict[layerName[0]]
             uri = self.URI + "/rest/"+self.laymanUsername+"/layers/"+layerName[0]
-
-            #r= requests.get(uri,headers = self.utils.getAuthHeader(self.authCfg))
             r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
             res = self.utils.fromByteToJson(r.content)
             lenRead = len(res['access_rights']['read'])
@@ -253,8 +230,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             name = self.utils.getUserFullName()
             self.listWidget_read.addItem(name)
-            self.listWidget_write.addItem(name)
-            #self.listWidget_read.addItem(usersDict['EVERYONE'])
+            self.listWidget_write.addItem(name)          
         if not self.permissionsConected:            
             self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())
             self.pushButton_save.clicked.connect(lambda: self.askForMapPermissionChanges(layerName, usersDict, "layers"))
@@ -298,28 +274,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             reply = msgbox.exec()
         else:
             reply = QMessageBox.Yes
-        if (reply == QMessageBox.Yes):
-            # if (self.checkLayersInComopsitions(name) == True):
-            #     if self.locale == "cs":
-            #         msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Vrstva " +name +" je obsažena v některých mapových kompozicích. Pokud budete pokračovat, bude smazána také z těchto kompozic.")
-            #     else:
-            #         msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Layer " +name +"  is included in other compositions. It will be deleted from every composition.")
-            #     msgbox.addButton(QMessageBox.Yes)
-            #     msgbox.addButton(QMessageBox.No)
-            #     msgbox.setDefaultButton(QMessageBox.No)
-            #     reply = msgbox.exec()
-            #     if (reply == QMessageBox.Yes):
-                    # name = self.utils.removeUnacceptableChars(name).lower()
-            # threading.Thread(target=lambda: self.layerDeleteThread(name)).start()
-            # self.progressBar_loader.show()
-            # self.deleteLayerThrowCompositions(name, title)
-
-
+        if (reply == QMessageBox.Yes):     
             name = self.utils.removeUnacceptableChars(name).lower()
             self.progressBar_loader.show()
-            threading.Thread(target=lambda: self.layerDeleteThread(name)).start()
-
-            # self.layerDeleteThread(name)
+            threading.Thread(target=lambda: self.layerDeleteThread(name)).start()          
 
 
     def layerInfoRedirect(self, name):
@@ -457,10 +415,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton.setEnabled(True)
         self.pushButton_urlWfs.setEnabled(True)
         self.pushButton_urlWms.setEnabled(True)
-
-        self.pushButton_layerRedirect.setEnabled(True)
-        # self.pushButton_delete.setEnabled(True)
-        # self.pushButton_setPermissions.setEnabled(True)
+        self.pushButton_layerRedirect.setEnabled(True)  
         self.checkSelectedCount()
         self.checkServiceButtons()
 
@@ -582,13 +537,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
                     else:
                         QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
-            #QgsMessageLog.logMessage("disableProgressBar")
+            QgsMessageLog.logMessage("layersLoaded")
         else:
             self.emitMessageBox.emit(["Vrstva "+layerName+ " nelze nahrát","Something went wrong with layer: " + layerName])
-            #QgsMessageLog.logMessage("disableProgressBar")
+            QgsMessageLog.logMessage("layersLoaded")
     def write_log_message(self,message, tag, level):
-        if message == "layersLoaded":
-            self.progressBar_loader.hide()
+        if message == "layersLoaded":            
             try:
                 self.progressBar_loader.hide()
             except:
@@ -843,7 +797,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.deleteItem(self.listWidget_read.currentItem().text())
         self.listWidget_read.removeItemWidget(self.listWidget_read.takeItem(self.listWidget_read.currentRow()))
     def deleteItem(self, itemName):
-
         items_list = self.listWidget_write.findItems(itemName, Qt.MatchExactly)
         for item in items_list:
             r = self.listWidget_write.row(item)

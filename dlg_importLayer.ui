@@ -56,6 +56,10 @@
    <property name="text">
     <string>Export layer</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/export.png</normaloff>icons/export.png</iconset>
+   </property>
   </widget>
   <widget class="QPushButton" name="pushButton_close">
    <property name="geometry">
@@ -68,6 +72,10 @@
    </property>
    <property name="text">
     <string>Close</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/cancel.png</normaloff>icons/cancel.png</iconset>
    </property>
   </widget>
   <widget class="QTreeWidget" name="treeWidget">
@@ -158,6 +166,10 @@
    </property>
    <property name="text">
     <string>Copy error log</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/warning.png</normaloff>icons/warning.png</iconset>
    </property>
   </widget>
   <widget class="QLabel" name="label">

@@ -46,6 +46,10 @@
    <property name="text">
     <string>Login</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/login_logged.png</normaloff>icons/login_logged.png</iconset>
+   </property>
   </widget>
   <widget class="QPushButton" name="pushButton_close">
    <property name="geometry">
@@ -58,6 +62,10 @@
    </property>
    <property name="text">
     <string>Close</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/cancel.png</normaloff>icons/cancel.png</iconset>
    </property>
   </widget>
   <widget class="QPushButton" name="pushButton_Continue">
@@ -156,6 +164,10 @@
    <property name="text">
     <string>Continue without login</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/user_not_logged.png</normaloff>icons/user_not_logged.png</iconset>
+   </property>
   </widget>
   <widget class="QPushButton" name="pushButton_logout">
    <property name="geometry">
@@ -168,6 +180,10 @@
    </property>
    <property name="text">
     <string>Logout</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/logout.png</normaloff>icons/logout.png</iconset>
    </property>
   </widget>
  </widget>

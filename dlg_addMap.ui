@@ -59,6 +59,10 @@
    <property name="text">
     <string>Close</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/cancel.png</normaloff>icons/cancel.png</iconset>
+   </property>
   </widget>
   <widget class="QTreeWidget" name="treeWidget">
    <property name="geometry">
@@ -189,6 +193,10 @@
    <property name="text">
     <string>Load composition</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/layer.png</normaloff>icons/layer.png</iconset>
+   </property>
   </widget>
   <widget class="QPushButton" name="pushButton_delete">
    <property name="geometry">
@@ -202,6 +210,10 @@
    <property name="text">
     <string>Delete map</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
+   </property>
   </widget>
   <widget class="QPushButton" name="pushButton_setPermissions">
    <property name="geometry">
@@ -214,6 +226,10 @@
    </property>
    <property name="text">
     <string>Set permissions</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/share_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/share_FILL0_wght500_GRAD0_opsz24.png</iconset>
    </property>
   </widget>
   <widget class="QgsFilterLineEdit" name="filter">
@@ -288,6 +304,10 @@
    </property>
    <property name="text">
     <string>Copy URL</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/link.png</normaloff>icons/link.png</iconset>
    </property>
   </widget>
   <widget class="QCheckBox" name="checkBox_thumbnail">
