@@ -31,10 +31,9 @@ from qgis.core import *
 import threading
 import requests
 import pandas as pd
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QStackedWidget, QPushButton
+from PyQt5.QtWidgets import QPushButton
 from PyQt5 import uic
 from PyQt5.QtCore import QFileInfo, QFile, Qt
-
 from PyQt5.uic import loadUi
 
 

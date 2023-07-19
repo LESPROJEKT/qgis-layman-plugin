@@ -26,6 +26,12 @@ import os
 
 from PyQt5 import uic
 from PyQt5 import QtWidgets
+import threading
+import requests
+from PyQt5.QtCore import QObject, pyqtSignal, Qt
+from PyQt5.QtWidgets import QTreeWidgetItem
+from qgis.core import *
+from PyQt5.QtGui import QPixmap
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -33,13 +39,202 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
+    mapDeletedSuccessfully = pyqtSignal()
+    
+    def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(AddMapDialog, self).__init__(parent)
         self.setObjectName("AddMapDialog")
-        # Set up the user interface from Designer through FORM_CLASS.
-        # After self.setupUi() you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
+        self.utils = utils
+        self.isAuthorized = isAuthorized
+        self.laymanUsername = laymanUsername
+        self.URI = URI
+        self.layman = layman
         self.setupUi(self)
+        self.setUi()
+        
+    def connectEvents(self):
+        self.mapDeletedSuccessfully.connect(self._onMapDeletedSuccessfully)  
+      
+    def setUi(self):        
+        self.connectEvents()
+        self.utils.recalculateDPI()
+        self.label_info.hide()     
+        self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnailMap(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), self.treeWidget.selectedItems()[0].text(1)  ) ).start())
+        #self.treeWidget.itemClicked.connect(self.enableButton) ## zkontrolovat
+        self.treeWidget.itemClicked.connect(self.enableLoadMapButtons) ## zkontrolovat
+        self.treeWidget.itemClicked.connect(self.setPermissionsButton)
+        self.treeWidget.setColumnWidth(0, 300)
+        self.treeWidget.setColumnWidth(2, 80)
+        self.label_noUser.hide()
+        self.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
+        self.pushButton_map.clicked.connect(lambda: self.layman.readMapJson(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), 'WFS', self.treeWidget.selectedItems()[0].text(1)))
+        self.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), True))
+        if not self.isAuthorized:
+            self.checkBox_own.setEnabled(False)
+        else:
+            self.checkBox_own.setEnabled(True)
+        self.pushButton_delete.clicked.connect(lambda: self.deleteMap(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)),self.getCompositionIndexByName(self.treeWidget.selectedItems()[0].text(0))))
+        
+        self.filter.valueChanged.connect(self.filterResults)
+        self.filter.valueChanged.connect(self.disableButtonsAddMap)
+        self.pushButton_close.clicked.connect(lambda: self.close())        
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
+        self.checkBox_own.stateChanged.connect(self.loadMapsThread)
+        self.checkBox_own.stateChanged.connect(self.disableButtonsAddMap)
+        self.checkBox_own.stateChanged.connect(self.rememberValueMap)
+        self.mapDeletedSuccessfully.emit()
+        self.show()
+        self.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl(True))
+        self.progressBar_loader.show()
+        self.label_loading.show()
+        if not self.isAuthorized:
+            self.label_noUser.show()
+        try:
+            checked = self.utils.getConfigItem("mapcheckbox")   
+        except:
+            checked = False
+        if checked == "0":
+            self.checkBox_own.setCheckState(0)
+            checked = False
+        if checked == "1":
+            self.checkBox_own.setCheckState(2)
+            checked = True
+        # threading.Thread(target=lambda: self.loadMapsThread(checked)).start()
+        self.loadMapsThread(checked)
+        result = self.exec_()
+        
+    def showThumbnailMap(self, it, workspace):
+        
+        map = it ##pro QTreeWidget
+        if self.checkBox_thumbnail.checkState() == 0:
+            try:
+                map = self.utils.removeUnacceptableChars(str(map))
+                url = self.URI+'/rest/'+workspace+'/maps/'+str(map).lower()+'/thumbnail'            
+                r = requests.get(url, headers = self.utils.getAuthHeader(self.authCfg))               
+                data = r.content 
+                pixmap = QPixmap(200, 200)
+                pixmap.loadFromData(data)
+                smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
+                self.label_thumbnail.setPixmap(smaller_pixmap)      
+            except:
+                pass        
+    # def getNameByTitle(self, val, refresh=True):   
+    #     ret = None     
+    #     for key, value in self.compositionDict.items():
+    #         if val == value:   
+    #             ret = key              
+    #             return ret
+    #     ## if title not found refresh dict
+    #     if ret == None and refresh:
+    #         self.fillCompositionDict()
+    #         ret = self.getNameByTitle(val, False)
+    #         return ret           
+    def fillCompositionDict(self):
+        url = self.URI+'/rest/maps'
+        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
+        dataAll = r.json()
+        for row in range(0, len(dataAll)):
+            self.compositionDict[dataAll[row]['name']] = dataAll[row]['title']                    
+    # def enableButton(self, item, col):
+
+
+    #     self.pushButton.setEnabled(True)        
+    #     #self.pushButton_mapWFS.setEnabled(True)     
+    #     #self.pushButton_deleteLayers.setEnabled(True)
+    #     self.pushButton_editMeta.setEnabled(True)
+    #     self.pushButton_setMapPermissions.setEnabled(True)
+    #     self.pushButton_addRaster.setEnabled(True)
+    #     try:
+    #         if (self.WMSenable):
+    #             self.pushButton_addWMS.setEnabled(True)
+    #     except:
+    #         pass          
+        
+    def enableLoadMapButtons(self, item):
+        self.pushButton_mapWFS.setEnabled(True)
+        self.pushButton_map.setEnabled(True)            
+        
+    def setPermissionsButton(self, item):
+        if item.text(2) != "own":
+            self.pushButton_setPermissions.setEnabled(False)
+            self.pushButton_delete.setEnabled(False)
+        else:
+            self.pushButton_setPermissions.setEnabled(True)
+            self.pushButton_delete.setEnabled(True)       
+            
+    def disableButtonsAddMap(self):
+        self.pushButton_setPermissions.setEnabled(False)
+        self.pushButton_delete.setEnabled(False)            
+             
+    def filterResults(self, value):
+
+        iterator = QTreeWidgetItemIterator(self.treeWidget, QTreeWidgetItemIterator.All)
+        while iterator.value():
+            item = iterator.value()
+            if value.lower() not in item.text(0).lower():
+                item.setHidden(True)
+            else:
+                item.setHidden(False)
+            iterator +=1            
+    def loadMapsThread(self, onlyOwn):        
+        self.treeWidget.clear()
+        url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title'
+        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        data = r.json()     
+        if onlyOwn and self.isAuthorized:
+            for row in range(0, len(data)):
+                if "native_crs" in data[row]:
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", data[row]['native_crs']])
+                else:
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
+                self.treeWidget.addTopLevelItem(item)
+            QgsMessageLog.logMessage("loadMaps")
+        elif not self.isAuthorized:
+            url = self.URI+'/rest/maps?order_by=title'
+            r = self.utils.requestWrapper("GET", url, payload = None, files = None)       
+            dataAll = r.json()
+            permissions = ""
+            for row in range(0, len(dataAll)):
+                if "native_crs" in dataAll[row]:
+                    item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read", dataAll[row]['native_crs']])
+                else:
+                    item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read"])
+                self.treeWidget.addTopLevelItem(item)
+        else:
+            url = self.URI+'/rest/maps?order_by=title'
+            r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+            dataAll = r.json()
+            permissions = ""
+            for row in range(0, len(dataAll)):
+                if self.laymanUsername in dataAll[row]['access_rights']['read'] or "EVERYONE" in dataAll[row]['access_rights']['read']:
+                    permissions = "read"
+                if self.laymanUsername in dataAll[row]['access_rights']['write'] or "EVERYONE" in dataAll[row]['access_rights']['write']:
+                    permissions = "write"
+                if dataAll[row] in data:
+                    permissions = "own"
+                if permissions != "":
+                    if "native_crs" in dataAll[row]:
+                        item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions, dataAll[row]['native_crs']])
+                    else:
+                        item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])                    
+                    self.treeWidget.addTopLevelItem(item)
+        QgsMessageLog.logMessage("loadMaps")            
+    def rememberValueMap(self, value):
+        ## 2 true, 0 false
+        if value == 2:
+            self.utils.appendIniItem("mapCheckbox", "1")
+        if value == 0:
+            self.utils.appendIniItem("mapCheckbox", "0")        
+            
+            
+            
+            
+            
+    def _onMapDeletedSuccessfully(self):
+        if self.objectName() == "AddMapDialog":
+            self.pushButton_delete.setEnabled(False)
+            self.pushButton_copyUrl.setEnabled(False)
+            self.pushButton_setPermissions.setEnabled(False)
+            self.pushButton_map.setEnabled(False)
+            self.label_thumbnail.setText(' ')              

@@ -2016,14 +2016,14 @@ class Layman(QObject):
         else:            
             resamplingMethods = ["No value", "nearest", "average", "rms", "bilinear", "gauss", "cubic", "cubicspline", "average_magphase", "mode"]
         self.dlg.comboBox_resampling.addItems(resamplingMethods)
-        self.dlg.comboBox_resampling.setEnabled(False)
+        self.dlg.comboBox_resampling.setEnabled(False)        
         self.dlg.label_import.hide()
         self.dlg.pushButton.setEnabled(False)      
         self.dlg.pushButton_errLog.hide()
         self.dlg.pushButton_errLog.clicked.connect(self.copyErrLog)
         self.dlg.treeWidget.itemPressed.connect(self.enableButtonImport)      
         self.dlg.treeWidget.itemSelectionChanged.connect(lambda: self.disableExport())
-        self.dlg.treeWidget.itemSelectionChanged.connect(lambda: self.checkIfRasterInSelected())        
+        self.dlg.treeWidget.itemSelectionChanged.connect(lambda: self.checkIfRasterInSelected())    
         self.dlg.treeWidget.setCurrentItem(self.dlg.treeWidget.topLevelItem(0),0)
         layers = QgsProject.instance().mapLayers().values()
         mix = list()
@@ -2363,59 +2363,61 @@ class Layman(QObject):
             urlWithParams = 'contextualWMSLegend=0&crs='+epsg+'&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url.split("?")[0]
         return urlWithParams.replace("'","")
     def run_AddMapDialog(self):
-        self.utils.recalculateDPI()
-        self.dlg = AddMapDialog()
-        self.dlg.label_info.hide()     
-        self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnailMap2(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)), self.dlg.treeWidget.selectedItems()[0].text(1)  ) ).start())
-        self.dlg.treeWidget.itemClicked.connect(self.enableButton)
-        self.dlg.treeWidget.itemClicked.connect(self.enableLoadMapButtons)
-        self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
-        self.dlg.treeWidget.setColumnWidth(0, 300)
-        self.dlg.treeWidget.setColumnWidth(2, 80)
-        self.dlg.label_noUser.hide()
-        self.dlg.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
-        self.dlg.pushButton_map.clicked.connect(lambda: self.readMapJson(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)), 'WFS', self.dlg.treeWidget.selectedItems()[0].text(1)))
-        self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)), True))
-        if not self.isAuthorized:
-            self.dlg.checkBox_own.setEnabled(False)
-        else:
-            self.dlg.checkBox_own.setEnabled(True)
-        self.dlg.pushButton_delete.clicked.connect(lambda: self.deleteMap(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)),self.getCompositionIndexByName(self.dlg.treeWidget.selectedItems()[0].text(0))))
         
-        self.dlg.filter.valueChanged.connect(self.filterResults)
-        self.dlg.filter.valueChanged.connect(self.disableButtonsAddMap)
-        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        # self.dlg.pushButton_map.setStyleSheet("#pushButton_map {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_map:hover{background: #66ab27 ;}#pushButton_map:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_mapWFS.setStyleSheet("#pushButton_mapWFS {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_mapWFS:hover{background: #66ab27 ;}#pushButton_mapWFS:disabled{background: #64818b ;}")
-        # self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
-        self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        # self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_copyUrl.setStyleSheet("#pushButton_copyUrl {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_copyUrl:hover{background: #66ab27 ;}#pushButton_copyUrl:disabled{background: #64818b ;}")
-        self.dlg.checkBox_own.stateChanged.connect(self.loadMapsThread)
-        self.dlg.checkBox_own.stateChanged.connect(self.disableButtonsAddMap)
-        self.dlg.checkBox_own.stateChanged.connect(self.rememberValueMap)
-        self.mapDeletedSuccessfully.emit()
-        self.dlg.show()
-        self.dlg.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl(True))
-        self.dlg.progressBar_loader.show()
-        self.dlg.label_loading.show()
-        if not self.isAuthorized:
-            self.dlg.label_noUser.show()
-        try:
-            checked = self.utils.getConfigItem("mapcheckbox")   
-        except:
-            checked = False
-        if checked == "0":
-            self.dlg.checkBox_own.setCheckState(0)
-            checked = False
-        if checked == "1":
-            self.dlg.checkBox_own.setCheckState(2)
-            checked = True
-        # threading.Thread(target=lambda: self.loadMapsThread(checked)).start()
-        self.loadMapsThread(checked)
-        result = self.dlg.exec_()
+        self.dlg = AddMapDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)
+        # self.utils.recalculateDPI()
+        # self.dlg = AddMapDialog()
+        # self.dlg.label_info.hide()     
+        # self.dlg.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnailMap2(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)), self.dlg.treeWidget.selectedItems()[0].text(1)  ) ).start())
+        # self.dlg.treeWidget.itemClicked.connect(self.enableButton)
+        # self.dlg.treeWidget.itemClicked.connect(self.enableLoadMapButtons)
+        # self.dlg.treeWidget.itemClicked.connect(self.setPermissionsButton)
+        # self.dlg.treeWidget.setColumnWidth(0, 300)
+        # self.dlg.treeWidget.setColumnWidth(2, 80)
+        # self.dlg.label_noUser.hide()
+        # self.dlg.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
+        # self.dlg.pushButton_map.clicked.connect(lambda: self.readMapJson(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)), 'WFS', self.dlg.treeWidget.selectedItems()[0].text(1)))
+        # self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)), True))
+        # if not self.isAuthorized:
+        #     self.dlg.checkBox_own.setEnabled(False)
+        # else:
+        #     self.dlg.checkBox_own.setEnabled(True)
+        # self.dlg.pushButton_delete.clicked.connect(lambda: self.deleteMap(self.getNameByTitle(self.dlg.treeWidget.selectedItems()[0].text(0)),self.getCompositionIndexByName(self.dlg.treeWidget.selectedItems()[0].text(0))))
+        
+        # self.dlg.filter.valueChanged.connect(self.filterResults)
+        # self.dlg.filter.valueChanged.connect(self.disableButtonsAddMap)
+        # self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
+        # # self.dlg.pushButton_map.setStyleSheet("#pushButton_map {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_map:hover{background: #66ab27 ;}#pushButton_map:disabled{background: #64818b ;}")
+        # # self.dlg.pushButton_mapWFS.setStyleSheet("#pushButton_mapWFS {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_mapWFS:hover{background: #66ab27 ;}#pushButton_mapWFS:disabled{background: #64818b ;}")
+        # # self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
+        # # self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        # self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
+        # # self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #66ab27 ;}#pushButton_setPermissions:disabled{background: #64818b ;}")
+        # # self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #66ab27 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        # # self.dlg.pushButton_copyUrl.setStyleSheet("#pushButton_copyUrl {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_copyUrl:hover{background: #66ab27 ;}#pushButton_copyUrl:disabled{background: #64818b ;}")
+        # self.dlg.checkBox_own.stateChanged.connect(self.loadMapsThread)
+        # self.dlg.checkBox_own.stateChanged.connect(self.disableButtonsAddMap)
+        # self.dlg.checkBox_own.stateChanged.connect(self.rememberValueMap)
+        # self.mapDeletedSuccessfully.emit()
+        # self.dlg.show()
+        # self.dlg.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl(True))
+        # self.dlg.progressBar_loader.show()
+        # self.dlg.label_loading.show()
+        # if not self.isAuthorized:
+        #     self.dlg.label_noUser.show()
+        # try:
+        #     checked = self.utils.getConfigItem("mapcheckbox")   
+        # except:
+        #     checked = False
+        # if checked == "0":
+        #     self.dlg.checkBox_own.setCheckState(0)
+        #     checked = False
+        # if checked == "1":
+        #     self.dlg.checkBox_own.setCheckState(2)
+        #     checked = True
+        # # threading.Thread(target=lambda: self.loadMapsThread(checked)).start()
+        # self.loadMapsThread(checked)
+        # result = self.dlg.exec_()
     
     def writeValuesToProject(self, server, name):
         proj = QgsProject.instance()
@@ -2527,7 +2529,7 @@ class Layman(QObject):
         dataAll = r.json()
         for row in range(0, len(dataAll)):
             self.compositionDict[dataAll[row]['name']] = dataAll[row]['title']       
-    def getNameByTitle(self, val, refresh=True):   
+    def getNameByTitle(self, val, refresh=True):  
         ret = None     
         for key, value in self.compositionDict.items():
             if val == value:   
@@ -2806,7 +2808,12 @@ class Layman(QObject):
         for item in self.dlg.treeWidget.selectedItems():
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
             if isinstance(layer, QgsRasterLayer):
-               value = True 
+                if self.isBinaryRaster(layer):
+                    text = "Nejbližší" if self.locale == "cs" else "nearest"
+                else: 
+                    text = "Není vybrán" if self.locale == "cs" else "No value"   
+                self.dlg.comboBox_resampling.setCurrentText(text)
+                value = True 
         self.dlg.comboBox_resampling.setEnabled(value)
             
                             
@@ -4050,6 +4057,7 @@ class Layman(QObject):
             self.compositeList.append(map)
            
     def readMapJson(self,name, service, workspace=""):        
+      
         QgsProject.instance().setTitle(name)
         url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'       
         
@@ -7412,7 +7420,28 @@ class Layman(QObject):
             self.dlg.pushButton_copyUrl.setEnabled(False)
             self.dlg.pushButton_setPermissions.setEnabled(False)
             self.dlg.pushButton_map.setEnabled(False)
-            self.dlg.label_thumbnail.setText(' ')   
+            self.dlg.label_thumbnail.setText(' ')  
+    def isBinaryRaster(self, rLayer):     
+        if not rLayer.isValid():
+            return False
+        provider = rLayer.dataProvider()
+        extent = rLayer.extent()
+        width, height = rLayer.width(), rLayer.height()
+        block = provider.block(1, extent, width, height)
+
+        unique_values = set()
+        for row in range(height):
+            for col in range(width):
+                value = block.value(row, col)
+                unique_values.add(value)              
+                if len(unique_values) > 2:
+                    return False
+
+        if len(unique_values) != 2 or 0 not in unique_values or 1 not in unique_values:
+            return False
+
+       
+        return True         
     def run(self):
         """Run method that loads and starts the plugin"""
 
