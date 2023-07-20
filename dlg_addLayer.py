@@ -71,6 +71,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         QgsApplication.messageLog().messageReceived.connect(self.write_log_message)
         self.layerDeletedSuccessfully.connect(self._onLayerDeletedSuccessfully)
         self.permissionInfo.connect(self.afterPermissionDone)
+        self.loadComposition.connect(self.readMapJson2)
     def on_button_clicked(self, widget1, widget2):
         pass
         current_widget = self.centralWidget().layout().itemAt(0).widget()

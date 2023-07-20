@@ -519,3 +519,10 @@ class LaymanUtils(QObject):
 
         str1 = ","
         return (str1.join(s))
+    def convertUrlFromHex(self, url):
+        url = url.replace('%3A',':')
+        url = url.replace('%2F','/')
+        url = url.replace('%3F','?')
+        url = url.replace('%3D','=')
+        url = url.replace('%26','&')
+        return url

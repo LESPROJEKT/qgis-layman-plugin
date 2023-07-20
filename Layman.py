@@ -1373,6 +1373,8 @@ class Layman(QObject):
 
 
     def crsChanged(self):     
+        print("hyzdil")
+        print(self.current, QgsProject.instance().title())
         if self.strip_accents(self.current) == self.strip_accents(QgsProject.instance().title()):
             if self.crsChangedConnect == True:
                 print("crs changed")              
@@ -4236,20 +4238,7 @@ class Layman(QObject):
         except:
             pass
 
-    def deleteMapFromServer(self,name):
-
-        url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
-        response = requests.delete(url, headers = self.utils.getAuthHeader(self.authCfg))        
-       
-        if (response.status_code == 200):
-            if self.locale == "cs":          
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
-            else:          
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
-        else:
-            self.showErr.emit([" Kompozice  " + name + " nebyla smazána.", " Composition  " + name + " was not sucessfully deleted."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)     
- 
-        self.refreshListWidgetMaps() ## pro treewidget
+    
 
     def deleteCurrentMap(self):
         composition = self.instance.getComposition()

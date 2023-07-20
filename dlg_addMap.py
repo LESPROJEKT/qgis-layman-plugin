@@ -29,9 +29,13 @@ from PyQt5 import QtWidgets
 import threading
 import requests
 from PyQt5.QtCore import QObject, pyqtSignal, Qt
+from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QTreeWidgetItem
 from qgis.core import *
 from PyQt5.QtGui import QPixmap
+from .currentComposition import CurrentComposition
+import traceback
+import pandas as pd
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -40,6 +44,8 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     mapDeletedSuccessfully = pyqtSignal()
+    progressDone = pyqtSignal()
+    loadComposition = pyqtSignal(str,str,str)
     
     def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
@@ -55,6 +61,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         
     def connectEvents(self):
         self.mapDeletedSuccessfully.connect(self._onMapDeletedSuccessfully)  
+        self.progressDone.connect(self._onProgressDone)
+        self.loadComposition.connect(self.readMapJsonThread)
+     
       
     def setUi(self):        
         self.connectEvents()
@@ -68,13 +77,13 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.setColumnWidth(2, 80)
         self.label_noUser.hide()
         self.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
-        self.pushButton_map.clicked.connect(lambda: self.layman.readMapJson(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), 'WFS', self.treeWidget.selectedItems()[0].text(1)))
+        self.pushButton_map.clicked.connect(lambda: self.readMapJson(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), 'WFS', self.treeWidget.selectedItems()[0].text(1)))
         self.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), True))
         if not self.isAuthorized:
             self.checkBox_own.setEnabled(False)
         else:
             self.checkBox_own.setEnabled(True)
-        self.pushButton_delete.clicked.connect(lambda: self.deleteMap(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)),self.getCompositionIndexByName(self.treeWidget.selectedItems()[0].text(0))))
+        self.pushButton_delete.clicked.connect(lambda: self.deleteMap(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))))
         
         self.filter.valueChanged.connect(self.filterResults)
         self.filter.valueChanged.connect(self.disableButtonsAddMap)
@@ -153,7 +162,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         
     def enableLoadMapButtons(self, item):
         self.pushButton_mapWFS.setEnabled(True)
-        self.pushButton_map.setEnabled(True)            
+        self.pushButton_map.setEnabled(True) 
+        self.pushButton_copyUrl.setEnabled(True)           
         
     def setPermissionsButton(self, item):
         if item.text(2) != "own":
@@ -189,7 +199,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:
                     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
                 self.treeWidget.addTopLevelItem(item)
-            QgsMessageLog.logMessage("loadMaps")
+            #QgsMessageLog.logMessage("loadMaps")
+            
+            self.progressDone.emit()
         elif not self.isAuthorized:
             url = self.URI+'/rest/maps?order_by=title'
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)       
@@ -219,7 +231,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     else:
                         item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])                    
                     self.treeWidget.addTopLevelItem(item)
-        QgsMessageLog.logMessage("loadMaps")            
+        #QgsMessageLog.logMessage("loadMaps")
+        self.progressDone.emit()            
     def rememberValueMap(self, value):
         ## 2 true, 0 false
         if value == 2:
@@ -231,10 +244,368 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             
             
             
+           
+            
+    def deleteMap(self,name):
+   
+        if self.locale == "cs":
+            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Chcete opravdu smazat kompozici "+name+"?")
+        else:
+            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Do you want really delete composition "+name+"?")
+        msgbox.addButton(QMessageBox.Yes)
+        msgbox.addButton(QMessageBox.No)
+        msgbox.setDefaultButton(QMessageBox.No)
+        reply = msgbox.exec()
+        if (reply == QMessageBox.Yes):
+            name = self.utils.removeUnacceptableChars(name)
+            url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
+            response = requests.delete(url, headers = self.utils.getAuthHeader(self.utils.authCfg))           
+            if (response.status_code == 200):
+                if self.locale == "cs":             
+                    self.layman.self.layman.iface.messageBar().pushWidget(self.layman.self.layman.iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
+                else:             
+                    self.layman.self.layman.iface.messageBar().pushWidget(self.layman.self.layman.iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
+            else:
+                if self.locale == "cs":             
+                    self.layman.self.layman.iface.messageBar().pushWidget(self.layman.self.layman.iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla smazána."), Qgis.Warning)
+                else:              
+                    self.layman.self.layman.iface.messageBar().pushWidget(self.layman.self.layman.iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)    
+          
+            self.mapDeletedSuccessfully.emit()
+            try:
+                checked = self.utils.getConfigItem("mapcheckbox")
+                print(checked)
+            except:
+                checked = False
+            if checked == "0":
+                checked = False
+            if checked == "1":
+                checked = True
+            print(checked)
+            self.loadMapsThread(checked)            
+            
+            
+            
     def _onMapDeletedSuccessfully(self):
         if self.objectName() == "AddMapDialog":
             self.pushButton_delete.setEnabled(False)
             self.pushButton_copyUrl.setEnabled(False)
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_map.setEnabled(False)
-            self.label_thumbnail.setText(' ')              
+            self.label_thumbnail.setText(' ')       
+    def _onProgressDone(self):
+        self.progressBar_loader.hide()
+        
+    def copyCompositionUrl(self, composition=None):  
+        if not composition:
+            url = self.instance.getUrl()
+        else:
+            if "client" in self.URI:
+                url = self.URI+'/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'
+            else:  
+                url = self.URI+'/client/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'
+            
+        try:     
+            df=pd.DataFrame([url])
+            df.to_clipboard(index=False,header=False)            
+            if self.locale == "cs":
+                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " URL uloženo do schránky."), Qgis.Success, duration=3)
+            else:
+                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " URL saved to clipboard."), Qgis.Success, duration=3)
+        except Exception as e:
+            info = str(e)
+            allInfo = traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__) 
+            print([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, allInfo)
+            self.utils.showErr.emit([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, str(allInfo), Qgis.Warning, "")
+    def readMapJson(self,name, service, workspace=""):        
+      
+        QgsProject.instance().setTitle(name)
+        url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'       
+        
+        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        data = r.json()    
+        projection = data['projection'].replace("epsg:","").replace("EPSG:","")
+        if projection != "":
+            crs=QgsCoordinateReferenceSystem(int(projection))
+
+
+            if self.layman.crsChangedConnect == False:
+                QgsProject.instance().setCrs(crs)
+                QgsProject.instance().crsChanged.connect(self.layman.crsChanged)
+                self.crsChangedConnect = True
+            else:
+                self.crsChangedConnect = False
+                QgsProject.instance().setCrs(crs)
+                self.crsChangedConnect = True
+      
+        self.pushButton_map.setEnabled(False) 
+        self.loadComposition.emit(name, service, workspace)
+      
+    def readMapJsonThread(self,name, service, workspace=""):    
+        self.unloadedLayers = list()
+        self.processingRequest = True   
+        self.layman.current = name
+        if workspace != "":### nactemdef loadData(self,name):
+            self.selectedWorkspace = workspace            
+            url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file' 
+            r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+            data = r.json()
+            self.instance = CurrentComposition(self.URI, name, workspace, self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
+            self.instance.setComposition(data)   
+        else:
+            print("workspace nepredan")       
+    #     self.readMapJsonThread(name,service)
+        
+    # def readMapJsonThread(self,name, service):        
+        name = self.utils.removeUnacceptableChars(name) 
+        print("debug in readMapJson - false")
+        workspace = self.getCompositionWorkspace(name)
+        self.selectedWorkspace = workspace           
+        try:
+            url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'
+        except:
+            QgsMessageLog.logMessage("compositionSchemaError")
+            return      
+        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        data = r.json()
+            ## rozvetveni zdali chce uzivatel otevrit kompozici v novem projektu
+            #layers = iface.mapCanvas().layers() ## pokud neexistuej vrstva otazka nema smysl
+        layers = QgsProject.instance().mapLayers()
+        if len(layers) > 0:
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content.")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.Yes):
+                iface.newProject()
+                projection = data['projection'].replace("epsg:","").replace("EPSG:","")
+                crs=QgsCoordinateReferenceSystem(int(projection))
+                self.crsChangedConnect = False
+                QgsProject.instance().setCrs(crs)
+                self.crsChangedConnect = True
+                QgsProject.instance().setTitle(data['title'])                
+        
+        self.loadService2(data,service, name)        
+    def loadService2(self, data, service, groupName = ''):    
+        if not 'layers' in data:       
+            print("corrupted composition")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Kompozice je poškozena!")
+            else:
+                QMessageBox.information(None, "Layman", "Map composition is corrupted!")
+            return      
+
+        #self.service3 = threading.Thread(target=lambda: self.loadservice3(data))
+        #self.service3.start()
+    #     self.loadservice3(data)
+    # def loadservice3(self, data):
+        groupName = ''
+        threads = list()
+        i=1
+        groups = list()
+        groupPositions = list()
+        groupsSet = set()
+        for x in range(len(data['layers'])- 1, -1, -1):       ## descending order
+            print("iteration")
+            try:
+                subgroupName =  data['layers'][x]['path']
+            except:
+                print("path for layer not found")
+                subgroupName = ""
+            try:
+                timeDimension = data['layers'][x]['dimensions']
+            except:
+                print("time dimensions for layer not found")
+                timeDimension = ""
+            className = data['layers'][x]['className']
+            visibility = data['layers'][x]['visibility']            
+            if className == 'XYZ':
+                layerName = data['layers'][x]['title']
+                # self.layerServices[layerName] = 'XYZ'
+            if className == 'HSLayers.Layer.WMS':
+                layerName = data['layers'][x]['params']['LAYERS']
+                # self.layerServices[layerName] = 'HSLayers.Layer.WMS'
+
+            if className == 'OpenLayers.Layer.Vector' or className == 'Vector':                
+                try:
+                    layerName = data['layers'][x]['name']
+                except:
+                    try:
+                        layerName = data['layers'][x]['protocol']['LAYERS']
+                    except:
+                        QgsMessageLog.logMessage("compositionSchemaError")
+                        self.instance = None
+                        self.layman.current = None
+                        return
+                # self.layerServices[layerName] = 'OpenLayers.Layer.Vector'
+            try:
+                print(layerName)
+            except:
+                self.readCompositionFailed.emit()
+                print("wrong format of composition")
+                return
+
+            if self.checkLayerOnLayman(layerName):              
+
+                if className == 'HSLayers.Layer.WMS':                 
+                    layerName = data['layers'][x]['params']['LAYERS']
+                    format = data['layers'][x]['params']['FORMAT']
+                    epsg = 'EPSG:4326'
+                    minRes = data['layers'][x]['minResolution']
+                    maxRes = data['layers'][x]['maxResolution']    
+                    if "greyscale" in data['layers'][x]:
+                        greyscale = data['layers'][x]['greyscale']
+                    else:
+                        greyscale = False
+
+                    try:
+                        groupName = data['layers'][x]['path']
+                    except:
+                        groupName = ""
+                    wmsName = data['layers'][x]['params']['LAYERS']
+                    layerNameTitle = data['layers'][x]['title']
+                    repairUrl = data['layers'][x]['url']
+                    repairUrl = self.utils.convertUrlFromHex(repairUrl)                    
+                    everyone = False
+                    try:                        
+                        workspace =  repairUrl.split("geoserver/")[1].split("_wms")[0]
+                        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
+                        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+                        if 'EVERYONE' in r.json()['access_rights']['read']:
+                            everyone = True
+                        if 'time' in r.json()['wms']:       
+                            timeDimension = r.json()['wms']                    
+                    except:
+                        print("permissions not found")
+
+                    if groupName != "":
+                        groups.append([groupName, len(data['layers']) - i])
+                        groupsSet.add(groupName)
+                        groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
+                    else:
+                        groups.append([layerNameTitle, len(data['layers']) - i]) 
+                    legends = "0"                        
+                    if "legends" in data['layers'][x]:
+                        legends = "1"   
+                    #threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)).start())                   
+                    self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)                  
+                if className == 'ArcGISRest':
+                   
+                    url = data['layers'][x]['url']
+                    layerNameTitle = data['layers'][x]['title']
+                    #threads.append(threading.Thread(target=lambda: self.loadArcGisRest(url, layerNameTitle)).start())
+                    self.loadArcGisRest(url, layerNameTitle)
+                    
+                if className == 'XYZ':                   
+                    layerName = data['layers'][x]['title']
+                    minRes = data['layers'][x]['minResolution']
+                    maxRes = data['layers'][x]['maxResolution']                  
+                    try:
+                        groupName = data['layers'][x]['path']
+                    except:
+                        groupName = ""             
+                    format = "XYZ"
+                    epsg = 'EPSG:4326'
+                    layerNameTitle = data['layers'][x]['title']
+                    repairUrl = data['layers'][x]['url']
+                    repairUrl = self.utils.convertUrlFromHex(repairUrl)
+                    if groupName != "":
+                        groups.append([groupName, len(data['layers']) -i])
+                        groupsSet.add(groupName)
+                        groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
+                    else:
+                        groups.append([layerNameTitle, len(data['layers']) - i])
+                    #threads.append(threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)).start())
+                    self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)
+                  
+
+                if className == 'OpenLayers.Layer.Vector' or className == 'Vector':
+                    epsg = 'EPSG:4326'
+                    minRes = data['layers'][x]['minResolution']
+                    maxRes = data['layers'][x]['maxResolution']                   
+                    layerNameTitle = data['layers'][x]['title']
+                    repairUrl = data['layers'][x]['protocol']['url']
+                    repairUrl = self.utils.convertUrlFromHex(repairUrl)
+                    subgroupName = ""
+                    everyone = False               
+                 
+                    if "path" in  data['layers'][x]:
+                        groupName = data['layers'][x]['path']
+                    else:
+                        groupName = ""
+                    if groupName != "":
+                        groups.append([groupName, len(data['layers']) -i])
+                        groupsSet.add(groupName)
+                        groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
+                    else:
+                        groups.append([layerNameTitle, len(data['layers']) - i])
+                    try: ## nove rozdeleni
+                       
+                        if 'type' in data['layers'][x]['protocol']: ## old
+                            if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
+                                if 'workspace' in data:                                    
+                                    #repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['workspace'] + "wfs"
+                                    repairUrl = repairUrl.replace("hsl-layman", "") + data['workspace'] + "wfs"
+
+
+                                #threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
+                                self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)
+                                
+                        if "format" in data['layers'][x]['protocol']:    
+                            if (data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):                            
+                                #threads.append(threading.Thread(target=lambda: self.loadWfsExternal(data['layers'][x],epsg, groupName)).start())
+                                self.loadWfsExternal(data['layers'][x],epsg, groupName)
+                            if (data['layers'][x]['protocol']['format'] == "hs.format.WFS"):
+                                if 'workspace' in data['layers'][x]:                                    
+                                    repairUrl = repairUrl.replace("hsl-layman", "")
+
+
+                                #threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
+                                self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)
+                   
+                    except:                        
+                        #threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())                        
+                        self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)                      
+
+                
+            else:
+                self.wrongLayers = True              
+            i = i + 1
+        # threadsB = set()
+        # while (self.ThreadsA != threadsB):
+        #     threadsB = set()
+        #     for thread in threading.enumerate():
+        #         threadsB.add(thread.name) 
+        #self.reoderComposition.emit(groups, groupsSet, groupPositions)
+        
+        self.reorderGroups(groups, groupsSet, groupPositions)
+        self.afterCompositionLoaded()
+        #self.afterLoadedComposition.emit()            
+    def getCompositionWorkspace(self, name):
+        url = self.URI+'/rest/maps'        
+        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        data = r.json()
+        for row in range(0, len(data)):
+            if name == data[row]['name']:
+                return data[row]['workspace']        
+    def checkLayerOnLayman(self, layer_name, workspace=""):
+        if self.selectedWorkspace:
+            url = self.URI+'/rest/'+self.selectedWorkspace+"/layers/"+layer_name
+        else:
+            url = self.URI+'/rest/'+self.laymanUsername+"/layers/"+layer_name
+        print(url)
+        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.utils.authCfg))        
+        try:
+            data = r.json()
+
+            if data['wms']['status'] == 'NOT_AVAILABLE' or data['wms']['status'] == 'PENDING':
+                return False
+            else:
+                return True
+        except:
+            return True # validní vrstva nemá status
+            
