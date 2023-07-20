@@ -7421,27 +7421,38 @@ class Layman(QObject):
             self.dlg.pushButton_setPermissions.setEnabled(False)
             self.dlg.pushButton_map.setEnabled(False)
             self.dlg.label_thumbnail.setText(' ')  
-    def isBinaryRaster(self, rLayer):     
-        if not rLayer.isValid():
-            return False
-        provider = rLayer.dataProvider()
-        extent = rLayer.extent()
-        width, height = rLayer.width(), rLayer.height()
-        block = provider.block(1, extent, width, height)
+    # def isBinaryRaster(self, rLayer):    
+    #     provider = rLayer.dataProvider()
+    #     extent = rLayer.extent()
+    #     width, height = rLayer.width(), rLayer.height()
+    #     block = provider.block(1, extent, width, height)
+    #     unique_values = set()
+    #     print("pes")
+    #     for row in range(height):
+    #         for col in range(width):
+    #             value = block.value(row, col)
+    #             unique_values.add(value)              
+    #             if len(unique_values) > 2:
+    #                 return False
 
-        unique_values = set()
-        for row in range(height):
-            for col in range(width):
-                value = block.value(row, col)
-                unique_values.add(value)              
-                if len(unique_values) > 2:
-                    return False
+    #     if len(unique_values) != 2 or 0 not in unique_values or 1 not in unique_values:
+    #         return False
 
-        if len(unique_values) != 2 or 0 not in unique_values or 1 not in unique_values:
-            return False
+    #     print("kocka")
+    #     return True  
+    def get_raster_min_max(self,raster_layer):  
+        extent = raster_layer.extent()  
+        provider = raster_layer.dataProvider()
+        stats = provider.bandStatistics(1, QgsRasterBandStats.All, extent, 0)
+        min_val, max_val = stats.minimumValue, stats.maximumValue
+        return min_val, max_val
 
-       
-        return True         
+    def isBinaryRaster(self,raster_layer):
+        min_val, max_val = self.get_raster_min_max(raster_layer)
+        if min_val == 0 and max_val == 1:
+            return True
+        else:
+            return False           
     def run(self):
         """Run method that loads and starts the plugin"""
 
