@@ -137,19 +137,19 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
 
         uri = self.URI + "/rest/users"
         usersDict = dict()
-        if self.locale == "cs":
+        if self.layman.locale == "cs":
             usersDict['EVERYONE'] = 'VŠICHNI'
         else:
             usersDict['EVERYONE'] = 'EVERYONE'
         usersDictReversed = dict()
-        if self.locale == "cs":
+        if self.layman.locale == "cs":
             usersDictReversed['EVERYONE'] = 'VŠICHNI'
         else:
             usersDictReversed['EVERYONE'] = 'EVERYONE'   
         r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
         res = self.utils.fromByteToJson(r.content)
         userCount = len(res)      
-        if self.locale == "cs":
+        if self.layman.locale == "cs":
             self.comboBox_users.addItem('VŠICHNI')
         else:
             self.comboBox_users.addItem('EVERYONE')
@@ -302,7 +302,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             
     def deleteMap(self,name):
    
-        if self.locale == "cs":
+        if self.layman.locale == "cs":
             msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Chcete opravdu smazat kompozici "+name+"?")
         else:
             msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Do you want really delete composition "+name+"?")
@@ -315,12 +315,12 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
             response = requests.delete(url, headers = self.utils.getAuthHeader(self.utils.authCfg))           
             if (response.status_code == 200):
-                if self.locale == "cs":             
+                if self.layman.locale == "cs":             
                     self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
                 else:             
                     self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
             else:
-                if self.locale == "cs":             
+                if self.layman.locale == "cs":             
                     self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla smazána."), Qgis.Warning)
                 else:              
                     self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)    
@@ -360,7 +360,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         try:     
             df=pd.DataFrame([url])
             df.to_clipboard(index=False,header=False)            
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " URL uloženo do schránky."), Qgis.Success, duration=3)
             else:
                 self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " URL saved to clipboard."), Qgis.Success, duration=3)
@@ -424,7 +424,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             #layers = iface.mapCanvas().layers() ## pokud neexistuej vrstva otazka nema smysl
         layers = QgsProject.instance().mapLayers()
         if len(layers) > 0:
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.")
             else:
                 msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content.")
@@ -445,7 +445,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def loadLayer(self, data, service, groupName = ''):    
         if not 'layers' in data:       
             print("corrupted composition")
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 QMessageBox.information(None, "Layman", "Kompozice je poškozena!")
             else:
                 QMessageBox.information(None, "Layman", "Map composition is corrupted!")
@@ -629,7 +629,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             i = i + 1   
         
         self.layman.reorderGroups(groups, groupsSet, groupPositions)
-        self.layman.afterCompositionLoaded().emit() 
+        self.layman.afterCompositionLoaded()
         #self.afterLoadedComposition.emit()            
     def getCompositionWorkspace(self, name):
         url = self.URI+'/rest/maps'        
@@ -684,7 +684,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     return True
                 else:
                     
-                    if self.locale == "cs":
+                    if self.layman.locale == "cs":
                         QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
                     else:
                         QMessageBox.information(None, "Layman", "This user already exists in the list!")
@@ -693,7 +693,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 if ((self.comboBox_users.currentText() not in itemsTextListWrite) and type == "write"):               
                     return True
                 else:                    
-                    if self.locale == "cs":
+                    if self.layman.locale == "cs":
                         QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
                     else:
                         QMessageBox.information(None, "Layman", "This user already exists in the list!")
@@ -715,7 +715,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
       
         
         if self.utils.hasLaymanLayer(layerName[0], self.treeWidget.selectedItems()[0].text(1)):
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
             else:
                 msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Do you want set these permissions to layers included in map composition?")
@@ -845,12 +845,12 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.objectName() == "AddMapDialog":
             self.progressBar_loader.hide()             
             if success:
-                if self.locale == "cs":
+                if self.layman.locale == "cs":
                     QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
                 else:
                     QMessageBox.information(None, "Saved", "Permissions was saved successfully.")                
             else:
-                if self.locale == "cs":
+                if self.layman.locale == "cs":
                     QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""))
                 else:
                     QMessageBox.information(None, "Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                  

@@ -174,12 +174,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
         uri = self.URI + "/rest/users"
         usersDict = dict()
-        if self.locale == "cs":
+        if self.layman.locale == "cs":
             usersDict['EVERYONE'] = 'VŠICHNI'
         else:
             usersDict['EVERYONE'] = 'EVERYONE'
         usersDictReversed = dict()
-        if self.locale == "cs":
+        if self.layman.locale == "cs":
             usersDictReversed['EVERYONE'] = 'VŠICHNI'
         else:
             usersDictReversed['EVERYONE'] = 'EVERYONE'
@@ -188,7 +188,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         res = self.utils.fromByteToJson(r.content)
         userCount = len(res)
             ##nabit combobox
-        if self.locale == "cs":
+        if self.layman.locale == "cs":
             self.comboBox_users.addItem('VŠICHNI')
         else:
             self.comboBox_users.addItem('EVERYONE')
@@ -230,7 +230,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             items.append(layers[i].text(0))
         question = True
         if len(items) > 1:
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Chcete opravdu smazat vybrané vrstvy?")
             else:
                 msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Do you want delete selected layers?")
@@ -246,7 +246,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         title = name
         name = layerNames[title]
         if question:
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Chcete opravdu smazat vrstvu "+str(name)+"?")
             else:
                 msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Do you want delete layer "+str(name)+"?")
@@ -270,7 +270,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             url = r['metadata']['record_url']
             webbrowser.open(url, new=2) ## redirect na micku pro více info
         except:
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 QMessageBox.information(None, "Layman", "Odkaz není k dispozici.")
             else:
                 QMessageBox.information(None, "Layman", "Link is unavailable.")
@@ -502,7 +502,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 visibility = ''
                 success = self.utils.loadWms(wmsUrl, layerName,layerNameTitle, format, epsg, workspace, groupName,subgroup, timeDimension,visibility, everyone)
                 if not success:
-                    if self.locale == "cs":
+                    if self.layman.locale == "cs":
                         QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
                     else:
                         QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
@@ -515,7 +515,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 print("loading WFS")
                 success = self.utils.loadWfs(wfsUrl, layerName, layerNameTitle, workspace)
                 if not success:
-                    if self.locale == "cs":
+                    if self.layman.locale == "cs":
                         QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
                     else:
                         QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
@@ -574,7 +574,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     return True
                 else:
                     
-                    if self.locale == "cs":
+                    if self.layman.locale == "cs":
                         QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
                     else:
                         QMessageBox.information(None, "Layman", "This user already exists in the list!")
@@ -583,7 +583,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 if ((self.comboBox_users.currentText() not in itemsTextListWrite) and type == "write"):               
                     return True
                 else:                    
-                    if self.locale == "cs":
+                    if self.layman.locale == "cs":
                         QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
                     else:
                         QMessageBox.information(None, "Layman", "This user already exists in the list!")
@@ -744,12 +744,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.objectName() == "AddLayerDialog":
             self.progressBar_loader.hide()             
             if success:
-                if self.locale == "cs":
+                if self.layman.locale == "cs":
                     QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
                 else:
                     QMessageBox.information(None, "Saved", "Permissions was saved successfully.")                
             else:
-                if self.locale == "cs":
+                if self.layman.locale == "cs":
                     QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""))
                 else:
                     QMessageBox.information(None, "Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                
