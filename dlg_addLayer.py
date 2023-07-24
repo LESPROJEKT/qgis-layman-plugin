@@ -71,27 +71,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         QgsApplication.messageLog().messageReceived.connect(self.write_log_message)
         self.layerDeletedSuccessfully.connect(self._onLayerDeletedSuccessfully)
         self.permissionInfo.connect(self.afterPermissionDone)
-        self.loadComposition.connect(self.readMapJson2)
-    def on_button_clicked(self, widget1, widget2):
-        pass
-        current_widget = self.centralWidget().layout().itemAt(0).widget()
-        if current_widget == widget1:
-            self.centralWidget().layout().replaceWidget(widget1, widget2)
-        else:
-            self.centralWidget().layout().replaceWidget(widget2, widget1)
 
 
-    def load_ui_widget(self, file_name):
-        plugin_dir = QFileInfo(__file__).absolutePath()
-        ui_file_path = plugin_dir + '/' + file_name
-
-        file = QFile(ui_file_path)
-        file.open(QFile.ReadOnly)
-
-        loader = loadUi(file)
-        file.close()
-
-        return loader
+    
     def setPermissionsWidget(self, option):
         
         self.page1.setVisible(option)
@@ -106,7 +88,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         ##
         self.pushButton_setPermissions.clicked.connect(lambda: self.setPermissionsWidget(True))
         self.pushButton_back.clicked.connect(lambda: self.setPermissionsWidget(False))
-        self.permissionsConected = False
+        self.permissionsConnected = False
         self.connectEvents()
         self.utils.recalculateDPI()
 
@@ -231,14 +213,14 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             name = self.utils.getUserFullName()
             self.listWidget_read.addItem(name)
             self.listWidget_write.addItem(name)          
-        if not self.permissionsConected:            
+        if not self.permissionsConnected:            
             self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())
             self.pushButton_save.clicked.connect(lambda: self.askForMapPermissionChanges(layerName, usersDict, "layers"))
             self.pushButton_addRead.clicked.connect(lambda:  self.checkAddedItemDuplicity("read"))
             self.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
             self.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
             self.pushButton_removeWrite.clicked.connect(lambda: self.listWidget_write.removeItemWidget(self.listWidget_write.takeItem(self.listWidget_write.currentRow())))
-            self.permissionsConected = True
+            self.permissionsConnected = True
 
 
 
@@ -645,28 +627,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.statusHelper = True    
         
         threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type)).start()
-    def askForLayerPermissionChanges(self,layerName, userDict, type):
       
-        self.failed = list()
-        self.statusHelper = True
-      
-        
-        if self.hasLaymanLayer(layerName[0]):
-            if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Do you want set these permissions to layers included in map composition?")
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            reply = msgbox.exec()
-            if (reply == QMessageBox.Yes):  
-                threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
-                threading.Thread(target=lambda: self.updateAllLayersPermission(userDict, layerName, False)).start()
-            else:
-                threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
-        else:            
-            threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()            
             
     def updateAllLayersPermission(self, userDict, layerName, loaded = False):      
         if loaded:

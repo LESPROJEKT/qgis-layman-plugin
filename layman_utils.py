@@ -526,3 +526,15 @@ class LaymanUtils(QObject):
         url = url.replace('%3D','=')
         url = url.replace('%26','&')
         return url
+    def hasLaymanLayer(self, name, workspace):
+        url = self.URI + "/rest/"+workspace+"/maps/"+name+"/file"
+        r = self.requestWrapper("GET", url, payload = None, files = None)
+        composition = r.json()
+        for layer in composition['layers']:
+            if layer['className'] == "OpenLayers.Layer.Vector":
+                if '/geoserver/' in layer['protocol']['url']:
+                    return True
+            if layer['className'] == "HSLayers.Layer.WMS":
+                if '/geoserver/' in layer['url']:
+                    return True
+        return False

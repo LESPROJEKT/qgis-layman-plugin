@@ -29,8 +29,7 @@ from PyQt5 import QtWidgets
 import threading
 import requests
 from PyQt5.QtCore import QObject, pyqtSignal, Qt
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtWidgets import QTreeWidgetItem
+from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem
 from qgis.core import *
 from PyQt5.QtGui import QPixmap
 from .currentComposition import CurrentComposition
@@ -46,6 +45,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     mapDeletedSuccessfully = pyqtSignal()
     progressDone = pyqtSignal()
     loadComposition = pyqtSignal(str,str,str)
+    permissionInfo = pyqtSignal(bool,list, int)
     
     def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
@@ -63,14 +63,24 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.mapDeletedSuccessfully.connect(self._onMapDeletedSuccessfully)  
         self.progressDone.connect(self._onProgressDone)
         self.loadComposition.connect(self.readMapJsonThread)
-     
-      
+        self.permissionInfo.connect(self.afterPermissionDone)
+    def setPermissionsWidget(self, option):
+        
+        self.page1.setVisible(not option)
+        self.page2.setVisible(option)
+        if option == True:
+            names = list()
+            # for i in range (0, len(self.treeWidget.selectedItems())):
+            #     names.append(self.treeWidget.selectedItems()[i].text(0))
+            self.setPermissionsUI(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)))  
     def setUi(self):        
         self.connectEvents()
+        self.permissionsConnected = False
+        self.pushButton_setPermissions.clicked.connect(lambda: self.setPermissionsWidget(True))
+        self.pushButton_back.clicked.connect(lambda: self.setPermissionsWidget(False))    
         self.utils.recalculateDPI()
         self.label_info.hide()     
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnailMap(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), self.treeWidget.selectedItems()[0].text(1)  ) ).start())
-        #self.treeWidget.itemClicked.connect(self.enableButton) ## zkontrolovat
         self.treeWidget.itemClicked.connect(self.enableLoadMapButtons) ## zkontrolovat
         self.treeWidget.itemClicked.connect(self.setPermissionsButton)
         self.treeWidget.setColumnWidth(0, 300)
@@ -78,7 +88,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_noUser.hide()
         self.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
         self.pushButton_map.clicked.connect(lambda: self.readMapJson(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), 'WFS', self.treeWidget.selectedItems()[0].text(1)))
-        self.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), True))
+        # self.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), True))
         if not self.isAuthorized:
             self.checkBox_own.setEnabled(False)
         else:
@@ -113,32 +123,76 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.loadMapsThread(checked)
         result = self.exec_()
         
+    def setPermissionsUI(self, mapName):        
+        self.listWidget_read.clear()
+        self.listWidget_write.clear()
+        self.comboBox_users.clear()        
+        self.pushButton_removeRead.setEnabled(False)
+        self.pushButton_removeWrite.setEnabled(False)
+        ## combobox full text part
+        self.comboBox_users.setEditable(True)
+        self.comboBox_users.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+        self.comboBox_users.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+        ##
+
+        uri = self.URI + "/rest/users"
+        usersDict = dict()
+        if self.locale == "cs":
+            usersDict['EVERYONE'] = 'VŠICHNI'
+        else:
+            usersDict['EVERYONE'] = 'EVERYONE'
+        usersDictReversed = dict()
+        if self.locale == "cs":
+            usersDictReversed['EVERYONE'] = 'VŠICHNI'
+        else:
+            usersDictReversed['EVERYONE'] = 'EVERYONE'   
+        r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
+        res = self.utils.fromByteToJson(r.content)
+        userCount = len(res)      
+        if self.locale == "cs":
+            self.comboBox_users.addItem('VŠICHNI')
+        else:
+            self.comboBox_users.addItem('EVERYONE')
+        for i in range (0, userCount):           
+            usersDict[res[i]['name'] if res[i]['name'] !="" else res[i]['username']] = res[i]['username']
+            usersDictReversed[res[i]['username']] = res[i]['name'] if res[i]['name'] !="" else res[i]['username']          
+            self.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username'])      
+        mapName = self.utils.removeUnacceptableChars(mapName)
+        uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName        
+        r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
+        res = self.utils.fromByteToJson(r.content)
+        self.info = 0
+        lenRead = len(res['access_rights']['read'])
+        lenWrite = len(res['access_rights']['write'])
+        for i in range (0, lenRead):           
+            self.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
+        for i in range (0, lenWrite):         
+            self.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
+        if not self.permissionsConnected: 
+            self.pushButton_close.clicked.connect(lambda: self.close())
+            self.listWidget_read.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
+            self.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())           
+            self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())       
+            self.pushButton_save.clicked.connect(lambda:self.askForLayerPermissionChanges([mapName], usersDict, "maps"))
+            self.pushButton_addRead.clicked.connect(lambda: self.checkAddedItemDuplicity("read"))
+            self.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
+            self.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
+            self.pushButton_removeWrite.clicked.connect(lambda: self.listWidget_write.removeItemWidget(self.listWidget_write.takeItem(self.listWidget_write.currentRow())))
+            self.permissionsConnected = True
     def showThumbnailMap(self, it, workspace):
         
         map = it ##pro QTreeWidget
-        if self.checkBox_thumbnail.checkState() == 0:
-            try:
-                map = self.utils.removeUnacceptableChars(str(map))
-                url = self.URI+'/rest/'+workspace+'/maps/'+str(map).lower()+'/thumbnail'            
-                r = requests.get(url, headers = self.utils.getAuthHeader(self.authCfg))               
-                data = r.content 
-                pixmap = QPixmap(200, 200)
-                pixmap.loadFromData(data)
-                smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
-                self.label_thumbnail.setPixmap(smaller_pixmap)      
-            except:
-                pass        
-    # def getNameByTitle(self, val, refresh=True):   
-    #     ret = None     
-    #     for key, value in self.compositionDict.items():
-    #         if val == value:   
-    #             ret = key              
-    #             return ret
-    #     ## if title not found refresh dict
-    #     if ret == None and refresh:
-    #         self.fillCompositionDict()
-    #         ret = self.getNameByTitle(val, False)
-    #         return ret           
+        if self.checkBox_thumbnail.checkState() == 0:          
+            map = self.utils.removeUnacceptableChars(str(map))
+            url = self.URI+'/rest/'+workspace+'/maps/'+str(map).lower()+'/thumbnail'            
+            r = requests.get(url, headers = self.utils.getAuthHeader(self.layman.authCfg))               
+            data = r.content          
+            pixmap = QPixmap(200, 200)
+            pixmap.loadFromData(data)
+            smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
+            self.label_thumbnail.setPixmap(smaller_pixmap)     
+
+          
     def fillCompositionDict(self):
         url = self.URI+'/rest/maps'
         r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
@@ -262,14 +316,14 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             response = requests.delete(url, headers = self.utils.getAuthHeader(self.utils.authCfg))           
             if (response.status_code == 200):
                 if self.locale == "cs":             
-                    self.layman.self.layman.iface.messageBar().pushWidget(self.layman.self.layman.iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
+                    self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
                 else:             
-                    self.layman.self.layman.iface.messageBar().pushWidget(self.layman.self.layman.iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
+                    self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
             else:
                 if self.locale == "cs":             
-                    self.layman.self.layman.iface.messageBar().pushWidget(self.layman.self.layman.iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla smazána."), Qgis.Warning)
+                    self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla smazána."), Qgis.Warning)
                 else:              
-                    self.layman.self.layman.iface.messageBar().pushWidget(self.layman.self.layman.iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)    
+                    self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)    
           
             self.mapDeletedSuccessfully.emit()
             try:
@@ -280,11 +334,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             if checked == "0":
                 checked = False
             if checked == "1":
-                checked = True
-            print(checked)
-            self.loadMapsThread(checked)            
-            
-            
+                checked = True            
+            self.loadMapsThread(checked)                       
             
     def _onMapDeletedSuccessfully(self):
         if self.objectName() == "AddMapDialog":
@@ -292,7 +343,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_copyUrl.setEnabled(False)
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_map.setEnabled(False)
-            self.label_thumbnail.setText(' ')       
+            self.label_thumbnail.setText(' ')  
+            self.setPermissionsWidget(False)
     def _onProgressDone(self):
         self.progressBar_loader.hide()
         
@@ -317,7 +369,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             allInfo = traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__) 
             print([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, allInfo)
             self.utils.showErr.emit([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, str(allInfo), Qgis.Warning, "")
-    def readMapJson(self,name, service, workspace=""):        
+    def readMapJson(self,name, service, workspace=""):       
       
         QgsProject.instance().setTitle(name)
         url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'       
@@ -350,8 +402,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file' 
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)
             data = r.json()
-            self.instance = CurrentComposition(self.URI, name, workspace, self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
-            self.instance.setComposition(data)   
+            self.layman.instance = CurrentComposition(self.URI, name, workspace, self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
+            self.layman.instance.setComposition(data)   
         else:
             print("workspace nepredan")       
     #     self.readMapJsonThread(name,service)
@@ -381,7 +433,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             msgbox.setDefaultButton(QMessageBox.No)
             reply = msgbox.exec()
             if (reply == QMessageBox.Yes):
-                iface.newProject()
+                self.layman.iface.newProject()
                 projection = data['projection'].replace("epsg:","").replace("EPSG:","")
                 crs=QgsCoordinateReferenceSystem(int(projection))
                 self.crsChangedConnect = False
@@ -389,8 +441,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.crsChangedConnect = True
                 QgsProject.instance().setTitle(data['title'])                
         
-        self.loadService2(data,service, name)        
-    def loadService2(self, data, service, groupName = ''):    
+        self.loadLayer(data,service, name)        
+    def loadLayer(self, data, service, groupName = ''):    
         if not 'layers' in data:       
             print("corrupted composition")
             if self.locale == "cs":
@@ -492,13 +544,13 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     if "legends" in data['layers'][x]:
                         legends = "1"   
                     #threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)).start())                   
-                    self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)                  
+                    self.layman.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)                  
                 if className == 'ArcGISRest':
                    
                     url = data['layers'][x]['url']
                     layerNameTitle = data['layers'][x]['title']
                     #threads.append(threading.Thread(target=lambda: self.loadArcGisRest(url, layerNameTitle)).start())
-                    self.loadArcGisRest(url, layerNameTitle)
+                    self.layman.loadArcGisRest(url, layerNameTitle)
                     
                 if className == 'XYZ':                   
                     layerName = data['layers'][x]['title']
@@ -520,7 +572,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     else:
                         groups.append([layerNameTitle, len(data['layers']) - i])
                     #threads.append(threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)).start())
-                    self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)
+                    self.layman.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)
                   
 
                 if className == 'OpenLayers.Layer.Vector' or className == 'Vector':
@@ -553,37 +605,31 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
                                 #threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
-                                self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)
+                                self.layman.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)
                                 
                         if "format" in data['layers'][x]['protocol']:    
                             if (data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):                            
                                 #threads.append(threading.Thread(target=lambda: self.loadWfsExternal(data['layers'][x],epsg, groupName)).start())
-                                self.loadWfsExternal(data['layers'][x],epsg, groupName)
+                                self.layman.loadWfsExternal(data['layers'][x],epsg, groupName)
                             if (data['layers'][x]['protocol']['format'] == "hs.format.WFS"):
                                 if 'workspace' in data['layers'][x]:                                    
                                     repairUrl = repairUrl.replace("hsl-layman", "")
 
 
                                 #threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
-                                self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)
+                                self.layman.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)
                    
                     except:                        
                         #threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())                        
-                        self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)                      
+                        self.layman.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)                      
 
                 
             else:
                 self.wrongLayers = True              
-            i = i + 1
-        # threadsB = set()
-        # while (self.ThreadsA != threadsB):
-        #     threadsB = set()
-        #     for thread in threading.enumerate():
-        #         threadsB.add(thread.name) 
-        #self.reoderComposition.emit(groups, groupsSet, groupPositions)
+            i = i + 1   
         
-        self.reorderGroups(groups, groupsSet, groupPositions)
-        self.afterCompositionLoaded()
+        self.layman.reorderGroups(groups, groupsSet, groupPositions)
+        self.layman.afterCompositionLoaded().emit() 
         #self.afterLoadedComposition.emit()            
     def getCompositionWorkspace(self, name):
         url = self.URI+'/rest/maps'        
@@ -608,4 +654,203 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 return True
         except:
             return True # validní vrstva nemá status
+    def checkPermissionButtons(self):
+        name = self.utils.getUserName()
+        try:
+            if self.listWidget_read.currentItem().text() == name:
+                self.pushButton_removeRead.setEnabled(False)
+            else:
+                self.pushButton_removeRead.setEnabled(True)
+        except:
+            self.pushButton_removeRead.setEnabled(False)
+            print("neni vybrana polozka")
+        try:
+            if self.listWidget_write.currentItem().text() == name:
+                self.pushButton_removeWrite.setEnabled(False)
+            else:
+                self.pushButton_removeWrite.setEnabled(True)
+        except:
+            self.pushButton_removeWrite.setEnabled(False)
+            print("neni vybrana polozka")                    
+    def checkAddedItemDuplicity(self, type):
+        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]        
+        allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]      
+        if self.comboBox_users.currentText() in allItems:
+            if type == "read":
+              
+                if ((self.comboBox_users.currentText() not in itemsTextListRead)):                  
+                    self.listWidget_read.addItem(self.comboBox_users.currentText())
+                    return True
+                else:
+                    
+                    if self.locale == "cs":
+                        QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
+                    else:
+                        QMessageBox.information(None, "Layman", "This user already exists in the list!")
+                    return False
+            else:              
+                if ((self.comboBox_users.currentText() not in itemsTextListWrite) and type == "write"):               
+                    return True
+                else:                    
+                    if self.locale == "cs":
+                        QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
+                    else:
+                        QMessageBox.information(None, "Layman", "This user already exists in the list!")
+                    return False                        
+    def removeWritePermissionList(self):
+        self.deleteItem(self.listWidget_read.currentItem().text())
+        self.listWidget_read.removeItemWidget(self.listWidget_read.takeItem(self.listWidget_read.currentRow()))
+    def deleteItem(self, itemName):
+        items_list = self.listWidget_write.findItems(itemName, Qt.MatchExactly)
+        for item in items_list:
+            r = self.listWidget_write.row(item)
+            self.listWidget_write.takeItem(r)                 
             
+            
+    def askForLayerPermissionChanges(self,layerName, userDict, type):
+      
+        self.failed = list()
+        self.statusHelper = True
+      
+        
+        if self.utils.hasLaymanLayer(layerName[0], self.treeWidget.selectedItems()[0].text(1)):
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Do you want set these permissions to layers included in map composition?")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.Yes):  
+                threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
+                threading.Thread(target=lambda: self.updateAllLayersPermission(userDict, layerName, False)).start()
+            else:
+                threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
+        else:            
+            threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()            
+            
+    def updateAllLayersPermission(self, userDict, layerName, loaded = False):      
+        if loaded:
+            composition = self.instance.getComposition()
+        else:
+            url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+layerName[0]+"/file"
+            r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+            composition = r.json()
+        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]
+        userNamesRead = list()
+        for pom in itemsTextListRead:         
+            if pom == "VŠICHNI":
+                userNamesRead.append("EVERYONE")          
+            else:
+                userNamesRead.append(userDict[pom])
+        userNamesWrite = list()    
+        for pom in itemsTextListWrite:
+            if pom == "VŠICHNI":
+                userNamesWrite.append("EVERYONE")
+            else:
+                print(userDict[pom])
+                userNamesWrite.append(userDict[pom])
+        data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}       
+        for layer in composition['layers']:
+            name = None
+            if (layer['className'] == 'OpenLayers.Layer.Vector'):
+                name = layer['protocol']['LAYERS']
+            if (layer['className'] == 'HSLayers.Layer.WMS'):
+                name = layer['params']['LAYERS']
+            if name is not None:
+                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.layman.authCfg))  
+                print(response.content)
+                if (response.status_code != 200):        
+                    try:
+                        if self.utils.fromByteToJson(response.content)["code"] == 15:
+                            print("layer not present")
+                            return
+                    except:
+                        pass                                      
+                    self.showErr.emit(["Práva nebyla uložena! - " + name,"Permissions was not saved' - "+ name], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
+            else:
+                print("there is not possible set permissions for layer")
+          
+    def updatePermissions(self,layerName, userDict, type, check=False):   
+        print(layerName)    
+        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]
+        userNamesRead = list()  
+        print(itemsTextListRead)
+        for pom in itemsTextListRead:         
+            if pom == "VŠICHNI":            
+                userNamesRead.append("EVERYONE")          
+            else:
+                print(pom)
+                if "," in pom:
+                    pom = pom.split(", ")[1]     
+                print(userDict)                                               
+                userNamesRead.append(userDict[pom])
+        userNamesWrite = list()      
+        for pom in itemsTextListWrite:
+            if pom == "VŠICHNI":
+                userNamesWrite.append("EVERYONE")
+            else:
+                if "," in pom:
+                    pom = pom.split(", ")[1]
+                userNamesWrite.append(userDict[pom])
+        data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}     
+        
+      
+        for layer in layerName:
+            layer = self.utils.removeUnacceptableChars(layer)      
+            url = self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer
+            response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))  
+            print(layer)
+            print(response.content)
+            if (response.status_code != 200):
+                self.failed.append(layer)         
+                self.utils.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
+                (list,str,str,Qgis.MessageLevel, str)  
+                self.statusHelper = False
+                   
+        ## rekurzivni zmeny        
+        if (type == "maps" and check):
+            if self.statusHelper:
+                layerList = list()              
+                for i in range (0,len(self.compositeList)):
+                    if self.compositeList[i]['name'] == self.utils.removeUnacceptableChars(layerName[0]):
+                        for j in range (0,len(self.compositeList[i]['layers'])):
+                            if self.compositeList[i]['layers'][j]['className'] == "HSLayers.Layer.WMS":
+                                layerList.append(self.compositeList[i]['layers'][j]['params']['LAYERS'])
+                            if self.compositeList[i]['layers'][j]['className'] == "OpenLayers.Layer.Vector":                            
+                                layerList.append(self.utils.removeUnacceptableChars(self.compositeList[i]['layers'][j]['title']))
+                print("updating permissions for layers:" + str(layerList))                
+                threading.Thread(target=self.updatePermissions(layerList,userDict, "layers")).start()
+                return
+            else:
+                self.permissionInfo.emit(False, self.failed, 0)              
+
+        elif (type == "layers" and check):
+            for name in layerName:
+                compositionList = self.getCompositionsByLayer(name)
+                for comp in compositionList: 
+                    self.updatePermissions([comp],userDict, "maps", False)
+                    return      
+        else:      
+            if (self.statusHelper and self.info == 0):
+                print(self.failed)
+                self.permissionInfo.emit(True, self.failed, 0)                
+            else:
+                self.permissionInfo.emit(False, self.failed, 0)               
+    def afterPermissionDone(self, success, failed, info):
+        if self.objectName() == "AddMapDialog":
+            self.progressBar_loader.hide()             
+            if success:
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
+                else:
+                    QMessageBox.information(None, "Saved", "Permissions was saved successfully.")                
+            else:
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""))
+                else:
+                    QMessageBox.information(None, "Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                  
