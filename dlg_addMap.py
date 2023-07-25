@@ -64,8 +64,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressDone.connect(self._onProgressDone)
         self.loadComposition.connect(self.readMapJsonThread)
         self.permissionInfo.connect(self.afterPermissionDone)
-    def setPermissionsWidget(self, option):
-        
+    def setPermissionsWidget(self, option):        
         self.page1.setVisible(not option)
         self.page2.setVisible(option)
         if option == True:
@@ -86,9 +85,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.setColumnWidth(0, 300)
         self.treeWidget.setColumnWidth(2, 80)
         self.label_noUser.hide()
-        self.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
-        self.pushButton_map.clicked.connect(lambda: self.readMapJson(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), 'WFS', self.treeWidget.selectedItems()[0].text(1)))
-        # self.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), True))
+        self.pushButton_map.clicked.connect(lambda: self.progressBar_loader.show())
+        self.pushButton_map.clicked.connect(lambda: self.readMapJson(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), 'WFS', self.treeWidget.selectedItems()[0].text(1)))        
         if not self.isAuthorized:
             self.checkBox_own.setEnabled(False)
         else:
@@ -119,7 +117,6 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if checked == "1":
             self.checkBox_own.setCheckState(2)
             checked = True
-        # threading.Thread(target=lambda: self.loadMapsThread(checked)).start()
         self.loadMapsThread(checked)
         result = self.exec_()
         
@@ -405,10 +402,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.layman.instance = CurrentComposition(self.URI, name, workspace, self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
             self.layman.instance.setComposition(data)   
         else:
-            print("workspace nepredan")       
-    #     self.readMapJsonThread(name,service)
-        
-    # def readMapJsonThread(self,name, service):        
+            print("workspace nepredan")     
         name = self.utils.removeUnacceptableChars(name) 
         print("debug in readMapJson - false")
         workspace = self.getCompositionWorkspace(name)
@@ -420,8 +414,6 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             return      
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)
         data = r.json()
-            ## rozvetveni zdali chce uzivatel otevrit kompozici v novem projektu
-            #layers = iface.mapCanvas().layers() ## pokud neexistuej vrstva otazka nema smysl
         layers = QgsProject.instance().mapLayers()
         if len(layers) > 0:
             if self.layman.locale == "cs":
@@ -450,11 +442,6 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 QMessageBox.information(None, "Layman", "Map composition is corrupted!")
             return      
-
-        #self.service3 = threading.Thread(target=lambda: self.loadservice3(data))
-        #self.service3.start()
-    #     self.loadservice3(data)
-    # def loadservice3(self, data):
         groupName = ''
         threads = list()
         i=1
@@ -501,7 +488,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 print("wrong format of composition")
                 return
 
-            if self.checkLayerOnLayman(layerName):              
+            if self.layman.checkLayerOnLayman(layerName):              
 
                 if className == 'HSLayers.Layer.WMS':                 
                     layerName = data['layers'][x]['params']['LAYERS']
@@ -630,7 +617,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         
         self.layman.reorderGroups(groups, groupsSet, groupPositions)
         self.layman.afterCompositionLoaded()
-        #self.afterLoadedComposition.emit()            
+        #self.afterLoadedComposition.emit()     
+        self.progressDone.emit()       
     def getCompositionWorkspace(self, name):
         url = self.URI+'/rest/maps'        
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)
@@ -638,22 +626,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         for row in range(0, len(data)):
             if name == data[row]['name']:
                 return data[row]['workspace']        
-    def checkLayerOnLayman(self, layer_name, workspace=""):
-        if self.selectedWorkspace:
-            url = self.URI+'/rest/'+self.selectedWorkspace+"/layers/"+layer_name
-        else:
-            url = self.URI+'/rest/'+self.laymanUsername+"/layers/"+layer_name
-        print(url)
-        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.utils.authCfg))        
-        try:
-            data = r.json()
-
-            if data['wms']['status'] == 'NOT_AVAILABLE' or data['wms']['status'] == 'PENDING':
-                return False
-            else:
-                return True
-        except:
-            return True # validní vrstva nemá status
+  
     def checkPermissionButtons(self):
         name = self.utils.getUserName()
         try:
@@ -854,3 +827,17 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""))
                 else:
                     QMessageBox.information(None, "Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                  
+    def setWritePermissionList(self):
+        allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]    
+        if self.comboBox_users.currentText() in allItems:
+            if self.checkAddedItemDuplicity("write"):
+                itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
+              
+                if (self.comboBox_users.currentText() in itemsTextListRead):
+                  
+                    self.listWidget_write.addItem(self.comboBox_users.currentText())
+                    print("1")
+                else:            
+                    self.listWidget_write.addItem(self.comboBox_users.currentText())
+                    self.listWidget_read.addItem(self.comboBox_users.currentText())
+                    print("2")                    

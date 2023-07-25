@@ -33,12 +33,19 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
+    def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(CurrentCompositionDialog, self).__init__(parent)
-        # Set up the user interface from Designer through FORM_CLASS.
-        # After self.setupUi() you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
+        self.utils = utils
+        self.isAuthorized = isAuthorized
+        self.laymanUsername = laymanUsername
+        self.URI = URI
+        self.layman = layman
         self.setupUi(self)
+        self.setUi()
+        
+    def connectEvents(self):
+        pass
+    
+    def setUi(self):        
+        self.connectEvents()        
