@@ -44,6 +44,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.laymanUsername = laymanUsername
         self.URI = URI
         self.layman = layman
+        self.layerServices = {}
         self.setupUi(self)
         self.setUi()
         
@@ -61,14 +62,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_delete.setEnabled(False)
         self.pushButton_qfield.setEnabled(False)
         self.label_readonly.hide()
-        self.label_log.hide()
-        self.radioButton_wms.hide()
-        self.radioButton_wfs.hide()
+        self.label_log.hide()        
         self.label_raster.hide()
         self.treeWidget_layers.header().resizeSection(0,230)
         self.listWidget_service.setStyleSheet("#listWidget_service {height:20px;}")
-        self.pushButton_editMeta.setIcon(QIcon(self.utils.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
-        self.pushButton_save.setIcon(QIcon(self.utils.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))           
+        # self.pushButton_editMeta.setIcon(QIcon(self.utils.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
+        # self.pushButton_save.setIcon(QIcon(self.utils.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))           
         self.pushButton_qfield.clicked.connect(self.qfieldLogin)  
         if self.layman.current != None:
             self.layman.instance.refreshComposition()
@@ -574,3 +573,5 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             return True
         else:
             return False        
+    def layersWasModified(self):
+        self.modified = True        

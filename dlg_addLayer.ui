@@ -46,6 +46,10 @@
    <property name="text">
     <string>Load WMS</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/gi (1).png</normaloff>icons/gi (1).png</iconset>
+   </property>
   </widget>
   <widget class="QPushButton" name="pushButton_close">
    <property name="geometry">

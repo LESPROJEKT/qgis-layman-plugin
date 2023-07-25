@@ -180,7 +180,7 @@ class Layman(QObject):
         self.millis = 0
         self.cataloguePosition = 1       
         self.initFiles()
-        self.layerServices = {}
+        # self.layerServices = {}
         self.compositionDict = {}
         self.crsChangedConnect = False
         self.current = None      

@@ -63,6 +63,10 @@
    <property name="text">
     <string>Close</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/cancel.png</normaloff>icons/cancel.png</iconset>
+   </property>
   </widget>
   <widget class="QPushButton" name="pushButton_new">
    <property name="geometry">
@@ -75,6 +79,10 @@
    </property>
    <property name="text">
     <string>New</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/layer.png</normaloff>icons/layer.png</iconset>
    </property>
   </widget>
   <widget class="QLabel" name="label_readonly">
@@ -102,6 +110,10 @@
    <property name="text">
     <string>  Edit metadata</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/edit_black.png</normaloff>icons/edit_black.png</iconset>
+   </property>
   </widget>
   <widget class="QPushButton" name="pushButton_save">
    <property name="geometry">
@@ -114,6 +126,10 @@
    </property>
    <property name="text">
     <string>Save changes</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
    </property>
   </widget>
   <widget class="QProgressBar" name="progressBar_loader">
@@ -160,6 +176,10 @@
    <property name="text">
     <string>Delete</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
+   </property>
   </widget>
   <widget class="QRadioButton" name="radioButton_wms">
    <property name="geometry">
@@ -172,19 +192,6 @@
    </property>
    <property name="text">
     <string>WMS</string>
-   </property>
-  </widget>
-  <widget class="QRadioButton" name="radioButton_wfs">
-   <property name="geometry">
-    <rect>
-     <x>640</x>
-     <y>190</y>
-     <width>95</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>WFS</string>
    </property>
   </widget>
   <widget class="QListWidget" name="listWidget_service">
@@ -234,6 +241,10 @@
    </property>
    <property name="text">
     <string>Set permissions</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/share_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/share_FILL0_wght500_GRAD0_opsz24.png</iconset>
    </property>
   </widget>
   <widget class="QCheckBox" name="checkBox_all">
@@ -304,6 +315,10 @@
    <property name="text">
     <string>Export to QField</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/qfield.png</normaloff>icons/qfield.png</iconset>
+   </property>
   </widget>
   <widget class="QPushButton" name="pushButton_copyUrl">
    <property name="geometry">
@@ -316,6 +331,10 @@
    </property>
    <property name="text">
     <string>Copy URL</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/link.png</normaloff>icons/link.png</iconset>
    </property>
   </widget>
   <widget class="QLabel" name="label_log">
