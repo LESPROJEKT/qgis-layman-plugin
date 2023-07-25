@@ -538,3 +538,19 @@ class LaymanUtils(QObject):
                 if '/geoserver/' in layer['url']:
                     return True
         return False
+    def checkExistingLayer(self, layerName):
+        layerName = self.removeUnacceptableChars(layerName)
+        url = self.URI+'/rest/'+self.laymanUsername+"/layers"
+        r = self.requestWrapper("GET", url, payload = None, files = None)      
+        if not r:
+            return
+        data = r.json()
+
+        pom = set()
+        for x in range(len(data)):
+            pom.add((data[x]['name']))
+        layerName = layerName.replace(" ", "_").lower()     
+        if (layerName in pom):
+            return True
+        else:
+            return False

@@ -602,125 +602,126 @@ class Layman(QObject):
         except:
             pass                      
     def run_CurrentCompositionDialog(self, refresh = False):
-        self.utils.recalculateDPI()
-        self.modified = False
-        if not refresh:
-            self.dlg = CurrentCompositionDialog()
-            self.dlg.show()
-        self.dlg.pushButton_close.setEnabled(False)
-        self.dlg.pushButton_close.hide()
-        self.dlg.pushButton_editMeta.setEnabled(False)
-        self.dlg.pushButton_save.setEnabled(False)
-        self.dlg.pushButton_setPermissions.setEnabled(False)
-        self.dlg.pushButton_delete.setEnabled(False)
-        self.dlg.pushButton_qfield.setEnabled(False)
-        self.dlg.label_readonly.hide()
-        self.dlg.label_log.hide()
-        self.dlg.radioButton_wms.hide()
-        self.dlg.radioButton_wfs.hide()
-        self.dlg.label_raster.hide()
-        self.dlg.treeWidget_layers.header().resizeSection(0,230);
-        self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #3bc4ff;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-        self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #3bc4ff;}#pushButton_new:disabled{background: #64818b ;}")
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
-        self.dlg.pushButton_close2.setStyleSheet("#pushButton_close2 {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close2:hover{background: #66ab27 ;}#pushButton_close2:disabled{background: #64818b ;}")
-        self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
-        self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
-        self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #FF8080;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #FF2020 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        self.dlg.pushButton_copyUrl.setStyleSheet("#pushButton_copyUrl {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_copyUrl:hover{background: #66ab27 ;}#pushButton_copyUrl:disabled{background: #64818b ;}")
-        self.dlg.pushButton_qfield.setStyleSheet("#pushButton_qfield {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_qfield:hover{background: #66ab27 ;}#pushButton_qfield:disabled{background: #64818b ;}")
-        self.dlg.listWidget_service.setStyleSheet("#listWidget_service {height:20px;}")
-        self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
-        self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))           
-        self.dlg.pushButton_qfield.clicked.connect(self.qfieldLogin)  
-        if self.current != None:
-            self.instance.refreshComposition()
-            composition = self.instance.getComposition()
-            print(composition)
-            self.dlg.pushButton_editMeta.setEnabled(True)
-            self.dlg.pushButton_new.setEnabled(True)
-            self.dlg.pushButton_setPermissions.setEnabled(True)
-            self.dlg.pushButton_close.setEnabled(True)            
-            self.dlg.pushButton_save.setEnabled(True)
-            self.dlg.pushButton_delete.setEnabled(True)
-            self.dlg.pushButton_qfield.setEnabled(True)           
-            self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(composition['title'], False))
-            self.dlg.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl())
-            layerList = list()
-            serviceList = list()
-            try:
-                if self.locale == "cs":
-                    self.dlg.setWindowTitle("Kompozice: "+composition['title'])
-                else:
-                    self.dlg.setWindowTitle("Composition: "+composition['title'])
-            except:
-                print("titulek nenačten")          
+        self.dlg = CurrentCompositionDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)
+        # self.utils.recalculateDPI()
+        # self.modified = False
+        # if not refresh:
+        #     self.dlg = CurrentCompositionDialog()
+        #     self.dlg.show()
+        # self.dlg.pushButton_close.setEnabled(False)
+        # self.dlg.pushButton_close.hide()
+        # self.dlg.pushButton_editMeta.setEnabled(False)
+        # self.dlg.pushButton_save.setEnabled(False)
+        # self.dlg.pushButton_setPermissions.setEnabled(False)
+        # self.dlg.pushButton_delete.setEnabled(False)
+        # self.dlg.pushButton_qfield.setEnabled(False)
+        # self.dlg.label_readonly.hide()
+        # self.dlg.label_log.hide()
+        # self.dlg.radioButton_wms.hide()
+        # self.dlg.radioButton_wfs.hide()
+        # self.dlg.label_raster.hide()
+        # self.dlg.treeWidget_layers.header().resizeSection(0,230);
+        # self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #3bc4ff;}#pushButton_setPermissions:disabled{background: #64818b ;}")
+        # self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #3bc4ff;}#pushButton_new:disabled{background: #64818b ;}")
+        # self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
+        # self.dlg.pushButton_close2.setStyleSheet("#pushButton_close2 {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close2:hover{background: #66ab27 ;}#pushButton_close2:disabled{background: #64818b ;}")
+        # self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
+        # self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
+        # self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #FF8080;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #FF2020 ;}#pushButton_delete:disabled{background: #64818b ;}")
+        # self.dlg.pushButton_copyUrl.setStyleSheet("#pushButton_copyUrl {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_copyUrl:hover{background: #66ab27 ;}#pushButton_copyUrl:disabled{background: #64818b ;}")
+        # self.dlg.pushButton_qfield.setStyleSheet("#pushButton_qfield {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_qfield:hover{background: #66ab27 ;}#pushButton_qfield:disabled{background: #64818b ;}")
+        # self.dlg.listWidget_service.setStyleSheet("#listWidget_service {height:20px;}")
+        # self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
+        # self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))           
+        # self.dlg.pushButton_qfield.clicked.connect(self.qfieldLogin)  
+        # if self.current != None:
+        #     self.instance.refreshComposition()
+        #     composition = self.instance.getComposition()
+        #     print(composition)
+        #     self.dlg.pushButton_editMeta.setEnabled(True)
+        #     self.dlg.pushButton_new.setEnabled(True)
+        #     self.dlg.pushButton_setPermissions.setEnabled(True)
+        #     self.dlg.pushButton_close.setEnabled(True)            
+        #     self.dlg.pushButton_save.setEnabled(True)
+        #     self.dlg.pushButton_delete.setEnabled(True)
+        #     self.dlg.pushButton_qfield.setEnabled(True)           
+        #     self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(composition['title'], False))
+        #     self.dlg.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl())
+        #     layerList = list()
+        #     serviceList = list()
+        #     try:
+        #         if self.locale == "cs":
+        #             self.dlg.setWindowTitle("Kompozice: "+composition['title'])
+        #         else:
+        #             self.dlg.setWindowTitle("Composition: "+composition['title'])
+        #     except:
+        #         print("titulek nenačten")          
             
-            try:
-                print(composition)
-                len(composition['layers'])
-            except:            
-                self.dlg.progressBar_loader.hide() 
-                self.dlg.pushButton_editMeta.setEnabled(False)                
-                self.dlg.pushButton_setPermissions.setEnabled(False)     
-                self.dlg.pushButton_save.setEnabled(False)
-                self.dlg.pushButton_delete.setEnabled(False)
-                self.dlg.pushButton_qfield.setEnabled(False)   
-                self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
-                return
-            self.refreshCurrentForm()
-            if self.laymanUsername != self.instance.getWorkspace():
-                self.dlg.pushButton_setPermissions.setEnabled(False)
-                self.dlg.pushButton_delete.setEnabled(False)
-            if 'access_rights' in composition:         
+        #     try:
+        #         print(composition)
+        #         len(composition['layers'])
+        #     except:            
+        #         self.dlg.progressBar_loader.hide() 
+        #         self.dlg.pushButton_editMeta.setEnabled(False)                
+        #         self.dlg.pushButton_setPermissions.setEnabled(False)     
+        #         self.dlg.pushButton_save.setEnabled(False)
+        #         self.dlg.pushButton_delete.setEnabled(False)
+        #         self.dlg.pushButton_qfield.setEnabled(False)   
+        #         self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
+        #         return
+        #     self.refreshCurrentForm()
+        #     if self.laymanUsername != self.instance.getWorkspace():
+        #         self.dlg.pushButton_setPermissions.setEnabled(False)
+        #         self.dlg.pushButton_delete.setEnabled(False)
+        #     if 'access_rights' in composition:         
                 
-                if self.laymanUsername not in composition['access_rights']['write']:
-                    self.dlg.listWidget_layers.setEnabled(False)
-                    self.dlg.treeWidget_layers.setEnabled(False)
-                    self.dlg.listWidget_service.setEnabled(False)
-                    self.dlg.pushButton_editMeta.setEnabled(False)
-                    self.dlg.pushButton_setPermissions.setEnabled(False)
-                    self.dlg.pushButton_close.setEnabled(False)
-                    self.dlg.pushButton_save.setEnabled(False)
-                    self.dlg.pushButton_delete.setEnabled(False)
-                    self.dlg.pushButton_setPermissions.setEnabled(False)
-                    self.dlg.label_readonly.show()
-                else:
-                    self.dlg.label_readonly.hide()
-            elif self.laymanUsername == self.instance.getWorkspace():
-                pass
-            else:
-                self.dlg.pushButton_editMeta.setEnabled(False)
-                self.dlg.listWidget_layers.setEnabled(False)
-                self.dlg.listWidget_service.setEnabled(False)
-                self.dlg.pushButton_setPermissions.setEnabled(False)
-                self.dlg.pushButton_delete.setEnabled(False)
-                self.dlg.pushButton_close.setEnabled(False)
-                self.dlg.pushButton_save.setEnabled(False)
-                self.dlg.label_readonly.show()
-        if not self.isAuthorized:      
-            self.dlg.pushButton_new.setEnabled(False)
-            self.dlg.pushButton_setPermissions.setEnabled(False)
-            self.dlg.listWidget_layers.setEnabled(False)
-            self.dlg.pushButton_editMeta.setEnabled(False)
-            self.dlg.treeWidget_layers.setEnabled(False)
-            self.dlg.listWidget_service.setEnabled(False)
-            self.dlg.pushButton_close.setEnabled(False)
-            self.dlg.pushButton_save.setEnabled(False)
-            self.dlg.pushButton_delete.setEnabled(False)
-        if not self.dlg.pushButton_save.receivers(self.dlg.pushButton_save.clicked) > 0:
-            self.dlg.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog())
-            self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers())  
-            self.dlg.pushButton_close2.clicked.connect(lambda: self.dlg.close())
-            self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
+        #         if self.laymanUsername not in composition['access_rights']['write']:
+        #             self.dlg.listWidget_layers.setEnabled(False)
+        #             self.dlg.treeWidget_layers.setEnabled(False)
+        #             self.dlg.listWidget_service.setEnabled(False)
+        #             self.dlg.pushButton_editMeta.setEnabled(False)
+        #             self.dlg.pushButton_setPermissions.setEnabled(False)
+        #             self.dlg.pushButton_close.setEnabled(False)
+        #             self.dlg.pushButton_save.setEnabled(False)
+        #             self.dlg.pushButton_delete.setEnabled(False)
+        #             self.dlg.pushButton_setPermissions.setEnabled(False)
+        #             self.dlg.label_readonly.show()
+        #         else:
+        #             self.dlg.label_readonly.hide()
+        #     elif self.laymanUsername == self.instance.getWorkspace():
+        #         pass
+        #     else:
+        #         self.dlg.pushButton_editMeta.setEnabled(False)
+        #         self.dlg.listWidget_layers.setEnabled(False)
+        #         self.dlg.listWidget_service.setEnabled(False)
+        #         self.dlg.pushButton_setPermissions.setEnabled(False)
+        #         self.dlg.pushButton_delete.setEnabled(False)
+        #         self.dlg.pushButton_close.setEnabled(False)
+        #         self.dlg.pushButton_save.setEnabled(False)
+        #         self.dlg.label_readonly.show()
+        # if not self.isAuthorized:      
+        #     self.dlg.pushButton_new.setEnabled(False)
+        #     self.dlg.pushButton_setPermissions.setEnabled(False)
+        #     self.dlg.listWidget_layers.setEnabled(False)
+        #     self.dlg.pushButton_editMeta.setEnabled(False)
+        #     self.dlg.treeWidget_layers.setEnabled(False)
+        #     self.dlg.listWidget_service.setEnabled(False)
+        #     self.dlg.pushButton_close.setEnabled(False)
+        #     self.dlg.pushButton_save.setEnabled(False)
+        #     self.dlg.pushButton_delete.setEnabled(False)
+        # if not self.dlg.pushButton_save.receivers(self.dlg.pushButton_save.clicked) > 0:
+        #     self.dlg.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog())
+        #     self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers())  
+        #     self.dlg.pushButton_close2.clicked.connect(lambda: self.dlg.close())
+        #     self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
         
-            self.dlg.pushButton_save.clicked.connect(lambda: self.updateComposition())
-            self.dlg.checkBox_all.stateChanged.connect(self.checkAllLayers)
-            self.dlg.pushButton_delete.clicked.connect(lambda: self.deleteCurrentMap())
+        #     self.dlg.pushButton_save.clicked.connect(lambda: self.updateComposition())
+        #     self.dlg.checkBox_all.stateChanged.connect(self.checkAllLayers)
+        #     self.dlg.pushButton_delete.clicked.connect(lambda: self.deleteCurrentMap())
               
-            self.dlg.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())       
-            self.dlg.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
-        self.dlg.progressBar_loader.hide()
+        #     self.dlg.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())       
+        #     self.dlg.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
+        # self.dlg.progressBar_loader.hide()
     def comboBoxChanged(self, text):        
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         try:
@@ -1372,8 +1373,7 @@ class Layman(QObject):
             threading.Thread(target=lambda: xx.post(request, multi_part)).start()
 
 
-    def crsChanged(self):     
-        print("hyzdil")
+    def crsChanged(self):    
         print(self.current, QgsProject.instance().title())
         if self.strip_accents(self.current) == self.strip_accents(QgsProject.instance().title()):
             if self.crsChangedConnect == True:
@@ -3268,7 +3268,7 @@ class Layman(QObject):
                 lay = QgsProject.instance().mapLayersByName(item.text(0))[0]
                 lay.styleChanged.connect(self.layerStyleToUpdate)
             iterator +=1
-        threading.Thread(target=lambda: self.updateCompositionThread()).start()
+        threading.Thread(target=lambda: self.updateCompositionThread(self.currentSet)).start()
         self.dlg.progressBar_loader.show()
         self.dlg.pushButton_save.setEnabled(False)
     def updateLayerPropsInComposition(self):
@@ -3296,10 +3296,11 @@ class Layman(QObject):
                             self.modifyOpacity(layer)                    
         
     
-    def updateCompositionThread(self):      
+    def updateCompositionThread(self, currentSet):
+        self.currentSet = currentSet      
         composition = self.instance.getComposition()
         i= 0
-        for item in self.currentSet:
+        for item in currentSet:
             service = self.instance.getServiceForLayer(item[0])
             if service == "HSLayers.Layer.WMS" and item[1] == "WFS":
                 self.wms_wfs3(item[0], i, item[1])                
