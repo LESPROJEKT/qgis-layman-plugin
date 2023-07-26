@@ -49,8 +49,8 @@ class LaymanUtils(QObject):
             self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
             return
         print(response.status_code)
-        if response.status_code != 200:             
-            5/0  
+        if response.status_code != 200: 
+            print(url)
             self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)    
         return response        
            
@@ -554,3 +554,11 @@ class LaymanUtils(QObject):
             return True
         else:
             return False
+    def fillCompositionDict(self):
+        compositionDict = {}
+        url = self.URI+'/rest/maps'
+        r = requests.get(url = url, headers = self.getAuthHeader(self.authCfg))
+        dataAll = r.json()
+        for row in range(0, len(dataAll)):
+            compositionDict[dataAll[row]['name']] = dataAll[row]['title']       
+        return compositionDict               

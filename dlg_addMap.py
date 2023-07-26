@@ -67,9 +67,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.page1.setVisible(not option)
         self.page2.setVisible(option)
         if option == True:
-            names = list()
-            # for i in range (0, len(self.treeWidget.selectedItems())):
-            #     names.append(self.treeWidget.selectedItems()[i].text(0))
+            names = list() 
             self.setPermissionsUI(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)))  
     def setUi(self):        
         self.connectEvents()

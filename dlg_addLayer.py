@@ -122,7 +122,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_urlWms.clicked.connect(lambda: self.copyLayerUrl(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.selectedItems()[0].text(1),"wms"))
         self.pushButton_urlWfs.clicked.connect(lambda: self.copyLayerUrl(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.selectedItems()[0].text(1),"wfs"))
         if not self.isAuthorized:
-            # self.label_noUser.show()
+            self.label_noUser.show()
             self.checkBox_own.setEnabled(False)
         self.treeWidget.itemClicked.connect(self.enableDeleteButton)
         self.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
