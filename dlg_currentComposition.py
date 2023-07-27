@@ -24,9 +24,9 @@
 
 import os
 from PyQt5 import uic
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore
 from qgis.core import *
-from PyQt5.QtGui import  QRegExpValidator
+from PyQt5.QtGui import  QRegExpValidator,QBrush, QColor
 from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRegExp
 import threading
@@ -45,6 +45,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     permissionInfo = pyqtSignal(bool,list, int)
     progressDone = pyqtSignal()
     progressStart = pyqtSignal()
+    onRefreshCurrentForm = pyqtSignal()
     def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(CurrentCompositionDialog, self).__init__(parent)
@@ -58,11 +59,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         
         self.setupUi(self)
         self.setUi()
+         
         
     def connectEvents(self):
         self.permissionInfo.connect(self.afterPermissionDone)
         self.progressDone.connect(self._onProgressDone)
         self.progressStart.connect(self._onProgressStart)
+        self.onRefreshCurrentForm.connect(self.on_layers_removed) 
     
     def setStackWidget(self, option): 
         if option == "main":       
@@ -70,27 +73,40 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.page2.setVisible(False)
             self.page3.setVisible(False)
             self.page4.setVisible(False)
+            self.page5.setVisible(False)
             self.refreshCurrentForm()
         if option == "permissions": 
             self.page1.setVisible(False)
             self.page2.setVisible(True)
             self.page3.setVisible(False)
             self.page4.setVisible(False)
+            self.page5.setVisible(False)
             self.setPermissionsUI(self.layman.current)  
         if option == "metadata": 
             self.page1.setVisible(False)
             self.page2.setVisible(False)
             self.page3.setVisible(False)
             self.page4.setVisible(True)
+            self.page5.setVisible(False)
             self.setMetadataUI() 
         if option == "new": 
             self.page1.setVisible(False)
             self.page2.setVisible(False)
             self.page3.setVisible(True)
             self.page4.setVisible(False)
-            self.setNewUI()                          
+            self.page5.setVisible(False)
+            self.setNewUI()    
+        if option == "props": 
+            self.page1.setVisible(False)
+            self.page2.setVisible(False)
+            self.page3.setVisible(False)
+            self.page4.setVisible(False)
+            self.page5.setVisible(True)
+            self.setLayerPropertiesUI()                                  
             
-    def setUi(self):        
+    def setUi(self):    
+        QgsProject.instance().layerWasAdded.connect(self.on_layers_added)  
+        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)     
         self.connectEvents()  
         self.permissionsConnected = False
         self.utils.recalculateDPI()
@@ -193,11 +209,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         result = self.exec_()  
     def refreshCurrentForm(self, layerAdded = None):
         composition = self.layman.instance.getComposition()
+        if self.layman.current != None:
+            self.layman.instance.refreshComposition()                     
+            self.pushButton_editMeta.setEnabled(True)
+            self.pushButton_new.setEnabled(True)
+            self.pushButton_setPermissions.setEnabled(True)                        
+            self.pushButton_save.setEnabled(True)
+            self.pushButton_delete.setEnabled(True)
+            self.pushButton_qfield.setEnabled(True)  
+        
         try:
-            if self.locale == "cs":
-                self.setWindowTitle("Kompozice: "+composition['title'])
-            else:
-                self.setWindowTitle("Composition: "+composition['title'])
+            self.setWindowTitle("Kompozice: " + composition['title']) if self.locale == "cs" else self.setWindowTitle("Composition: " + composition['title'])
         except:
             print("titulek nenačten")
         self.treeWidget_layers.clear()
@@ -243,8 +265,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     item.setToolTip(0,"Tato vrstva je zobrazena a je součástí načtené kompozice.")
                 else:
                     item.setToolTip(0,"This layer is displayed and is part of the loaded composition.")
-                if layerType == QgsMapLayer.VectorLayer:
-                    layer.editingStopped.connect(self.layerEditStopped)            
+                # if layerType == QgsMapLayer.VectorLayer:
+                #     layer.editingStopped.connect(self.layerEditStopped)            
             else:
                 item.setCheckState(0,0)      
                 if self.locale == "cs":
@@ -383,7 +405,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                                             
             if self.layman.instance.getServiceForLayer(item.text(0)) in (["HSLayers.Layer.WMS", "XYZ"]):
                 cellButton = QPushButton("...", None)                
-                # cellButton.clicked.connect(self.showLayerProperties)
+                cellButton.clicked.connect(lambda: self.setStackWidget("props"))
                 self.treeWidget_layers.setItemWidget(item,3, cellButton)
             ##
             iterator +=1
@@ -549,9 +571,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 if not self.layman.checkLayerInCurrentCompositon(item.text(0)):              
                     layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
                     if (isinstance(layer, QgsVectorLayer)):                                
-                        layerType = layer.type()
-                        if layerType == QgsMapLayer.VectorLayer:
-                            layer.editingStopped.connect(self.layerEditStopped)
+                        # layerType = layer.type()
+                        # if layerType == QgsMapLayer.VectorLayer:
+                        #     layer.editingStopped.connect(self.layerEditStopped)
                         layers.append(layer)
                         
                     else:
@@ -589,7 +611,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         for layer in layers:                                                    
                    
                             if layer.name() == item[0]:                               
-                                self.addExistingLayerToComposition(layer.name(),composition,item[1].lower())
+                                self.layman.addExistingLayerToComposition(layer.name(),composition,item[1].lower())
                                 layers.remove(layer)
                     
                     if item[2] == "Add and overwrite" or item[2] =='Add' or item[2] == "Přidat a přepsat" or item[2] =='Přidat':
@@ -600,7 +622,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
                 if len(newLayers) > 0:   
                                 
-                    self.layman.addLayerToComposite2(composition, layers)
+                    self.layman.addLayerToComposite2(composition, layers, self.currentSet)
 
             #self.close()
             return True
@@ -785,7 +807,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()                                      
     def updateAllLayersPermission(self, userDict, layerName, loaded = False):      
         if loaded:
-            composition = self.instance.getComposition()
+            composition = self.layman.instance.getComposition()
         else:
             url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+layerName[0]+"/file"
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)
@@ -1268,3 +1290,67 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 item.setToolTip(1,"Vektorová vrstva načtená z lokálního souboru.")
             else:
                 item.setToolTip(1,"Vector layer loaded from a local file.")        
+    def on_layers_removed(self): 
+        print(self.objectName())
+        if self.objectName() == "CurrentCompositionDialog":
+            self.refreshCurrentForm()  
+    def on_layers_added(self, layer):     
+        if self.objectName() == "CurrentCompositionDialog":                
+            self.refreshCurrentForm(layer)
+                           
+                           
+                           
+    def setLayerPropertiesUI(self):             
+        self.pushButton_back_4.clicked.connect(lambda: self.setStackWidget("main")) 
+        layerName = self.treeWidget_layers.selectedItems()[0].text(0)      
+        self.label_name.setText(layerName)
+        self.pushButton_save_props.clicked.connect(lambda: self.saveCompositionLayerChanges(layerName))        
+        composition = self.layman.instance.getComposition()           
+        for layer in composition['layers']:
+            if layer['title'] == layerName:              
+                self.checkBox_singleTile.setCheckState(2) if layer['singleTile'] == True else self.checkBox_singleTile.setCheckState(0)
+                if "base" in layer:
+                    self.checkBox_baseLayer.setCheckState(2) if layer['base'] == True else self.checkBox_singleTile.setCheckState(0)
+                if "greyscale" in layer:
+                    self.checkBox_greyScale.setCheckState(2) if layer['greyscale'] == True else self.checkBox_greyScale.setCheckState(0)
+                else:
+                    self.checkBox_greyScale.setCheckState(0)    
+                self.label_opacity.setText(str(layer['opacity'] * 100) + " %")
+                self.label_max.setText("None" if not layer['maxResolution'] else "1:"+str(self.utils.resolutionToScale(layer['maxResolution'])))
+                self.label_min.setText("1:"+str(int(self.utils.resolutionToScale(layer['minResolution']))))                
+                self.checkBox_visibility.setChecked(True if layer['visibility'] else False) 
+                self.label_path.setText(str(layer['path']))              
+                
+                
+                
+    def setGrayScaleForLayer(self, layer):       
+        if  isinstance(layer, QgsRasterLayer):
+            pipe = layer.pipe()
+            if self.checkBox_greyScale.checkState() == 2:
+                pipe.hueSaturationFilter().setGrayscaleMode(1)
+            if self.checkBox_greyScale.checkState() == 0:
+                pipe.hueSaturationFilter().setGrayscaleMode(0)
+            layer.triggerRepaint()
+    def saveCompositionLayerChanges(self, name):
+        composition = self.layman.instance.getComposition()
+        if self.checkBox_singleTile.checkState() == 2:
+            composition['layers'][self.layman.instance.getLayerOrderByTitle(name)]['singleTile'] = True
+        else:
+            composition['layers'][self.layman.instance.getLayerOrderByTitle(name)]['singleTile'] = False
+        if self.checkBox_baseLayer.checkState() == 2:
+            composition['layers'][self.layman.instance.getLayerOrderByTitle(name)]['base'] = True
+        else:
+            composition['layers'][self.layman.instance.getLayerOrderByTitle(name)]['base'] = False
+        if self.checkBox_greyScale.checkState() == 2:
+            composition['layers'][self.layman.instance.getLayerOrderByTitle(name)]['greyscale'] = True
+        else:
+            composition['layers'][self.layman.instance.getLayerOrderByTitle(name)]['greyscale'] = False
+        response = self.layman.patchMap2()
+        if  response.status_code == 200:
+            if self.locale == "cs":
+                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Změny byly uloženy."), Qgis.Success, duration=3)
+            else:
+                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Changes was saved."), Qgis.Success, duration=3)
+        else:
+            self.showErr.emit([" Změny nebyly uloženy.", " Changes was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
+        self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])                            

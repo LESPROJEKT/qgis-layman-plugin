@@ -592,3 +592,25 @@ class LaymanUtils(QObject):
             return "RASTER"
         else:
             return "OGR"
+    def resolutionToScale(self, resolution):
+        map_settings = self.iface.mapCanvas().mapSettings()
+        crs = map_settings.destinationCrs()        
+        dpi = 25.4 / 0.28  #  96 dpi         
+        if resolution < 0.72: ##  hranice spatneho zaorouhleni
+            return round(resolution * 39.37 * dpi, -3)
+        else:
+            return self.resolutionRounder(round(resolution * 39.37 * dpi))        
+        
+    def scaleToResolution(self, denominator):   
+        map_settings = self.iface.mapCanvas().mapSettings()
+        crs = map_settings.destinationCrs()
+        units = crs.mapUnits()
+        dpi = 25.4 / 0.28
+        mpu = QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, units)    
+        return denominator / (mpu * 39.37 * dpi)    
+
+    def resolutionRounder(self,x):
+        rounded = int(round(x / 5000.0) * 5000)
+        power = len(str(rounded)) - 1
+        first_digit = int(str(rounded)[0])
+        return first_digit * 10**power        

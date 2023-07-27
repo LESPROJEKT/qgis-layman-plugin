@@ -60,6 +60,7 @@ import qgis.utils
 import requests
 from owslib.wms import WebMapService
 from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 from PyQt5.QtCore import (QByteArray, QCoreApplication, QDir,
                           QFileSystemWatcher, QObject, QRegExp, QSettings,
                           QSize, Qt, QTranslator, QUrl, pyqtSignal,
@@ -242,8 +243,8 @@ class Layman(QObject):
         self.toolbar = self.iface.addToolBar(u'Layman')
         self.toolbar.setObjectName(u'Layman')
         QgsApplication.messageLog().messageReceived.connect(self.write_log_message)    
-        QgsProject.instance().layerWasAdded.connect(self.on_layers_added)  
-        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)  
+        # QgsProject.instance().layerWasAdded.connect(self.on_layers_added)  
+        # QgsProject.instance().layerRemoved.connect(self.on_layers_removed)  
         self.pluginIsActive = False
         self.dockwidget = None
         self.loggedThrowProject = False
@@ -315,7 +316,7 @@ class Layman(QObject):
         self.setVisibility.connect(self._setVisibility)
         self.loadStyle.connect(self._loadStyle)
         self.emitMessageBox.connect(self._onEmitMessageBox)
-        self.onRefreshCurrentForm.connect(self.on_layers_removed)    
+        #self.onRefreshCurrentForm.connect(self.on_layers_removed)    
         self.showExportInfo.connect(self.showExportedCompositionInfo)
         self.cleanTemp.connect(self._cleanTemp) 
         # self.mapDeletedSuccessfully.connect(self._onMapDeletedSuccessfully)
@@ -589,139 +590,26 @@ class Layman(QObject):
             ##
             iterator +=1
             self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
-    def on_layers_added(self, layer):  
-        try:
-            if self.dlg.objectName() == "CurrentCompositionDialog":           
-                self.refreshCurrentForm(layer)
-        except:
-            pass                
+    def on_layers_added(self, layer): 
+        print("xxxxxxxxxxxxxxxxxxxxx")
+        print(self.dlg.objectName())
+        #○if self.dlg.objectName() == "CurrentMapDialog":           
+        #▲self.dlg.refreshCurrentForm(layer) 
+        # try:
+        #     if self.dlg.objectName() == "AddMapDialog":           
+        #         self.dlg.refreshCurrentForm(layer)
+        # except:
+        #     pass                
     def on_layers_removed(self):  
         try:  
-            if self.dlg.objectName() == "CurrentCompositionDialog":                 
-                self.refreshCurrentForm()  
+            if self.dlg.objectName() == "CurrentMapDialog":                 
+                self.dlg.refreshCurrentForm()  
         except:
             pass                      
     def run_CurrentCompositionDialog(self, refresh = False):
         self.dlg = CurrentCompositionDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)
-        # self.utils.recalculateDPI()
-        # self.modified = False
-        # if not refresh:
-        #     self.dlg = CurrentCompositionDialog()
-        #     self.dlg.show()
-        # self.dlg.pushButton_close.setEnabled(False)
-        # self.dlg.pushButton_close.hide()
-        # self.dlg.pushButton_editMeta.setEnabled(False)
-        # self.dlg.pushButton_save.setEnabled(False)
-        # self.dlg.pushButton_setPermissions.setEnabled(False)
-        # self.dlg.pushButton_delete.setEnabled(False)
-        # self.dlg.pushButton_qfield.setEnabled(False)
-        # self.dlg.label_readonly.hide()
-        # self.dlg.label_log.hide()
-        # self.dlg.radioButton_wms.hide()
-        # self.dlg.radioButton_wfs.hide()
-        # self.dlg.label_raster.hide()
-        # self.dlg.treeWidget_layers.header().resizeSection(0,230);
-        # self.dlg.pushButton_setPermissions.setStyleSheet("#pushButton_setPermissions {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_setPermissions:hover{background: #3bc4ff;}#pushButton_setPermissions:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_new.setStyleSheet("#pushButton_new {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #00A2E8;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_new:hover{background: #3bc4ff;}#pushButton_new:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_close2.setStyleSheet("#pushButton_close2 {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close2:hover{background: #66ab27 ;}#pushButton_close2:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_editMeta.setStyleSheet("#pushButton_editMeta {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_editMeta:hover{background: #66ab27 ;}#pushButton_editMeta:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_save.setStyleSheet("#pushButton_save {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_save:hover{background: #66ab27 ;}#pushButton_save:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_delete.setStyleSheet("#pushButton_delete {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #FF8080;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_delete:hover{background: #FF2020 ;}#pushButton_delete:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_copyUrl.setStyleSheet("#pushButton_copyUrl {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_copyUrl:hover{background: #66ab27 ;}#pushButton_copyUrl:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_qfield.setStyleSheet("#pushButton_qfield {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_qfield:hover{background: #66ab27 ;}#pushButton_qfield:disabled{background: #64818b ;}")
-        # self.dlg.listWidget_service.setStyleSheet("#listWidget_service {height:20px;}")
-        # self.dlg.pushButton_editMeta.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'edit.png'))
-        # self.dlg.pushButton_save.setIcon(QIcon(self.plugin_dir + os.sep + 'icons' + os.sep + 'save2.png'))           
-        # self.dlg.pushButton_qfield.clicked.connect(self.qfieldLogin)  
-        # if self.current != None:
-        #     self.instance.refreshComposition()
-        #     composition = self.instance.getComposition()
-        #     print(composition)
-        #     self.dlg.pushButton_editMeta.setEnabled(True)
-        #     self.dlg.pushButton_new.setEnabled(True)
-        #     self.dlg.pushButton_setPermissions.setEnabled(True)
-        #     self.dlg.pushButton_close.setEnabled(True)            
-        #     self.dlg.pushButton_save.setEnabled(True)
-        #     self.dlg.pushButton_delete.setEnabled(True)
-        #     self.dlg.pushButton_qfield.setEnabled(True)           
-        #     self.dlg.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(composition['title'], False))
-        #     self.dlg.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl())
-        #     layerList = list()
-        #     serviceList = list()
-        #     try:
-        #         if self.locale == "cs":
-        #             self.dlg.setWindowTitle("Kompozice: "+composition['title'])
-        #         else:
-        #             self.dlg.setWindowTitle("Composition: "+composition['title'])
-        #     except:
-        #         print("titulek nenačten")          
-            
-        #     try:
-        #         print(composition)
-        #         len(composition['layers'])
-        #     except:            
-        #         self.dlg.progressBar_loader.hide() 
-        #         self.dlg.pushButton_editMeta.setEnabled(False)                
-        #         self.dlg.pushButton_setPermissions.setEnabled(False)     
-        #         self.dlg.pushButton_save.setEnabled(False)
-        #         self.dlg.pushButton_delete.setEnabled(False)
-        #         self.dlg.pushButton_qfield.setEnabled(False)   
-        #         self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
-        #         return
-        #     self.refreshCurrentForm()
-        #     if self.laymanUsername != self.instance.getWorkspace():
-        #         self.dlg.pushButton_setPermissions.setEnabled(False)
-        #         self.dlg.pushButton_delete.setEnabled(False)
-        #     if 'access_rights' in composition:         
-                
-        #         if self.laymanUsername not in composition['access_rights']['write']:
-        #             self.dlg.listWidget_layers.setEnabled(False)
-        #             self.dlg.treeWidget_layers.setEnabled(False)
-        #             self.dlg.listWidget_service.setEnabled(False)
-        #             self.dlg.pushButton_editMeta.setEnabled(False)
-        #             self.dlg.pushButton_setPermissions.setEnabled(False)
-        #             self.dlg.pushButton_close.setEnabled(False)
-        #             self.dlg.pushButton_save.setEnabled(False)
-        #             self.dlg.pushButton_delete.setEnabled(False)
-        #             self.dlg.pushButton_setPermissions.setEnabled(False)
-        #             self.dlg.label_readonly.show()
-        #         else:
-        #             self.dlg.label_readonly.hide()
-        #     elif self.laymanUsername == self.instance.getWorkspace():
-        #         pass
-        #     else:
-        #         self.dlg.pushButton_editMeta.setEnabled(False)
-        #         self.dlg.listWidget_layers.setEnabled(False)
-        #         self.dlg.listWidget_service.setEnabled(False)
-        #         self.dlg.pushButton_setPermissions.setEnabled(False)
-        #         self.dlg.pushButton_delete.setEnabled(False)
-        #         self.dlg.pushButton_close.setEnabled(False)
-        #         self.dlg.pushButton_save.setEnabled(False)
-        #         self.dlg.label_readonly.show()
-        # if not self.isAuthorized:      
-        #     self.dlg.pushButton_new.setEnabled(False)
-        #     self.dlg.pushButton_setPermissions.setEnabled(False)
-        #     self.dlg.listWidget_layers.setEnabled(False)
-        #     self.dlg.pushButton_editMeta.setEnabled(False)
-        #     self.dlg.treeWidget_layers.setEnabled(False)
-        #     self.dlg.listWidget_service.setEnabled(False)
-        #     self.dlg.pushButton_close.setEnabled(False)
-        #     self.dlg.pushButton_save.setEnabled(False)
-        #     self.dlg.pushButton_delete.setEnabled(False)
-        # if not self.dlg.pushButton_save.receivers(self.dlg.pushButton_save.clicked) > 0:
-        #     self.dlg.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog())
-        #     self.dlg.pushButton_close.clicked.connect(lambda: self.saveMapLayers())  
-        #     self.dlg.pushButton_close2.clicked.connect(lambda: self.dlg.close())
-        #     self.dlg.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
-        
-        #     self.dlg.pushButton_save.clicked.connect(lambda: self.updateComposition())
-        #     self.dlg.checkBox_all.stateChanged.connect(self.checkAllLayers)
-        #     self.dlg.pushButton_delete.clicked.connect(lambda: self.deleteCurrentMap())
-              
-        #     self.dlg.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())       
-        #     self.dlg.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
-        # self.dlg.progressBar_loader.hide()
+        print(self.dlg.objectName())
+       
     def comboBoxChanged(self, text):        
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         try:
@@ -741,8 +629,7 @@ class Layman(QObject):
     def showMessageBar(self, text, info, err, typ, url):    
         widget = QWidget()
         layout = QHBoxLayout() 
-        layout.setAlignment(Qt.AlignCenter)       
-        #layout.addWidget(QLabel("Layman - "+ text[0] if self.locale == "cs" else text[1]))
+        layout.setAlignment(Qt.AlignCenter) 
         button = QPushButton("Více informací" if self.locale == "cs" else "More info")
         label2 = iface.messageBar().createMessage("Layman:", text[0] if self.locale == "cs" else text[1])
         layout.addWidget(label2)
@@ -5798,7 +5685,7 @@ class Layman(QObject):
         end = string.find("'", start)
         value = string[start:end]   
         return value                                        
-    def addLayerToComposite2(self,composition, layersList):        
+    def addLayerToComposite2(self,composition, layersList, currentSet):             
         print(layersList)
         for layer in layersList:
             self.showExportInfo.emit("Nahrávání vrstvy: " + layer.name() if self.locale == "cs" else "Uploading layer: " + layer.name())
@@ -5834,10 +5721,10 @@ class Layman(QObject):
 
               
                 for i in range (0, len(layers)):
-                    for item in self.currentSet:
+                    for item in currentSet:
                         if self.removeUnacceptableChars(item[0]) == self.removeUnacceptableChars(layers[i].name()):
                             service = item[1].lower()
-                    self.dlg.progressBar_loader.show()
+                    # self.dlg.progressBar_loader.show()
                     layerName = self.removeUnacceptableChars(layers[i].name()).lower()                   
                     if layers[i].hasScaleBasedVisibility():
                         minScale = (self.scaleToResolution(layers[i].minimumScale()))

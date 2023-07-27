@@ -1056,6 +1056,292 @@
      </property>
     </widget>
    </widget>
+   <widget class="QWidget" name="page5">
+    <widget class="QPushButton" name="pushButton_back_4">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>20</y>
+       <width>111</width>
+       <height>28</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Back to list</string>
+     </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>icons/back.png</normaloff>icons/back.png</iconset>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="checkBox_singleTile">
+     <property name="geometry">
+      <rect>
+       <x>150</x>
+       <y>92</y>
+       <width>81</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_5">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>214</y>
+       <width>121</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Max scale:</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_9">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>72</y>
+       <width>55</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Title:</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_min">
+     <property name="geometry">
+      <rect>
+       <x>150</x>
+       <y>215</y>
+       <width>191</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_path">
+     <property name="geometry">
+      <rect>
+       <x>150</x>
+       <y>264</y>
+       <width>55</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_info_2">
+     <property name="geometry">
+      <rect>
+       <x>190</x>
+       <y>57</y>
+       <width>481</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::AutoText</enum>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="checkBox_visibility">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>150</x>
+       <y>238</y>
+       <width>81</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_21">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>167</y>
+       <width>121</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Opacity:</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_opacity">
+     <property name="geometry">
+      <rect>
+       <x>150</x>
+       <y>167</y>
+       <width>55</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_23">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>143</y>
+       <width>111</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Grey scale:</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="checkBox_greyScale">
+     <property name="geometry">
+      <rect>
+       <x>150</x>
+       <y>140</y>
+       <width>81</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_24">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>240</y>
+       <width>111</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Visibility:</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_25">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>264</y>
+       <width>111</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Group:</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_max">
+     <property name="geometry">
+      <rect>
+       <x>150</x>
+       <y>192</y>
+       <width>191</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="checkBox_baseLayer">
+     <property name="geometry">
+      <rect>
+       <x>150</x>
+       <y>117</y>
+       <width>81</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_name">
+     <property name="geometry">
+      <rect>
+       <x>150</x>
+       <y>71</y>
+       <width>290</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>title</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_save_props">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>311</y>
+       <width>111</width>
+       <height>28</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Save changes</string>
+     </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_26">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>190</y>
+       <width>121</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Min scale:</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_27">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>95</y>
+       <width>111</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Single tile:</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_28">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>120</y>
+       <width>111</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Base layer:</string>
+     </property>
+    </widget>
+   </widget>
   </widget>
  </widget>
  <resources/>
