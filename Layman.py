@@ -89,7 +89,7 @@ from .dlg_addMicka import AddMickaDialog
 from .dlg_ConnectionManager import ConnectionManagerDialog
 from .dlg_createComposite import CreateCompositeDialog
 from .dlg_currentComposition import CurrentCompositionDialog
-from .dlg_deleteLayerFromMap import DeleteLayerFromMapDialog
+# from .dlg_deleteLayerFromMap import DeleteLayerFromMapDialog
 from .dlg_editMap import EditMapDialog
 from .dlg_errMsg import ErrMsgDialog
 from .dlg_GetLayers import GetLayersDialog
@@ -227,7 +227,7 @@ class Layman(QObject):
             'i18n',
             'Layman_{}.qm'.format(locale))
         self.locale = locale
-        self.utils = LaymanUtils(self.iface, self.locale)
+        self.utils = LaymanUtils(self.iface, self.locale, self.laymanUsername)
         if os.path.exists(locale_path):
             self.translator = QTranslator()
             self.translator.load(locale_path)
@@ -3953,23 +3953,23 @@ class Layman(QObject):
       
         self.reorderGroup(groupsPosition, groupsSet)    
                          
-    def loadAllComposites(self):
-        url = self.URI+'/rest/' + self.laymanUsername + '/maps'        
+    # def loadAllComposites(self):
+    #     url = self.URI+'/rest/' + self.laymanUsername + '/maps'        
        
-        r = self.requestWrapper("GET", url, payload = None, files = None)     
-        try:
-            data = r.json()
-        except:
-            self.showErr.emit([" Připojení k serveru selhalo!", " Connection with server failed!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)            
-            return
-        for i in data:           
-            url = self.URI+'/rest/' + self.laymanUsername + '/maps/'+i['name']+'/file'           
-            r = self.requestWrapper("GET", url, payload = None, files = None)
-            try:
-                map = r.json()
-            except:
-                self.showErr.emit([" Připojení k serveru selhalo!", " Connection with server failed!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url) 
-            self.compositeList.append (map)
+    #     r = self.requestWrapper("GET", url, payload = None, files = None)     
+    #     try:
+    #         data = r.json()
+    #     except:
+    #         self.showErr.emit([" Připojení k serveru selhalo!", " Connection with server failed!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)            
+    #         return
+    #     for i in data:           
+    #         url = self.URI+'/rest/' + self.laymanUsername + '/maps/'+i['name']+'/file'           
+    #         r = self.requestWrapper("GET", url, payload = None, files = None)
+    #         try:
+    #             map = r.json()
+    #         except:
+    #             self.showErr.emit([" Připojení k serveru selhalo!", " Connection with server failed!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url) 
+    #         self.compositeList.append (map)
         
     def _onReprojectionFailed(self, layerName):        
         if self.locale == "cs":
@@ -4036,28 +4036,28 @@ class Layman(QObject):
             if self.processingList[i][2] == 1:
                 self.processingList[i][2] = 2                
                 done = done + 1
-    def loadAllCompositesT(self):
-        self.compositeList = list()
-        url = self.URI+'/rest/' + self.laymanUsername + '/maps'
-        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
-        try:
-            data = r.json()
-        except:
-            QgsMessageLog.logMessage("errConnection")
-            QgsMessageLog.logMessage(url)
-            self.disableEnvironment()
-            return
-        for i in data:
-            url = self.URI+'/rest/' + i['workspace'] + '/maps/'+i['name']+'/file'            
-            r = self.requestWrapper("GET", url, payload = None, files = None)
-            try:
-                map = r.json()
-            except:
-                QgsMessageLog.logMessage("errConnection")
-                QgsMessageLog.logMessage(map)
-                self.disableEnvironment()
-                return
-            self.compositeList.append(map)
+    # def loadAllCompositesT(self):
+    #     self.compositeList = list()
+    #     url = self.URI+'/rest/' + self.laymanUsername + '/maps'
+    #     r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
+    #     try:
+    #         data = r.json()
+    #     except:
+    #         QgsMessageLog.logMessage("errConnection")
+    #         QgsMessageLog.logMessage(url)
+    #         self.disableEnvironment()
+    #         return
+    #     for i in data:
+    #         url = self.URI+'/rest/' + i['workspace'] + '/maps/'+i['name']+'/file'            
+    #         r = self.requestWrapper("GET", url, payload = None, files = None)
+    #         try:
+    #             map = r.json()
+    #         except:
+    #             QgsMessageLog.logMessage("errConnection")
+    #             QgsMessageLog.logMessage(map)
+    #             self.disableEnvironment()
+    #             return
+    #         self.compositeList.append(map)
            
     # def readMapJson(self,name, service, workspace=""):        
       
@@ -4484,7 +4484,7 @@ class Layman(QObject):
         return transfomedExtent
 
 
-    def getEmptyComposite(self, compositeName, compositeTitle):      
+    def getEmptyComposite(self, compositeName, compositeTitle, abstract):      
         compositeEPSG = QgsProject.instance().crs().authid().lower()
         ## nativeExtent is project extent
         ext = iface.mapCanvas().extent()
@@ -4510,7 +4510,7 @@ class Layman(QObject):
             eymax = ymax       
         
         center = QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y())
-        abstract = self.dlg.lineEdit_7.text()
+        # abstract = self.dlg.lineEdit_7.text()
         self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
         self.schemaVersion = "2.0.0"
         
@@ -5621,6 +5621,8 @@ class Layman(QObject):
             return self.resolutionRounder(round(resolution * 39.37 * dpi))
     def getGreyScaleMode(self, layer):
         pipe  = layer.pipe()        
+        if pipe.hueSaturationFilter() == None:
+            return False
         greyscale = False if pipe.hueSaturationFilter().grayscaleMode() == 0 else True
         return greyscale
     def getLegendUrlFromCapatibilites(self, layer):
@@ -5915,23 +5917,23 @@ class Layman(QObject):
     def getProgressBarStep(self, count):
         return (100/count)  
 
-    def importCleanComposite(self,x):
+    def importCleanComposite(self,composition):
         tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
         with open(tempFile, 'w') as outfile:
-            json.dump(self.compositeList[x], outfile)
+            json.dump(composition, outfile)
         with open(tempFile, 'rb') as f:
             d = json.load(f)
         files = {'file': (tempFile, open(tempFile, 'rb')),}       
-        data = { 'name' :  self.compositeList[x]['name'], 'title' : self.compositeList[x]['title'], 'description' : self.compositeList[x]['abstract'], 'access_rights.read': self.laymanUsername,   'access_rights.write': self.laymanUsername}
+        data = { 'name' :  composition['name'], 'title' :composition['title'], 'description' : composition['abstract'], 'access_rights.read': self.laymanUsername,   'access_rights.write': self.laymanUsername}
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
         response = requests.post(url , files=files, data = data, headers = self.utils.getAuthHeader(self.authCfg))  
         if (response.status_code == 200):
             if self.locale == "cs":     
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + self.compositeList[x]['name'] + " byla úspešně vytvořena."), Qgis.Success, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + composition['name'] + " byla úspešně vytvořena."), Qgis.Success, duration=3)
             else:           
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + self.compositeList[x]['name'] + " was sucessfully created."), Qgis.Success, duration=3)
+                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was sucessfully created."), Qgis.Success, duration=3)
         else:
-            self.showErr.emit([" Kompozice  " + self.compositeList[x]['name'] + " nebyla vytvořena.", " Composition  " + self.compositeList[x]['name'] + " was not sucessfully created."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)        
+            self.showErr.emit([" Kompozice  " + composition['name'] + " nebyla vytvořena.", " Composition  " + composition['name'] + " was not sucessfully created."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)        
 
     def showProgressBar(self, bar):
         bar = QProgressBar()

@@ -31,6 +31,10 @@ from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetIte
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRegExp
 import threading
 import requests
+import xml.etree.ElementTree as ET
+import traceback
+import pandas as pd
+from .currentComposition import CurrentComposition
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -60,12 +64,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressDone.connect(self._onProgressDone)
         self.progressStart.connect(self._onProgressStart)
     
-    def setPermissionsWidget(self, option): 
+    def setStackWidget(self, option): 
         if option == "main":       
             self.page1.setVisible(True)
             self.page2.setVisible(False)
             self.page3.setVisible(False)
             self.page4.setVisible(False)
+            self.refreshCurrentForm()
         if option == "permissions": 
             self.page1.setVisible(False)
             self.page2.setVisible(True)
@@ -89,10 +94,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.connectEvents()  
         self.permissionsConnected = False
         self.utils.recalculateDPI()
-        self.pushButton_setPermissions.clicked.connect(lambda: self.setPermissionsWidget("permissions"))
-        self.pushButton_back.clicked.connect(lambda: self.setPermissionsWidget("main"))  
-        self.pushButton_editMeta.clicked.connect(lambda: self.setPermissionsWidget("metadata"))  
-        
+        self.pushButton_setPermissions.clicked.connect(lambda: self.setStackWidget("permissions"))
+        self.pushButton_back.clicked.connect(lambda: self.setStackWidget("main"))  
+        self.pushButton_editMeta.clicked.connect(lambda: self.setStackWidget("metadata"))  
+        self.pushButton_new.clicked.connect(lambda: self.setStackWidget("new"))
         self.pushButton_editMeta.setEnabled(False)
         self.pushButton_save.setEnabled(False)
         self.pushButton_setPermissions.setEnabled(False)
@@ -176,10 +181,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
           
             self.pushButton_save.setEnabled(False)
             self.pushButton_delete.setEnabled(False)
-        if not self.pushButton_save.receivers(self.pushButton_save.clicked) > 0:
-            #self.pushButton_editMeta.clicked.connect(lambda: self.showEditMapDialog())           
-            self.pushButton_close2.clicked.connect(lambda: self.close())
-            self.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))        
+        if not self.pushButton_save.receivers(self.pushButton_save.clicked) > 0:          
+            self.pushButton_close2.clicked.connect(lambda: self.close())                  
             self.pushButton_save.clicked.connect(lambda: self.updateComposition())
             self.checkBox_all.stateChanged.connect(self.checkAllLayers)
             self.pushButton_delete.clicked.connect(lambda: self.deleteCurrentMap())              
@@ -189,12 +192,18 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.show()
         result = self.exec_()  
     def refreshCurrentForm(self, layerAdded = None):
-        
+        composition = self.layman.instance.getComposition()
+        try:
+            if self.locale == "cs":
+                self.setWindowTitle("Kompozice: "+composition['title'])
+            else:
+                self.setWindowTitle("Composition: "+composition['title'])
+        except:
+            print("titulek nenačten")
         self.treeWidget_layers.clear()
         layerList = list()
         serviceList = list()
-        self.layman.instance.refreshComposition()
-        composition = self.layman.instance.getComposition()
+        self.layman.instance.refreshComposition()        
         for i in reversed(range (0, len(composition['layers']))):                
             layerList.append(self.utils.removeUnacceptableChars(composition['layers'][i]['title']))
             serviceList.append(composition['layers'][i]['className'])
@@ -243,7 +252,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:
                     item.setToolTip(0,"This layer is not part of the composition.")
             
-                type = self.getSource(layer)
+               
             
                 if isinstance(layer, QgsRasterLayer):
                     item.setText(1, "WMS")
@@ -420,7 +429,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.itemClick(item,0) ## check for subgroups
             if item.checkState(0) == 2 and  self.utils.removeUnacceptableChars(item.text(0)) not in layerList:                
                 lay = QgsProject.instance().mapLayersByName(item.text(0))[0]
-                lay.styleChanged.connect(self.layerStyleToUpdate)
+                lay.styleChanged.connect(self.layman.layerStyleToUpdate)
             iterator +=1
         threading.Thread(target=lambda: self.updateCompositionThread()).start()
         self.progressBar_loader.show()
@@ -516,7 +525,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         # QgsMessageLog.logMessage("updateMapDone")
         # QgsMessageLog.logMessage("layersUploaded")
         self.layman.showExportInfo.emit("F")
-        self.layman.onRefreshCurrentForm.emit()                    
+        self.layman.onRefreshCurrentForm.emit()    
+        self.progressDone.emit()                
     def saveMapLayers(self):
         layerList = list()
         layerCheckedList = list()
@@ -536,7 +546,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         while iterator.value():
             item = iterator.value()         
             if item.checkState(0) == 2 and  self.utils.removeUnacceptableChars(item.text(0)) not in layerList:           
-                if not self.checkLayerInCurrentCompositon(item.text(0)):              
+                if not self.layman.checkLayerInCurrentCompositon(item.text(0)):              
                     layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
                     if (isinstance(layer, QgsVectorLayer)):                                
                         layerType = layer.type()
@@ -588,7 +598,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                                 newLayers.append(layer)
  
 
-                if len(newLayers) > 0:                   
+                if len(newLayers) > 0:   
+                                
                     self.layman.addLayerToComposite2(composition, layers)
 
             #self.close()
@@ -655,8 +666,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
         for i in range (0, lenWrite):         
             self.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
-        if not self.permissionsConnected: 
-            # self.pushButton_close.clicked.connect(lambda: self.close())
+        if not self.permissionsConnected:          
             self.listWidget_read.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
             self.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())           
             self.pushButton_save_permissions.clicked.connect(lambda:  self.progressBar_loader.show())       
@@ -904,9 +914,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def setMetadataUI(self):       
         composition = self.layman.instance.getComposition()
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        #self.lineEdit_name.hide()
-        
-        
+        self.lineEdit_name.hide() 
+        self.pushButton_back_3.clicked.connect(lambda: self.setStackWidget("main"))                
         self.lineEdit_name.setText(composition['name'])
         self.lineEdit_abstract.setText(composition['abstract'])
         self.lineEdit_title.setText(composition['title'])
@@ -970,7 +979,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.utils.showErr.emit([" Metadata nebyla upravena.", " Map metadata was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
 
-        self.setPermissionsWidget("main")
+        self.setStackWidget("main")
         composition = self.layman.instance.getComposition()
         try:
             if self.locale == "cs":
@@ -984,3 +993,278 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressBar_loader.hide()    
     def _onProgressStart(self):
         self.progressBar_loader.show()             
+        
+    def setExtentFromLayers(self):
+
+        composition = self.layman.instance.getComposition()
+        xmin = None
+        xmax = None
+        ymin = None
+        ymax = None
+        initRun = True
+        url = self.URI+'/client/geoserver/'+self.laymanUsername+'/ows?service=wms&version=1.1.1&request=GetCapabilities'        
+        r = self.utils.requestWrapper("GET", url, payload = None, files = None)      
+        names = list()
+        renge = list()
+        tree = ET.ElementTree(ET.fromstring(r.content))
+        root = tree.getroot()
+        for name in  root.findall("./Capability/Layer/Layer/Name"):      
+            names.append(name.text)
+        for name in  root.findall("./Capability/Layer/Layer/LatLonBoundingBox"):           
+            renge.append(name.attrib)
+        for i in range(len(composition['layers'])):
+            className = composition['layers'][i]['className']
+            if className == 'HSLayers.Layer.WMS' or 'OpenLayers.Layer.Vector':
+                name = self.utils.removeUnacceptableChars(composition['layers'][i]['title'])
+     
+               
+                for i in range (0, len(names)):
+                    if names[i] == name:
+                        print("matched")
+                        if initRun:
+                            ymax = renge[i]['maxy']
+                            xmax = renge[i]['maxx']
+                            ymin = renge[i]['miny']
+                            xmin = renge[i]['minx']
+                            initRun = False
+                        if renge[i]['maxy'] > ymax:                            
+                            ymax = renge[i]['maxy']
+                        if renge[i]['maxx'] > xmax:                            
+                            xmax = renge[i]['maxx']
+                        if renge[i]['miny'] < ymin:                            
+                            ymin = renge[i]['miny']
+                        if renge[i]['minx'] < xmin:                            
+                            xmin = renge[i]['minx']
+        if (xmin == None or xmax == None or ymin == None or ymax==None):
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Záznam prostorového rozsahu vrstev vybrané kompozice nebyl nalezen!")
+            else:
+                QMessageBox.information(None, "Layman", "A record of the layers spatial extent for the selected composition was not found!")
+        else:
+            self.lineEdit_xmin.setText(str(xmin))
+            self.lineEdit_xmax.setText(str(xmax))
+            self.lineEdit_ymin.setText(str(ymin))
+            self.lineEdit_ymax.setText(str(ymax))
+
+    def setRangeFromCanvas(self):
+        ext = self.layman.iface.mapCanvas().extent()
+        self.lineEdit_xmin.setText(str(ext.xMinimum()))
+        self.lineEdit_xmax.setText(str(ext.xMaximum()))
+        self.lineEdit_ymin.setText(str(ext.yMinimum()))
+        self.lineEdit_ymax.setText(str(ext.yMaximum()))        
+        
+    def copyCompositionUrl(self, composition=None):  
+        if not composition:
+            url = self.layman.instance.getUrl()
+        else:
+            if "client" in self.URI:
+                url = self.URI+'/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'
+            else:  
+                url = self.URI+'/client/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'
+            
+        try:     
+            df=pd.DataFrame([url])
+            df.to_clipboard(index=False,header=False)            
+            if self.locale == "cs":
+                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " URL uloženo do schránky."), Qgis.Success, duration=3)
+            else:
+                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " URL saved to clipboard."), Qgis.Success, duration=3)
+        except Exception as e:
+            info = str(e)
+            allInfo = traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__) 
+            print([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, allInfo)
+            self.utils.showErr.emit([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, str(allInfo), Qgis.Warning, "")        
+            
+            
+            
+            
+            
+            
+    def setNewUI(self): 
+        self.label_info.hide()
+        self.label_2.hide()        
+        layers = QgsProject.instance().mapLayers().values()     
+        self.treeWidget.itemClicked.connect(self.setExtent)
+        for layer in layers:         
+            if (layer.type() == QgsMapLayer.VectorLayer):
+                item = QTreeWidgetItem([layer.name()])
+                self.treeWidget.addTopLevelItem(item)
+        ext = self.layman.iface.mapCanvas().extent()
+        self.pushButton_back_2.clicked.connect(lambda: self.setStackWidget("main"))     
+        self.lineEdit_3.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_4.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_5.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_6.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_2.editingFinished.connect(self.checkNameCreateMap)
+        self.lineEdit_2.textEdited.connect(self.checkForChars)
+        projectPath = QgsProject.instance().fileName()
+        if projectPath != "":
+            projectName = os.path.basename(projectPath).split(".")[0]
+            if projectName[0] in ["0","1","2","3","4","5","6","7","8","9"]:
+                if self.locale == "cs":
+                    QMessageBox.information(None, "Message", "Není povoleno číslo v prvník znaku titulku! Není možné předvyplnit název.")
+                else:
+                    QMessageBox.information(None, "Message", "Number in first character of title is not allowed! Title can not be prefilled.")
+            else:
+                self.lineEdit_2.setText(projectName)
+        self.lineEdit_3.setText(str(ext.xMinimum()))
+        self.lineEdit_4.setText(str(ext.xMaximum()))
+        self.lineEdit_5.setText(str(ext.yMinimum()))
+        self.lineEdit_6.setText(str(ext.yMaximum()))
+        self.pushButton_defaultExtent.clicked.connect(lambda: self.setDefaultExtent(ext))       
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")  
+        self.pushButton_CreateComposition.clicked.connect(lambda: self.createComposition(self.lineEdit_2.text(),self.lineEdit_7.text(), True))
+        
+    def setExtent(self, it, col):
+        layer = QgsProject.instance().mapLayersByName(it.text(0))
+        ext = layer[0].extent()       
+        xmin = ext.xMinimum()
+        xmax = ext.xMaximum()
+        ymin = ext.yMinimum()
+        ymax = ext.yMaximum()
+        if QgsProject.instance().crs().authid() == 'EPSG:5514' and layer[0].crs().authid() == 'EPSG:4326':         
+            max = self.krovakToWgs(xmax, ymax)
+            min = self.krovakToWgs(xmin, ymin)
+            xmin = min[0]
+            xmax = max[0]
+            ymin = min[1]
+            ymax = max[1]
+        if QgsProject.instance().crs().authid() == 'EPSG:4326' and layer[0].crs().authid() == 'EPSG:5514':
+            max = self.wgsToKrovak(xmax, ymax)
+            min = self.wgsToKrovak(xmin, ymin)
+            xmin = min[0]
+            xmax = max[0]
+            ymin = min[1]
+            ymax = max[1]
+        self.lineEdit_3.setText(str(xmin))
+        self.lineEdit_4.setText(str(xmax))
+        self.lineEdit_5.setText(str(ymin))
+        self.lineEdit_6.setText(str(ymax))
+        if self.locale == "cs":
+            self.label_4.setText("Rozsah vrstvy: " + it.text(0))
+        else:
+            self.label_4.setText("Extent of layer: " + it.text(0))        
+    def checkNameCreateMap(self):
+        text = self.lineEdit_2.text()
+        if text != "":
+            text = self.utils.removeUnacceptableChars(text)            
+            url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+str(text)+"/file"
+            r = requests.get(url, headers = self.utils.getAuthHeader(self.layman.authCfg)) 
+            res = r.json()            
+            ch = True
+            e = False
+            try:
+                if res['code'] == 2:
+                    ch = False
+                else:
+                    ch = True
+            except:
+                ch = True
+                e = True ## kdyz nevraci rescode tak je to v poradku 
+            if (not e):
+                self.pushButton_CreateComposition.setEnabled(True)
+                self.label_info.hide()
+
+            else:
+                self.pushButton_CreateComposition.setEnabled(False)
+                self.label_info.show()
+                if self.locale == "cs":
+                    self.label_info.setText("Kompozice s tímto jménem již existuje!")
+                else:
+                    self.label_info.setText("Composition name already exists!")           
+            self.label_info.setStyleSheet("color: red;")        
+                
+    def checkForSpecialChars(self, s):
+        special_characters = "!@#$%^&*()+?=,<>/"
+        if any(c in special_characters for c in s):
+            return True
+        else:
+            return False
+        
+    def checkForChars(self, string):
+        if self.checkForSpecialChars(string):
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Nepodporovaný znak.")
+            else:
+                QMessageBox.information(None, "Layman", "Unsupported char.")
+        else:
+            self.pushButton_CreateComposition.setEnabled(True)
+            self.label_info.setText("")            
+            
+    def createComposition(self,  title, abstract, setCurrent = False):         
+        self.compositionDict = self.utils.fillCompositionDict()
+        if QgsProject.instance().crs().authid() not in self.layman.supportedEpsg:
+            if self.locale == "cs":
+                QMessageBox.information(None, "Message", "Není nastaveno podporované EPSG projektu.")
+            else:
+                QMessageBox.information(None, "Message", "Project EPSG is not supported.")
+            return
+        if (title == ""):
+            if self.locale == "cs":
+                QMessageBox.information(None, "Message", "Není vyplněn titulek!")
+            else:
+                QMessageBox.information(None, "Message", "Title is not filled!")
+        else:
+            name = self.utils.removeUnacceptableChars(title)
+            data = self.layman.getEmptyComposite(name,title, abstract) 
+            self.layman.importCleanComposite(data)
+            try:
+                self.refreshCompositeList(True)
+            except:
+                print("err")
+            if setCurrent:                
+                self.layman.current = name
+                self.layman.selectedWorkspace = self.laymanUsername
+                url = self.URI+'/rest/'+self.layman.selectedWorkspace+'/maps/'+name+'/file'  
+                r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+                data = r.json()
+                print(data)
+                self.layman.instance = CurrentComposition(self.URI, name, self.layman.selectedWorkspace, self.utils.getAuthHeader(self.layman.authCfg),self.laymanUsername)
+                self.layman.instance.setComposition(data)
+                self.compositionDict[name] = title                
+                prj = QgsProject().instance()
+                QgsProject().instance().setTitle(title)
+                root = prj.layerTreeRoot()  
+                self.prj=QgsProject.instance()
+                self.prj.removeAll.connect(self.layman.removeSignals)        
+                QgsProject.instance().setTitle(title)  
+        self.setStackWidget("main")                         
+    def setDefaultExtent(self, ext):
+        self.lineEdit_3.setText(str(ext.xMinimum()))
+        self.lineEdit_4.setText(str(ext.xMaximum()))
+        self.lineEdit_5.setText(str(ext.yMinimum()))
+        self.lineEdit_6.setText(str(ext.yMaximum()))                
+    def setGuiForItem(self, item):
+        if item.text(1) == "GEOJSON":
+            if self.locale == "cs":
+                item.setToolTip(1,"Vrstva načtená z lokálního souboru geojson.")
+            else:
+                item.setToolTip(1,"Layer loaded from a local geojson file.")
+
+        if item.text(1) == "SHP":
+            if self.locale == "cs":
+                item.setToolTip(1,"Vrstva načtená z lokálního souboru SHP.")
+            else:
+                item.setToolTip(1,"Layer loaded from a local SHP file.")
+
+        if item.text(1) == "MEMORY":
+            if self.locale == "cs":
+                item.setToolTip(1,"Vrstva uložená v paměti QGIS. Po vypnutí QGIS bude smazána.")
+            else:
+                item.setToolTip(1,"Layer stored in QGIS memory. It will be deleted after QGIS is turned off.")
+
+        if item.text(1) == "WMS":
+            if self.locale == "cs":
+                item.setToolTip(1,"Vrstva načtená přes službu WMS poskytující data v rasterovém formátu. Je možné tuto službu zaměnit za vektorovou službu WFS pomocí tlačítka.")
+            else:
+                item.setToolTip(1,"A layer loaded over a WMS service that provides data in a raster format. It is possible to change this service to a WFS vector service using the button.")
+        if item.text(1) == "WFS":
+            if self.locale == "cs":
+                item.setToolTip(1,"Vrstva načtená přes službu WFS poskytující data ve vektorovém formátu. Je možné tuto službu zaměnit za rasterovou službu WMS pomocí tlačítka. Změny v této vrstvě jsou ukládány na server.")
+            else:
+                item.setToolTip(1,"A layer loaded over a WFS service that provides data in a vector format. It is possible to change this service to a WMS raster service using the button. Changes in this layer are saved to the server.")
+        if item.text(1) == "OGR":
+            if self.locale == "cs":
+                item.setToolTip(1,"Vektorová vrstva načtená z lokálního souboru.")
+            else:
+                item.setToolTip(1,"Vector layer loaded from a local file.")        

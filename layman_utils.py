@@ -15,13 +15,14 @@ class LaymanUtils(QObject):
     setVisibility = pyqtSignal(QgsMapLayer)
     loadStyle = pyqtSignal(QgsMapLayer)
       
-    def __init__(self, iface, locale,  parent=None):
+    def __init__(self, iface, locale,laymanUsername,  parent=None):
         super(LaymanUtils, self).__init__(parent=parent)
         self.plugin_dir = os.path.dirname(__file__)
         self.isAuthorized = False
         self.URI = ""
         self.locale = locale
         self.iface = iface
+        self.laymanUsername = laymanUsername
         self.currentLayer = []
         self.connectEvents()
     def connectEvents(self):         
@@ -562,3 +563,32 @@ class LaymanUtils(QObject):
         for row in range(0, len(dataAll)):
             compositionDict[dataAll[row]['name']] = dataAll[row]['title']       
         return compositionDict               
+    def wgsToKrovak(self, x, y):
+        src = QgsCoordinateReferenceSystem(5514)
+        dest = QgsCoordinateReferenceSystem(4326)
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        point = tform.transform(QgsPointXY(x, y))
+        return [point.x(), point.y()]
+    def krovakToWgs(self, x, y):
+        src = QgsCoordinateReferenceSystem(4326)
+        dest = QgsCoordinateReferenceSystem(5514)
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        point = tform.transform(QgsPointXY(x, y))
+        return [point.x(), point.y()]
+    def getSource(self, layer):
+        uri = layer.dataProvider().uri().uri()
+        if ".geojson" in uri:
+            return "GEOJSON"
+        elif ".shp" in uri:
+            return "SHP"
+        elif "wms" in uri:
+            return "WMS"
+        elif "wfs" in uri:
+            return "WFS"
+        elif str(layer.providerType()) == "memory":
+            return "MEMORY"
+        elif str(layer.providerType()) == "gdal":
+
+            return "RASTER"
+        else:
+            return "OGR"
