@@ -194,6 +194,7 @@ class Layman(QObject):
         self.noOverrideLayers = list()
         self.processingRequest = False
         self.settings = QgsSettings()
+        self.instance = None
         self.mickaRet = None
         self.crsOld = 'EPSG:4326'
         self.mixedLayers = list()
@@ -978,9 +979,6 @@ class Layman(QObject):
             self.dlg2 = ShowQProjectDialog()
             self.dlg2.show()
             self.dlg2.progressBar.hide()
-            self.dlg2.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
-            self.dlg2.pushButton_exportCreate.setStyleSheet("#pushButton_exportCreate {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_exportCreate:hover{background: #66ab27 ;}#pushButton_exportCreate:disabled{background: #64818b ;}")
-            self.dlg2.pushButton_export.setStyleSheet("#pushButton_export {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_export:hover{background: #66ab27 ;}#pushButton_export:disabled{background: #64818b ;}")
             ret = self.getProjectsQfield()
             try:
                 composition = self.instance.getComposition()
@@ -1475,8 +1473,6 @@ class Layman(QObject):
         return False              
     def showTSDialog(self):
         self.dlg2 = TimeSeriesDialog()
-        self.dlg2.pushButton_timeSeries.setStyleSheet("#pushButton_timeSeries {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_timeSeries:hover{background: #66ab27 ;}")        
-        self.dlg2.pushButton_getRegex.setStyleSheet("#pushButton_getRegex {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_getRegex:hover{background: #66ab27 ;}")        
         self.dlg2.show()   
         self.dlg2.lineEdit_layerName.hide()   
         for item in self.dlg.treeWidget.selectedItems():
@@ -1634,9 +1630,6 @@ class Layman(QObject):
                 if (layerType == 'postgres'):
                     self.dlg.treeWidget.addTopLevelItem(item)                      
         self.dlg.setWindowModality(Qt.ApplicationModal)
-        # self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
-        # self.dlg.pushButton.setStyleSheet("#pushButton {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton:hover{background: #66ab27 ;}#pushButton:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_errLog.setStyleSheet("#pushButton_errLog {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #c0332c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_errLog:hover{background: #c21c13 ;}#pushButton_errLog:disabled{background: #64818b ;}")
         self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.selectSelectedLayer()
         self.dlg.treeWidget.header().resizeSection(0,250)
@@ -1753,12 +1746,8 @@ class Layman(QObject):
         pushbuttons = self.findChildren(QPushButton)
         for button in pushbuttons:
             print(button.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}"))
-        # self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
-        # self.dlg.pushButton_Connect.setStyleSheet("#pushButton_Connect {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Connect:hover{background: #66ab27 ;}#pushButton_Connect:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_Continue.setStyleSheet("#pushButton_Continue {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_Continue:hover{background: #66ab27 ;} #pushButton_Continue:disabled{background: #64818b ;}")        
-        self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        # self.dlg.pushButton_NoLogin.setStyleSheet("#pushButton_NoLogin {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_NoLogin:hover{background: #66ab27 ;}#pushButton_NoLogin:disabled{background: #64818b ;}")
-        # self.dlg.pushButton_logout.setStyleSheet("#pushButton_logout {color: #fff !important;font-size:"+self.utils.fontSize+";text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_logout:hover{background: #66ab27 ;}#pushButton_logout:disabled{background: #64818b ;}")
+        
+        self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")        
         self.dlg.pushButton_logout.clicked.connect(lambda: self.logout())
         
         if self.laymanUsername != "":
@@ -1784,11 +1773,11 @@ class Layman(QObject):
     def run_AddMickaDialog(self):
         self.dlg = AddMickaDialog()
         self.dlg.show()
-        self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_map.setStyleSheet("#pushButton_map {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_map:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_search.setStyleSheet("#pushButton_search {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_search:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_stepRight.setStyleSheet("#pushButton_stepRight {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_stepRight:hover{background: #66ab27 ;}")
-        self.dlg.pushButton_stepLeft.setStyleSheet("#pushButton_stepLeft {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_stepLeft:hover{background: #66ab27 ;}")
+        # self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
+        # self.dlg.pushButton_map.setStyleSheet("#pushButton_map {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_map:hover{background: #66ab27 ;}")
+        # self.dlg.pushButton_search.setStyleSheet("#pushButton_search {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_search:hover{background: #66ab27 ;}")
+        # self.dlg.pushButton_stepRight.setStyleSheet("#pushButton_stepRight {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_stepRight:hover{background: #66ab27 ;}")
+        # self.dlg.pushButton_stepLeft.setStyleSheet("#pushButton_stepLeft {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_stepLeft:hover{background: #66ab27 ;}")
 
         QgsMessageLog.logMessage("disableProgressBar")
         threading.Thread(target=lambda: self.loadMickaMaps()).start()

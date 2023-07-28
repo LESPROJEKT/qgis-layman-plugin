@@ -27,7 +27,7 @@ from PyQt5 import uic
 from PyQt5 import QtWidgets, QtCore
 from qgis.core import *
 from PyQt5.QtGui import  QRegExpValidator,QBrush, QColor
-from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton
+from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton, QApplication
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRegExp
 import threading
 import requests
@@ -66,7 +66,26 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressDone.connect(self._onProgressDone)
         self.progressStart.connect(self._onProgressStart)
         self.onRefreshCurrentForm.connect(self.on_layers_removed) 
-    
+    def apply_button_stylesheet(self):
+        # Define the common stylesheet for the QPushButtons
+        button_stylesheet = '''
+            QPushButton {
+            position: relative;
+            text-align: center;
+            padding-left: 20px; /* Adjust the padding as needed */
+            padding-right: 20px; /* Adjust the padding as needed */
+        }
+        QPushButton::icon {
+            position: absolute;
+            left: -10px; /* Adjust the left position of the icon as needed */
+        }
+        '''
+
+        for widget in QApplication.instance().allWidgets():
+            if isinstance(widget, QPushButton):
+                widget.setStyleSheet(button_stylesheet)
+
+           
     def setStackWidget(self, option): 
         if option == "main":       
             self.page1.setVisible(True)
@@ -198,9 +217,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())       
             self.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
         self.progressBar_loader.hide()    
+        # self.apply_button_stylesheet()
         self.show()
         result = self.exec_()  
     def refreshCurrentForm(self, layerAdded = None):
+        if self.layman.instance == None:
+            return
         composition = self.layman.instance.getComposition()
         if self.layman.current != None:
             self.layman.instance.refreshComposition()                     
