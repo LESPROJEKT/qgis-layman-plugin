@@ -165,10 +165,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.pushButton_delete.setEnabled(False)
             if 'access_rights' in composition:         
                 
-                if self.laymanUsername not in composition['access_rights']['write']:
-                    self.listWidget_layers.setEnabled(False)
-                    self.treeWidget_layers.setEnabled(False)
-                    self.listWidget_service.setEnabled(False)
+                if self.laymanUsername not in composition['access_rights']['write']:                    
+                    self.treeWidget_layers.setEnabled(False)               
                     self.pushButton_editMeta.setEnabled(False)
                     self.pushButton_setPermissions.setEnabled(False)                    
                     self.pushButton_save.setEnabled(False)
@@ -180,21 +178,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             elif self.laymanUsername == self.layman.instance.getWorkspace():
                 pass
             else:
-                self.pushButton_editMeta.setEnabled(False)
-                self.listWidget_layers.setEnabled(False)
-                self.listWidget_service.setEnabled(False)
+                self.pushButton_editMeta.setEnabled(False)   
                 self.pushButton_setPermissions.setEnabled(False)
                 self.pushButton_delete.setEnabled(False)              
                 self.pushButton_save.setEnabled(False)
                 self.label_readonly.show()
         if not self.isAuthorized:      
             self.pushButton_new.setEnabled(False)
-            self.pushButton_setPermissions.setEnabled(False)
-            self.listWidget_layers.setEnabled(False)
+            self.pushButton_setPermissions.setEnabled(False)      
             self.pushButton_editMeta.setEnabled(False)
-            self.treeWidget_layers.setEnabled(False)
-            self.listWidget_service.setEnabled(False)
-          
+            self.treeWidget_layers.setEnabled(False)      
             self.pushButton_save.setEnabled(False)
             self.pushButton_delete.setEnabled(False)
         if not self.pushButton_save.receivers(self.pushButton_save.clicked) > 0:          

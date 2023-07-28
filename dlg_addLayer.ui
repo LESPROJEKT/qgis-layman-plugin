@@ -501,6 +501,11 @@
        <string>CRS</string>
       </property>
      </column>
+     <column>
+      <property name="text">
+       <string>Status</string>
+      </property>
+     </column>
     </widget>
     <widget class="QgsFilterLineEdit" name="filter">
      <property name="geometry">

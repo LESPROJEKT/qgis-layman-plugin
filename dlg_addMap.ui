@@ -235,7 +235,7 @@
   <widget class="QStackedWidget" name="stackedWidget">
    <property name="geometry">
     <rect>
-     <x>10</x>
+     <x>20</x>
      <y>10</y>
      <width>651</width>
      <height>461</height>
@@ -309,7 +309,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Back to list</string>
+      <string>Back</string>
      </property>
      <property name="icon">
       <iconset>

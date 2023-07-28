@@ -364,7 +364,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Back to list</string>
+      <string>Back</string>
      </property>
      <property name="icon">
       <iconset>
@@ -681,7 +681,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Back to list</string>
+      <string>Back</string>
      </property>
      <property name="icon">
       <iconset>
@@ -1014,7 +1014,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Back to list</string>
+      <string>Back</string>
      </property>
      <property name="icon">
       <iconset>
@@ -1067,7 +1067,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Back to list</string>
+      <string>Back</string>
      </property>
      <property name="icon">
       <iconset>

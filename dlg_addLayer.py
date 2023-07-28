@@ -341,11 +341,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.laymanUsername and self.isAuthorized:
             url = self.URI+'/rest/'+self.laymanUsername+'/layers'
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-            data = r.json()
+            data = r.json()  
             if onlyOwn:
                 for row in range(0, len(data)):
-                    if "native_crs" in data[row]:
-                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
+                    if "native_crs" in data[row] and 'wfs_wms_status' in data[row]:
+                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs'],data[row]['wfs_wms_status']])
                     else:
                         item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
                     self.treeWidget.addTopLevelItem(item)
@@ -365,8 +365,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     if dataAll[row] in data:
                         permissions = "own"
                     if permissions != "":
-                        if "native_crs" in dataAll[row]:
-                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs']])
+                        if "native_crs" in dataAll[row]  and 'wfs_wms_status' in dataAll[row]:
+                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs'],dataAll[row]['wfs_wms_status']])
                         else:
                             item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
 
@@ -383,8 +383,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     permissions = "read"
                 if "EVERYONE" in data[row]['access_rights']['write']:
                     permissions = "write"
-                if "native_crs" in dataAll[row]:
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs']])
+                if "native_crs" in dataAll[row]  and 'wfs_wms_status' in dataAll[row]:
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs'],data[row]['wfs_wms_status']])
                 else:
                     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions])
                 self.layerNamesDict[data[row]['title']] = data[row]['name']
