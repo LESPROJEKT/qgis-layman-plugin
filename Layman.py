@@ -503,34 +503,34 @@ class Layman(QObject):
     #     self.addAvailableServices(layersArr,iterator, notActive)
     #     return
         
-    def addLayerToCurrentForm(self, layer):  
-        notActive = set(layerList) - set(layersInCanvas)  
-        item = QTreeWidgetItem()
-        item.setText(0, layer.name())  
-        item.setCheckState(0,0)      
-        if self.locale == "cs":
-            item.setToolTip(0,"Tato vrstva není součástí kompozice.")
-        else:
-            item.setToolTip(0,"This layer is not part of the composition.")
+    # def addLayerToCurrentForm(self, layer):  
+    #     notActive = set(layerList) - set(layersInCanvas)  
+    #     item = QTreeWidgetItem()
+    #     item.setText(0, layer.name())  
+    #     item.setCheckState(0,0)      
+    #     if self.locale == "cs":
+    #         item.setToolTip(0,"Tato vrstva není součástí kompozice.")
+    #     else:
+    #         item.setToolTip(0,"This layer is not part of the composition.")
             
-        type = self.getSource(layer)
+    #     type = self.getSource(layer)
             
-        if isinstance(layer, QgsRasterLayer):
-            item.setText(1, "WMS")
-        if isinstance(layer, QgsVectorLayer):                  
-            item.setText(1, "WMS")
-        if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
-            item.setText(1, "WFS")                    
+    #     if isinstance(layer, QgsRasterLayer):
+    #         item.setText(1, "WMS")
+    #     if isinstance(layer, QgsVectorLayer):                  
+    #         item.setText(1, "WMS")
+    #     if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
+    #         item.setText(1, "WFS")                    
        
-        self.setGuiForItem(item)  
-        layersArr = list()
-        layers = self.getLayersOrder()
-        for layer in layers:
-            layersArr.append(layer)     
-        self.dlg.treeWidget_layers.addTopLevelItem(item) 
-        ###  
-        iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
-        self.addAvailableServices(layersArr,iterator)
+    #     self.setGuiForItem(item)  
+    #     layersArr = list()
+    #     layers = self.getLayersOrder()
+    #     for layer in layers:
+    #         layersArr.append(layer)     
+    #     self.dlg.treeWidget_layers.addTopLevelItem(item) 
+    #     ###  
+    #     iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
+    #     self.addAvailableServices(layersArr,iterator)
     # def addAvailableServices(self, layersArr, iterator, notActive):
     #     urlServer = self.URI.replace("/client", "")
     #     while iterator.value():
@@ -586,22 +586,22 @@ class Layman(QObject):
     #         ##
     #         iterator +=1
     #         self.dlg.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1))
-    def on_layers_added(self, layer): 
-        print("xxxxxxxxxxxxxxxxxxxxx")
-        print(self.dlg.objectName())
-        #○if self.dlg.objectName() == "CurrentMapDialog":           
-        #▲self.dlg.refreshCurrentForm(layer) 
-        # try:
-        #     if self.dlg.objectName() == "AddMapDialog":           
-        #         self.dlg.refreshCurrentForm(layer)
-        # except:
-        #     pass                
-    def on_layers_removed(self):  
-        try:  
-            if self.dlg.objectName() == "CurrentMapDialog":                 
-                self.dlg.refreshCurrentForm()  
-        except:
-            pass                      
+    # def on_layers_added(self, layer): 
+    #     print("xxxxxxxxxxxxxxxxxxxxx")
+    #     print(self.dlg.objectName())
+    #     #○if self.dlg.objectName() == "CurrentMapDialog":           
+    #     #▲self.dlg.refreshCurrentForm(layer) 
+    #     # try:
+    #     #     if self.dlg.objectName() == "AddMapDialog":           
+    #     #         self.dlg.refreshCurrentForm(layer)
+    #     # except:
+    #     #     pass                
+    # def on_layers_removed(self):  
+    #     try:  
+    #         if self.dlg.objectName() == "CurrentMapDialog":                 
+    #             self.dlg.refreshCurrentForm()  
+    #     except:
+    #         pass                      
     def run_CurrentCompositionDialog(self, refresh = False):
         self.dlg = CurrentCompositionDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)
         print(self.dlg.objectName())
@@ -1760,13 +1760,7 @@ class Layman(QObject):
         self.dlg.rejected.connect(lambda: self.loginReject())
     def run_AddMickaDialog(self):
         self.dlg = AddMickaDialog()
-        self.dlg.show()
-        # self.dlg.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}")
-        # self.dlg.pushButton_map.setStyleSheet("#pushButton_map {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_map:hover{background: #66ab27 ;}")
-        # self.dlg.pushButton_search.setStyleSheet("#pushButton_search {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_search:hover{background: #66ab27 ;}")
-        # self.dlg.pushButton_stepRight.setStyleSheet("#pushButton_stepRight {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_stepRight:hover{background: #66ab27 ;}")
-        # self.dlg.pushButton_stepLeft.setStyleSheet("#pushButton_stepLeft {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_stepLeft:hover{background: #66ab27 ;}")
-
+        self.dlg.show()   
         QgsMessageLog.logMessage("disableProgressBar")
         threading.Thread(target=lambda: self.loadMickaMaps()).start()
         self.dlg.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
@@ -1793,9 +1787,11 @@ class Layman(QObject):
                 QMessageBox.information(None, "Layman", "Není možné listovat doprava!")
             else:
                 QMessageBox.information(None, "Layman", "Not possible page to right!")
+                
     def mickaSearch(self):
         query = self.dlg.lineEdit_search.text()     
         threading.Thread(target=lambda: self.loadMickaMaps(query)).start()
+        
     def loadLayersMicka(self, name, row):   
         epsg = list()
         if "crs" in self.mickaRet['records'][row]:
@@ -1997,8 +1993,7 @@ class Layman(QObject):
    
 
     def run_AddLayerDialog(self):
-        self.dlg = AddLayerDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)
-        
+        self.dlg = AddLayerDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)       
 
     
     def addExternalWMSToComposite(self, name):       
@@ -4456,27 +4451,7 @@ class Layman(QObject):
         else:
             minScale = None
         composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":title,"className":"XYZ","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution": minScale,"minResolution":(self.utils.scaleToResolution(layer.maximumScale())),"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
-    # def scaleToResolution(self, denominator):   
-    #     map_settings = iface.mapCanvas().mapSettings()
-    #     crs = map_settings.destinationCrs()
-    #     units = crs.mapUnits()
-    #     dpi = 25.4 / 0.28
-    #     mpu = QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, units)    
-    #     return denominator / (mpu * 39.37 * dpi)    
-
-    # def resolutionRounder(self,x):
-    #     rounded = int(round(x / 5000.0) * 5000)
-    #     power = len(str(rounded)) - 1
-    #     first_digit = int(str(rounded)[0])
-    #     return first_digit * 10**power    
-    # def resolutionToScale(self, resolution):
-    #     map_settings = iface.mapCanvas().mapSettings()
-    #     crs = map_settings.destinationCrs()        
-    #     dpi = 25.4 / 0.28  #  96 dpi         
-    #     if resolution < 0.72: ##  hranice spatneho zaorouhleni
-    #         return round(resolution * 39.37 * dpi, -3)
-    #     else:
-    #         return self.resolutionRounder(round(resolution * 39.37 * dpi))
+    
     def getGreyScaleMode(self, layer):
         pipe  = layer.pipe()        
         if pipe.hueSaturationFilter() == None:
@@ -6061,34 +6036,8 @@ class Layman(QObject):
         layers = project.mapLayers().values()      
         for layer in layers:      
             if layer.type() == QgsMapLayerType.VectorLayer and layer.dataProvider().name() == 'WFS':              
-                layer.dataProvider().reloadData()     
-     
-    # def _onMapDeletedSuccessfully(self):
-    #     if self.dlg.objectName() == "AddMapDialog":
-    #         self.dlg.pushButton_delete.setEnabled(False)
-    #         self.dlg.pushButton_copyUrl.setEnabled(False)
-    #         self.dlg.pushButton_setPermissions.setEnabled(False)
-    #         self.dlg.pushButton_map.setEnabled(False)
-    #         self.dlg.label_thumbnail.setText(' ')  
-    # def isBinaryRaster(self, rLayer):    
-    #     provider = rLayer.dataProvider()
-    #     extent = rLayer.extent()
-    #     width, height = rLayer.width(), rLayer.height()
-    #     block = provider.block(1, extent, width, height)
-    #     unique_values = set()
-    #     print("pes")
-    #     for row in range(height):
-    #         for col in range(width):
-    #             value = block.value(row, col)
-    #             unique_values.add(value)              
-    #             if len(unique_values) > 2:
-    #                 return False
-
-    #     if len(unique_values) != 2 or 0 not in unique_values or 1 not in unique_values:
-    #         return False
-
-    #     print("kocka")
-    #     return True  
+                layer.dataProvider().reloadData() 
+ 
     def get_raster_min_max(self,raster_layer):  
         extent = raster_layer.extent()  
         provider = raster_layer.dataProvider()
