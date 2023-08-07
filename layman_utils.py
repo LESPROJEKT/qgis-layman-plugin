@@ -614,3 +614,17 @@ class LaymanUtils(QObject):
         power = len(str(rounded)) - 1
         first_digit = int(str(rounded)[0])
         return first_digit * 10**power        
+    def showQgisBar(self, msg, type):   
+        if self.locale == "cs":
+            self.iface.messageBar().pushWidget(self.iface.messageBar().createMessage("Layman:", msg[0]), type, duration=3)
+        else:
+            self.iface.messageBar().pushWidget(self.iface.messageBar().createMessage("Layman:", msg[1]), type, duration=3) 
+    def find_substring(self, searchable_str, start_str, stop_str):
+        start_index = searchable_str.find(start_str)  
+        if start_index == -1:  #
+            return None
+        start_index += len(start_str)  
+        end_index = searchable_str.find(stop_str, start_index)  
+        if end_index == -1: 
+            return None
+        return searchable_str[start_index:end_index]             

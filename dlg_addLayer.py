@@ -35,6 +35,7 @@ from PyQt5.QtWidgets import QPushButton
 from PyQt5 import uic
 from PyQt5.QtCore import QFileInfo, QFile, Qt
 from PyQt5.uic import loadUi
+import tempfile
 
 
 
@@ -51,7 +52,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     layerDeletedSuccessfully = pyqtSignal()
     permissionInfo = pyqtSignal(bool,list, int)
     
-    def __init__(self, utils, isAuthorized, laymanUsername, URI, parent=None):
+    def __init__(self, utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(AddLayerDialog, self).__init__(parent)
         self.setObjectName("AddLayerDialog")
@@ -59,6 +60,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.isAuthorized = isAuthorized
         self.laymanUsername = laymanUsername
         self.URI = URI
+        self.layman = layman
         self.setupUi(self)
         self.setUi()
 
@@ -762,4 +764,40 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         for item in items_list:
             r = self.listWidget_write.row(item)
             self.listWidget_write.takeItem(r)       
-                    
+    def loadPostgisLayer(self, it):
+        layerName = self.utils.removeUnacceptableChars(it.text(0))        
+        workspace = it.text(1)
+        url = self.URI+'/rest/'+workspace+'/layers/'+str(layerName).lower() 
+        r = requests.get(url, headers = self.utils.getAuthHeader(self.utils.authCfg))
+        data = r.json()
+        print(data)
+        table = data["db"]["table"]
+        schema = data["db"]["schema"]
+        geo_column = data["db"]["geo_column"]           
+        address = self.utils.find_substring(data["db"]["external_uri"], "@", "/" )
+        host = address.split(":")[0]
+        port = address.split(":")[1]
+        user = self.utils.find_substring(data["db"]["external_uri"], r"://", "@")
+        srid = str(4326)
+        dbname = data["db"]["external_uri"].split("/")[-1]
+        table = '"'+ schema +'"."'+ table + '" (' + geo_column + ') '          
+        if ("host.docker.internal" in host):
+            host = host.replace("host.docker.internal","localhost") 
+        uri = "dbname='"+dbname+"' host="+host+" port="+port+" user='"+user+"' table="+ table +" key='id' srid="+srid
+        style = self.layman.getStyle(layerName, None, workspace)
+        print(style)
+        layer = QgsVectorLayer(uri, it.text(0), 'postgres')  
+        if not layer.isValid():
+            self.utils.showQgisBar(["Vrstva nebyla úspěšně načtena.","Layer was not successfully loaded."], Qgis.Warning)
+            print("Layer failed to load!")  
+        ## load style 
+        if (style[0] == 200):
+            if (style[1] == "sld"):
+                tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layerName)+ ".sld"
+                layer.loadSldStyle(tempf)
+                   
+            if (style[1] == "qml"):
+                tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layerName)+ ".qml"
+                layer.loadNamedStyle(tempf)
+        QgsProject.instance().addMapLayer(layer)     
+        layer.afterCommitChanges.connect(self.layman.patchPostreLayer)                    
