@@ -1552,81 +1552,81 @@ class Layman(QObject):
         self.processChunks(arr, resumableFilename, layman_original_parameter,resumableTotalChunks, name,filePath,".zip")
         self.tsSuccess.emit()         
     def run_ImportLayerDialog(self):
-        self.utils.recalculateDPI()
-        self.dlg = ImportLayerDialog()
-        self.dlg.label_progress.hide()
-        self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))       
-        if self.locale == "cs":
-            self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 0")
-        else:
-            self.dlg.label_progress.setText("Sucessfully exported: 0 / 0")
-        self.dlg.progressBar.hide()
-        self.resamplingMethods = {
-            "Není vybrán": "No value",
-            "Nejbližší": "nearest",
-            "Průměr": "average",
-            "rms": "rms",
-            "Bilineární": "bilinear",
-            "Gaussovská": "gauss",
-            "Kubická": "cubic",
-            "Kubický spline": "cubicspline",
-            "Průměr magnitudy a fáze": "average_magphase",
-            "Modus": "mode"
-        }
-        if self.locale == "cs":
-            resamplingMethods = ["Není vybrán", "Nejbližší", "Průměr", "rms", "Bilineární", "Gaussovská", "Kubická", "Kubický spline", "Průměr magnitudy a fáze", "Modus"]
-        else:            
-            resamplingMethods = ["No value", "nearest", "average", "rms", "bilinear", "gauss", "cubic", "cubicspline", "average_magphase", "mode"]
-        self.dlg.comboBox_resampling.addItems(resamplingMethods)
-        self.dlg.comboBox_resampling.setEnabled(False)        
-        self.dlg.label_import.hide()
-        self.dlg.pushButton.setEnabled(False)      
-        self.dlg.pushButton_errLog.hide()
-        self.dlg.pushButton_errLog.clicked.connect(self.copyErrLog)
-        self.dlg.treeWidget.itemPressed.connect(self.enableButtonImport)      
-        self.dlg.treeWidget.itemSelectionChanged.connect(lambda: self.disableExport())
-        self.dlg.treeWidget.itemSelectionChanged.connect(lambda: self.checkIfRasterInSelected())    
-        self.dlg.treeWidget.setCurrentItem(self.dlg.treeWidget.topLevelItem(0),0)
-        layers = QgsProject.instance().mapLayers().values()
-        mix = list()
-        self.initLogFile()
-        root = QgsProject.instance().layerTreeRoot()      
-        layers = []    
-        for child in root.children():
-            self.get_layers_in_order(child, layers)
-        for layer in layers:
-            if (layer.type() == QgsMapLayer.VectorLayer):
-                if self.isLayerPostgres(layer):
-                    layerType = 'postgres'
-                else:
-                    layerType = 'vector layer'
-            if (layer.type() == QgsMapLayer.RasterLayer):	
-                if layer.dataProvider().name() == "arcgismapserver":	
-                    layerType = 'arcgis layer'	
-                else:	
-                    layerType = 'raster layer'
-            if layer.providerType() != "wms":
-                item = QTreeWidgetItem([layer.name(), layerType])
+        # self.utils.recalculateDPI()      
+        self.dlg = ImportLayerDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)         
+        # self.dlg.label_progress.hide()
+        # self.dlg.pushButton.clicked.connect(lambda: self.callPostRequest(self.dlg.treeWidget.selectedItems()))       
+        # if self.locale == "cs":
+        #     self.dlg.label_progress.setText("Úspěšně exportováno: 0 / 0")
+        # else:
+        #     self.dlg.label_progress.setText("Sucessfully exported: 0 / 0")
+        # self.dlg.progressBar.hide()
+        # self.resamplingMethods = {
+        #     "Není vybrán": "No value",
+        #     "Nejbližší": "nearest",
+        #     "Průměr": "average",
+        #     "rms": "rms",
+        #     "Bilineární": "bilinear",
+        #     "Gaussovská": "gauss",
+        #     "Kubická": "cubic",
+        #     "Kubický spline": "cubicspline",
+        #     "Průměr magnitudy a fáze": "average_magphase",
+        #     "Modus": "mode"
+        # }
+        # if self.locale == "cs":
+        #     resamplingMethods = ["Není vybrán", "Nejbližší", "Průměr", "rms", "Bilineární", "Gaussovská", "Kubická", "Kubický spline", "Průměr magnitudy a fáze", "Modus"]
+        # else:            
+        #     resamplingMethods = ["No value", "nearest", "average", "rms", "bilinear", "gauss", "cubic", "cubicspline", "average_magphase", "mode"]
+        # self.dlg.comboBox_resampling.addItems(resamplingMethods)
+        # self.dlg.comboBox_resampling.setEnabled(False)        
+        # self.dlg.label_import.hide()
+        # self.dlg.pushButton.setEnabled(False)      
+        # self.dlg.pushButton_errLog.hide()
+        # self.dlg.pushButton_errLog.clicked.connect(self.copyErrLog)
+        # self.dlg.treeWidget.itemPressed.connect(self.enableButtonImport)      
+        # self.dlg.treeWidget.itemSelectionChanged.connect(lambda: self.disableExport())
+        # self.dlg.treeWidget.itemSelectionChanged.connect(lambda: self.checkIfRasterInSelected())    
+        # self.dlg.treeWidget.setCurrentItem(self.dlg.treeWidget.topLevelItem(0),0)
+        # layers = QgsProject.instance().mapLayers().values()
+        # mix = list()
+        # self.initLogFile()
+        # root = QgsProject.instance().layerTreeRoot()      
+        # layers = []    
+        # for child in root.children():
+        #     self.get_layers_in_order(child, layers)
+        # for layer in layers:
+        #     if (layer.type() == QgsMapLayer.VectorLayer):
+        #         if self.isLayerPostgres(layer):
+        #             layerType = 'postgres'
+        #         else:
+        #             layerType = 'vector layer'
+        #     if (layer.type() == QgsMapLayer.RasterLayer):	
+        #         if layer.dataProvider().name() == "arcgismapserver":	
+        #             layerType = 'arcgis layer'	
+        #         else:	
+        #             layerType = 'raster layer'
+        #     if layer.providerType() != "wms":
+        #         item = QTreeWidgetItem([layer.name(), layerType])
         
-                if (layerType == 'vector layer'):
-                    if (layer.name() in self.mixedLayers and layer.name() in mix):
-                        pass
-                    elif (layer.name() in self.mixedLayers and layer.name() not in mix):
-                        self.dlg.treeWidget.addTopLevelItem(item)
-                        mix.append(layer.name())
-                    else:
-                        self.dlg.treeWidget.addTopLevelItem(item)
-                if (layerType == 'raster layer'):
-                    self.dlg.treeWidget.addTopLevelItem(item)
-                if (layerType == 'postgres'):
-                    self.dlg.treeWidget.addTopLevelItem(item)                      
-        self.dlg.setWindowModality(Qt.ApplicationModal)
-        self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.selectSelectedLayer()
-        self.dlg.treeWidget.header().resizeSection(0,250)
-        self.dlg.show()
-        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        result = self.dlg.exec_()
+        #         if (layerType == 'vector layer'):
+        #             if (layer.name() in self.mixedLayers and layer.name() in mix):
+        #                 pass
+        #             elif (layer.name() in self.mixedLayers and layer.name() not in mix):
+        #                 self.dlg.treeWidget.addTopLevelItem(item)
+        #                 mix.append(layer.name())
+        #             else:
+        #                 self.dlg.treeWidget.addTopLevelItem(item)
+        #         if (layerType == 'raster layer'):
+        #             self.dlg.treeWidget.addTopLevelItem(item)
+        #         if (layerType == 'postgres'):
+        #             self.dlg.treeWidget.addTopLevelItem(item)                      
+        # self.dlg.setWindowModality(Qt.ApplicationModal)
+        # self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
+        # self.selectSelectedLayer()
+        # self.dlg.treeWidget.header().resizeSection(0,250)
+        # self.dlg.show()
+        # self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
+        # result = self.dlg.exec_()
     def initLogFile(self):
         filename = tempFile = tempfile.gettempdir() + os.sep + "import_log.txt"  
         if os.path.exists(filename):    
@@ -3732,7 +3732,6 @@ class Layman(QObject):
         elif isinstance(single_symbol_renderer, QgsSingleSymbolRenderer):
             try:
                 symbols = single_symbol_renderer.symbol()
-
             except:
                 print("nevhodny typ" + str(type(single_symbol_renderer)))
                 return
@@ -3751,8 +3750,7 @@ class Layman(QObject):
                         print("binary path")
 
     def mergeGeojsons(self, paths, output, layerName):
-        feats = list()
-      
+        feats = list()      
         top = '''
         {
         "type": "FeatureCollection",
@@ -3766,11 +3764,7 @@ class Layman(QObject):
             with open(path) as json_file:
                 data = json.load(json_file)
                 for p in data['features']:
-
                     feats.append(p)
-
-        
-
         text_file = open(output, "w")
         text_file.write((top + str(feats)[1:-1] + bottom).replace("'", "\""))
         text_file.close()

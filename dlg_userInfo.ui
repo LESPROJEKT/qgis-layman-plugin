@@ -57,10 +57,6 @@
    <property name="text">
     <string>Close</string>
    </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>icons/cancel.png</normaloff>icons/cancel.png</iconset>
-   </property>
   </widget>
   <widget class="QLabel" name="label_older">
    <property name="geometry">

@@ -115,7 +115,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.checkBox_own.setCheckState(2)
             checked = True
         self.loadMapsThread(checked)
-        result = self.exec_()
+      
         
     def setPermissionsUI(self, mapName):        
         self.listWidget_read.clear()

@@ -26,6 +26,11 @@ import os
 
 from PyQt5 import uic
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import Qt
+from qgis.core import *
+import tempfile
+from .dlg_postgrePass import PostgrePasswordDialog
+from PyQt5.QtWidgets import (QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterator)
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -33,12 +38,213 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
+    def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(ImportLayerDialog, self).__init__(parent)
-        # Set up the user interface from Designer through FORM_CLASS.
-        # After self.setupUi() you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
+        self.utils = utils
+        self.isAuthorized = isAuthorized
+        self.laymanUsername = laymanUsername
+        self.URI = URI
+        self.layman = layman
         self.setupUi(self)
+        self.setUi()
+        
+    def connectEvents(self):
+        pass
+    
+    def setUi(self):
+        self.connectEvents()
+        self.utils.recalculateDPI()     
+        self.label_progress.hide()
+        self.pushButton.clicked.connect(lambda: self.callPostRequest(self.treeWidget.selectedItems()))       
+        if self.locale == "cs":
+            self.label_progress.setText("Úspěšně exportováno: 0 / 0")
+        else:
+            self.label_progress.setText("Sucessfully exported: 0 / 0")
+        self.progressBar.hide()
+        self.resamplingMethods = {
+            "Není vybrán": "No value",
+            "Nejbližší": "nearest",
+            "Průměr": "average",
+            "rms": "rms",
+            "Bilineární": "bilinear",
+            "Gaussovská": "gauss",
+            "Kubická": "cubic",
+            "Kubický spline": "cubicspline",
+            "Průměr magnitudy a fáze": "average_magphase",
+            "Modus": "mode"
+        }
+        if self.locale == "cs":
+            resamplingMethods = ["Není vybrán", "Nejbližší", "Průměr", "rms", "Bilineární", "Gaussovská", "Kubická", "Kubický spline", "Průměr magnitudy a fáze", "Modus"]
+        else:            
+            resamplingMethods = ["No value", "nearest", "average", "rms", "bilinear", "gauss", "cubic", "cubicspline", "average_magphase", "mode"]
+        self.comboBox_resampling.addItems(resamplingMethods)
+        self.comboBox_resampling.setEnabled(False)        
+        self.label_import.hide()
+        self.pushButton.setEnabled(False)      
+        self.pushButton_errLog.hide()
+        self.pushButton_errLog.clicked.connect(self.copyErrLog)
+        self.treeWidget.itemPressed.connect(self.enableButtonImport)      
+        self.treeWidget.itemSelectionChanged.connect(lambda: self.disableExport())
+        self.treeWidget.itemSelectionChanged.connect(lambda: self.checkIfRasterInSelected())    
+        self.treeWidget.setCurrentItem(self.treeWidget.topLevelItem(0),0)
+        layers = QgsProject.instance().mapLayers().values()
+        mix = list()
+        self.initLogFile()
+        root = QgsProject.instance().layerTreeRoot()      
+        layers = []    
+        for child in root.children():
+            self.get_layers_in_order(child, layers)
+        for layer in layers:
+            if (layer.type() == QgsMapLayer.VectorLayer):
+                if self.isLayerPostgres(layer):
+                    layerType = 'postgres'
+                else:
+                    layerType = 'vector layer'
+            if (layer.type() == QgsMapLayer.RasterLayer):	
+                if layer.dataProvider().name() == "arcgismapserver":	
+                    layerType = 'arcgis layer'	
+                else:	
+                    layerType = 'raster layer'
+            if layer.providerType() != "wms":
+                item = QTreeWidgetItem([layer.name(), layerType])
+        
+                if (layerType == 'vector layer'):
+                    if (layer.name() in self.layman.mixedLayers and layer.name() in mix):
+                        pass
+                    elif (layer.name() in self.layman.mixedLayers and layer.name() not in mix):
+                        self.treeWidget.addTopLevelItem(item)
+                        mix.append(layer.name())
+                    else:
+                        self.treeWidget.addTopLevelItem(item)
+                if (layerType == 'raster layer'):
+                    self.treeWidget.addTopLevelItem(item)
+                if (layerType == 'postgres'):
+                    self.treeWidget.addTopLevelItem(item)                      
+        self.setWindowModality(Qt.ApplicationModal)
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
+        self.selectSelectedLayer()
+        self.treeWidget.header().resizeSection(0,250)
+        self.pushButton_close.clicked.connect(lambda: self.close())  
+        self.show()      
+    def callPostRequest(self, layers):        
+        resamplingMethod = self.comboBox_resampling.currentText()
+        if resamplingMethod == "No value":
+            resamplingMethod = "Není vybrán"
+        def showPostgreDialog(layer):
+            self.dlgPostgres = PostgrePasswordDialog()   
+            self.dlgPostgres.show()
+            self.dlgPostgres.pushButton_pass.clicked.connect(lambda: self.postPostreLayer(layer, self.dlgPostgres.lineEdit_username.text(), self.dlgPostgres.lineEdit_pass.text()))
+            self.dlgPostgres.pushButton_pass.setStyleSheet("#pushButton_pass {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_pass:hover{background: #66ab27 ;}#pushButton_pass:disabled{background: #64818b ;}")
+        self.pushButton_errLog.hide()
+        self.ThreadsA = set()
+        for thread in threading.enumerate():
+            self.ThreadsA.add(thread.name)
+        self.uploaded = 0
+        self.batchLength = len(layers)        
+        if self.checkIfAllLayerAreRaster(layers):
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Je vybráno více rastrových vrstev. Chcete je exportovat jako časové? Symbologie bude přebrána z prvního rastru.")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Multiple raster layers are selected. Do you want to export them as time series? The symbology will be taken from the first raster.")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.Yes):
+                self.showTSDialog()
+                return
+        self.label_progress.show()        
+        if self.locale == "cs":
+            self.label_progress.setText("Úspěšně exportováno: 0 / " + str(len(layers)) )
+        else:
+            self.label_progress.setText("Sucessfully exported 0 / " + str(len(layers)) )        
+        self.layersToUpload = len(layers)
+        bulk = False
+        if self.layersToUpload > 1:
+            for item in layers:
+                if (self.checkExistingLayer(item.text(0))):
+                    if self.locale == "cs":
+                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Je vybráno více vrstev a některé z nich již na serveru existují. Chcete je hromadně přepsat?")
+                    else:
+                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Multiple layers are selected and some of them already exist on the server. Do you want to overwrite them?")
+                    msgbox.addButton(QMessageBox.Yes)
+                    msgbox.addButton(QMessageBox.No)
+                    msgbox.setDefaultButton(QMessageBox.No)
+                    reply = msgbox.exec()
+                    if (reply == QMessageBox.Yes):  
+                        bulk = True     
+                        break  
+                    else:
+                        return              
+        for item in layers:
+            layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+            if self.isLayerPostgres(layer):
+                showPostgreDialog(layer)                
+            else:                
+                if not bulk:   
+                    self.layman.postRequest(item.text(0), False, True, False, resamplingMethod)
+                else:
+                    self.layman.postRequest(item.text(0), False, True, True, resamplingMethod)
+    def checkIfAllLayerAreRaster(self, layers): 
+        if len(layers) == 1:
+            return False
+        for item in layers:
+            layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+            if layer.type() == QgsMapLayer.RasterLayer:
+                raster_layer = layer
+                if raster_layer.providerType() != "wms":
+                    path = raster_layer.source()
+                    print("File raster layer:", path)
+            else:
+                return False  
+        return True                        
+    def copyErrLog(self):            
+        filename = tempFile = tempfile.gettempdir() + os.sep + "import_log.txt"
+        with open(filename, 'r') as file:
+            file_contents = file.read()
+        PyQt5.QtGui.QGuiApplication.clipboard().setText(file_contents)  
+    def enableButtonImport(self, item, column):
+        if (len(self.treeWidget.selectedItems()) > 0):
+            self.pushButton.setEnabled(True)
+        else:
+            self.pushButton.setEnabled(False)        
+            
+    def initLogFile(self):
+        filename = tempFile = tempfile.gettempdir() + os.sep + "import_log.txt"  
+        if os.path.exists(filename):    
+            open(filename, 'w').close()
+        else:           
+            open(filename, 'x').close()             
+            
+    def selectSelectedLayer(self):
+        try:
+            layer = self.layman.iface.activeLayer()
+            layerName = layer.name()
+        except:
+            print("no layer in list")
+            return
+        iterator = QTreeWidgetItemIterator(self.treeWidget, QTreeWidgetItemIterator.All)
+        while iterator.value():
+            item = iterator.value()
+            if item.text(0) == layerName:
+                self.treeWidget.setCurrentItem(item, 1)
+            iterator +=1            
+            
+    def disableExport(self):
+        if self.treeWidget.selectedItems() == []:
+            self.pushButton.setEnabled(False)
+        else:
+            self.pushButton.setEnabled(True)            
+    def checkIfRasterInSelected(self):
+        value = False
+        for item in self.treeWidget.selectedItems():
+            layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+            if isinstance(layer, QgsRasterLayer):
+                if self.isBinaryRaster(layer):
+                    text = "Nejbližší" if self.locale == "cs" else "nearest"
+                else: 
+                    text = "Není vybrán" if self.locale == "cs" else "No value"   
+                self.comboBox_resampling.setCurrentText(text)
+                value = True 
+        self.comboBox_resampling.setEnabled(value)            
