@@ -3653,9 +3653,12 @@ class Layman(QObject):
                             self.modifyPathOfLayer(layer.name(),sublayer.name())
                             self.modifyVisibilityOfLayer(layer.name(),layer.isVisible())
                             if (isinstance(layer, QgsLayerTreeLayer)):
+                                self.modifyOpacity(layer)  
                                 layer = layer.layer()      
-                            self.modifyScaleOfLayer(layer, layer.hasScaleBasedVisibility())       
-                            self.modifyOpacity(layer)                    
+                                self.modifyScaleOfLayer(layer, layer.hasScaleBasedVisibility())  
+                            else:           
+                                self.modifyScaleOfLayer(layer, layer.hasScaleBasedVisibility())                          
+                                self.modifyOpacity(layer)                    
         
     
     def updateCompositionThread(self):      
