@@ -1150,7 +1150,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_6.setText(str(ext.yMaximum()))
         self.pushButton_defaultExtent.clicked.connect(lambda: self.setDefaultExtent(ext))       
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")  
-        self.pushButton_CreateComposition.clicked.connect(lambda: self.createComposition(self.lineEdit_2.text(),self.lineEdit_7.text(), True))
+        self.pushButton_CreateComposition.clicked.connect(lambda: self.createComposition(self.lineEdit_2.text(),self.textEdit_description.toPlainText(), True))
         
     def setExtent(self, it, col):
         layer = QgsProject.instance().mapLayersByName(it.text(0))

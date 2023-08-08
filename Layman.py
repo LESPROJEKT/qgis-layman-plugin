@@ -209,6 +209,18 @@ class Layman(QObject):
         self.watcherState.addPath(path)  
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
         self.dependencies = True
+        self.resamplingMethods = {
+            "Není vybrán": "No value",
+            "Nejbližší": "nearest",
+            "Průměr": "average",
+            "rms": "rms",
+            "Bilineární": "bilinear",
+            "Gaussovská": "gauss",
+            "Kubická": "cubic",
+            "Kubický spline": "cubicspline",
+            "Průměr magnitudy a fáze": "average_magphase",
+            "Modus": "mode"
+        }
         
         
         if os.path.isfile(path):
@@ -2433,9 +2445,12 @@ class Layman(QObject):
                             self.modifyPathOfLayer(layer.name(),sublayer.name())
                             self.modifyVisibilityOfLayer(layer.name(),layer.isVisible())
                             if (isinstance(layer, QgsLayerTreeLayer)):
+                                self.modifyOpacity(layer)  
                                 layer = layer.layer()      
-                            self.modifyScaleOfLayer(layer, layer.hasScaleBasedVisibility())       
-                            self.modifyOpacity(layer)                    
+                                self.modifyScaleOfLayer(layer, layer.hasScaleBasedVisibility())  
+                            else:           
+                                self.modifyScaleOfLayer(layer, layer.hasScaleBasedVisibility())                          
+                                self.modifyOpacity(layer)                
         
     
     def updateCompositionThread(self, currentSet):
@@ -2844,17 +2859,19 @@ class Layman(QObject):
             else:
                 QMessageBox.information(None, "Error", "Connection with server failed! Layer was not exported.")
         if message == "export":
+            self.dlg.progressBar.hide()
+            self.dlg.label_import.hide()
             #try:
-            threadsB = set()
-            for thread in threading.enumerate():
-                threadsB.add(thread.name)
-            try:
-                if(self.ThreadsA == threadsB):
-                    self.dlg.progressBar.hide()
-                    self.dlg.label_import.hide()
+            # threadsB = set()
+            # for thread in threading.enumerate():
+            #     threadsB.add(thread.name)
+            # try:
+            #     if(self.ThreadsA == threadsB):
+            #         self.dlg.progressBar.hide()
+            #         self.dlg.label_import.hide()
 
-            except:
-                pass      
+            # except:
+            #     pass      
 
         if message == "limitSize":
             if self.locale == "cs":
@@ -4013,6 +4030,7 @@ class Layman(QObject):
                 file.write(updated_sld_style)
     
     def postRasterThread(self, layers,data, q,progress, patch, resamplingMethod = "Není vybrán"):
+        print(self.resamplingMethods)
         resamplingMethod = self.resamplingMethods[resamplingMethod]
         print(resamplingMethod)
         for lay in layers:
@@ -4114,8 +4132,7 @@ class Layman(QObject):
                     return
             except:
                 print("uuid")
-
-        if self.layersToUpload == 1:
+        if self.dlg.layersToUpload == 1:
             QgsMessageLog.logMessage("resetProgressbar")
             if self.locale == "cs":
                 self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(1) + " / " + str(1) )
@@ -4124,6 +4141,8 @@ class Layman(QObject):
 
         QgsMessageLog.logMessage("export")
         QgsMessageLog.logMessage("disableProgress")
+
+        
     def processChunks(self, arr, resumableFilename, layman_original_parameter,resumableTotalChunks, layer_name,filePath,ext ):
         for i in range (1, len(arr)+1):  ##chunky jsou počítané od 1 proto +1
             failedRequest = -1

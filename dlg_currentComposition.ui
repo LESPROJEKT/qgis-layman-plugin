@@ -583,19 +583,6 @@
       <string>XMax:</string>
      </property>
     </widget>
-    <widget class="QLineEdit" name="lineEdit_7">
-     <property name="geometry">
-      <rect>
-       <x>20</x>
-       <y>110</y>
-       <width>201</width>
-       <height>22</height>
-      </rect>
-     </property>
-     <property name="placeholderText">
-      <string>Description:</string>
-     </property>
-    </widget>
     <widget class="QTreeWidget" name="treeWidget">
      <property name="geometry">
       <rect>
@@ -695,6 +682,19 @@
      </property>
      <property name="textFormat">
       <enum>Qt::AutoText</enum>
+     </property>
+    </widget>
+    <widget class="QTextEdit" name="textEdit_description">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>103</y>
+       <width>201</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="placeholderText">
+      <string>Description:</string>
      </property>
     </widget>
    </widget>

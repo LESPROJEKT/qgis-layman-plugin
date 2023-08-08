@@ -628,3 +628,23 @@ class LaymanUtils(QObject):
         if end_index == -1: 
             return None
         return searchable_str[start_index:end_index]             
+    def isLayerPostgres(self, layer):
+        provider = layer.dataProvider()
+        print(provider.name())
+        if provider.name() == "postgres":
+            return True
+        else:
+            return False 
+    def get_raster_min_max(self,raster_layer):  
+        extent = raster_layer.extent()  
+        provider = raster_layer.dataProvider()
+        stats = provider.bandStatistics(1, QgsRasterBandStats.All, extent, 0)
+        min_val, max_val = stats.minimumValue, stats.maximumValue
+        return min_val, max_val
+
+    def isBinaryRaster(self,raster_layer):
+        min_val, max_val = self.get_raster_min_max(raster_layer)
+        if min_val == 0 and max_val == 1:
+            return True
+        else:
+            return False        

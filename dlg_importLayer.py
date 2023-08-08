@@ -30,7 +30,9 @@ from PyQt5.QtCore import Qt
 from qgis.core import *
 import tempfile
 from .dlg_postgrePass import PostgrePasswordDialog
+from .dlg_timeSeries import TimeSeriesDialog
 from PyQt5.QtWidgets import (QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterator)
+import threading
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -62,19 +64,19 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.label_progress.setText("Sucessfully exported: 0 / 0")
         self.progressBar.hide()
-        self.resamplingMethods = {
-            "Není vybrán": "No value",
-            "Nejbližší": "nearest",
-            "Průměr": "average",
-            "rms": "rms",
-            "Bilineární": "bilinear",
-            "Gaussovská": "gauss",
-            "Kubická": "cubic",
-            "Kubický spline": "cubicspline",
-            "Průměr magnitudy a fáze": "average_magphase",
-            "Modus": "mode"
-        }
-        if self.locale == "cs":
+        # self.resamplingMethods = {
+        #     "Není vybrán": "No value",
+        #     "Nejbližší": "nearest",
+        #     "Průměr": "average",
+        #     "rms": "rms",
+        #     "Bilineární": "bilinear",
+        #     "Gaussovská": "gauss",
+        #     "Kubická": "cubic",
+        #     "Kubický spline": "cubicspline",
+        #     "Průměr magnitudy a fáze": "average_magphase",
+        #     "Modus": "mode"
+        # }
+        if self.layman.locale == "cs":
             resamplingMethods = ["Není vybrán", "Nejbližší", "Průměr", "rms", "Bilineární", "Gaussovská", "Kubická", "Kubický spline", "Průměr magnitudy a fáze", "Modus"]
         else:            
             resamplingMethods = ["No value", "nearest", "average", "rms", "bilinear", "gauss", "cubic", "cubicspline", "average_magphase", "mode"]
@@ -97,7 +99,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.get_layers_in_order(child, layers)
         for layer in layers:
             if (layer.type() == QgsMapLayer.VectorLayer):
-                if self.isLayerPostgres(layer):
+                if self.utils.isLayerPostgres(layer):
                     layerType = 'postgres'
                 else:
                     layerType = 'vector layer'
@@ -179,7 +181,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         return              
         for item in layers:
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
-            if self.isLayerPostgres(layer):
+            if self.utils.isLayerPostgres(layer):
                 showPostgreDialog(layer)                
             else:                
                 if not bulk:   
@@ -241,10 +243,43 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         for item in self.treeWidget.selectedItems():
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
             if isinstance(layer, QgsRasterLayer):
-                if self.isBinaryRaster(layer):
+                if self.utils.isBinaryRaster(layer):
                     text = "Nejbližší" if self.locale == "cs" else "nearest"
                 else: 
                     text = "Není vybrán" if self.locale == "cs" else "No value"   
                 self.comboBox_resampling.setCurrentText(text)
                 value = True 
         self.comboBox_resampling.setEnabled(value)            
+        
+    def get_layers_in_order(self,node, layers):
+        if isinstance(node, QgsLayerTreeLayer):
+            layers.append(node.layer())
+        elif isinstance(node, QgsLayerTreeGroup):
+            for child in node.children():
+                self.get_layers_in_order(child, layers)         
+    def checkRegex(self, items, regex):
+        for item in items:
+            if not re.search(regex, item.text(0)):
+                return False
+        return True 
+    def getRegex(self):       
+        string = self.dlg2.comboBox_layers.currentText()
+        print(string)
+        patterns =  [r'[0-9]{8}', r'[0-9]{8}T[0-9]{6}Z', r'([0-9]{8}T[0-9]{6})000(Z)', r'([0-9]{4}).([0-9]{2}).([0-9]{2})']
+        for pattern in patterns:
+            print(pattern)
+            if re.search(pattern, string):
+                print("Pattern found in the string.")
+                self.dlg2.lineEdit_regex.setText(pattern)   
+        return False              
+    def showTSDialog(self):
+        self.dlg2 = TimeSeriesDialog()
+        self.dlg2.show()   
+        self.dlg2.lineEdit_layerName.hide()   
+        for item in self.dlg.treeWidget.selectedItems():
+            self.dlg2.comboBox_layers.addItem(item.text(0))
+        self.dlg2.pushButton_timeSeries.clicked.connect(lambda: self.prepareTSUpdate(self.dlg.treeWidget.selectedItems(), self.dlg2.lineEdit_regex.text() , self.dlg2.lineEdit_name.text()))  
+        self.dlg2.pushButton_getRegex.hide()
+        self.dlg2.comboBox_layers.hide()
+
+        self.getRegex()                
