@@ -5942,36 +5942,35 @@ class Layman(QObject):
             return ("postgresql://"+username+":"+password+"@"+host+":5432/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
         else:    
             return ("postgresql://"+username+":"+password+"@"+host+":"+port+"/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
-    # def postPostreLayer(self, layer, username, password):
-    #     uri = self.preparePostgresUri(layer, username, password)
-    #     print(uri)
-    #     layer_name = layer.name()
-    #     if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-    #         stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
-    #         layer.saveNamedStyle(stylePath)
-    #     else:
-    #         stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
-    #         layer.saveSldStyle(stylePath)
-    #     payload = {                
-    #             'external_table_uri': uri,
-    #             'title': layer_name,                
-    #             'style': open(stylePath, 'rb'),
-    #             'name': self.removeUnacceptableChars(layer_name)
-    #             }
-    #     print(payload)
-    #     files = {'style': open(stylePath, 'rb')}
+    def postPostreLayer(self, layer, username, password):
+        uri = self.preparePostgresUri(layer, username, password)
+        print(uri)
+        layer_name = layer.name()
+        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
+            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+            layer.saveNamedStyle(stylePath)
+        else:
+            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+            layer.saveSldStyle(stylePath)
+        payload = {                
+                'external_table_uri': uri,
+                'title': layer_name,                
+                'style': open(stylePath, 'rb'),
+                'name': self.removeUnacceptableChars(layer_name)
+                }
+        print(payload)
+        files = {'style': open(stylePath, 'rb')}
       
-    #     response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', payload, files)
-    #     status = response.status_code
-    #     if status == 409:
-    #         print("layer already exists")
-    #         self.utils.showQgisBar(["Vrsta "+layer_name+ " již existuje!","Layer "+layer_name+ " already exists!"], Qgis.Warning)  
-    #     if status == 200:
-    #         self.utils.showQgisBar(["Vrsta "+layer_name+ " úspěšně uložena.","Layer "+layer_name+ " was successfully saved."], Qgis.Success)  
-    #         self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")                    
-    #     print(status)
-    #     self.dlgPostgres.close()
-    #     layer.afterCommitChanges.connect(self.patchPostreLayer)
+        response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', payload, files)
+        status = response.status_code
+        if status == 409:
+            print("layer already exists")
+            self.utils.showQgisBar(["Vrsta "+layer_name+ " již existuje!","Layer "+layer_name+ " already exists!"], Qgis.Warning)  
+        if status == 200:
+            self.utils.showQgisBar(["Vrsta "+layer_name+ " úspěšně uložena.","Layer "+layer_name+ " was successfully saved."], Qgis.Success)  
+            self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")                    
+        print(status)    
+        layer.afterCommitChanges.connect(self.patchPostreLayer)
    
         
     def patchPostreLayer(self):  

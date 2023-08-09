@@ -3,6 +3,7 @@ import requests
 import configparser
 import os
 import re
+import PyQt5
 from qgis.core import *
 from PyQt5.QtCore import QObject, pyqtSignal, QUrl, QByteArray, Qt
 import io

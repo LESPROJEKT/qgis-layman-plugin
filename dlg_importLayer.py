@@ -33,6 +33,8 @@ from .dlg_postgrePass import PostgrePasswordDialog
 from .dlg_timeSeries import TimeSeriesDialog
 from PyQt5.QtWidgets import (QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterator)
 import threading
+import re
+import json
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -54,6 +56,22 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def connectEvents(self):
         pass
     
+    def setStackWidget(self, option): 
+        if option == "time":       
+            self.page_main.setVisible(False)
+            self.page_time.setVisible(True)
+            self.page_postgis.setVisible(False)
+            self.showTSDialog()
+        if option == "main":       
+            self.page_main.setVisible(True)
+            self.page_time.setVisible(False)
+            self.page_postgis.setVisible(False)      
+        if option == "postgis":       
+            self.page_main.setVisible(False)
+            self.page_time.setVisible(False)
+            self.page_postgis.setVisible(True)                   
+      
+            
     def setUi(self):
         self.connectEvents()
         self.utils.recalculateDPI()     
@@ -134,10 +152,9 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if resamplingMethod == "No value":
             resamplingMethod = "Není vybrán"
         def showPostgreDialog(layer):
-            self.dlgPostgres = PostgrePasswordDialog()   
-            self.dlgPostgres.show()
-            self.dlgPostgres.pushButton_pass.clicked.connect(lambda: self.postPostreLayer(layer, self.dlgPostgres.lineEdit_username.text(), self.dlgPostgres.lineEdit_pass.text()))
-            self.dlgPostgres.pushButton_pass.setStyleSheet("#pushButton_pass {color: #fff !important;text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_pass:hover{background: #66ab27 ;}#pushButton_pass:disabled{background: #64818b ;}")
+            self.setStackWidget("postgis")
+            self.pushButton_backPostgis.clicked.connect(lambda: self.setStackWidget("main"))
+            self.pushButton_pass.clicked.connect(lambda: self.layman.postPostreLayer(layer, self.lineEdit_username.text(), self.lineEdit_pass.text()))            
         self.pushButton_errLog.hide()
         self.ThreadsA = set()
         for thread in threading.enumerate():
@@ -154,7 +171,8 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             msgbox.setDefaultButton(QMessageBox.No)
             reply = msgbox.exec()
             if (reply == QMessageBox.Yes):
-                self.showTSDialog()
+                
+                self.setStackWidget("time")
                 return
         self.label_progress.show()        
         if self.locale == "cs":
@@ -262,24 +280,57 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             if not re.search(regex, item.text(0)):
                 return False
         return True 
-    def getRegex(self):       
-        string = self.dlg2.comboBox_layers.currentText()
+    def getRegex(self,string):       
+        string = self.comboBox_layers.currentText()
+        print(string)
         print(string)
         patterns =  [r'[0-9]{8}', r'[0-9]{8}T[0-9]{6}Z', r'([0-9]{8}T[0-9]{6})000(Z)', r'([0-9]{4}).([0-9]{2}).([0-9]{2})']
         for pattern in patterns:
             print(pattern)
             if re.search(pattern, string):
                 print("Pattern found in the string.")
-                self.dlg2.lineEdit_regex.setText(pattern)   
+                self.lineEdit_regex.setText(pattern)   
         return False              
     def showTSDialog(self):
-        self.dlg2 = TimeSeriesDialog()
-        self.dlg2.show()   
-        self.dlg2.lineEdit_layerName.hide()   
-        for item in self.dlg.treeWidget.selectedItems():
-            self.dlg2.comboBox_layers.addItem(item.text(0))
-        self.dlg2.pushButton_timeSeries.clicked.connect(lambda: self.prepareTSUpdate(self.dlg.treeWidget.selectedItems(), self.dlg2.lineEdit_regex.text() , self.dlg2.lineEdit_name.text()))  
-        self.dlg2.pushButton_getRegex.hide()
-        self.dlg2.comboBox_layers.hide()
+        # self.dlg2 = TimeSeriesDialog()
+        # self.dlg2.show()            
+        for item in self.treeWidget.selectedItems():
+            self.comboBox_layers.addItem(item.text(0))
+        self.pushButton_timeSeries.clicked.connect(lambda: self.prepareTSUpdate(self.treeWidget.selectedItems(), self.lineEdit_regex.text() , self.lineEdit_name.text()))    
+        self.pushButton_backTime.clicked.connect(lambda: self.setStackWidget("main"))
+        self.getRegex(self.treeWidget.selectedItems()[0].text(0))                
+        
+    def prepareTSUpdate(self, items, regex, title):
+        resamplingMethod = self.comboBox_resampling.currentText()
+        if not self.checkRegex(items, regex):
+            print("regex nesedí na názvy")
+            if self.locale == "cs":
+                QMessageBox.information(None, "Layman", "Regulerní výraz nesedí na jeden nebo více názvů.")
+            else:
+                QMessageBox.information(None, "Layman", "The regular expression does not match one or more names.")
+            return       
+        self.progressBar.setMaximum(0)
+        self.progressBar.show()
+        self.label_progress.show()
+        if self.locale == "cs":
+            self.label_progress.setText("Úspěšně exportováno: 0 / 1")
+        else:
+            self.label_progress.setText("Sucessfully exported: 0 / 1")
+        threading.Thread(target=lambda: self.layman.timeSeries(items, regex, title, resamplingMethod)).start()
+                
+    def checkExistingLayer(self, layerName):
+        layerName = self.utils.removeUnacceptableChars(layerName)
+        url = self.URI+'/rest/'+self.laymanUsername+"/layers"
+        r = self.utils.requestWrapper("GET", url, payload = None, files = None)      
+        if not r:
+            return
+        data = r.json()
 
-        self.getRegex()                
+        pom = set()
+        for x in range(len(data)):
+            pom.add((data[x]['name']))
+        layerName = layerName.replace(" ", "_").lower()     
+        if (layerName in pom):
+            return True
+        else:
+            return False        
