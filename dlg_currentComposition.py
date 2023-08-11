@@ -30,11 +30,13 @@ from PyQt5.QtGui import  QRegExpValidator,QBrush, QColor
 from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton, QApplication
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRegExp
 import threading
+from PyQt5 import QtWidgets, QtGui, QtCore
 import requests
 import xml.etree.ElementTree as ET
 import traceback
 import pandas as pd
 from .currentComposition import CurrentComposition
+
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -56,9 +58,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.URI = URI
         self.layman = layman
         self.layerServices = {}
-        
+        app = QtWidgets.QApplication.instance()
+        app.setStyle("fusion")
+        proxy_style = ProxyStyle(app.style())
+        self.setStyle(proxy_style)
         self.setupUi(self)
         self.setUi()
+        
          
         
     def connectEvents(self):
@@ -66,24 +72,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressDone.connect(self._onProgressDone)
         self.progressStart.connect(self._onProgressStart)
         self.onRefreshCurrentForm.connect(self.on_layers_removed) 
-    def apply_button_stylesheet(self):
-        # Define the common stylesheet for the QPushButtons
-        button_stylesheet = '''
-            QPushButton {
-            position: relative;
-            text-align: center;
-            padding-left: 20px; /* Adjust the padding as needed */
-            padding-right: 20px; /* Adjust the padding as needed */
-        }
-        QPushButton::icon {
-            position: absolute;
-            left: -10px; /* Adjust the left position of the icon as needed */
-        }
-        '''
-
-        for widget in QApplication.instance().allWidgets():
-            if isinstance(widget, QPushButton):
-                widget.setStyleSheet(button_stylesheet)
+   
 
            
     def setStackWidget(self, option): 
@@ -217,7 +206,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())       
             self.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
         self.progressBar_loader.hide()    
-        # self.apply_button_stylesheet()
+        # self.utils.apply_button_stylesheet()
         self.show()
         result = self.exec_()  
     def refreshCurrentForm(self, layerAdded = None):
@@ -1150,7 +1139,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_6.setText(str(ext.yMaximum()))
         self.pushButton_defaultExtent.clicked.connect(lambda: self.setDefaultExtent(ext))       
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")  
-        self.pushButton_CreateComposition.clicked.connect(lambda: self.createComposition(self.lineEdit_2.text(),self.textEdit_description.toPlainText(), True))
+        self.pushButton_CreateComposition.clicked.connect(lambda: self.createComposition(self.lineEdit_2.text(),self.textEdit_description.toPlainText()(), True))
         
     def setExtent(self, it, col):
         layer = QgsProject.instance().mapLayersByName(it.text(0))
@@ -1369,3 +1358,45 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.showErr.emit([" Změny nebyly uloženy.", " Changes was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
         self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])                            
+        
+class ProxyStyle(QtWidgets.QProxyStyle):    
+    def drawControl(self, element, option, painter, widget=None):
+        if element == QtWidgets.QStyle.CE_PushButtonLabel:
+            icon = QtGui.QIcon(option.icon)
+            option.icon = QtGui.QIcon()
+        super(ProxyStyle, self).drawControl(element, option, painter, widget)
+        if element == QtWidgets.QStyle.CE_PushButtonLabel:
+            if not icon.isNull():
+                iconSpacing = 4
+                mode = (
+                    QtGui.QIcon.Normal
+                    if option.state & QtWidgets.QStyle.State_Enabled
+                    else QtGui.QIcon.Disabled
+                )
+                if (
+                    mode == QtGui.QIcon.Normal
+                    and option.state & QtWidgets.QStyle.State_HasFocus
+                ):
+                    mode = QtGui.QIcon.Active
+                state = QtGui.QIcon.Off
+                if option.state & QtWidgets.QStyle.State_On:
+                    state = QtGui.QIcon.On
+                window = widget.window().windowHandle() if widget is not None else None
+                pixmap = icon.pixmap(window, option.iconSize, mode, state)
+                pixmapWidth = pixmap.width() / pixmap.devicePixelRatio()
+                pixmapHeight = pixmap.height() / pixmap.devicePixelRatio()
+                iconRect = QtCore.QRect(
+                    QtCore.QPoint(), QtCore.QSize(pixmapWidth, pixmapHeight)
+                )
+                iconRect.moveCenter(option.rect.center())
+                iconRect.moveLeft(option.rect.left() + iconSpacing)
+                iconRect = self.visualRect(option.direction, option.rect, iconRect)
+                iconRect.translate(
+                    self.proxy().pixelMetric(
+                        QtWidgets.QStyle.PM_ButtonShiftHorizontal, option, widget
+                    ),
+                    self.proxy().pixelMetric(
+                        QtWidgets.QStyle.PM_ButtonShiftVertical, option, widget
+                    ),
+                )
+                painter.drawPixmap(iconRect, pixmap)            

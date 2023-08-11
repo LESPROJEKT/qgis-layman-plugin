@@ -8,7 +8,7 @@ from qgis.core import *
 from PyQt5.QtCore import QObject, pyqtSignal, QUrl, QByteArray, Qt
 import io
 from PyQt5.QtNetwork import  QNetworkRequest
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QMessageBox
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QMessageBox, QApplication
 from .dlg_errMsg import ErrMsgDialog
 import tempfile
 class LaymanUtils(QObject): 
@@ -649,3 +649,22 @@ class LaymanUtils(QObject):
             return True
         else:
             return False        
+    def apply_button_stylesheet(self):
+        # Define the common stylesheet for the QPushButtons
+        
+        button_stylesheet = '''
+        QPushButton {
+    text-align: left;
+    padding-left: 20px; /* Odsazení pro ikonu */
+}
+
+QPushButton::indicator {
+    width: 50px; /* Šířka ikony */
+    height: 50px; /* Výška ikony */
+}
+
+    '''
+
+        for widget in QApplication.instance().allWidgets():
+            if isinstance(widget, QPushButton):
+                widget.setStyleSheet(button_stylesheet)        
