@@ -291,8 +291,8 @@
      <widget class="QLineEdit" name="lineEdit_pass">
       <property name="geometry">
        <rect>
-        <x>110</x>
-        <y>60</y>
+        <x>121</x>
+        <y>70</y>
         <width>161</width>
         <height>22</height>
        </rect>
@@ -300,54 +300,34 @@
       <property name="echoMode">
        <enum>QLineEdit::Password</enum>
       </property>
+      <property name="placeholderText">
+       <string>Password:</string>
+      </property>
      </widget>
      <widget class="QLineEdit" name="lineEdit_username">
       <property name="geometry">
        <rect>
-        <x>110</x>
-        <y>30</y>
+        <x>121</x>
+        <y>34</y>
         <width>161</width>
         <height>22</height>
        </rect>
+      </property>
+      <property name="placeholderText">
+       <string>Username:</string>
       </property>
      </widget>
      <widget class="QPushButton" name="pushButton_pass">
       <property name="geometry">
        <rect>
-        <x>110</x>
-        <y>110</y>
+        <x>121</x>
+        <y>115</y>
         <width>161</width>
         <height>27</height>
        </rect>
       </property>
       <property name="text">
        <string>Confirm</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_4">
-      <property name="geometry">
-       <rect>
-        <x>40</x>
-        <y>30</y>
-        <width>61</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Username:</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_3">
-      <property name="geometry">
-       <rect>
-        <x>40</x>
-        <y>60</y>
-        <width>71</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Password:</string>
       </property>
      </widget>
     </widget>
@@ -367,6 +347,22 @@
    </widget>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>pushButton_close</tabstop>
+  <tabstop>pushButton_errLog</tabstop>
+  <tabstop>comboBox_resampling</tabstop>
+  <tabstop>treeWidget</tabstop>
+  <tabstop>pushButton</tabstop>
+  <tabstop>lineEdit_username</tabstop>
+  <tabstop>lineEdit_pass</tabstop>
+  <tabstop>pushButton_pass</tabstop>
+  <tabstop>lineEdit_name</tabstop>
+  <tabstop>pushButton_timeSeries</tabstop>
+  <tabstop>lineEdit_regex</tabstop>
+  <tabstop>pushButton_backPostgis</tabstop>
+  <tabstop>pushButton_backTime</tabstop>
+  <tabstop>comboBox_layers</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
