@@ -30,12 +30,12 @@ from PyQt5.QtGui import  QRegExpValidator,QBrush, QColor
 from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton, QApplication
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRegExp
 import threading
-from PyQt5 import QtWidgets, QtGui, QtCore
 import requests
 import xml.etree.ElementTree as ET
 import traceback
 import pandas as pd
 from .currentComposition import CurrentComposition
+from .layman_utils import ProxyStyle
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -1359,44 +1359,4 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.showErr.emit([" Změny nebyly uloženy.", " Changes was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
         self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])                            
         
-class ProxyStyle(QtWidgets.QProxyStyle):    
-    def drawControl(self, element, option, painter, widget=None):
-        if element == QtWidgets.QStyle.CE_PushButtonLabel:
-            icon = QtGui.QIcon(option.icon)
-            option.icon = QtGui.QIcon()
-        super(ProxyStyle, self).drawControl(element, option, painter, widget)
-        if element == QtWidgets.QStyle.CE_PushButtonLabel:
-            if not icon.isNull():
-                iconSpacing = 4
-                mode = (
-                    QtGui.QIcon.Normal
-                    if option.state & QtWidgets.QStyle.State_Enabled
-                    else QtGui.QIcon.Disabled
-                )
-                if (
-                    mode == QtGui.QIcon.Normal
-                    and option.state & QtWidgets.QStyle.State_HasFocus
-                ):
-                    mode = QtGui.QIcon.Active
-                state = QtGui.QIcon.Off
-                if option.state & QtWidgets.QStyle.State_On:
-                    state = QtGui.QIcon.On
-                window = widget.window().windowHandle() if widget is not None else None
-                pixmap = icon.pixmap(window, option.iconSize, mode, state)
-                pixmapWidth = pixmap.width() / pixmap.devicePixelRatio()
-                pixmapHeight = pixmap.height() / pixmap.devicePixelRatio()
-                iconRect = QtCore.QRect(
-                    QtCore.QPoint(), QtCore.QSize(pixmapWidth, pixmapHeight)
-                )
-                iconRect.moveCenter(option.rect.center())
-                iconRect.moveLeft(option.rect.left() + iconSpacing)
-                iconRect = self.visualRect(option.direction, option.rect, iconRect)
-                iconRect.translate(
-                    self.proxy().pixelMetric(
-                        QtWidgets.QStyle.PM_ButtonShiftHorizontal, option, widget
-                    ),
-                    self.proxy().pixelMetric(
-                        QtWidgets.QStyle.PM_ButtonShiftVertical, option, widget
-                    ),
-                )
-                painter.drawPixmap(iconRect, pixmap)            
+           
