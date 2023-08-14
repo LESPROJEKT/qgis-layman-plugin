@@ -72,7 +72,7 @@
     <rect>
      <x>10</x>
      <y>265</y>
-     <width>171</width>
+     <width>200</width>
      <height>23</height>
     </rect>
    </property>
@@ -99,7 +99,7 @@
   <widget class="QLabel" name="label_progress">
    <property name="geometry">
     <rect>
-     <x>270</x>
+     <x>262</x>
      <y>271</y>
      <width>371</width>
      <height>16</height>

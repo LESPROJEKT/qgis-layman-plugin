@@ -85,19 +85,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.label_progress.setText("Úspěšně exportováno: 0 / 0")
         else:
             self.label_progress.setText("Sucessfully exported: 0 / 0")
-        self.progressBar.hide()
-        # self.resamplingMethods = {
-        #     "Není vybrán": "No value",
-        #     "Nejbližší": "nearest",
-        #     "Průměr": "average",
-        #     "rms": "rms",
-        #     "Bilineární": "bilinear",
-        #     "Gaussovská": "gauss",
-        #     "Kubická": "cubic",
-        #     "Kubický spline": "cubicspline",
-        #     "Průměr magnitudy a fáze": "average_magphase",
-        #     "Modus": "mode"
-        # }
+        self.progressBar.hide()      
         if self.layman.locale == "cs":
             resamplingMethods = ["Není vybrán", "Nejbližší", "Průměr", "rms", "Bilineární", "Gaussovská", "Kubická", "Kubický spline", "Průměr magnitudy a fáze", "Modus"]
         else:            
@@ -163,8 +151,8 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.ThreadsA = set()
         for thread in threading.enumerate():
             self.ThreadsA.add(thread.name)
-        self.uploaded = 0
-        self.batchLength = len(layers)        
+        self.layman.uploaded = 0
+        self.layman.batchLength = len(layers)        
         if self.checkIfAllLayerAreRaster(layers):
             if self.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Layman", "Je vybráno více rastrových vrstev. Chcete je exportovat jako časové? Symbologie bude přebrána z prvního rastru.")
