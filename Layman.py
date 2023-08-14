@@ -1994,8 +1994,9 @@ class Layman(QObject):
             url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"           
         else:
             url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"            
-        r = self.utils.requestWrapper("GET", url, payload = None, files = None)         
+        r = self.utils.requestWrapper("GET", url, payload = None, files = None)   
         self.mickaRet = r.json() 
+          
         for record in self.mickaRet['records']:          
             if "title" in record:
                 item = QTreeWidgetItem([record['title']])

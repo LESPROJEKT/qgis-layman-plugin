@@ -31,6 +31,7 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtCore import Qt
 
 from .layman_utils import LaymanUtils
+from .layman_utils import ProxyStyle
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -49,6 +50,9 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
         self.utils = utils
         self.URI = URI
         self.laymanVersion = laymanVersion
+        app = QtWidgets.QApplication.instance()     
+        proxy_style = ProxyStyle(app.style())
+        self.setStyle(proxy_style)
         self.setUi()
     
     def setUi(self):

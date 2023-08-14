@@ -233,6 +233,10 @@
       <property name="text">
        <string>Export time series</string>
       </property>
+      <property name="icon">
+       <iconset>
+        <normaloff>icons/export.png</normaloff>icons/export.png</iconset>
+      </property>
      </widget>
      <widget class="QLineEdit" name="lineEdit_regex">
       <property name="geometry">
@@ -328,6 +332,10 @@
       </property>
       <property name="text">
        <string>Confirm</string>
+      </property>
+      <property name="icon">
+       <iconset>
+        <normaloff>icons/export.png</normaloff>icons/export.png</iconset>
       </property>
      </widget>
     </widget>

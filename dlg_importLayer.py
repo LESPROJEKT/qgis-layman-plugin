@@ -35,6 +35,7 @@ from PyQt5.QtWidgets import (QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterat
 import threading
 import re
 import json
+from .layman_utils import ProxyStyle
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -50,6 +51,9 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.laymanUsername = laymanUsername
         self.URI = URI
         self.layman = layman
+        app = QtWidgets.QApplication.instance()     
+        proxy_style = ProxyStyle(app.style())
+        self.setStyle(proxy_style)
         self.setupUi(self)
         self.setUi()
         

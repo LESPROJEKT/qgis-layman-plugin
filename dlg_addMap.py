@@ -34,6 +34,7 @@ from PyQt5.QtGui import QPixmap
 from .currentComposition import CurrentComposition
 import traceback
 import pandas as pd
+from .layman_utils import ProxyStyle
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -55,6 +56,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.laymanUsername = laymanUsername
         self.URI = URI
         self.layman = layman
+        app = QtWidgets.QApplication.instance()     
+        proxy_style = ProxyStyle(app.style())
+        self.setStyle(proxy_style)
         self.setupUi(self)
         self.setUi()
         
