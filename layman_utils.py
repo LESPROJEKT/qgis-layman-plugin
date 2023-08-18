@@ -136,7 +136,7 @@ class LaymanUtils(QObject):
             url = QUrl(self.URI+ "/rest/current-user")
             xx = QNetworkRequest(url)   
             i = 0
-            success = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))      
+            success = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))                 
             if success[0] == True:
                 header = (xx.rawHeader(QByteArray(b"Authorization")))                
                 authHeader ={

@@ -43,10 +43,10 @@ import zipfile
 from builtins import object, range, str
 from distutils.version import LooseVersion
 from os import walk
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from urllib.request import urlopen
 from zipfile import ZipFile
+
 import pandas as pd
 import processing
 import PyQt5
@@ -55,12 +55,11 @@ import qgis.gui
 import qgis.utils
 import requests
 from owslib.wms import WebMapService
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import (QByteArray, QCoreApplication, QDir,
                           QFileSystemWatcher, QObject, QRegExp, QSettings,
-                          QSize, Qt, QTranslator, QUrl, pyqtSignal,
-                          qVersion, QTimer)
+                          QSize, Qt, QTimer, QTranslator, QUrl, pyqtSignal,
+                          qVersion)
 from PyQt5.QtGui import (QBrush, QColor, QCursor, QDoubleValidator, QIcon,
                          QPixmap, QRegExpValidator)
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
@@ -71,39 +70,33 @@ from PyQt5.QtWidgets import (QAbstractItemView, QAction, QApplication,
                              QPushButton, QTreeWidget, QTreeWidgetItem,
                              QTreeWidgetItemIterator, QWidget)
 from qgis.core import *
-from qgis.core import QgsApplication, QgsSettings, QgsUnitTypes
+from qgis.core import QgsApplication, QgsSettings
 from qgis.gui import QgsMapCanvas
 from qgis.PyQt.QtNetwork import (QHttpMultiPart, QHttpPart, QNetworkReply,
                                  QNetworkRequest)
 from qgis.utils import iface
 
 from Layman.qfield.cloud_converter import CloudConverter
+
 ## forms
 from .currentComposition import CurrentComposition
 from .dlg_addLayer import AddLayerDialog
 from .dlg_addMap import AddMapDialog
 from .dlg_addMicka import AddMickaDialog
 from .dlg_ConnectionManager import ConnectionManagerDialog
-from .dlg_createComposite import CreateCompositeDialog
 from .dlg_currentComposition import CurrentCompositionDialog
-from .dlg_editMap import EditMapDialog
 from .dlg_errMsg import ErrMsgDialog
 from .dlg_GetLayers import GetLayersDialog
 from .dlg_importLayer import ImportLayerDialog
 from .dlg_layerDecision import LayerDecisionDialog
-from .dlg_layerProperties import LayerPropertiesDialog
 from .dlg_LoginQfield import LoginQfieldDialog
-from .dlg_postgrePass import PostgrePasswordDialog
-from .dlg_setPermission import SetPermissionDialog
 from .dlg_showQProject import ShowQProjectDialog
-from .dlg_timeSeries import TimeSeriesDialog
 from .dlg_userInfo import UserInfoDialog
-from .resources import *
 from .layman_utils import LaymanUtils
+from .resources import *
 
 
 class Layman(QObject):
-    """QGIS Plugin Implementation."""
     reprojectionFailed = pyqtSignal(str)
     exportLayerFailed = pyqtSignal(str)
     exportLayerSuccessful = pyqtSignal(str)   
@@ -127,10 +120,6 @@ class Layman(QObject):
     layerDeletedSuccessfully = pyqtSignal()
     mapDeletedSuccessfully = pyqtSignal()
 
-
-
-
-
     def __init__(self, iface):
         """Constructor.
 
@@ -148,8 +137,7 @@ class Layman(QObject):
 
         ## init global variables
         self.client_id = None    
-        self.client_secret = None
-        #self.username = 'browser'    
+        self.client_secret = None       
         self.composite = None
         self.thread1 = None
         self.compositeList = []      
@@ -173,8 +161,7 @@ class Layman(QObject):
         self.name = ""
         self.millis = 0
         self.cataloguePosition = 1       
-        self.initFiles()
-        # self.layerServices = {}
+        self.initFiles()    
         self.compositionDict = {}
         self.crsChangedConnect = False
         self.current = None      
@@ -407,9 +394,9 @@ class Layman(QObject):
             parent=self.iface.mainWindow())
     #--------------------------------------------------------------------------
                  
-    def run_CurrentCompositionDialog(self, refresh = False):
-        self.dlg = CurrentCompositionDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)
-        print(self.dlg.objectName())
+    def run_CurrentCompositionDialog(self, refresh = False):      
+        self.dlg_current = CurrentCompositionDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)   
+        
        
     def comboBoxChanged(self, text):        
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
@@ -490,12 +477,9 @@ class Layman(QObject):
     def projectReaded(self, afterLogged = False):      
         proj = QgsProject.instance()
         server, type_conversion_ok = proj.readEntry("Layman", "Server","")
-        name, type_conversion_ok = proj.readEntry("Layman", "Name","")     
-        print(server , name, self.URI, afterLogged)   
+        name, type_conversion_ok = proj.readEntry("Layman", "Name","")    
         if server != "" and name != "":
-            if server == self.URI and not afterLogged and self.laymanUsername !="":
-                print (server == self.URI)
-                print(afterLogged, self.laymanUsername !="")                
+            if server == self.URI and not afterLogged and self.laymanUsername !="":                    
                 if self.locale == "cs":
                     msgbox = QMessageBox(QMessageBox.Question, "Layman", "Tento projekt obsahuje odkaz na Layman server. Chcete ho nastavit jako aktuální kompozici?")
                 else:
@@ -506,8 +490,7 @@ class Layman(QObject):
                 reply = msgbox.exec()
                 if (reply == QMessageBox.Yes):
                     if self.compositionExists(name):
-                        self.current = name
-                        print(self.URI, name, self.laymanUsername, self.utils.getAuthHeader(self.authCfg),self.laymanUsername)
+                        self.current = name                        
                         self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.utils.getAuthHeader(self.authCfg),self.laymanUsername)                   
                     else:
                         self.current = None
@@ -536,8 +519,7 @@ class Layman(QObject):
                         proj = QgsProject.instance()
                         server, type_conversion_ok = proj.readEntry("Layman", "Server","")
                         self.laymanUsername, type_conversion_ok = proj.readEntry("Layman", "Workspace")
-                        self.Agrimail = self.laymanUsername
-                        print(self.laymanUsername)
+                        self.Agrimail = self.laymanUsername           
                         path = self.plugin_dir + os.sep + "server_list.txt"
                         servers = self.csvToArray(path)
                         for i in range (0,len(servers)):
@@ -553,8 +535,7 @@ class Layman(QObject):
     def compositionExists(self,name):     
                         
         url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file'       
-        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
-        print(r.content)
+        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))    
         if r.status_code == 200:
             return True
         elif self.utils.fromByteToJson(r.content)["code"] == 26:
@@ -663,7 +644,6 @@ class Layman(QObject):
     def differentThanBefore(self):
         for index in range(0, self.dlg.listWidget_layers.count()):
             item = self.dlg.listWidget_layers.item(index)
-            print(item.foreground().color().getRgb())
             if (item.foreground().color().green() == 18 and item.checkState() == 2):
                 print("ids")
                 print(self.layerIds[index])
@@ -673,7 +653,7 @@ class Layman(QObject):
                     layerList = [lyr for lyr in QgsProject.instance().mapLayers().values() if lyr.name() == item.text()]
                     for layer in layerList:
                         if layer.id() == self.layerIds[index][1]:
-                            data = { 'name' :  self.removeUnacceptableChars(layer.name()), 'title' : str(layer.name())}
+                            data = { 'name' :  self.utils.removeUnacceptableChars(layer.name()), 'title' : str(layer.name())}
                             self.patchThread2(layer.name(), data, layer.id())
                             self.instance.changeLayerId(layer)
                            
@@ -884,7 +864,7 @@ class Layman(QObject):
             url = "https://app.qfield.cloud/api/v1/files/" + projekct_Id+ "/" +f[i] + "/"           
                  
             response = self.utils.requestWrapper("POST", url, payload, files)      
-            print(response.status_code)
+         
         QgsMessageLog.logMessage("qfieldExport")
     def getProjectsQfield(self):
         url = "https://app.qfield.cloud/api/v1/projects/"
@@ -970,15 +950,14 @@ class Layman(QObject):
                     )
 
                     multi_part.append(file_part)
-                print(filename)
+         
            # with disable_nam_timeout(self._nam):
             print(multi_part)
             xx = QgsNetworkAccessManager.instance()
             threading.Thread(target=lambda: xx.post(request, multi_part)).start()
 
 
-    def crsChanged(self):    
-        print(self.current, QgsProject.instance().title())
+    def crsChanged(self):       
         if self.strip_accents(self.current) == self.strip_accents(QgsProject.instance().title()):
             if self.crsChangedConnect == True:
                 print("crs changed")              
@@ -1028,12 +1007,10 @@ class Layman(QObject):
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         while iterator.value():
             item = iterator.value()
-            if item.text(0) in layerList and item.checkState(0) == 2:
-                print("duplicity" + item.text(0))
+            if item.text(0) in layerList and item.checkState(0) == 2:            
                 duplicity.append(item.text(0))
             if item.checkState(0) == 2:
-                layerList.add(item.text(0))
-                print("append" + item.text(0))            
+                layerList.add(item.text(0))             
             iterator +=1
         while iterator.value():
             item = iterator.value()
@@ -1045,7 +1022,7 @@ class Layman(QObject):
             iterator +=1        
         return ret        
     def addExistingLayerToComposition(self, title, composition, type):
-        name = self.removeUnacceptableChars(title)       
+        name = self.utils.removeUnacceptableChars(title)       
         self.existLayer = False       
         if (type == "wms"):
             wmsUrl = (self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows').replace("/client","")
@@ -1067,7 +1044,7 @@ class Layman(QObject):
         for index in range(0, self.dlg.listWidget_layers.count()): ## find duplicity
             item = self.dlg.listWidget_layers.item(index)            
             
-            if item.checkState() == 2 and self.removeUnacceptableChars(item.text()) in layerListServer and not self.instance.isLayerInComposition(self.removeUnacceptableChars(item.text())):
+            if item.checkState() == 2 and self.utils.removeUnacceptableChars(item.text()) in layerListServer and not self.instance.isLayerInComposition(self.utils.removeUnacceptableChars(item.text())):
                 item.setForeground(QColor(0,191,255))
                 foundedOnServer = True
                 layersToDecision.append(item.text())
@@ -1098,14 +1075,14 @@ class Layman(QObject):
             iterator +=1  
         composition = self.instance.getComposition()  
         for i in range (0, len(composition['layers'])):       
-            layerList.append(self.removeUnacceptableChars(composition['layers'][i]['title']))
+            layerList.append(self.utils.removeUnacceptableChars(composition['layers'][i]['title']))
         composition = self.instance.getComposition()
         self.processingRequest = True
         layers = list()
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         while iterator.value():
             item = iterator.value()         
-            if item.checkState(0) == 2 and  self.removeUnacceptableChars(item.text(0)) not in layerList:           
+            if item.checkState(0) == 2 and  self.utils.removeUnacceptableChars(item.text(0)) not in layerList:           
                 if not self.checkLayerInCurrentCompositon(item.text(0)):              
                     layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
                     if (isinstance(layer, QgsVectorLayer)):                                
@@ -1117,7 +1094,7 @@ class Layman(QObject):
                     else:
                         layers.append(layer)          
 
-            elif item.checkState(0) == 2 and  self.removeUnacceptableChars(item.text(0))  in layerList:
+            elif item.checkState(0) == 2 and  self.utils.removeUnacceptableChars(item.text(0))  in layerList:
                 for it in self.currentSet:                    
                     if (it[2] =='Overwrite geometry'  or it[2] == "Přepsat data") and it[0] == item.text(0):
                         layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
@@ -1129,7 +1106,7 @@ class Layman(QObject):
                     i = i - pom
                                       
 
-                    if self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(item.text(0).split(" (")[0]):
+                    if self.utils.removeUnacceptableChars(composition['layers'][i]['title']) == self.utils.removeUnacceptableChars(item.text(0).split(" (")[0]):
                         del composition['layers'][i]
                         pom = pom + 1
 
@@ -1196,45 +1173,6 @@ class Layman(QObject):
             self.installPlugin(url)        
         else:
             print("No install")
-        
-    def importMapEnvironmnet(self,enabled):
-        time.sleep(1)
-        if enabled:
-
-            self.dlg.pushButton_deleteMap.setEnabled(self.deleteM)
-            self.dlg.pushButton_editMeta.setEnabled(self.editM)
-            self.dlg.pushButton_setMapPermissions.setEnabled(self.editP)
-            self.dlg.pushButton_up.setEnabled(self.up)
-            self.dlg.pushButton_down.setEnabled(self.down)
-            self.dlg.pushButton_deleteLayers.setEnabled(self.deleteL)         
-            self.dlg.pushButton.setEnabled(True)         
-            try:
-                self.dlg.pushButton_addMap.setEnabled(self.add)
-                self.dlg.pushButton_addRaster.setEnabled(self.addR)
-            except:
-                pass
-        else:
-            self.add = self.dlg.pushButton_addMap.isEnabled()
-            self.dlg.pushButton_addMap.setEnabled(False)
-            self.deleteM = self.dlg.pushButton_deleteMap.isEnabled()
-            self.dlg.pushButton_deleteMap.setEnabled(False)
-            self.editM = self.dlg.pushButton_editMeta.isEnabled()
-            self.editP = self.dlg.pushButton_setMapPermissions.isEnabled()
-            self.dlg.pushButton_editMeta.setEnabled(False)
-            self.dlg.pushButton_setMapPermissions.setEnabled(False)
-            self.up = self.dlg.pushButton_up.isEnabled()
-            self.dlg.pushButton_up.setEnabled(False)
-            self.down = self.dlg.pushButton_down.isEnabled()
-            self.dlg.pushButton_down.setEnabled(False)
-            self.deleteL = self.dlg.pushButton_deleteLayers.isEnabled()
-            self.dlg.pushButton_deleteLayers.setEnabled(False)
-            self.post = self.dlg.pushButton.isEnabled()
-            self.dlg.pushButton.setEnabled(False)
-            self.addR = self.dlg.pushButton_addRaster.isEnabled()
-            self.dlg.pushButton_addRaster.setEnabled(False)
-   
-    
-   
 
     def timeSeries(self, items, regex, title, resamplingMethod="Není vybrán"):    
         if self.locale == "cs":
@@ -1242,14 +1180,14 @@ class Layman(QObject):
         if resamplingMethod == "No value" or resamplingMethod == "Není vybrán":
             resamplingMethod = ""     
         print("time series")        
-        name = self.removeUnacceptableChars(title)
+        name = self.utils.removeUnacceptableChars(title)
         rasters = list()
         path = None
         stylePath = None
         for item in items:
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
             if stylePath is None: ## get first layer
-                stylePath = self.getTempPath(self.removeUnacceptableChars(layer.name())).replace(".geojson",".sld")
+                stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer.name())).replace(".geojson",".sld")
                 layer.saveSldStyle(stylePath) 
             if (r'/vsizip/') in layer.source():
                 path = layer.source().replace("/"+os.path.basename(layer.source()),"").replace(r'/vsizip/','')
@@ -1258,7 +1196,7 @@ class Layman(QObject):
         crs = layer.crs().authid()
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
         r = requests.delete(url,headers = self.utils.getAuthHeader(self.authCfg))        
-        name = self.removeUnacceptableChars(title)
+        name = self.utils.removeUnacceptableChars(title)
         # Create the zip archive
         if path is None:
             path = tempfile.gettempdir() + os.sep + name+".zip"
@@ -1600,7 +1538,7 @@ class Layman(QObject):
             while iterator.value():
                 item = iterator.value()
                 item.setCheckState(0,2)                
-                self.layerServices[self.removeUnacceptableChars(item.text(0))] = "HSLayers.Layer.WMS"
+                self.layerServices[self.utils.removeUnacceptableChars(item.text(0))] = "HSLayers.Layer.WMS"
                 iterator +=1
      
         if not checked:
@@ -1639,8 +1577,7 @@ class Layman(QObject):
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)         
         try:
             self.mickaRet = r.json() 
-        except:
-            return
+        except:            
             print("micka neni k dispozici")      
         for record in self.mickaRet['records']:          
             if "title" in record:
@@ -1655,7 +1592,7 @@ class Layman(QObject):
     
     def addExternalWMSToComposite(self, name):       
         nameInList = name
-        name = self.removeUnacceptableChars(name).lower()
+        name = self.utils.removeUnacceptableChars(name).lower()
         self.addExistingWMSLayerToCompositeThread2(name, nameInList)        
   
     def listToString(self, s):
@@ -1805,10 +1742,10 @@ class Layman(QObject):
             self.dlg.listWidget_listLayers2.addItem(self.compositeList[self.dlg.listWidget.currentRow()]['layers'][i]['params']['LAYERS'])
     def deleteLayerThrowCompositions(self, name, title):
 
-        name = self.removeUnacceptableChars(name).lower()
+        name = self.utils.removeUnacceptableChars(name).lower()
 
     def checkLayersInComopsitions(self, name):
-        name = self.removeUnacceptableChars(name)      
+        name = self.utils.removeUnacceptableChars(name)      
         inComposite = False
         for x in range (0,len(self.compositeList)):
             for i in range (0,len(self.compositeList[x]['layers'])):
@@ -1818,7 +1755,7 @@ class Layman(QObject):
                 except:
                     pass
                 try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
-                    if (name == self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['name'])):
+                    if (name == self.utils.removeUnacceptableChars(self.compositeList[x]['layers'][i]['name'])):
                         inComposite = True
                 except:
                     pass
@@ -1843,7 +1780,7 @@ class Layman(QObject):
         compositionList = list()
         for x in range (0,len(self.compositeList)):
             for i in range (0,len(self.compositeList[x]['layers'])):              
-                if (self.removeUnacceptableChars(name) == self.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title'])):
+                if (self.utils.removeUnacceptableChars(name) == self.utils.removeUnacceptableChars(self.compositeList[x]['layers'][i]['title'])):
                     compositionList.append(self.compositeList[x]['name'])
         return compositionList
 
@@ -1902,90 +1839,24 @@ class Layman(QObject):
             item = QTreeWidgetItem([data[row]['name']])
             self.dlg.treeWidget.addTopLevelItem(item)
 
-    def showAddMapDialog(self, fromCurrent=False):
-        self.old_dlg = self.dlg
-        self.run_CreateCompositeDialog(True, fromCurrent)
-
-    ### connect
-    def afterCloseCompositeDialog(self):
-        self.dlg = self.old_dlg
-        self.refreshCompositeList()
-    def afterCloseCurrentMapDialog(self):
-        self.dlg = self.old_dlg
-
-    def afterCloseEditMapDialog(self):
-        self.dlg = self.old_dlg
-        self.refreshCompositeList()
-    def afterCloseNewMapDialog(self):
-        self.dlg.close()
-        self.dlg = self.old_dlg
-        # self.dlg.close()
-        self.run_CurrentCompositionDialog(True)
-    def afterClosePermissionMapDialog(self):
-        self.dlg = self.old_dlg
-
-    def showMapPermissionsDialog(self, x, fromAddMap = False):
-        if fromAddMap:
-            self.dlg.pushButton_map.setEnabled(True)
-            self.dlg.progressBar_loader.hide()
-        self.old_dlg = self.dlg
-        self.run_SetMapPermission(x, fromAddMap)
-    def showPermissionsDialog(self, x):
-        self.old_dlg = self.dlg
-        names = list()
-        for i in range (0, len(self.dlg.treeWidget.selectedItems())):
-            names.append(self.dlg.treeWidget.selectedItems()[i].text(0))
-        self.run_SetPermission(names)
-    def showEditMapDialog(self):
-        self.old_dlg = self.dlg      
-        self.run_EditCurrentMap()
-          
-    def refreshItems(self):
-         self.dlg.listWidget_listLayers.clear()
-         for i in range (0,len(self.compositeList)):         
-           self.dlg.listWidget_listLayers.addItem(self.compositeList[i]['title'])
-
-    def saveEditedToComposite(self,x):
-        self.compositeList[x]['abstract'] =  self.dlg.lineEdit_abstract.text()
-        self.compositeList[x]['title'] =  self.dlg.lineEdit_title.text()   
-    
-    def deleteItemFromTreeWidget(self,name):     
-        iterator= QTreeWidgetItemIterator(self.dlg.treeWidget);
-        items = []
-        while iterator.value():
-            item = iterator.value()
-            iterator+=1
-            if (self.removeUnacceptableChars(item.text(0)) == self.removeUnacceptableChars(name)):
-                print("vyhodit")
-            else:
-                items.append(item.text(0))
-        self.dlg.treeWidget.clear()
-        for i in items:
-            item = QTreeWidgetItem([i])
-            self.dlg.treeWidget.addTopLevelItem(item)
-
    
     def syncOrder2(self, layers):
         self.showExportInfo.emit("Aktualizace pořadí vrstev" if self.locale == "cs" else "Update layer order")
         serverOrder = self.instance.getLayerNamesList()
         composition = self.instance.getComposition()   
-        print(composition)
+    
         if len(serverOrder) != len(QgsProject.instance().mapLayers()):
             print("pocet vrstev na serveru a v projektu je jiný. Není možné synchronizovat pořadí.")
             return   
         backup = copy.deepcopy(composition)
-        composition['layers'] = []
-        print(serverOrder)
-        
+        composition['layers'] = []        
         for layer in layers:
-            if self.removeUnacceptableChars(layer.name()) in serverOrder:
-                print(layer.name())
+            if self.utils.removeUnacceptableChars(layer.name()) in serverOrder:            
                 for lay in backup['layers']:
-                    if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(lay['title']):
+                    if self.utils.removeUnacceptableChars(layer.name()) == self.utils.removeUnacceptableChars(lay['title']):
                         composition['layers'].append(lay)
         if len(serverOrder) != len(composition['layers']):
-            composition = copy.deepcopy(backup)
-            print("změna pořadí selhala vracím zpět.")
+            composition = copy.deepcopy(backup)          
         print("order changed to:")
         print(composition['layers'])
     
@@ -2001,9 +1872,7 @@ class Layman(QObject):
             print("neni v canvasu")        
         self.ThreadsUploadsA = set()
         for thread in threading.enumerate():
-            self.ThreadsUploadsA.add(thread.name)
-   
-        #self.differentThanBefore() zvýraznit
+            self.ThreadsUploadsA.add(thread.name)  
         if self.duplicateLayers():
             if self.locale == "cs":
                 QMessageBox.information(None, "Warning", "Duplicita v názvech vrstev!")
@@ -2014,14 +1883,14 @@ class Layman(QObject):
         composition = self.instance.getComposition()
         layerList = []
         for i in range (0, len(composition['layers'])):
-            layerList.append(self.removeUnacceptableChars(composition['layers'][i]['title']))           
+            layerList.append(self.utils.removeUnacceptableChars(composition['layers'][i]['title']))           
         layers = list()
 
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         while iterator.value():
             item = iterator.value()
             self.itemClick(item,0) ## check for subgroups
-            if item.checkState(0) == 2 and  self.removeUnacceptableChars(item.text(0)) not in layerList:                
+            if item.checkState(0) == 2 and  self.utils.removeUnacceptableChars(item.text(0)) not in layerList:                
                 lay = QgsProject.instance().mapLayersByName(item.text(0))[0]
                 lay.styleChanged.connect(self.layerStyleToUpdate)
             iterator +=1
@@ -2036,7 +1905,7 @@ class Layman(QObject):
         for lay in composition['layers']:
             for sublayer in sublayers:                
                 if isinstance(sublayer, QgsLayerTreeLayer):                   
-                    if self.removeUnacceptableChars(sublayer.name()) == self.removeUnacceptableChars(lay['title']):                     
+                    if self.utils.removeUnacceptableChars(sublayer.name()) == self.utils.removeUnacceptableChars(lay['title']):                     
                         self.modifyPathOfLayer(sublayer.name(),"")
                         self.modifyVisibilityOfLayer(sublayer.name(),sublayer.isVisible())
                         self.modifyScaleOfLayer(sublayer.layer(), sublayer.layer().hasScaleBasedVisibility())
@@ -2044,7 +1913,7 @@ class Layman(QObject):
               
                 if isinstance(sublayer, QgsLayerTreeGroup):
                     for layer in sublayer.findLayers():
-                        if self.removeUnacceptableChars(layer.name()) == self.removeUnacceptableChars(lay['title']):      
+                        if self.utils.removeUnacceptableChars(layer.name()) == self.utils.removeUnacceptableChars(lay['title']):      
                             self.modifyPathOfLayer(layer.name(),sublayer.name())
                             self.modifyVisibilityOfLayer(layer.name(),layer.isVisible())
                             if (isinstance(layer, QgsLayerTreeLayer)):
@@ -2076,9 +1945,9 @@ class Layman(QObject):
         if len(self.stylesToUpdate) > 0:
             layerList = set()
             for layer in self.stylesToUpdate:
-                layerList.add(self.removeUnacceptableChars(layer.name()))
+                layerList.add(self.utils.removeUnacceptableChars(layer.name()))
             for lay in composition['layers']:
-                if self.removeUnacceptableChars(lay['title']) in layerList:
+                if self.utils.removeUnacceptableChars(lay['title']) in layerList:
                     try:
                         self.updateLayerStyle(lay['title'], lay['workspace'])
                     except:
@@ -2098,7 +1967,7 @@ class Layman(QObject):
         self.onRefreshCurrentForm.emit()
     def updateLayerStyle(self, layer_name, workspace):
         title = layer_name       
-        layer_name = self.removeUnacceptableChars(layer_name)
+        layer_name = self.utils.removeUnacceptableChars(layer_name)
         layer = QgsProject.instance().mapLayersByName(title)[0]
         if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
             tempFile = self.getTempPath(os.path.basename(layer_name))
@@ -2130,9 +1999,8 @@ class Layman(QObject):
         for i in range (len(layers)-1,-1,-1):
             
             if (i - j) < len(composition['layers']):
-                name = self.removeUnacceptableChars(composition['layers'][i - j]['title'])
-                print(name,self.removeUnacceptableChars(layers[i].name()))
-                if name == self.removeUnacceptableChars(layers[i].name()):
+                name = self.utils.removeUnacceptableChars(composition['layers'][i - j]['title'])          
+                if name == self.utils.removeUnacceptableChars(layers[i].name()):
                     #check = True
                     print("matched")
                     matched = matched + 1
@@ -2169,9 +2037,9 @@ class Layman(QObject):
     def wms_wfs3(self, layerName, index, type):        
         somethingChanged = False
         composition = self.instance.getComposition()
-        layerName = self.removeUnacceptableChars(layerName)
+        layerName = self.utils.removeUnacceptableChars(layerName)
         for layer in composition['layers']:
-            if self.removeUnacceptableChars(layer['title']) == layerName:
+            if self.utils.removeUnacceptableChars(layer['title']) == layerName:
                 if type == "WFS":
                     print("set layer to wfs")                 
                     styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ layerName + "/style"
@@ -2197,7 +2065,7 @@ class Layman(QObject):
 
                     del layer['params']
                     del layer['url']
-                    self.layerServices[self.removeUnacceptableChars(layer['title'])] = 'OpenLayers.Layer.Vector'                    
+                    self.layerServices[self.utils.removeUnacceptableChars(layer['title'])] = 'OpenLayers.Layer.Vector'                    
                     somethingChanged = True
 
                 if type == 'WMS':
@@ -2213,11 +2081,11 @@ class Layman(QObject):
                     layer['params'] = {
                         "FORMAT": "image/png",
                         "FROMCRS": "EPSG:3857",
-                        "LAYERS": self.removeUnacceptableChars(layerName),
+                        "LAYERS": self.utils.removeUnacceptableChars(layerName),
                         "VERSION": "1.3.0"
                       }
                     del layer['protocol']
-                    self.layerServices[self.removeUnacceptableChars(layer['title'])] = "HSLayers.Layer.WMS"                    
+                    self.layerServices[self.utils.removeUnacceptableChars(layer['title'])] = "HSLayers.Layer.WMS"                    
 
                     somethingChanged = True 
 
@@ -2464,8 +2332,7 @@ class Layman(QObject):
 
             except:
                 pass
-            try: ## některé formuláře nemají progress bar
-                ## resime situaci kdy se dela patch v kompozici
+            try: 
                 self.dlg.pushButton.setEnabled(True)
                 self.dlg.pushButton_deleteMap.setEnabled(True)
                 self.dlg.pushButton_editMeta.setEnabled(True)
@@ -2580,13 +2447,6 @@ class Layman(QObject):
                 pass
 
             try:
-                self.dlg.pushButton_addRaster.setEnabled(True)
-                self.importMapEnvironmnet(True)
-
-            except:
-                pass # pro formulár kde neni progressbar
-
-            try:
                 self.dlg.label_thumbnail.setText(' ')
             except:
                 pass  
@@ -2596,11 +2456,11 @@ class Layman(QObject):
             layerName = layer.name()
             if (style[0] == 200):
                 if (style[1] == "sld"):
-                    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                    tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layerName)+ ".sld"
                     layer.loadSldStyle(tempf)
                     layer.triggerRepaint()
                 if (style[1] == "qml"):
-                    tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                    tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layerName)+ ".qml"
                     layer.loadNamedStyle(tempf)
                     layer.triggerRepaint()                     
     def onRasterUpload(self, progress, max):   
@@ -2703,17 +2563,15 @@ class Layman(QObject):
                      layer.styleChanged.connect(self.layerStyleToUpdate)    
         ## load opacity info
         composition = self.instance.getComposition() 
-        map_layers = QgsProject.instance().mapLayers().values()
-        print(map_layers)
+        map_layers = QgsProject.instance().mapLayers().values()      
         for layer in map_layers:
             for i in range (0, len(composition['layers'])):  
-                if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):  
+                if (self.utils.removeUnacceptableChars(composition['layers'][i]['title']) == self.utils.removeUnacceptableChars(layer.name())):  
                     layer.setOpacity(composition['layers'][i]['opacity'])      
         QgsMessageLog.logMessage("layersLoaded")
     def changeVisibility(self, layerTreeNode):        
         if layerTreeNode.nodeType() == 0:
-            print ("Group " + layerTreeNode.name())
-            print(layerTreeNode.isVisible())
+            print ("Group " + layerTreeNode.name())         
             sublayers = layerTreeNode.children()
             for lay in sublayers:
                 print ("sub " + lay.name())
@@ -2728,25 +2586,25 @@ class Layman(QObject):
         composition = self.instance.getComposition()       
         for i in range (0, len(composition['layers'])):
            
-            if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(name)):
+            if (self.utils.removeUnacceptableChars(composition['layers'][i]['title']) == self.utils.removeUnacceptableChars(name)):
                 composition['layers'][i]['path'] = path
 
     def modifyVisibilityOfLayer(self, name, checked):
         composition = self.instance.getComposition()      
         for i in range (0, len(composition['layers'])):         
-            if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(name)):             
+            if (self.utils.removeUnacceptableChars(composition['layers'][i]['title']) == self.utils.removeUnacceptableChars(name)):             
                 composition['layers'][i]['visibility'] = checked              
     def modifyScaleOfLayer(self, layer, checked):
         composition = self.instance.getComposition()    
         if checked:            
             for i in range (0, len(composition['layers'])):           
-                if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):              
+                if (self.utils.removeUnacceptableChars(composition['layers'][i]['title']) == self.utils.removeUnacceptableChars(layer.name())):              
                     composition['layers'][i]['maxResolution'] = (self.utils.scaleToResolution(layer.minimumScale()))
                     composition['layers'][i]['minResolution'] = (self.utils.scaleToResolution(layer.maximumScale()))
                     
         else:
             for i in range (0, len(composition['layers'])):           
-                if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):              
+                if (self.utils.removeUnacceptableChars(composition['layers'][i]['title']) == self.utils.removeUnacceptableChars(layer.name())):              
                     composition['layers'][i]['maxResolution'] = None
                     composition['layers'][i]['minResolution'] = 0 
     def modifyOpacity(self, layer):
@@ -2754,7 +2612,7 @@ class Layman(QObject):
         layer = layer.layer()
         composition = self.instance.getComposition() 
         for i in range (0, len(composition['layers'])):  
-            if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(layer.name())):            
+            if (self.utils.removeUnacceptableChars(composition['layers'][i]['title']) == self.utils.removeUnacceptableChars(layer.name())):            
                 composition['layers'][i]['opacity'] = layer.opacity()                
     def removeSignals(self):
         print("removing signals")
@@ -2831,9 +2689,7 @@ class Layman(QObject):
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         authm = QgsApplication.authManager()
-        authm.clearCachedConfig(self.authCfg)
-        #print "** UNLOAD Atlas"
-      ## killing daemons       
+        authm.clearCachedConfig(self.authCfg)  
         for action in self.actions:
             self.iface.removePluginMenu(
                 self.tr(u'&Layman'),
@@ -2934,7 +2790,7 @@ class Layman(QObject):
         
         center = QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y())
         # abstract = self.dlg.lineEdit_7.text()
-        self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
+        
         self.schemaVersion = "2.0.0"
         
         if LooseVersion(self.laymanVersion) > LooseVersion("1.16.0"):
@@ -3074,7 +2930,7 @@ class Layman(QObject):
 
     def json_export(self, layer_name, id=None):
 
-        filePath = self.getTempPath(self.removeUnacceptableChars(layer_name).lower())
+        filePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name).lower())
         ogr_driver_name = "GeoJSON"
         project = QgsProject.instance()
         fileNames = []
@@ -3126,7 +2982,7 @@ class Layman(QObject):
             return True
     def json_exportMix(self, layer):
 
-        filePath = self.getTempPath(self.removeUnacceptableChars(layer.name() + str(layer.geometryType())).lower())
+        filePath = self.getTempPath(self.utils.removeUnacceptableChars(layer.name() + str(layer.geometryType())).lower())
         ogr_driver_name = "GeoJSON"
         project = QgsProject.instance()
         fileNames = []
@@ -3385,7 +3241,7 @@ class Layman(QObject):
             return
 
         #try:
-        geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
+        geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))
 
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
             if os.path.getsize(geoPath) > 800000000:
@@ -3400,7 +3256,7 @@ class Layman(QObject):
             paths = list()
             for layer in layers:
                 print(paths.append(self.json_exportMix(layer)))
-            self.mergeGeojsons(paths, self.getTempPath(self.removeUnacceptableChars(layer.name())),self.removeUnacceptableChars(layer.name()))
+            self.mergeGeojsons(paths, self.getTempPath(self.utils.removeUnacceptableChars(layer.name())),self.utils.removeUnacceptableChars(layer.name()))
 
         else:
             if not (self.json_export(layer_name)):
@@ -3408,7 +3264,7 @@ class Layman(QObject):
                 return
             
 
-        geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
+        geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))
   
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
             if os.path.getsize(geoPath) > 800000000:
@@ -3423,9 +3279,9 @@ class Layman(QObject):
             self.processingList[q][2] = 1
             if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
                 try:
-                    url = self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)
+                    url = self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.utils.removeUnacceptableChars(layer_name)
                     response = requests.get(url , headers = self.utils.getAuthHeader(self.authCfg))
-                    #response = self.utils.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), payload = None, files = None)
+                    #response = self.utils.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.utils.removeUnacceptableChars(layer_name), payload = None, files = None)
                     if (response.status_code == 400):
                         time.sleep(3)                    
                         response = requests.get(url , headers = self.utils.getAuthHeader(self.authCfg))
@@ -3451,7 +3307,7 @@ class Layman(QObject):
                 QgsMessageLog.logMessage("layersUploaded")
             except:
                 pass
-        self.cleanTemp.emit(self.removeUnacceptableChars(layer_name))    
+        self.cleanTemp.emit(self.utils.removeUnacceptableChars(layer_name))    
     def returnPathIfFileExists(self, path, ext, onlyExt = False):        
         pathWithoutExt = path.replace(ext,"")
         ext = ext.lower()
@@ -3522,7 +3378,7 @@ class Layman(QObject):
             resamplingMethod = ""
         QgsMessageLog.logMessage("enableProgress")
         data['crs'] = layer.crs().authid()        
-        stylePath = self.getTempPath(self.removeUnacceptableChars(layer.name())).replace("geojson", "sld")
+        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer.name())).replace("geojson", "sld")
         layer.saveSldStyle(stylePath)
         self.removeUnsupportedLaymanTag(stylePath, layer)
         self.replaceInfiniteInSLD(stylePath)
@@ -3531,7 +3387,7 @@ class Layman(QObject):
         path = layer.dataProvider().dataSourceUri()
         basename = os.path.basename(path)
         if basename == 'OUTPUT.tif':
-            name = self.removeUnacceptableChars(layer_name)
+            name = self.utils.removeUnacceptableChars(layer_name)
             newPath = path.replace(basename, name+ ".tif")
             shutil.copy2(path, newPath)
             path = newPath
@@ -3546,10 +3402,10 @@ class Layman(QObject):
         externalFile = self.returnPathIfFileExists(path,ext)       
         if (os.path.getsize(path) > self.CHUNK_SIZE):
             if patch:           
-                url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars(layer_name)
+                url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.utils.removeUnacceptableChars(layer_name)
                 r = requests.delete(url,headers = self.utils.getAuthHeader(self.authCfg)) 
             url = self.URI + "/rest/"+self.laymanUsername+"/layers"
-            name = self.removeUnacceptableChars(layer_name)           
+            name = self.utils.removeUnacceptableChars(layer_name)           
             if externalFile:
                 payload = {     
                 'file': [name.lower()+ext,name.lower() + self.returnPathIfFileExists(path,ext, True)],
@@ -3567,7 +3423,7 @@ class Layman(QObject):
                 }
             files = {'style': open(stylePath, 'rb')}    
             response = self.utils.requestWrapper("POST", url, payload, files)          
-            layer_name = self.removeUnacceptableChars(layer_name)
+            layer_name = self.utils.removeUnacceptableChars(layer_name)
             filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) ## chunky se ukládají do adresáře v tempu
             if not (os.path.exists(filePath)):
                 os.mkdir(filePath)           
@@ -3594,10 +3450,10 @@ class Layman(QObject):
             self.processChunks(arr, resumableFilename, layman_original_parameter,resumableTotalChunks, layer_name,filePath,ext)    
         else:        
             if patch:
-                url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars(layer_name)         
+                url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.utils.removeUnacceptableChars(layer_name)         
                 r = self.utils.requestWrapper("DELETE", url, payload = None, files = None)
             if externalFile:
-                zipPath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) + os.sep +self.removeUnacceptableChars(layer_name)+".zip"
+                zipPath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) + os.sep +self.utils.removeUnacceptableChars(layer_name)+".zip"
                 zipObj = ZipFile(zipPath, 'w') 
                 zipObj.write(externalFile, os.path.basename(externalFile))
                 zipObj.write(path,os.path.basename(path))
@@ -3674,17 +3530,17 @@ class Layman(QObject):
             paths = list()
             for layer in layers:
                 paths.append(self.json_exportMix(layer))
-            self.mergeGeojsons(paths, self.getTempPath(self.removeUnacceptableChars(layer.name()))),self.removeUnacceptableChars(layer.name())
+            self.mergeGeojsons(paths, self.getTempPath(self.utils.removeUnacceptableChars(layer.name()))),self.utils.removeUnacceptableChars(layer.name())
 
         else:
             if not (self.json_export(layer_name)):
                 self.reprojectionFailed.emit(layer_name)
                 return      
-        geoPath = self.getTempPath(self.removeUnacceptableChars(layer_name))
+        geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))
         if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+            stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
         else:
-            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+            stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
             if os.path.getsize(geoPath) > 800000000:
                 self.checkFileSizeLimit(os.path.getsize(geoPath))
@@ -3705,7 +3561,7 @@ class Layman(QObject):
         if progress:      
             
             if (os.path.getsize(geoPath) > self.CHUNK_SIZE): 
-                response = self.utils.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name), payload = None, files = None)
+                response = self.utils.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.utils.removeUnacceptableChars(layer_name), payload = None, files = None)
             if (response.status_code == 200):
                 try:
                     self.uploaded = self.uploaded + 1
@@ -3721,7 +3577,7 @@ class Layman(QObject):
             self.importedLayer = layer_name
             self.processingList[q][2] = 1         
             QgsMessageLog.logMessage("export")
-        self.cleanTemp.emit(self.removeUnacceptableChars(layer_name))
+        self.cleanTemp.emit(self.utils.removeUnacceptableChars(layer_name))
     def writePostLog(self, name, code, ret):        
         filename = tempFile = tempfile.gettempdir() + os.sep + "import_log.txt"
         with open(filename, 'a') as file:    
@@ -3736,7 +3592,7 @@ class Layman(QObject):
     def addLayerToPath(self, name, groupName):     
         composition = self.instance.getComposition()    
         for i in range (0, len(composition['layers'])):
-            if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(name)): #
+            if (self.utils.removeUnacceptableChars(composition['layers'][i]['title']) == self.utils.removeUnacceptableChars(name)): #
                 composition['layers'][i]['path'] = groupName
                 print("modifing " + composition['name'] + "adding group name " + groupName)
              
@@ -3745,7 +3601,7 @@ class Layman(QObject):
     def checkLayerPath(self, name):        
         composition = self.instance.getComposition()
         for i in range (0, len(composition['layers'])):
-            if (self.removeUnacceptableChars(composition['layers'][i]['title']) == self.removeUnacceptableChars(name)):
+            if (self.utils.removeUnacceptableChars(composition['layers'][i]['title']) == self.utils.removeUnacceptableChars(name)):
                 try:
                     if composition['layers'][i]['path'] != "":
                         del composition['layers'][i]['path']
@@ -3762,7 +3618,7 @@ class Layman(QObject):
             current = name
         
         for x in range (0, len(self.compositeList)):
-            if self.removeUnacceptableChars(self.compositeList[x]['title']) == self.removeUnacceptableChars(current):
+            if self.utils.removeUnacceptableChars(self.compositeList[x]['title']) == self.utils.removeUnacceptableChars(current):
                 return x
     def checkPossibleChars(self, layername):
         unacceptable = "/*+%!?:><&@#'"
@@ -3778,7 +3634,7 @@ class Layman(QObject):
         check = False
         for elt in e.iter():
             if (elt.tag.split("}")[1] == "Title"):
-                if (self.removeUnacceptableChars(elt.text)== self.removeUnacceptableChars(name)):
+                if (self.utils.removeUnacceptableChars(elt.text)== self.utils.removeUnacceptableChars(name)):
                     check = True
             if (elt.tag.split("}")[1] == "Dimension"):
                 if check:
@@ -3983,7 +3839,7 @@ class Layman(QObject):
     def addExistingWMSLayerToCompositeThread2(self, title,nameInList):
         composition = self.instance.getComposition()
         print("nameInList"+ nameInList)
-        name = self.removeUnacceptableChars(title).lower() 
+        name = self.utils.removeUnacceptableChars(title).lower() 
         dimension = ""
         layer = QgsProject.instance().mapLayersByName(nameInList)[0]
         legend = list()
@@ -4022,8 +3878,7 @@ class Layman(QObject):
                 layers = str(layers).replace("[", "").replace("]", "").replace("'", "")
             else:
                 layers = str(layers).replace("'", "")
-            self.existLayer = False
-            print(dimension)
+            self.existLayer = False       
             if dimension == "":
                 composition['layers'].append({"metadata":{},"visibility":True,"opacity":layer.opacity(),"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS" if not arc else "ArcGISRest","dimensions":{},"singleTile":False, "greyscale": greyScale,  "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
             else:              
@@ -4032,8 +3887,7 @@ class Layman(QObject):
            
         else:           
             for p in params:
-                param = p.split("=")
-                #print(p)
+                param = p.split("=")            
                 if(param[0] == "url"):
                     url = param[1]
             crs = layer.crs().authid()
@@ -4047,7 +3901,7 @@ class Layman(QObject):
         QgsMessageLog.logMessage("addRaster")
     def saveExternalStyle(self,style, layer_name):
         suffix = ".sld"
-        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name) + suffix
+        tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layer_name) + suffix
         with open(tempf, 'wb') as f:
             f.write(style.encode())        
     def getStyle(self, layer_name, style = None, workspace = None):
@@ -4058,9 +3912,9 @@ class Layman(QObject):
             self.saveExternalStyle(style, layer_name)     
             return 200, suffix.replace(".","")
         if self.selectedWorkspace:
-            response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.utils.getAuthHeader(self.authCfg))            
+            response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.utils.removeUnacceptableChars(layer_name)+ '/style', headers = self.utils.getAuthHeader(self.authCfg))            
         else:            
-            response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.utils.getAuthHeader(self.authCfg))      
+            response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.utils.removeUnacceptableChars(layer_name)+ '/style', headers = self.utils.getAuthHeader(self.authCfg))      
         res = response.content
         res = res.decode("utf-8")
         if (res[0:5] == "<qgis" and response.status_code == 200):
@@ -4071,7 +3925,7 @@ class Layman(QObject):
             print("got sld")
             suffix = ".sld"
         try:
-            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name) + suffix
+            tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layer_name) + suffix
         except:
             print("symbologie nenalezena")
             return (400,"")
@@ -4080,8 +3934,8 @@ class Layman(QObject):
             f.write(response.content)                 
         return response.status_code, suffix.replace(".","")
     def getSLD(self, layer_name):       
-        response = self.utils.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
-        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name)+ ".sld"
+        response = self.utils.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.utils.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
+        tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layer_name)+ ".sld"
    
         with open(tempf, 'wb') as f:
             f.write(response.content)       
@@ -4092,8 +3946,7 @@ class Layman(QObject):
         if self.selectedWorkspace:
             url = self.URI+'/rest/'+self.selectedWorkspace+"/layers/"+layer_name
         else:
-            url = self.URI+'/rest/'+self.laymanUsername+"/layers/"+layer_name
-        print(url)
+            url = self.URI+'/rest/'+self.laymanUsername+"/layers/"+layer_name  
         r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))        
         try:
             data = r.json()
@@ -4120,8 +3973,7 @@ class Layman(QObject):
         end = string.find("'", start)
         value = string[start:end]   
         return value                                        
-    def addLayerToComposite2(self,composition, layersList, currentSet):             
-        print(layersList)
+    def addLayerToComposite2(self,composition, layersList, currentSet): 
         for layer in layersList:
             self.showExportInfo.emit("Nahrávání vrstvy: " + layer.name() if self.locale == "cs" else "Uploading layer: " + layer.name())
             if (isinstance(layer,QgsRasterLayer)) and layer.dataProvider().uri().uri() != "":
@@ -4137,7 +3989,7 @@ class Layman(QObject):
                 title = self.findParamForWfs("typename='", layer)  
                 layerTreeRoot = QgsProject.instance().layerTreeRoot()
                 layerTreeNode = layerTreeRoot.findLayer(layer.id())    
-                layerName = self.removeUnacceptableChars(layer.name()).lower() 
+                layerName = self.utils.removeUnacceptableChars(layer.name()).lower() 
                 if layer.hasScaleBasedVisibility():
                     minScale = (self.utils.scaleToResolution(layer.minimumScale()))                    
                 else:
@@ -4157,10 +4009,10 @@ class Layman(QObject):
               
                 for i in range (0, len(layers)):
                     for item in currentSet:
-                        if self.removeUnacceptableChars(item[0]) == self.removeUnacceptableChars(layers[i].name()):
+                        if self.utils.removeUnacceptableChars(item[0]) == self.utils.removeUnacceptableChars(layers[i].name()):
                             service = item[1].lower()
                     # self.dlg.progressBar_loader.show()
-                    layerName = self.removeUnacceptableChars(layers[i].name()).lower()                   
+                    layerName = self.utils.removeUnacceptableChars(layers[i].name()).lower()                   
                     if layers[i].hasScaleBasedVisibility():
                         minScale = (self.utils.scaleToResolution(layers[i].minimumScale()))
                     
@@ -4194,14 +4046,14 @@ class Layman(QObject):
 
 
                     inComposite = False
-                    layerName = self.removeUnacceptableChars(layers[i].name()).lower()
+                    layerName = self.utils.removeUnacceptableChars(layers[i].name()).lower()
                     if (self.checkExistingLayer(layers[i].name()) and inComposite):
                         j = self.getLayerInCompositePosition(x)                        
                         if self.isXYZ(layers[i].name()):                       
                             pass
                         else:
                             self.postRequest(layers[i].name(), True)
-                            layerName = self.removeUnacceptableChars(layers[i].name())
+                            layerName = self.utils.removeUnacceptableChars(layers[i].name())
 
                     else:
                         if self.isXYZ(layers[i].name()):                           
@@ -4272,9 +4124,7 @@ class Layman(QObject):
         df.to_clipboard(index=False,header=False)
     def patchMap2(self):
         self.showExportInfo.emit("Ukládání kompozice" if self.locale == "cs" else "Saving composition")
-        composition = self.instance.getComposition()        
-        print("composition")
-        print(composition)
+        composition = self.instance.getComposition() 
         tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
         with open(tempFile, 'w') as outfile:
             json.dump(composition, outfile)
@@ -4293,8 +4143,7 @@ class Layman(QObject):
         print("export map")      
         workspace = self.instance.getWorkspace()       
         r = self.utils.requestWrapper("DELETE", self.URI+'/rest/'+workspace+'/maps/'+composition['name'], payload = None, files = None)      
-        time.sleep(1)
-        # response = requests.request("POST", self.URI + '/rest/' + workspace + '/maps', headers=self.utils.getAuthHeader(self.authCfg),data=data, files=files)
+        time.sleep(1)       
         response = self.utils.requestWrapper("POST", self.URI+'/rest/'+workspace+'/maps', data, files)   
         self.processingRequest = False        
         res = self.utils.fromByteToJson(response.content)
@@ -4304,63 +4153,11 @@ class Layman(QObject):
         url = self.URI+'/rest/'+self.laymanUsername+"/layers/" + layerName     
         r = self.utils.requestWrapper("DELETE", url, payload = None, files = None)
 
-    # def getActiveLayer(self):
-    #     layer = self.iface.activeLayer()
-    #     return layer
-
-    def createComposite(self, name, title, setCurrent = False):         
-        if QgsProject.instance().crs().authid() not in self.supportedEpsg:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Message", "Není nastaveno podporované EPSG projektu.")
-            else:
-                QMessageBox.information(None, "Message", "Project EPSG is not supported.")
-            return
-        if (title == ""):
-            if self.locale == "cs":
-                QMessageBox.information(None, "Message", "Není vyplněn titulek!")
-            else:
-                QMessageBox.information(None, "Message", "Title is not filled!")
-        else:
-            name = self.removeUnacceptableChars(title)
-            
-            data = self.getEmptyComposite(name,title)
-            print(name)
-            self.compositeList.append(data)
-            x = len(self.compositeList) - 1
-            self.importCleanComposite(x)
-            try:
-                self.refreshCompositeList(True)
-            except:
-                print("err")
-            if setCurrent:                
-                self.current = name
-                self.selectedWorkspace = self.laymanUsername
-                url = self.URI+'/rest/'+self.selectedWorkspace+'/maps/'+name+'/file'  
-                r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-                data = r.json()
-                print(data)
-                self.instance = CurrentComposition(self.URI, name, self.selectedWorkspace, self.utils.getAuthHeader(self.authCfg),self.laymanUsername)
-                self.instance.setComposition(data)
-                self.compositionDict[name] = title
-                ## sync start
-                prj = QgsProject().instance()
-                QgsProject().instance().setTitle(title)
-                root = prj.layerTreeRoot()                         
-             
-                self.prj=QgsProject.instance()
-                self.prj.removeAll.connect(self.removeSignals)
-                self.menu_CurrentCompositionDialog.setEnabled(True)    
-                self.processingRequest = False
-                composition = self.instance.getComposition()
-                root = QgsProject.instance().layerTreeRoot()             
-                
-                QgsProject.instance().setTitle(title)
-                self.afterCloseNewMapDialog()
+  
 
 
-    def patchLayer(self, layer_name, data):
-        print("patchLayer")      
-        self.layerName = self.removeUnacceptableChars(layer_name)
+    def patchLayer(self, layer_name, data):            
+        self.layerName = self.utils.removeUnacceptableChars(layer_name)
 
         geoPath = self.getTempPath(self.layerName)
 
@@ -4377,21 +4174,18 @@ class Layman(QObject):
 
         layer_name = layer_name.lower()
         layer_name = layer_name.replace(" ", "_")
-        layer_name = self.removeUnacceptableChars(layer_name)
+        layer_name = self.utils.removeUnacceptableChars(layer_name)
         url = self.URI+'/rest/' + self.laymanUsername + "/layers/" + layer_name
-        r = requests.get(url, headers = self.utils.getAuthHeader(self.authCfg))
-        #r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        r = requests.get(url, headers = self.utils.getAuthHeader(self.authCfg))      
         res = r.json()
         read = res['access_rights']['read']
         write = res['access_rights']['write']
         data['access_rights.read'] =  self.listToString(read)
         data['access_rights.write'] = self.listToString(write)
-        if r.status_code == 200:
-            #r = requests.delete(url, headers = self.utils.getAuthHeader(self.authCfg))  
+        if r.status_code == 200:           
             r = self.utils.requestWrapper("DELETE", url, payload = None, files = None)     
         time.sleep(0.5)
-        url = self.URI+'/rest/' + self.laymanUsername + "/layers/"        
-        #r = requests.post(self.URI+'/rest/'+self.laymanUsername+'/layers', files=files, data = data, headers = self.utils.getAuthHeader(self.authCfg))
+        url = self.URI+'/rest/' + self.laymanUsername + "/layers/"  
         r = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)
         return r       
        
@@ -4403,8 +4197,7 @@ class Layman(QObject):
             tempFile = tempfile.gettempdir() + os.sep + name +'.geojson'
             return tempFile
     def getExistingLayers(self):
-        url = self.URI+'/rest/'+self.laymanUsername+"/layers"
-       # r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
+        url = self.URI+'/rest/'+self.laymanUsername+"/layers"    
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)
         data = r.json()
         for x in range(len(data)):
@@ -4412,7 +4205,7 @@ class Layman(QObject):
         return data
     
     def checkExistingLayer(self, layerName):
-        layerName = self.removeUnacceptableChars(layerName)
+        layerName = self.utils.removeUnacceptableChars(layerName)
         url = self.URI+'/rest/'+self.laymanUsername+"/layers"
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)      
         if not r:
@@ -4426,48 +4219,7 @@ class Layman(QObject):
         if (layerName in pom):
             return True
         else:
-            return False
-
-    def removeUnacceptableChars(self, input):
-        if input[0] == " ":
-            input = input[1:]
-        input = input.lower()
-        input = input.replace("ř","r")
-        input = input.replace("š","s")
-        input = input.replace("ž","z")
-        input = input.replace("ů","u")
-        input = input.replace("ú","u")
-        input = input.replace(" ","_")
-        input = input.replace("é","e")
-        input = input.replace("í","i")
-        input = input.replace("ý","y")
-        input = input.replace("á","a")
-        input = input.replace("ň","n")
-        input = input.replace("ó","o")
-        input = input.replace("č","c")
-        input = input.replace("ď","d")
-        input = input.replace("ě","e")
-        input = input.replace("ť","t")
-        input = input.replace("-","_")
-        input = input.replace(".","_")
-        input = input.replace(",","")
-        input = input.replace(":","")
-        input = input.replace("/","_")
-        input = input.replace("(","")
-        input = input.replace(")","")
-        input = input.replace("___","_")
-        input = input.replace("__","_")
-        input = re.sub(r'[?|$|.|!]',r'',input)
-        try:
-            if input[len(input) - 1] == "_":
-                input = input[:-1]
-        except:
-            print("removechars exception")
-        return input
-
-    def test (self):
-        item = self.dlgGetLayers.items.currentItem().text()     
-
+            return False   
     def isLayerInComposite(self, x):
         layers =[]
         layers.append(self.dlg.mMapLayerComboBox.currentLayer())          
@@ -4499,13 +4251,13 @@ class Layman(QObject):
                    j = i 
         return j
     def isRasterLayerInComposite(self, x, name):
-        name = self.removeUnacceptableChars(name).lower()
+        name = self.utils.removeUnacceptableChars(name).lower()
         req = self.utils.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/maps/'+self.compositeList[x]['name']+'/file', payload = None, files = None)
         data = req.json()
         existingLayers = []
         for i in reversed(range (0, len(data['layers']))):       
-             if (self.removeUnacceptableChars(data['layers'][i]['title']) ==  name ):
-                existingLayers.append(self.removeUnacceptableChars(data['layers'][i]['title']))        
+             if (self.utils.removeUnacceptableChars(data['layers'][i]['title']) ==  name ):
+                existingLayers.append(self.utils.removeUnacceptableChars(data['layers'][i]['title']))        
         return existingLayers
 
     def addComposite(self, data, service, groupName = ''):  
@@ -4549,7 +4301,7 @@ class Layman(QObject):
 
     
     def Title(self, layerName):
-        layerName = self.removeUnacceptableChars(layerName)
+        layerName = self.utils.removeUnacceptableChars(layerName)
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName      
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)
         data = r.json()
@@ -4579,9 +4331,7 @@ class Layman(QObject):
         else:
             return layerString
     def loadArcGisRest(self, url, layerName,  groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False):        
-        r = requests.get(url + "?f=json")
-        #r = self.utils.requestWrapper("GET", url + "?f=json", payload = None, files = None)
-        print(r.content)
+        r = requests.get(url + "?f=json")        
         res = json.loads(r.content)
         id = 0
         for layer in res['layers']:
@@ -4673,7 +4423,7 @@ class Layman(QObject):
     def loadXYZ(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName= '', visibility= '', i = -1, minRes= 0, maxRes=None):
 
 
-        layerName = self.removeUnacceptableChars(layerName)
+        layerName = self.utils.removeUnacceptableChars(layerName)
         print("XYZ")
 
         epsg = "EPSG:4326"
@@ -4723,11 +4473,11 @@ class Layman(QObject):
                 layerName = layer.name()
                 if (style[0] == 200):
                     if (style[1] == "sld"):
-                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                        tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layerName)+ ".sld"
                         layer.loadSldStyle(tempf)
                         layer.triggerRepaint()
                     if (style[1] == "qml"):
-                        tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                        tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layerName)+ ".qml"
                         layer.loadNamedStyle(tempf)
                         layer.triggerRepaint()
     def _setVisibility(self, layer):                    
@@ -4760,13 +4510,13 @@ class Layman(QObject):
         if (groupName != ''):                    
             self.addWmsToGroup(groupName,layer,"")      
             self.saveExternalStyle(style, layer_name)
-            tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layer_name)+ ".sld"
+            tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layer_name)+ ".sld"
             layer.loadSldStyle(tempf)
             layer.triggerRepaint()  
         else:
             self.loadLayer(layer, style)                     
     def loadWfs(self, url, layerName,layerNameTitle, groupName = '', subgroupName = '', visibility= '', everyone=False, minRes= 0, maxRes=None):                    
-        layerName = self.removeUnacceptableChars(layerName)        
+        layerName = self.utils.removeUnacceptableChars(layerName)        
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()       
         uri = self.URI+"/geoserver/"+self.laymanUsername+"/ows?srsname="+epsg+"&typename="+self.laymanUsername+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
         url = url.replace("%2F", "/").replace("%3A",":").replace("/client","")
@@ -4876,8 +4626,8 @@ class Layman(QObject):
             
             return True
         else:
-            self.loadLayer(vlayer) 
-            #QgsProject.instance().addMapLayer(vlayer)
+            self.loadLayer(vlayer)
+          
             return False
           
     def forbidRename(self):
@@ -4992,7 +4742,7 @@ class Layman(QObject):
 
     def registerLayer(self, title):        
         url = self.URI + "/rest/"+self.laymanUsername+"/layers"
-        name = self.removeUnacceptableChars(title)
+        name = self.utils.removeUnacceptableChars(title)
         geoPath = self.getTempPath(name).lower()
         if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
             stylePath = self.getTempPath(name).replace("geojson", "qml").lower()
@@ -5029,13 +4779,12 @@ class Layman(QObject):
 
     def postInChunks(self, layer_name, reqType):
         if (reqType == "patch"):      
-            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.removeUnacceptableChars(layer_name)
-            #r = requests.delete(url,headers = self.utils.getAuthHeader(self.authCfg))
+            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.utils.removeUnacceptableChars(layer_name)         
             r = self.utils.requestWrapper("DELETE", url, payload = None, files = None)
 
 
         self.registerLayer(layer_name)
-        layer_name = self.removeUnacceptableChars(layer_name)
+        layer_name = self.utils.removeUnacceptableChars(layer_name)
         filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) ## chunky se ukládají do adresáře v tempu
         print("chunk layer")
         if not (os.path.exists(filePath)):
@@ -5050,9 +4799,7 @@ class Layman(QObject):
 
         resumableFilename = layer_name+'.geojson'
         layman_original_parameter = "file"
-        resumableTotalChunks = len(arr)
-        #print ("resumable" + resumableFilename)
-       
+        resumableTotalChunks = len(arr)     
         for i in range (1, len(arr)+1):  ##chunky jsou počítané od 1 proto +1
                 
             file = arr[i-1] # rozsekaná část souboru
@@ -5114,14 +4861,10 @@ class Layman(QObject):
         user = {'username':login}      
         print("authheader: "+ str(self.utils.getAuthHeader(self.authCfg)))
 
-        r = requests.patch(url = userEndpoint, data = user, headers = self.utils.getAuthHeader(self.authCfg))
-        #r = self.utils.requestWrapper("PATCH", userEndpoint, user, files = None)
+        r = requests.patch(url = userEndpoint, data = user, headers = self.utils.getAuthHeader(self.authCfg))       
         res = r.text
         try:
-            res = self.utils.fromByteToJson(r.content)
-            print (res)
-            print(user)
-            print(res)
+            res = self.utils.fromByteToJson(r.content)   
         except:
             if self.locale == "cs":
                 QMessageBox.information(None, "Error", "Layman server neodpověděl!")
@@ -5136,8 +4879,7 @@ class Layman(QObject):
                 QMessageBox.information(None, "Error", "Layman server not respond!")            
             self.logout()
             return               
-        if 'code' in res:
-           # if res['message'] == 'User already reserved username.': # res['code'] == 34, code 35 je pokud již jiný uživatel má účet, který chceme registrovat
+        if 'code' in res:          
            if res['code'] == 34: # res['code'] == 34, code 35 je pokud již jiný uživatel má účet, který chceme registrovat (code 35 pravděpodobně nemůže nastat)
 
                 print("user exists")
@@ -5202,7 +4944,7 @@ class Layman(QObject):
         self.isAuthorized = True
         self.utils.isAuthorized = True
         authcfg_id = self.authCfg     
-        print(self.setup_oauth(authcfg_id, self.liferayServer))        
+        self.setup_oauth(authcfg_id, self.liferayServer)        
         authHeader = self.utils.getAuthHeader(self.authCfg)        
         print(authHeader)
         if (authHeader):
@@ -5398,21 +5140,21 @@ class Layman(QObject):
             return ("postgresql://"+username+":"+password+"@"+host+":"+port+"/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
     def postPostreLayer(self, layer, username, password):
         uri = self.preparePostgresUri(layer, username, password)
-        print(uri)
+        # print(uri)
         layer_name = layer.name()
         if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+            stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
             layer.saveNamedStyle(stylePath)
         else:
-            stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+            stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
             layer.saveSldStyle(stylePath)
         payload = {                
                 'external_table_uri': uri,
                 'title': layer_name,                
                 'style': open(stylePath, 'rb'),
-                'name': self.removeUnacceptableChars(layer_name)
+                'name': self.utils.removeUnacceptableChars(layer_name)
                 }
-        print(payload)
+        # print(payload)
         files = {'style': open(stylePath, 'rb')}
       
         response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', payload, files)
@@ -5422,8 +5164,8 @@ class Layman(QObject):
             self.utils.showQgisBar(["Vrsta "+layer_name+ " již existuje!","Layer "+layer_name+ " already exists!"], Qgis.Warning)  
         if status == 200:
             self.utils.showQgisBar(["Vrsta "+layer_name+ " úspěšně uložena.","Layer "+layer_name+ " was successfully saved."], Qgis.Success)  
-            self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")                    
-        print(status)    
+            self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")                  
+      
         layer.afterCommitChanges.connect(self.patchPostreLayer)
    
         
@@ -5432,30 +5174,28 @@ class Layman(QObject):
             layer = iface.activeLayer()
             layer_name = layer.name()
             if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-                stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+                stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
                 layer.saveNamedStyle(stylePath)
             else:
-                stylePath = self.getTempPath(self.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+                stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
                 layer.saveSldStyle(stylePath)
             payload = {
                     'title': layer_name,                
                     'style': open(stylePath, 'rb'),
-                    'name': self.removeUnacceptableChars(layer_name)
-                    }
-            print(payload)
+                    'name': self.utils.removeUnacceptableChars(layer_name)
+                    }    
             files = {'style': open(stylePath, 'rb')}
-            response = self.utils.requestWrapper("PATCH", self.URI+'/rest/'+self.laymanUsername+'/layers/'+ self.removeUnacceptableChars(layer_name), payload, files)     
+            response = self.utils.requestWrapper("PATCH", self.URI+'/rest/'+self.laymanUsername+'/layers/'+ self.utils.removeUnacceptableChars(layer_name), payload, files)     
         threading.Thread(target=lambda: patchPostreLayerThread()).start()    
  
               
     def loadPostgisLayer(self, it):
-        layerName = self.removeUnacceptableChars(it.text(0))
+        layerName = self.utils.removeUnacceptableChars(it.text(0))
         
         workspace = it.text(1)
         url = self.URI+'/rest/'+workspace+'/layers/'+str(layerName).lower() 
         r = requests.get(url, headers = self.utils.getAuthHeader(self.authCfg))
-        data = r.json()
-        print(data)
+        data = r.json()        
         table = data["db"]["table"]
         schema = data["db"]["schema"]
         geo_column = data["db"]["geo_column"]           
@@ -5471,8 +5211,7 @@ class Layman(QObject):
             host = host.replace("host.docker.internal","localhost")            
               
         uri = "dbname='"+dbname+"' host="+host+" port="+port+" user='"+user+"' table="+ table +" key='id' srid="+srid
-        style = self.getStyle(layerName, None, workspace)
-        print(style)
+        style = self.getStyle(layerName, None, workspace)     
         layer = QgsVectorLayer(uri, it.text(0), 'postgres')  
         
         if not layer.isValid():
@@ -5481,22 +5220,21 @@ class Layman(QObject):
         ## load style 
         if (style[0] == 200):
             if (style[1] == "sld"):
-                tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".sld"
+                tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layerName)+ ".sld"
                 layer.loadSldStyle(tempf)
                    
             if (style[1] == "qml"):
-                tempf = tempfile.gettempdir() + os.sep +self.removeUnacceptableChars(layerName)+ ".qml"
+                tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layerName)+ ".qml"
                 layer.loadNamedStyle(tempf)
         QgsProject.instance().addMapLayer(layer)     
         layer.afterCommitChanges.connect(self.patchPostreLayer)
   
-    def showExportedCompositionInfo(self, info):
-        if self.dlg.objectName() == "CurrentCompositionDialog":
-            if info != "F":
-                self.dlg.label_log.show()
-                self.dlg.label_log.setText(info)
-            else:
-                self.dlg.label_log.hide()            
+    def showExportedCompositionInfo(self, info):         
+        if info != "F":
+            self.dlg_current.label_log.show()
+            self.dlg_current.label_log.setText(info)
+        else:
+            self.dlg_current.label_log.hide()                        
     def refreshWfsLayers(self):        
         project = QgsProject.instance()      
         layers = project.mapLayers().values()      
@@ -5504,7 +5242,7 @@ class Layman(QObject):
             if layer.type() == QgsMapLayerType.VectorLayer and layer.dataProvider().name() == 'WFS':              
                 layer.dataProvider().reloadData() 
  
-             
+              
     def run(self):
         """Run method that loads and starts the plugin"""
 

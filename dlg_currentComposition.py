@@ -116,6 +116,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)     
         self.connectEvents()  
         self.permissionsConnected = False
+        self.layman.dlg_current = self
         self.utils.recalculateDPI()
         self.pushButton_setPermissions.clicked.connect(lambda: self.setStackWidget("permissions"))
         self.pushButton_back.clicked.connect(lambda: self.setStackWidget("main"))  
@@ -133,16 +134,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_qfield.clicked.connect(self.qfieldLogin)  
         if self.layman.current != None:
             self.layman.instance.refreshComposition()
-            composition = self.layman.instance.getComposition()
-            print(composition)
+            composition = self.layman.instance.getComposition()        
             self.pushButton_editMeta.setEnabled(True)
             self.pushButton_new.setEnabled(True)
-            self.pushButton_setPermissions.setEnabled(True)
-                        
+            self.pushButton_setPermissions.setEnabled(True)                        
             self.pushButton_save.setEnabled(True)
             self.pushButton_delete.setEnabled(True)
-            self.pushButton_qfield.setEnabled(True)           
-            # self.pushButton_setPermissions.clicked.connect(lambda: self.showMapPermissionsDialog(composition['title'], False))
+            self.pushButton_qfield.setEnabled(True)  
             self.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl())
             layerList = list()
             serviceList = list()
@@ -154,8 +152,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             except:
                 print("titulek nenačten")          
             
-            try:
-                print(composition)
+            try:                
                 len(composition['layers'])
             except:            
                 self.progressBar_loader.hide() 
@@ -204,8 +201,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_delete.clicked.connect(lambda: self.deleteCurrentMap())              
             self.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())       
             self.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
-        self.progressBar_loader.hide()    
-        # self.utils.apply_button_stylesheet()
+        self.progressBar_loader.hide()  
         self.show()
         result = self.exec_()  
     def refreshCurrentForm(self, layerAdded = None):
@@ -239,7 +235,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layerIds = list()
         layersArr = list()
         layers = self.getLayersOrder()
-        print(layers)    
+     
         for layer in layers:
             layersArr.append(layer)
 
@@ -250,9 +246,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             layerType = layer.type()                
             item = QTreeWidgetItem()
             item.setText(0, layer.name())               
-            layersInCanvas.append(self.utils.removeUnacceptableChars(layer.name()))
-            print(self.utils.removeUnacceptableChars(layer.name()), layerList)
-            print(serviceList)
+            layersInCanvas.append(self.utils.removeUnacceptableChars(layer.name()))          
             if self.utils.removeUnacceptableChars(layer.name()) in layerList:
                 i = layerList.index(self.utils.removeUnacceptableChars(layer.name()))
 
@@ -364,8 +358,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             cell = QComboBox()
             cell.currentTextChanged.connect(self.comboBoxChanged)
             cellServices = QComboBox()
-            for layer in layersArr:
-                print(self.URI, layer.dataProvider().uri().uri())
+            for layer in layersArr:                
                 if self.utils.removeUnacceptableChars(layer.name()) == self.utils.removeUnacceptableChars(item.text(0)):
                     if isinstance(layer, QgsRasterLayer) and "geoserver" in layer.dataProvider().dataSourceUri():
                         cellServices.addItems(['WMS','WFS'])
@@ -826,8 +819,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
-            else:
-                print(userDict[pom])
+            else:            
                 userNamesWrite.append(userDict[pom])
         data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}       
         for layer in composition['layers']:
@@ -837,8 +829,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if (layer['className'] == 'HSLayers.Layer.WMS'):
                 name = layer['params']['LAYERS']
             if name is not None:
-                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.layman.authCfg))  
-                print(response.content)
+                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.layman.authCfg))         
                 if (response.status_code != 200):        
                     try:
                         if self.utils.fromByteToJson(response.content)["code"] == 15:
@@ -851,19 +842,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 print("there is not possible set permissions for layer")
           
     def updatePermissions(self,layerName, userDict, type, check=False):   
-        print(layerName)    
         itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
         itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]
-        userNamesRead = list()  
-        print(itemsTextListRead)
+        userNamesRead = list() 
+
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":            
                 userNamesRead.append("EVERYONE")          
-            else:
-                print(pom)
+            else:          
                 if "," in pom:
-                    pom = pom.split(", ")[1]     
-                print(userDict)                                               
+                    pom = pom.split(", ")[1]    
+                                                              
                 userNamesRead.append(userDict[pom])
         userNamesWrite = list()      
         for pom in itemsTextListWrite:
@@ -880,8 +869,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             layer = self.utils.removeUnacceptableChars(layer)      
             url = self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer
             response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))  
-            print(layer)
-            print(response.content)
+  
             if (response.status_code != 200):
                 self.failed.append(layer)         
                 self.utils.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
@@ -912,8 +900,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.updatePermissions([comp],userDict, "maps", False)
                     return      
         else:      
-            if (self.statusHelper and self.info == 0):
-                print(self.failed)
+            if (self.statusHelper and self.info == 0):               
                 self.permissionInfo.emit(True, self.failed, 0)                
             else:
                 self.permissionInfo.emit(False, self.failed, 0)               
@@ -1177,7 +1164,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             res = r.json()            
             ch = True
             e = False
-            print(res)
+          
             try:
                 if res['code'] == 2:
                     ch = False
@@ -1242,8 +1229,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.layman.selectedWorkspace = self.laymanUsername
                 url = self.URI+'/rest/'+self.layman.selectedWorkspace+'/maps/'+name+'/file'  
                 r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-                data = r.json()
-                print(data)
+                data = r.json()        
                 self.layman.instance = CurrentComposition(self.URI, name, self.layman.selectedWorkspace, self.utils.getAuthHeader(self.layman.authCfg),self.laymanUsername)
                 self.layman.instance.setComposition(data)
                 self.compositionDict[name] = title                
@@ -1293,8 +1279,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 item.setToolTip(1,"Vektorová vrstva načtená z lokálního souboru.")
             else:
                 item.setToolTip(1,"Vector layer loaded from a local file.")        
-    def on_layers_removed(self): 
-        print(self.objectName())
+    def on_layers_removed(self):      
         if self.objectName() == "CurrentCompositionDialog":
             self.refreshCurrentForm()  
     def on_layers_added(self, layer):     
