@@ -153,10 +153,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
         #### set permissions part
-    def setPermissionsUI(self, layerName):
-        # self.utils.recalculateDPI()
-        # self. = SetPermissionDialog()
-        # self.show()
+    def setPermissionsUI(self, layerName): 
         self.listWidget_read.clear()
         self.listWidget_write.clear()
         self.comboBox_users.clear()
@@ -220,11 +217,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_save.clicked.connect(lambda: self.askForMapPermissionChanges(layerName, usersDict, "layers"))
             self.pushButton_addRead.clicked.connect(lambda:  self.checkAddedItemDuplicity("read"))
             self.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
-            self.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
+            self.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList(usersDictReversed))
             self.pushButton_removeWrite.clicked.connect(lambda: self.listWidget_write.removeItemWidget(self.listWidget_write.takeItem(self.listWidget_write.currentRow())))
             self.permissionsConnected = True
-
-
+       
+        print(self.listWidget_read.currentRow())
 
     def callDeleteLayer(self, layers, layerNames):
         items = list()
@@ -385,7 +382,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     permissions = "read"
                 if "EVERYONE" in data[row]['access_rights']['write']:
                     permissions = "write"
-                if "native_crs" in dataAll[row]  and 'wfs_wms_status' in dataAll[row]:
+                if "native_crs" in data[row]  and 'wfs_wms_status' in data[row]:
                     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs'],data[row]['wfs_wms_status']])
                 else:
                     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions])
@@ -756,7 +753,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:
                     QMessageBox.information(None, "Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                
                     
-    def removeWritePermissionList(self):
+    def removeWritePermissionList(self, usersDictReversed):  
+        # print(self.listWidget_read.currentRow())
+        # if usersDictReversed[self.laymanUsername] == self.listWidget_read.currentRow() or usersDictReversed[self.laymanUsername] == self.listWidget_write.currentRow():
+        #     return
         self.deleteItem(self.listWidget_read.currentItem().text())
         self.listWidget_read.removeItemWidget(self.listWidget_read.takeItem(self.listWidget_read.currentRow()))
     def deleteItem(self, itemName):

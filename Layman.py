@@ -1522,7 +1522,7 @@ class Layman(QObject):
         self.URI = servers[i][1]
         self.utils.URI = servers[i][1]
         self.menu_AddLayerDialog.setEnabled(True)    
-        self.laymanUsername = "Anonymous"
+        self.laymanUsername = "browser"
         self.dlg.pushButton_logout.setEnabled(True)
         self.dlg.pushButton_NoLogin.setEnabled(False)
         self.dlg.pushButton_Connect.setEnabled(False)
@@ -1675,10 +1675,13 @@ class Layman(QObject):
     def logout(self):
         self.loggedThrowProject = False
         self.disableEnvironment()          
-        userEndpoint = self.URI+ "/rest/current-user"
-        r = self.utils.requestWrapper("DELETE", userEndpoint, payload = None, files = None)
-        QgsApplication.authManager().clearCachedConfig(self.authCfg)         
-        ## flush variables             
+        if self.laymanUsername != "browser":
+            userEndpoint = self.URI+ "/rest/current-user"
+            r = self.utils.requestWrapper("DELETE", userEndpoint, payload = None, files = None)
+            QgsApplication.authManager().clearCachedConfig(self.authCfg)         
+        ## flush variables   
+        else:
+            self.laymanUsername = ""        
         try:
             self.textbox.setText("Layman")
             self.dlg.close() 

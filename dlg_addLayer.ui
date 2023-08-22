@@ -219,7 +219,7 @@
      <rect>
       <x>10</x>
       <y>28</y>
-      <width>70</width>
+      <width>81</width>
       <height>25</height>
      </rect>
     </property>
@@ -234,9 +234,9 @@
    <widget class="QPushButton" name="pushButton_urlWfs">
     <property name="geometry">
      <rect>
-      <x>120</x>
+      <x>109</x>
       <y>29</y>
-      <width>70</width>
+      <width>81</width>
       <height>25</height>
      </rect>
     </property>
@@ -342,9 +342,9 @@
     <widget class="QComboBox" name="comboBox_users">
      <property name="geometry">
       <rect>
-       <x>60</x>
+       <x>80</x>
        <y>70</y>
-       <width>561</width>
+       <width>541</width>
        <height>22</height>
       </rect>
      </property>
@@ -456,7 +456,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Back to list</string>
+      <string>Back</string>
      </property>
      <property name="icon">
       <iconset>
