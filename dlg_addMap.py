@@ -404,8 +404,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.layman.instance.setComposition(data)   
         else:
             print("workspace nepredan")     
-        name = self.utils.removeUnacceptableChars(name) 
-        print("debug in readMapJson - false")
+        name = self.utils.removeUnacceptableChars(name)     
         workspace = self.getCompositionWorkspace(name)
         self.selectedWorkspace = workspace           
         try:
@@ -617,8 +616,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             i = i + 1   
         
         self.layman.reorderGroups(groups, groupsSet, groupPositions)
-        self.layman.afterCompositionLoaded()
-        #self.afterLoadedComposition.emit()     
+        self.layman.afterCompositionLoaded()         
         self.progressDone.emit()       
     def getCompositionWorkspace(self, name):
         url = self.URI+'/rest/maps'        

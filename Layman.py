@@ -101,8 +101,7 @@ class Layman(QObject):
     exportLayerFailed = pyqtSignal(str)
     exportLayerSuccessful = pyqtSignal(str)   
     afterLoadedComposition = pyqtSignal()
-    reoderComposition = pyqtSignal(list,set,list)
-    showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)
+    reoderComposition = pyqtSignal(list,set,list)    
     tsSuccess = pyqtSignal()
     processingRaster = pyqtSignal(int,int)
     setPluginLabel = pyqtSignal(str)
@@ -137,18 +136,12 @@ class Layman(QObject):
 
         ## init global variables
         self.client_id = None    
-        self.client_secret = None       
-        self.composite = None
-        self.thread1 = None
+        self.client_secret = None              
         self.compositeList = []      
         self.CHUNK_SIZE = 1048576 ## layman client use this value    
-        self.URI = None
-        self.access_token = None
-        self.expires_in = None
-        self.refresh_token = None
+        self.URI = None      
         self.laymanUsername = ""
-        self.authHeader = None  
-        self.wrongLayers = False
+        self.authHeader = None
         self.Agrimail = ""        
         self.liferayServer = None
         self.laymanServer = None            
@@ -296,8 +289,7 @@ class Layman(QObject):
         self.exportLayerFailed.connect(self._onExportLayerFailed)
         self.readCompositionFailed.connect(self._onReadCompositionFailed)
         self.afterLoadedComposition.connect(self.afterCompositionLoaded)        
-        self.reoderComposition.connect(self.reorderGroups) 
-        self.showErr.connect(self.showMessageBar)
+        self.reoderComposition.connect(self.reorderGroups)
         self.tsSuccess.connect(self._onSuccessTs)
         self.processingRaster.connect(self.onRasterUpload)
         self.setPluginLabel.connect(self.onSetPluginLabel)    
@@ -414,29 +406,7 @@ class Layman(QObject):
             iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", text[0]), Qgis.Success, duration=3)
         else:             
             iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", text[1]), Qgis.Success, duration=3)           
-    def showMessageBar(self, text, info, err, typ, url):    
-        widget = QWidget()
-        layout = QHBoxLayout() 
-        layout.setAlignment(Qt.AlignCenter) 
-        button = QPushButton("Více informací" if self.locale == "cs" else "More info")
-        label2 = iface.messageBar().createMessage("Layman:", text[0] if self.locale == "cs" else text[1])
-        layout.addWidget(label2)
-        layout.addWidget(button)
-        widget.setLayout(layout)
-        def showDlg():
-            self.dlgErr = ErrMsgDialog()            
-            self.dlgErr.pushButton_copyMsg.setStyleSheet("color: #fff !important; text-transform: uppercase;font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 6px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;") # Add the stylesheet             
-            self.dlgErr.pushButton_copyMsg.clicked.connect(copy_to_clipboard)
-            self.dlgErr.plainTextEdit.setPlainText(text[0] +" - "+ str(info) if self.locale == "cs" else text[1] +" - " + str(info))
-            self.dlgErr.show()
-
-        def copy_to_clipboard():
-            message = str(err) if url == "" else str(err) + "\n" + "requested url: " + url
-            clipboard = PyQt5.QtGui.QGuiApplication.clipboard()
-            clipboard.setText(message)
-            self.dlgErr.close()        
-        button.clicked.connect(showDlg)        
-        self.iface.messageBar().pushWidget(widget, typ)            
+           
    
     def run_LayerDecisionDialog(self, layersToDecision):
         self.utils.recalculateDPI()
@@ -752,7 +722,7 @@ class Layman(QObject):
             self.dlg2.pushButton_exportCreate.clicked.connect(lambda: self.createQProject(self.dlg2.lineEdit_name.text(),self.dlg2.lineEdit_desciption.text(),self.dlg2.checkBox_private.checkState()))
             return
         else:
-            self.showErr.emit(["Přihlášení nebylo úspěšné!", "Login was not successful!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)  
+            self.utils.showErr.emit(["Přihlášení nebylo úspěšné!", "Login was not successful!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)  
     def setQAuth(self, **kwargs: str) -> None:
 
         authcfg = self.settings.value("laymenQfieldAuthCfg")
@@ -1136,9 +1106,7 @@ class Layman(QObject):
  
 
                 if len(newLayers) > 0:                   
-                    self.addLayerToComposite2(composition, layers)
-
-            #self.dlg.close()
+                    self.addLayerToComposite2(composition, layers)           
             return True
         else:
             QgsMessageLog.logMessage("uniqLayers")
@@ -1587,9 +1555,7 @@ class Layman(QObject):
    
 
     def run_AddLayerDialog(self):
-        self.dlg = AddLayerDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)       
-
-    
+        AddLayerDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)  
     def addExternalWMSToComposite(self, name):       
         nameInList = name
         name = self.utils.removeUnacceptableChars(name).lower()
@@ -2224,9 +2190,7 @@ class Layman(QObject):
                     except:
                         self.old_dlg.progressBar_loader.hide()
             except:
-                print("different form")
-        if message == "afterCompositionLoaded":
-            self.afterCompositionLoaded()
+                print("different form")      
         if message == "layersLoaded":          
             try:
                 self.dlg.progressBar_loader.hide()                
@@ -2314,8 +2278,11 @@ class Layman(QObject):
             else:
                 QMessageBox.information(None, "Error", "Connection with server failed! Layer was not exported.")
         if message == "export":
-            self.dlg.progressBar.hide()
-            self.dlg.label_import.hide()    
+            try:
+                self.dlg.progressBar.hide()
+                self.dlg.label_import.hide()    
+            except:
+                pass                
 
         if message == "limitSize":
             if self.locale == "cs":
@@ -2406,7 +2373,6 @@ class Layman(QObject):
                 self.dlg.progressBar.hide()
             except:
                 pass
-
             try:
                 self.dlg.progressBar_loader.hide()
             except:
@@ -2551,10 +2517,8 @@ class Layman(QObject):
         self.stylesToUpdate.add(layer)
         print("symbology was changed")
    
-    def afterCompositionLoaded(self):      
-        
-        permissions = self.instance.getPermissions()
-        print("afterCompositionLoaded") 
+    def afterCompositionLoaded(self):              
+        permissions = self.instance.getPermissions()  
         if permissions == "w" or permissions == "n" :            
      
             layers = self.project.mapLayers().values() 
@@ -2657,7 +2621,7 @@ class Layman(QObject):
                 else:         
                     iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was sucessfully deleted."), Qgis.Success, duration=3)
             else:
-                self.showErr.emit([" Kompozice  " + composition['name'] + " nebyla smazána.", " Composition  " + composition['name'] + " was not sucessfully deleted."], "code: " + str(response.status_code), str(response.content), Qgis.Warning)               
+                self.utils.showErr.emit([" Kompozice  " + composition['name'] + " nebyla smazána.", " Composition  " + composition['name'] + " was not sucessfully deleted."], "code: " + str(response.status_code), str(response.content), Qgis.Warning)               
 
             self.instance = None
             self.current = None
@@ -2842,7 +2806,7 @@ class Layman(QObject):
             else:
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
         else:
-            self.showErr.emit([" Metadata nebyla upravena.", " Map metadata was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
+            self.utils.showErr.emit([" Metadata nebyla upravena.", " Map metadata was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
 
         self.dlg.close()
         composition = self.instance.getComposition()
@@ -3289,7 +3253,7 @@ class Layman(QObject):
                         time.sleep(3)                    
                         response = requests.get(url , headers = self.utils.getAuthHeader(self.authCfg))
                 except:
-                    self.showErr.emit(["Připojení se serverem selhalo!", "Connection with server failed!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)                
+                    self.utils.showErr.emit(["Připojení se serverem selhalo!", "Connection with server failed!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)                
                     return
 
             if (response.status_code == 200):
@@ -3468,6 +3432,7 @@ class Layman(QObject):
             res = self.utils.fromByteToJson(response.content)            
             try:
                 if res['code'] == 4:
+                    
                     QgsMessageLog.logMessage("unsupportedCRS")
                     QgsMessageLog.logMessage("resetProgressbar")
                     return
@@ -4013,8 +3978,7 @@ class Layman(QObject):
                 for i in range (0, len(layers)):
                     for item in currentSet:
                         if self.utils.removeUnacceptableChars(item[0]) == self.utils.removeUnacceptableChars(layers[i].name()):
-                            service = item[1].lower()
-                    # self.dlg.progressBar_loader.show()
+                            service = item[1].lower()            
                     layerName = self.utils.removeUnacceptableChars(layers[i].name()).lower()                   
                     if layers[i].hasScaleBasedVisibility():
                         minScale = (self.utils.scaleToResolution(layers[i].minimumScale()))
@@ -4110,7 +4074,7 @@ class Layman(QObject):
             else:           
                 iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was sucessfully created."), Qgis.Success, duration=3)
         else:
-            self.showErr.emit([" Kompozice  " + composition['name'] + " nebyla vytvořena.", " Composition  " + composition['name'] + " was not sucessfully created."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)        
+            self.utils.showErr.emit([" Kompozice  " + composition['name'] + " nebyla vytvořena.", " Composition  " + composition['name'] + " was not sucessfully created."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)        
 
     def showProgressBar(self, bar):
         bar = QProgressBar()

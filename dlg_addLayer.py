@@ -52,6 +52,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     layerDeletedSuccessfully = pyqtSignal()
     permissionInfo = pyqtSignal(bool,list, int)
     
+    
     def __init__(self, utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(AddLayerDialog, self).__init__(parent)
@@ -76,8 +77,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
     
-    def setPermissionsWidget(self, option):
-        
+    def setPermissionsWidget(self, option):        
         self.page1.setVisible(option)
         self.page2.setVisible(not option)
         if option == True:
@@ -87,14 +87,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.setPermissionsUI(names)
 
     def setUi(self):
-        ##
         self.pushButton_setPermissions.clicked.connect(lambda: self.setPermissionsWidget(True))
         self.pushButton_back.clicked.connect(lambda: self.setPermissionsWidget(False))
         self.permissionsConnected = False
         self.connectEvents()
         self.utils.recalculateDPI()
-
-
         self.pushButton_layerRedirect.hide()
         self.pushButton_layerRedirect.setEnabled(False)
         self.pushButton_urlWfs.setEnabled(False)
@@ -139,7 +136,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")       
         self.progressBar_loader.show()
         self.loadLayersThread(checked)
-        #self.getLayers.emit(checked)
         self.checkBox_own.stateChanged.connect(self.loadLayersThread)
         if self.isAuthorized:
             self.checkBox_own.setEnabled(True)
@@ -181,12 +177,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.layman.locale == "cs":
             usersDictReversed['EVERYONE'] = 'VŠICHNI'
         else:
-            usersDictReversed['EVERYONE'] = 'EVERYONE'
-        # r= requests.get(uri)
+            usersDictReversed['EVERYONE'] = 'EVERYONE'   
         r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
         res = self.utils.fromByteToJson(r.content)
-        userCount = len(res)
-            ##nabit combobox
+        userCount = len(res)   
         if self.layman.locale == "cs":
             self.comboBox_users.addItem('VŠICHNI')
         else:
@@ -287,7 +281,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.showMessageBar([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],Qgis.Warning)
 
     def showThumbnail2(self, it):
-        layer = it.text(0) ##pro QTreeWidget
+        layer = it.text(0) 
         workspace = it.text(1)
         if self.checkBox_thumbnail.checkState() == 0:
 
@@ -325,15 +319,13 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 item.setHidden(False)
             iterator +=1
 
-    def rememberValueLayer(self, value):
-        ## 2 true, 0 false
+    def rememberValueLayer(self, value):    
         if value == 2:
             self.utils.appendIniItem("layerCheckbox", "1")
         if value == 0:
             self.utils.appendIniItem("layerCheckbox", "0")
 
     def loadLayersThread(self, onlyOwn=False):
-
         self.layerNamesDict = dict()
         self.treeWidget.clear()
         if self.laymanUsername and self.isAuthorized:
@@ -401,24 +393,16 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def checkServiceButtons(self):
         if self.objectName() == "AddLayerDialog":
-
             if self.checkFileType(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.selectedItems()[0].text(1)) == "vector":
                 if self.objectName() == "AddLayerDialog":
                     print(self.pushButton_wfs.setEnabled(True))
                     self.enableWfsButton.emit(True, self.pushButton_wfs)
-
-
             elif self.checkFileType(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.selectedItems()[0].text(1)) == "raster":
                 if self.objectName() == "AddLayerDialog":
-
-
-
                     self.enableWfsButton.emit(False, self.pushButton_wfs)
             else:
                 if self.objectName() == "AddLayerDialog":
-
                     self.enableWfsButton.emit(True, self.pushButton_wfs)
-
 
     def onWfsButton(self, enable, button):
         try:
@@ -519,7 +503,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
             QgsMessageLog.logMessage("layersLoaded")
         else:
-            self.emitMessageBox.emit(["Vrstva "+layerName+ " nelze nahrát","Something went wrong with layer: " + layerName])
+            self.layman.emitMessageBox.emit(["Vrstva "+layerName+ " nelze nahrát","Something went wrong with layer: " + layerName])
             QgsMessageLog.logMessage("layersLoaded")
     def write_log_message(self,message, tag, level):
         if message == "layersLoaded":            
@@ -540,16 +524,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             checked = True      
         self.getLayers.emit(checked)
 
-        if response.status_code == 200:
-            #self._onLayerDeletedSuccessfully()
-
+        if response.status_code == 200:        
             self.layerDeletedSuccessfully.emit()
         else:
             self.utils.showErr.emit(["Vrstva nebyla smazána!", "Layer was not deleted!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
-    def _onLayerDeletedSuccessfully(self):
-        print(self.objectName())
+    def _onLayerDeletedSuccessfully(self):   
         if self.objectName() == "AddLayerDialog":
-
             self.pushButton_postgis.setEnabled(False)
             self.pushButton_wfs.setEnabled(False)
             self.pushButton.setEnabled(False)
@@ -621,8 +601,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             
     def askForMapPermissionChanges(self,layerName, userDict, type):
         self.failed = list()
-        self.statusHelper = True    
-        
+        self.statusHelper = True            
         threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type)).start()
       
             
@@ -705,9 +684,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.failed.append(layer)         
                 self.utils.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
                 (list,str,str,Qgis.MessageLevel, str)  
-                self.statusHelper = False
-                   
-        ## rekurzivni zmeny        
+                self.statusHelper = False                  
+      
         if (type == "maps" and check):
             if self.statusHelper:
                 layerList = list()              
