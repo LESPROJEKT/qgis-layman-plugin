@@ -26,7 +26,6 @@
 import base64
 import configparser
 import copy
-import csv
 import json
 import os
 import os.path
@@ -488,7 +487,7 @@ class Layman(QObject):
                         self.laymanUsername, type_conversion_ok = proj.readEntry("Layman", "Workspace")
                         self.Agrimail = self.laymanUsername           
                         path = self.plugin_dir + os.sep + "server_list.txt"
-                        servers = self.csvToArray(path)
+                        servers = self.utils.csvToArray(path)
                         for i in range (0,len(servers)):
                             if server == servers[i][1]:                                
                                 self.setServers(servers, i)                             
@@ -1195,123 +1194,125 @@ class Layman(QObject):
             
     def setBatchLengthZero(self):
         self.batchLength = 0   
-    def run_login(self, server = False):        
-        if server or self.current != None:
-            server = True
-            proj = QgsProject.instance()
-            server, type_conversion_ok = proj.readEntry("Layman", "Server","")
-            name, type_conversion_ok = proj.readEntry("Layman", "Name","")            
-        self.utils.recalculateDPI()
-        self.dlg = ConnectionManagerDialog()      
-        self.dlg.show()    
-        if not self.dependencies:
-            self.dlg.pushButton_Connect.hide()          
-            self.dlg.comboBox_server.setEnabled(False)
-            self.dlg.lineEdit_userName.setEnabled(False)
-        self.dlg.pushButton_Connect.setEnabled(False)      
-        path = self.plugin_dir + os.sep + "server_list.txt"
-        servers = self.csvToArray(path)
-        self.dlg.label_APIKey_2.setToolTip("Username is important only with first login")       
-        for i in range (0,len(servers)):
+    def run_login(self, server = False): 
+        self.dlg = ConnectionManagerDialog(self.utils, server, self.laymanUsername, self.URI, self)    
+             
+        # if server or self.current != None:
+        #     server = True
+        #     proj = QgsProject.instance()
+        #     server, type_conversion_ok = proj.readEntry("Layman", "Server","")
+        #     name, type_conversion_ok = proj.readEntry("Layman", "Name","")            
+        # self.utils.recalculateDPI()
+        # self.dlg = ConnectionManagerDialog()      
+        # self.dlg.show()    
+        # if not self.dependencies:
+        #     self.dlg.pushButton_Connect.hide()          
+        #     self.dlg.comboBox_server.setEnabled(False)
+        #     self.dlg.lineEdit_userName.setEnabled(False)
+        # self.dlg.pushButton_Connect.setEnabled(False)      
+        # path = self.plugin_dir + os.sep + "server_list.txt"
+        # servers = self.csvToArray(path)
+        # self.dlg.label_APIKey_2.setToolTip("Username is important only with first login")       
+        # for i in range (0,len(servers)):
 
-            if not server:
-                if i == len(servers) - 1: ## vyjimka pro alias na test server bude ostraneno
-                    self.dlg.comboBox_server.addItem("test HUB")
-                else:                 
-                    if len(servers[i]) == 6:
-                        self.dlg.comboBox_server.addItem(servers[i][5])  
-                    else:
-                       self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
-            else:         
-                if not self.loggedThrowProject:
-                    if server == servers[i][1] and server != "http://157.230.109.174/client":
-                        self.dlg.comboBox_server.addItem(server.replace("/client",""))
-                        self.setServers(servers, i) 
-                        print("loaded name is "+name)
-                        self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2(name))
-                        break
-                    elif server == "http://157.230.109.174/client" and servers[i][1] == server:
-                        self.dlg.comboBox_server.addItem("test HUB")                  
-                        self.setServers(servers, i)
-                        print("loaded name is "+name)
-                        self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2(name))
-                        break
-                else:      
-                    if len(servers[i]) == 6:
-                        self.dlg.comboBox_server.addItem(servers[i][5])  
-                    else:
-                       self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))             
+        #     if not server:
+        #         if i == len(servers) - 1: ## vyjimka pro alias na test server bude ostraneno
+        #             self.dlg.comboBox_server.addItem("test HUB")
+        #         else:                 
+        #             if len(servers[i]) == 6:
+        #                 self.dlg.comboBox_server.addItem(servers[i][5])  
+        #             else:
+        #                self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
+        #     else:         
+        #         if not self.loggedThrowProject:
+        #             if server == servers[i][1] and server != "http://157.230.109.174/client":
+        #                 self.dlg.comboBox_server.addItem(server.replace("/client",""))
+        #                 self.setServers(servers, i) 
+        #                 print("loaded name is "+name)
+        #                 self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2(name))
+        #                 break
+        #             elif server == "http://157.230.109.174/client" and servers[i][1] == server:
+        #                 self.dlg.comboBox_server.addItem("test HUB")                  
+        #                 self.setServers(servers, i)
+        #                 print("loaded name is "+name)
+        #                 self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2(name))
+        #                 break
+        #         else:      
+        #             if len(servers[i]) == 6:
+        #                 self.dlg.comboBox_server.addItem(servers[i][5])  
+        #             else:
+        #                self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))             
   
                        
-        if self.laymanUsername == "":
-            if not server:
-                self.setServers(servers, 0) ## nastavujeme prvni server
+        # if self.laymanUsername == "":
+        #     if not server:
+        #         self.setServers(servers, 0) ## nastavujeme prvni server
 
-        self.dlg.comboBox_server.currentIndexChanged.connect(lambda: self.setServers(servers, self.dlg.comboBox_server.currentIndex()))
-        if (os.path.isfile(os.getenv("HOME") + os.sep + ".layman" + os.sep +'layman_user.INI')):
-            config = self.loadIni()   
-            if 'login' in config['DEFAULT']:
-                if len(config['DEFAULT']['login']) > 0:
-                    self.Agrimail = config['DEFAULT']['login']
-                    self.dlg.pushButton_Connect.setEnabled(True)  
-                self.dlg.lineEdit_userName.setText(config['DEFAULT']['login'])
+        # self.dlg.comboBox_server.currentIndexChanged.connect(lambda: self.setServers(servers, self.dlg.comboBox_server.currentIndex()))
+        # if (os.path.isfile(os.getenv("HOME") + os.sep + ".layman" + os.sep +'layman_user.INI')):
+        #     config = self.loadIni()   
+        #     if 'login' in config['DEFAULT']:
+        #         if len(config['DEFAULT']['login']) > 0:
+        #             self.Agrimail = config['DEFAULT']['login']
+        #             self.dlg.pushButton_Connect.setEnabled(True)  
+        #         self.dlg.lineEdit_userName.setText(config['DEFAULT']['login'])
 
-            for i in range (0, self.dlg.comboBox_server.count()):   
-                if not server:
-                    if self.authCfg == "a67e5fd":
-                        self.dlg.comboBox_server.setCurrentIndex(len(servers) - 1)
-                    else:
-                        if "server" in config['DEFAULT']:
-                            if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
-                                self.dlg.comboBox_server.setCurrentIndex(i)
-        else:
-            try:
-                os.makedirs(os.getenv("HOME") + os.sep + ".layman")
-            except:
-                print("layman directory already exists")       
-            self.dlg.pushButton_Connect.setEnabled(True)
-        self.dlg.lineEdit_userName.textChanged.connect(self.checkUsername)
-        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        if QgsSettings().value("laymanLastServer") != None:
-            self.dlg.comboBox_server.setCurrentIndex(int(QgsSettings().value("laymanLastServer")))
-        if not server:
-            self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2())     
-        self.dlg.pushButton_NoLogin.clicked.connect(lambda: self.withoutLogin(servers, self.dlg.comboBox_server.currentIndex()))
-        self.dlg.pushButton_Continue.setEnabled(False)
-        registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
-        self.dlg.comboBox_server.currentTextChanged.connect(self.setReg)
-        self.dlg.label_sign.setOpenExternalLinks(True)
-        if self.locale == "cs":
-            self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
-        else:
-            self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
-        pushbuttons = self.findChildren(QPushButton)
-        for button in pushbuttons:
-            print(button.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}"))
+        #     for i in range (0, self.dlg.comboBox_server.count()):   
+        #         if not server:
+        #             if self.authCfg == "a67e5fd":
+        #                 self.dlg.comboBox_server.setCurrentIndex(len(servers) - 1)
+        #             else:
+        #                 if "server" in config['DEFAULT']:
+        #                     if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
+        #                         self.dlg.comboBox_server.setCurrentIndex(i)
+        # else:
+        #     try:
+        #         os.makedirs(os.getenv("HOME") + os.sep + ".layman")
+        #     except:
+        #         print("layman directory already exists")       
+        #     self.dlg.pushButton_Connect.setEnabled(True)
+        # self.dlg.lineEdit_userName.textChanged.connect(self.checkUsername)
+        # self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
+        # if QgsSettings().value("laymanLastServer") != None:
+        #     self.dlg.comboBox_server.setCurrentIndex(int(QgsSettings().value("laymanLastServer")))
+        # if not server:
+        #     self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2())     
+        # self.dlg.pushButton_NoLogin.clicked.connect(lambda: self.withoutLogin(servers, self.dlg.comboBox_server.currentIndex()))
+        # self.dlg.pushButton_Continue.setEnabled(False)
+        # registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
+        # self.dlg.comboBox_server.currentTextChanged.connect(self.setReg)
+        # self.dlg.label_sign.setOpenExternalLinks(True)
+        # if self.locale == "cs":
+        #     self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
+        # else:
+        #     self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
+        # pushbuttons = self.findChildren(QPushButton)
+        # for button in pushbuttons:
+        #     print(button.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}"))
         
-        self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")        
-        self.dlg.pushButton_logout.clicked.connect(lambda: self.logout())
+        # self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")        
+        # self.dlg.pushButton_logout.clicked.connect(lambda: self.logout())
         
-        if self.laymanUsername != "":
-            self.dlg.pushButton_logout.setEnabled(True)
-            self.dlg.pushButton_NoLogin.setEnabled(False)
-            self.dlg.pushButton_Connect.setEnabled(False)
-            self.dlg.comboBox_server.setEnabled(False)
-            self.dlg.lineEdit_userName.setEnabled(False)
-            if self.locale == "cs":
-                self.dlg.setWindowTitle("Layman - Přihlášený uživatel: " + self.laymanUsername)
-            else:
-                self.dlg.setWindowTitle("Layman - Logged user: " + self.laymanUsername)
+        # if self.laymanUsername != "":
+        #     self.dlg.pushButton_logout.setEnabled(True)
+        #     self.dlg.pushButton_NoLogin.setEnabled(False)
+        #     self.dlg.pushButton_Connect.setEnabled(False)
+        #     self.dlg.comboBox_server.setEnabled(False)
+        #     self.dlg.lineEdit_userName.setEnabled(False)
+        #     if self.locale == "cs":
+        #         self.dlg.setWindowTitle("Layman - Přihlášený uživatel: " + self.laymanUsername)
+        #     else:
+        #         self.dlg.setWindowTitle("Layman - Logged user: " + self.laymanUsername)
 
-        else:
-            self.dlg.pushButton_logout.setEnabled(False)
-            self.dlg.pushButton_NoLogin.setEnabled(True)
-            self.dlg.pushButton_Connect.setEnabled(True)
-            self.dlg.comboBox_server.setEnabled(True)
-            self.dlg.lineEdit_userName.setEnabled(True)
-        self.utils.setAuthCfg(self.authCfg)
-        result = self.dlg.exec_()
-        self.dlg.rejected.connect(lambda: self.loginReject())
+        # else:
+        #     self.dlg.pushButton_logout.setEnabled(False)
+        #     self.dlg.pushButton_NoLogin.setEnabled(True)
+        #     self.dlg.pushButton_Connect.setEnabled(True)
+        #     self.dlg.comboBox_server.setEnabled(True)
+        #     self.dlg.lineEdit_userName.setEnabled(True)
+        # self.utils.setAuthCfg(self.authCfg)
+        # result = self.dlg.exec_()
+        # self.dlg.rejected.connect(lambda: self.loginReject())
     def run_AddMickaDialog(self):
         self.dlg = AddMickaDialog()
         self.dlg.show()   
@@ -1592,13 +1593,7 @@ class Layman(QObject):
         except:
             pass 
    
-    def checkUsername(self, name):
-        n = name.split("@")
-        if(len(n[0]) > 0):
-            self.dlg.pushButton_Connect.setEnabled(True)        
-            self.Agrimail = name
-        else:
-            self.dlg.pushButton_Connect.setEnabled(False)
+    
 
     def setListLayer(self):       
         count = self.dlg.treeWidget_listLayers.topLevelItemCount()
@@ -1610,22 +1605,9 @@ class Layman(QObject):
             self.dlg.treeWidget_listLayers.setCurrentItem(self.dlg.treeWidget_listLayers.topLevelItem(0),0)
             self.dlg.pushButton_deleteLayers.setEnabled(True)
             self.dlg.pushButton_up.setEnabled(True)
-            self.dlg.pushButton_down.setEnabled(True)
+            self.dlg.pushButton_down.setEnabled(True)       
 
-    def csvToArray(self, path):
-        results = []
-        with open(path) as csvfile:
-            reader = csv.reader(csvfile,delimiter=',') # change contents to floats
-            for row in reader: # each row is a list
-                results.append(row)
-        return results   
-
-    def setReg(self, str):
-        registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
-        if self.locale == "cs":
-            self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
-        else:
-            self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
+    
     def loginReject(self):                
         if self.dlg.pushButton_Continue.isEnabled():
             self.getToken()
@@ -4966,11 +4948,7 @@ class Layman(QObject):
         self.utils.appendIniItem('id',self.client_id)
         self.utils.appendIniItem('server',self.liferayServer)
         self.utils.appendIniItem('layman',self.URI)   
-    def loadIni(self):
-        file =  os.getenv("HOME") + os.sep + ".layman" + os.sep +'layman_user.INI'
-        config = configparser.ConfigParser()
-        config.read(file)
-        return config
+    
     def checkQgisVersion(self):
         version = Qgis.QGIS_VERSION_INT
         major = version // 10000

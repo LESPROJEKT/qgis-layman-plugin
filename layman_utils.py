@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QMessageBox, QApp
 from .dlg_errMsg import ErrMsgDialog
 import tempfile
 from PyQt5 import QtWidgets, QtGui, QtCore
+import csv
 class LaymanUtils(QObject): 
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)  
     setVisibility = pyqtSignal(QgsMapLayer)
@@ -136,7 +137,7 @@ class LaymanUtils(QObject):
             url = QUrl(self.URI+ "/rest/current-user")
             xx = QNetworkRequest(url)   
             i = 0
-            success = (QgsApplication.authManager().updateNetworkRequest(xx, authCfg))                 
+            success = QgsApplication.authManager().updateNetworkRequest(xx, authCfg)                 
             if success[0] == True:
                 header = (xx.rawHeader(QByteArray(b"Authorization")))                
                 authHeader ={
@@ -669,7 +670,18 @@ QPushButton::indicator {
         for widget in QApplication.instance().allWidgets():
             if isinstance(widget, QPushButton):
                 widget.setStyleSheet(button_stylesheet)        
-                
+    def csvToArray(self, path):
+        results = []
+        with open(path) as csvfile:
+            reader = csv.reader(csvfile,delimiter=',') # change contents to floats
+            for row in reader: # each row is a list
+                results.append(row)
+        return results      
+    def loadIni(self):
+        file =  os.getenv("HOME") + os.sep + ".layman" + os.sep +'layman_user.INI'
+        config = configparser.ConfigParser()
+        config.read(file)
+        return config        
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:
@@ -711,3 +723,4 @@ class ProxyStyle(QtWidgets.QProxyStyle):
                     ),
                 )
                 painter.drawPixmap(iconRect, pixmap)                 
+                
