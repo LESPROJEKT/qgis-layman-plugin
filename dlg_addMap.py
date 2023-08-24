@@ -313,16 +313,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
             response = requests.delete(url, headers = self.utils.getAuthHeader(self.utils.authCfg))           
             if (response.status_code == 200):
-                if self.layman.locale == "cs":             
-                    self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " byla úspešně smazána."), Qgis.Success, duration=3)
-                else:             
-                    self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Composition  " + name + " was sucessfully deleted."), Qgis.Success, duration=3)
+                self.utils.showQgisBar([" Kompozice  " + name + " byla úspešně smazána."," Composition  " + name + " was sucessfully deleted."], Qgis.Success)        
             else:
-                if self.layman.locale == "cs":             
-                    self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Kompozice  " + name + " nebyla smazána."), Qgis.Warning)
-                else:              
-                    self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Composition  " + name + " was not sucessfully deleted."), Qgis.Warning)    
-          
+                self.utils.showQgisBar([" Kompozice  " + name + " nebyla smazána."," Composition  " + name + " was not sucessfully deleted."], Qgis.Warning)    
             self.mapDeletedSuccessfully.emit()
             try:
                 checked = self.utils.getConfigItem("mapcheckbox")
@@ -357,11 +350,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             
         try:     
             df=pd.DataFrame([url])
-            df.to_clipboard(index=False,header=False)            
-            if self.layman.locale == "cs":
-                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " URL uloženo do schránky."), Qgis.Success, duration=3)
-            else:
-                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " URL saved to clipboard."), Qgis.Success, duration=3)
+            df.to_clipboard(index=False,header=False)    
+            self.utils.showQgisBar([" URL uloženo do schránky."," URL saved to clipboard."], Qgis.Success)      
         except Exception as e:
             info = str(e)
             allInfo = traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__) 

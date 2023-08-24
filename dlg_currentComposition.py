@@ -983,10 +983,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         composition['center'][1] = float(center.y())
         response = self.layman.patchMap2()
         if (response.status_code == 200):
-            if self.locale == "cs":
-                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Metadata byla úspěšně upravena."), Qgis.Success, duration=3)
-            else:
-                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
+            self.utils.showQgisBar([" Metadata byla úspěšně upravena."," Map metadata was saved successfully."], Qgis.Success)             
         else:
             self.utils.showErr.emit([" Metadata nebyla upravena.", " Map metadata was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
 
@@ -1071,25 +1068,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if "client" in self.URI:
                 url = self.URI+'/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'
             else:  
-                url = self.URI+'/client/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'
-            
+                url = self.URI+'/client/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'            
         try:     
             df=pd.DataFrame([url])
-            df.to_clipboard(index=False,header=False)            
-            if self.locale == "cs":
-                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " URL uloženo do schránky."), Qgis.Success, duration=3)
-            else:
-                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " URL saved to clipboard."), Qgis.Success, duration=3)
+            df.to_clipboard(index=False,header=False)     
+            self.utils.showQgisBar([" URL uloženo do schránky."," URL saved to clipboard."], Qgis.Success)       
         except Exception as e:
             info = str(e)
             allInfo = traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__) 
             print([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, allInfo)
             self.utils.showErr.emit([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, str(allInfo), Qgis.Warning, "")        
-            
-            
-            
-            
-            
             
     def setNewUI(self): 
         self.label_info.hide()
@@ -1335,10 +1323,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             composition['layers'][self.layman.instance.getLayerOrderByTitle(name)]['greyscale'] = False
         response = self.layman.patchMap2()
         if  response.status_code == 200:
-            if self.locale == "cs":
-                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Změny byly uloženy."), Qgis.Success, duration=3)
-            else:
-                self.layman.iface.messageBar().pushWidget(self.layman.iface.messageBar().createMessage("Layman:", " Changes was saved."), Qgis.Success, duration=3)
+            self.utils.showQgisBar([" Změny byly uloženy."," Changes was saved."], Qgis.Success)  
         else:
             self.showErr.emit([" Změny nebyly uloženy.", " Changes was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
         self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])                            
