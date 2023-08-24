@@ -464,10 +464,7 @@ class Layman(QObject):
                         self.instance = CurrentComposition(self.URI, name, self.laymanUsername, self.utils.getAuthHeader(self.authCfg),self.laymanUsername)                   
                     else:
                         self.current = None
-                        if self.locale == "cs":
-                            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice již na serveru neexistuje."), Qgis.Warning, duration=5)
-                        else:
-                            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Composition on server does not exists."), Qgis.Warning, duration=5)
+                        self.utils.showQgisBar([ "Kompozice již na serveru neexistuje.","Composition on server does not exists."], Qgis.Warning)                   
             elif server == self.URI and afterLogged:
                 if self.compositionExists(name):
                     self.current = name
@@ -508,12 +505,8 @@ class Layman(QObject):
         r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))    
         if r.status_code == 200:
             return True
-        elif self.utils.fromByteToJson(r.content)["code"] == 26:
-            print("compositon was not set because user is not owner")
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Kompozice nebyla nastavena protože aktuální uživatel není vlastník."), Qgis.Warning, duration=3)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Compositon was not set because user is not owner."), Qgis.Warning, duration=3)
+        elif self.utils.fromByteToJson(r.content)["code"] == 26:      
+            self.utils.showQgisBar(["Kompozice nebyla nastavena protože aktuální uživatel není vlastník.","Compositon was not set because user is not owner."], Qgis.Warning) 
         else:
             return False 
     def setGuiForItem(self, item):
@@ -2149,10 +2142,7 @@ class Layman(QObject):
                 self.dlg.pushButton_save.setEnabled(True)
             except:
                 print("formular jiz byl uzavren")
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Změny v kompozici byly uloženy."), Qgis.Success, duration=3)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Changes in composition were saved."), Qgis.Success, duration=3)
+            self.utils.showQgisBar([" Změny v kompozici byly uloženy."," Changes in composition were saved."], Qgis.Success)  
             try:
                 self.dlg.label_raster.hide()
             except:
@@ -2297,12 +2287,8 @@ class Layman(QObject):
                 self.progressColor(message[8:100], False)
             except:
                 pass
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+message[8:100]+" nebyla nahrána, protože je příliž velká."), Qgis.Warning)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+message[8:100]+" was not successfully exported because is too large"), Qgis.Warning)
+            self.utils.showQgisBar(["Vrstva: "+message[8:100]+" nebyla nahrána, protože je příliž velká.","Layer: "+message[8:100]+" was not successfully exported because is too large"], Qgis.Warning)  
             done = 0
-
             for i in range (0, len(self.processingList)):
                 if self.processingList[i][2] == 1:
                     self.processingList[i][2] = 2
@@ -2418,13 +2404,9 @@ class Layman(QObject):
                          
    
         
-    def _onReprojectionFailed(self, layerName):        
-        if self.locale == "cs":
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+layerName+" má nastavenou špatnou projekci!"), Qgis.Warning)
-        else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+layerName+" has wrong projection!"), Qgis.Warning)
-        done = 0
-        
+    def _onReprojectionFailed(self, layerName):     
+        self.utils.showQgisBar(["Vrstva: "+layerName+" má nastavenou špatnou projekci!","Layer: "+layerName+" has wrong projection!"], Qgis.Warning)  
+        done = 0        
         for i in range (0, len(self.processingList)):
             if self.processingList[i][2] == 1:        
                 self.processingList[i][2] = 2                
@@ -2434,10 +2416,7 @@ class Layman(QObject):
         except:
             print("current dialog")
     def _onExportLayerSuccessful(self, layerName):
-        if self.locale == "cs":
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+layerName+" byla úspěšně nahrána "), Qgis.Success, duration=3)
-        else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+layerName+" was successfully exported"), Qgis.Success, duration=3)
+        self.utils.showQgisBar(["Vrstva: "+layerName+" byla úspěšně nahrána ","Layer: "+layerName+" was successfully exported"], Qgis.Success)  
         done = 0
 
         for i in range (0, len(self.processingList)):
@@ -2458,10 +2437,7 @@ class Layman(QObject):
         except:
             pass
     def _onReadCompositionFailed(self):
-        if self.locale == "cs":
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Špatný formát kompozice."), Qgis.Warning, duration=3)
-        else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Wrong format of composition"), Qgis.Warning, duration=3)     
+        self.utils.showQgisBar(["Špatný formát kompozice.","Wrong format of composition"], Qgis.Warning)   
         if self.dlg.objectName() == "AddMapDialog":
             self.dlg.progressBar_loader.hide()
     def _onExportLayerFailed(self, layerName):
@@ -2472,13 +2448,9 @@ class Layman(QObject):
         try:
             self.dlg.pushButton_errLog.show()
         except:
-            pass            
-        if self.locale == "cs":
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Vrstva: "+layerName+" nebyla nahrána "), Qgis.Warning)
-        else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Layer: "+layerName+" was not exported successfully"), Qgis.Warning)
+            pass          
+        self.utils.showQgisBar(["Vrstva: "+layerName+" nebyla nahrána ","Layer: "+layerName+" was not exported successfully"], Qgis.Warning)  
         done = 0
-
         for i in range (0, len(self.processingList)):
             if self.processingList[i][2] == 1:
                 self.processingList[i][2] = 2                
@@ -2589,10 +2561,7 @@ class Layman(QObject):
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+composition['name']           
             response = self.utils.requestWrapper("DELETE", url, payload = None, files = None)
             if (response.status_code == 200):
-                if self.locale == "cs":     
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + composition['name'] + " byla úspešně smazána."), Qgis.Success, duration=3)
-                else:         
-                    iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was sucessfully deleted."), Qgis.Success, duration=3)
+                self.utils.showQgisBar([" Kompozice  " + composition['name'] + " byla úspešně smazána."," Composition  " + composition['name'] + " was sucessfully deleted."], Qgis.Success)  
             else:
                 self.utils.showErr.emit([" Kompozice  " + composition['name'] + " nebyla smazána.", " Composition  " + composition['name'] + " was not sucessfully deleted."], "code: " + str(response.status_code), str(response.content), Qgis.Warning)               
 
@@ -2619,9 +2588,7 @@ class Layman(QObject):
         return layers
 
     def onClosePlugin(self):
-        """Cleanup necessary items here when plugin dockwidget is closed"""
-
-        #print "** CLOSING Atlas"
+        """Cleanup necessary items here when plugin dockwidget is closed""" 
 
         # disconnects
         self.dockwidget.closingPlugin.disconnect(self.onClosePlugin)      
@@ -2664,9 +2631,7 @@ class Layman(QObject):
                 print("Copying " + str(sl.path()))
                 fileNames.append(tempPath + os.sep + os.path.basename(symbolPath))
             else:
-                print("Ignoring " + str(sl))
-
-    
+                print("Ignoring " + str(sl))  
 
    
    
@@ -2774,10 +2739,7 @@ class Layman(QObject):
         composition['center'][1] = float(center.y())
         response = self.patchMap2()
         if (response.status_code == 200):
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Metadata byla úspěšně upravena."), Qgis.Success, duration=3)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Map metadata was saved successfully."), Qgis.Success, duration=3)
+            self.utils.showQgisBar([" Metadata byla úspěšně upravena."," Map metadata was saved successfully."], Qgis.Success)  
         else:
             self.utils.showErr.emit([" Metadata nebyla upravena.", " Map metadata was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
 
@@ -4041,10 +4003,7 @@ class Layman(QObject):
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
         response = requests.post(url , files=files, data = data, headers = self.utils.getAuthHeader(self.authCfg))  
         if (response.status_code == 200):
-            if self.locale == "cs":     
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Kompozice  " + composition['name'] + " byla úspešně vytvořena."), Qgis.Success, duration=3)
-            else:           
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Composition  " + composition['name'] + " was sucessfully created."), Qgis.Success, duration=3)
+            self.utils.showQgisBar([" Kompozice  " + composition['name'] + " byla úspešně vytvořena."," Composition  " + composition['name'] + " was sucessfully created."], Qgis.Success)       
         else:
             self.utils.showErr.emit([" Kompozice  " + composition['name'] + " nebyla vytvořena.", " Composition  " + composition['name'] + " was not sucessfully created."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)        
 
@@ -4703,10 +4662,7 @@ class Layman(QObject):
         file.write(str(value))
         file.close()
     def notifySuccess(self):
-        if self.locale == "cs":
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Export:", " Vrstva "+str(self.importedLayer)+" byla úspěšně exportována."), Qgis.Success, duration=3)
-        else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Export:", " Layer "+str(self.importedLayer)+" was exported successfully."), Qgis.Success, duration=3)
+        self.utils.showQgisBar([" Vrstva "+str(self.importedLayer)+" byla úspěšně exportována."," Layer "+str(self.importedLayer)+" was exported successfully."], Qgis.Success) 
 
     def read_in_chunks(self, file_object): ## cca 1MB chunk převzato z laymana test klienta
         chunk_size=self.CHUNK_SIZE
@@ -4911,10 +4867,7 @@ class Layman(QObject):
 
                 versionCheck = self.utils.checkVersion()
                 if versionCheck[0] == False:
-                    if self.locale == "cs":
-                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "Nová verze pluginu Layman k dispozici."), Qgis.Success, duration=15)
-                    else:
-                        iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman", "New version of Layman plugin available."), Qgis.Success, duration=15)
+                    self.utils.showQgisBar(["Nová verze pluginu Layman k dispozici.","New version of Layman plugin available."], Qgis.Success)                     
 
                 ##
 
@@ -5027,10 +4980,7 @@ class Layman(QObject):
         else:
             return False
     def _onSuccessTs(self):
-        if self.locale == "cs":
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Časová wms úspěšně exportována."), Qgis.Success, duration=3)
-        else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Time series WMS successfully exported."), Qgis.Success, duration=3)        
+        self.utils.showQgisBar(["Časová wms úspěšně exportována.","Time series WMS successfully exported."], Qgis.Success)     
         if self.locale == "cs":
             self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")
         else:
@@ -5048,11 +4998,6 @@ class Layman(QObject):
             QMessageBox.information(None, "Layman", message[0])
         else:
             QMessageBox.information(None, "Layman", message[1])
-    def showSuccess(self, msg):   
-        if self.locale == "cs":
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[0]), Qgis.Success, duration=3)
-        else:
-            iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", msg[1]), Qgis.Success, duration=3) 
     
     def find_substring(self, searchable_str, start_str, stop_str):
         start_index = searchable_str.find(start_str)  
