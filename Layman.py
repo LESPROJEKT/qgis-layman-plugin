@@ -835,7 +835,8 @@ class Layman(QObject):
                  
             response = self.utils.requestWrapper("POST", url, payload, files)      
          
-        QgsMessageLog.logMessage("qfieldExport")
+        QgsMessageLog.logMessage("qfieldExport")        
+        self.utils.showQgisBar(["Export proběhl úspěšně.","Export was successfull"], Qgis.Success) 
     def getProjectsQfield(self):
         url = "https://app.qfield.cloud/api/v1/projects/"
         headers = {
@@ -2156,11 +2157,7 @@ class Layman(QObject):
                 self.dlg.label_raster.hide()
             except:
                 pass
-        if message == "qfieldExport":
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Export proběhl úspěšně."), Qgis.Success, duration=3)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Export was successfull"), Qgis.Success, duration=3)
+        if message == "qfieldExport":            
             try:
                 self.dlg2.progressBar.hide()
             except:
@@ -2170,16 +2167,7 @@ class Layman(QObject):
                 QMessageBox.information(None, "Layman", "Jména vrstev jsou duplicitní.")
             else:
                 QMessageBox.information(None, "Layman", "Layer names are duplicated.")
-
-        if message == "errConnection":
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Připojení k serveru selhalo!"), Qgis.Warning)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", " Connection with server failed!"), Qgis.Warning)
-            try:
-                self.dlg.progressBar_loader.hide()
-            except:
-                print("progressbar doesnt exist")       
+    
 
         if message == "layersUploaded":         
             try:
@@ -2208,12 +2196,7 @@ class Layman(QObject):
                 self.dlg.progressBar.hide()
             except:
                 pass
-
-        if message =="requestError":
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Chyba spojení se serverem!"), Qgis.Error, duration=3)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Connection with server lost!"), Qgis.Error, duration=3)
+        
         if message =="compositionSchemaError":
             if self.locale == "cs":
                 QMessageBox.information(None, "Layman", "Schéma kompozice není ve validním formátu.")
@@ -2247,12 +2230,7 @@ class Layman(QObject):
                     self.dlg.pushButton.setEnabled(True)
             except:
                 pass
-        if message == "unsupportedCRS":
-            if self.locale == "cs":
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Nepodporované CRS souboru"), Qgis.Warning)
-            else:
-                iface.messageBar().pushWidget(iface.messageBar().createMessage("Layman:", "Unsupported CRS of data file"), Qgis.Warning)
-
+        
 
         if message == "resetProgressbar":
             try:
@@ -2284,11 +2262,6 @@ class Layman(QObject):
             except:
                 pass                
 
-        if message == "limitSize":
-            if self.locale == "cs":
-                QMessageBox.information(None, "Upozornění", "Tato vrstva je větší než 2GB. Může být serverem odmítnuta.")
-            else:
-                QMessageBox.information(None, "Warning", "This layer is bigger than 2GB. It can be refused by server.")
         if message == "exportPatch":
             try:
                 threadsB = set()
@@ -3200,8 +3173,8 @@ class Layman(QObject):
     def setChunkSizeBigger(self):
         self.CHUNK_SIZE = 2098152
     def checkFileSizeLimit(self, size):
-        if size > 2000000000:
-            QgsMessageLog.logMessage("limitSize")
+        if size > 2000000000:            
+            self.utils.showQgisBar(["Tato vrstva je větší než 2GB. Může být serverem odmítnuta.","This layer is bigger than 2GB. It can be refused by server."], Qgis.Warning)  
     def patchThread2(self, layer_name, data, id):    
         if not (self.json_export(layer_name, id)):
             self.reprojectionFailed.emit(layer_name)
@@ -3432,8 +3405,7 @@ class Layman(QObject):
             res = self.utils.fromByteToJson(response.content)            
             try:
                 if res['code'] == 4:
-                    
-                    QgsMessageLog.logMessage("unsupportedCRS")
+                    self.utils.showQgisBar(["Nepodporované CRS souboru","Unsupported CRS of data file"], Qgis.Warning)              
                     QgsMessageLog.logMessage("resetProgressbar")
                     return
             except:

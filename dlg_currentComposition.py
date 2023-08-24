@@ -1237,7 +1237,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 QgsProject().instance().setTitle(title)
                 root = prj.layerTreeRoot()  
                 self.prj=QgsProject.instance()
-                self.prj.removeAll.connect(self.layman.removeSignals)        
+                # self.prj.removeAll.connect(self.layman.removeSignals)        
                 QgsProject.instance().setTitle(title)  
         self.setStackWidget("main")                         
     def setDefaultExtent(self, ext):
