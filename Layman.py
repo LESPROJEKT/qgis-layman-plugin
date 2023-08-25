@@ -241,9 +241,9 @@ class Layman(QObject):
             
         self.timer = QTimer()
         self.timer.timeout.connect(self.refreshWfsLayers)
-        self.timer.start(10000)             
+        self.timer.start(10000)            
 
-    # noinspection PyMethodMayBeStatic
+    
     def tr(self, message):     
         return QCoreApplication.translate('Layman', message)
     def add_action(
@@ -1196,123 +1196,7 @@ class Layman(QObject):
         self.batchLength = 0   
     def run_login(self, server = False): 
         self.dlg = ConnectionManagerDialog(self.utils, server, self.laymanUsername, self.URI, self)    
-             
-        # if server or self.current != None:
-        #     server = True
-        #     proj = QgsProject.instance()
-        #     server, type_conversion_ok = proj.readEntry("Layman", "Server","")
-        #     name, type_conversion_ok = proj.readEntry("Layman", "Name","")            
-        # self.utils.recalculateDPI()
-        # self.dlg = ConnectionManagerDialog()      
-        # self.dlg.show()    
-        # if not self.dependencies:
-        #     self.dlg.pushButton_Connect.hide()          
-        #     self.dlg.comboBox_server.setEnabled(False)
-        #     self.dlg.lineEdit_userName.setEnabled(False)
-        # self.dlg.pushButton_Connect.setEnabled(False)      
-        # path = self.plugin_dir + os.sep + "server_list.txt"
-        # servers = self.csvToArray(path)
-        # self.dlg.label_APIKey_2.setToolTip("Username is important only with first login")       
-        # for i in range (0,len(servers)):
-
-        #     if not server:
-        #         if i == len(servers) - 1: ## vyjimka pro alias na test server bude ostraneno
-        #             self.dlg.comboBox_server.addItem("test HUB")
-        #         else:                 
-        #             if len(servers[i]) == 6:
-        #                 self.dlg.comboBox_server.addItem(servers[i][5])  
-        #             else:
-        #                self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
-        #     else:         
-        #         if not self.loggedThrowProject:
-        #             if server == servers[i][1] and server != "http://157.230.109.174/client":
-        #                 self.dlg.comboBox_server.addItem(server.replace("/client",""))
-        #                 self.setServers(servers, i) 
-        #                 print("loaded name is "+name)
-        #                 self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2(name))
-        #                 break
-        #             elif server == "http://157.230.109.174/client" and servers[i][1] == server:
-        #                 self.dlg.comboBox_server.addItem("test HUB")                  
-        #                 self.setServers(servers, i)
-        #                 print("loaded name is "+name)
-        #                 self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2(name))
-        #                 break
-        #         else:      
-        #             if len(servers[i]) == 6:
-        #                 self.dlg.comboBox_server.addItem(servers[i][5])  
-        #             else:
-        #                self.dlg.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))             
-  
-                       
-        # if self.laymanUsername == "":
-        #     if not server:
-        #         self.setServers(servers, 0) ## nastavujeme prvni server
-
-        # self.dlg.comboBox_server.currentIndexChanged.connect(lambda: self.setServers(servers, self.dlg.comboBox_server.currentIndex()))
-        # if (os.path.isfile(os.getenv("HOME") + os.sep + ".layman" + os.sep +'layman_user.INI')):
-        #     config = self.loadIni()   
-        #     if 'login' in config['DEFAULT']:
-        #         if len(config['DEFAULT']['login']) > 0:
-        #             self.Agrimail = config['DEFAULT']['login']
-        #             self.dlg.pushButton_Connect.setEnabled(True)  
-        #         self.dlg.lineEdit_userName.setText(config['DEFAULT']['login'])
-
-        #     for i in range (0, self.dlg.comboBox_server.count()):   
-        #         if not server:
-        #             if self.authCfg == "a67e5fd":
-        #                 self.dlg.comboBox_server.setCurrentIndex(len(servers) - 1)
-        #             else:
-        #                 if "server" in config['DEFAULT']:
-        #                     if(self.dlg.comboBox_server.itemText(i) == config['DEFAULT']['server'].replace("www.", "").replace("https://", "")):
-        #                         self.dlg.comboBox_server.setCurrentIndex(i)
-        # else:
-        #     try:
-        #         os.makedirs(os.getenv("HOME") + os.sep + ".layman")
-        #     except:
-        #         print("layman directory already exists")       
-        #     self.dlg.pushButton_Connect.setEnabled(True)
-        # self.dlg.lineEdit_userName.textChanged.connect(self.checkUsername)
-        # self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        # if QgsSettings().value("laymanLastServer") != None:
-        #     self.dlg.comboBox_server.setCurrentIndex(int(QgsSettings().value("laymanLastServer")))
-        # if not server:
-        #     self.dlg.pushButton_Connect.clicked.connect(lambda: self.openAuthLiferayUrl2())     
-        # self.dlg.pushButton_NoLogin.clicked.connect(lambda: self.withoutLogin(servers, self.dlg.comboBox_server.currentIndex()))
-        # self.dlg.pushButton_Continue.setEnabled(False)
-        # registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
-        # self.dlg.comboBox_server.currentTextChanged.connect(self.setReg)
-        # self.dlg.label_sign.setOpenExternalLinks(True)
-        # if self.locale == "cs":
-        #     self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
-        # else:
-        #     self.dlg.label_sign.setText('<a href="https://'+self.dlg.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
-        # pushbuttons = self.findChildren(QPushButton)
-        # for button in pushbuttons:
-        #     print(button.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}"))
         
-        # self.dlg.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")        
-        # self.dlg.pushButton_logout.clicked.connect(lambda: self.logout())
-        
-        # if self.laymanUsername != "":
-        #     self.dlg.pushButton_logout.setEnabled(True)
-        #     self.dlg.pushButton_NoLogin.setEnabled(False)
-        #     self.dlg.pushButton_Connect.setEnabled(False)
-        #     self.dlg.comboBox_server.setEnabled(False)
-        #     self.dlg.lineEdit_userName.setEnabled(False)
-        #     if self.locale == "cs":
-        #         self.dlg.setWindowTitle("Layman - Přihlášený uživatel: " + self.laymanUsername)
-        #     else:
-        #         self.dlg.setWindowTitle("Layman - Logged user: " + self.laymanUsername)
-
-        # else:
-        #     self.dlg.pushButton_logout.setEnabled(False)
-        #     self.dlg.pushButton_NoLogin.setEnabled(True)
-        #     self.dlg.pushButton_Connect.setEnabled(True)
-        #     self.dlg.comboBox_server.setEnabled(True)
-        #     self.dlg.lineEdit_userName.setEnabled(True)
-        # self.utils.setAuthCfg(self.authCfg)
-        # result = self.dlg.exec_()
-        # self.dlg.rejected.connect(lambda: self.loginReject())
     def run_AddMickaDialog(self):
         self.dlg = AddMickaDialog()
         self.dlg.show()   
@@ -1573,28 +1457,7 @@ class Layman(QObject):
             if layer['className'] == "HSLayers.Layer.WMS":
                 if '/geoserver/' in layer['url']:
                     return True
-        return False
-    
-
-   
- 
-    def enableButton(self, item, col):
-
-
-        self.dlg.pushButton.setEnabled(True)        
-        self.dlg.pushButton_mapWFS.setEnabled(True)     
-        self.dlg.pushButton_deleteLayers.setEnabled(True)
-        self.dlg.pushButton_editMeta.setEnabled(True)
-        self.dlg.pushButton_setMapPermissions.setEnabled(True)
-        self.dlg.pushButton_addRaster.setEnabled(True)
-        try:
-            if (self.WMSenable):
-                self.dlg.pushButton_addWMS.setEnabled(True)
-        except:
-            pass 
-   
-    
-
+        return False   
     def setListLayer(self):       
         count = self.dlg.treeWidget_listLayers.topLevelItemCount()
         if count == 0:
@@ -1662,23 +1525,7 @@ class Layman(QObject):
             self.client_secret = servers[i][3]
             self.authCfg = servers[i][4]
         except:
-            pass    
-
-
-    def enableButton(self, item):
-        self.dlg.pushButton_copyUrl.setEnabled(True)
-        try:
-            if (self.WMSenable):
-                self.dlg.pushButton_addWMS.setEnabled(True)
-        except:
-            pass
-        try: ## addMap nemá combobox
-            if (self.dlg.mMapLayerComboBox.count() > 0):            
-                self.dlg.pushButton_map.setEnabled(True)
-            else:
-                self.dlg.pushButton.setEnabled(False)
-        except:
-            self.dlg.pushButton.setEnabled(True) ## addMap nemá combobox nastavujeme funkční tlačítko
+            pass  
  
     def listCompositeLayers(self, it):
          self.dlg.listWidget_listLayers2.clear()
@@ -1694,12 +1541,12 @@ class Layman(QObject):
         inComposite = False
         for x in range (0,len(self.compositeList)):
             for i in range (0,len(self.compositeList[x]['layers'])):
-                try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+                try: 
                     if (name == self.compositeList[x]['layers'][i]['params']['LAYERS']):
                         inComposite = True
                 except:
                     pass
-                try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+                try: 
                     if (name == self.utils.removeUnacceptableChars(self.compositeList[x]['layers'][i]['name'])):
                         inComposite = True
                 except:
@@ -1710,12 +1557,12 @@ class Layman(QObject):
         inComposite = False
 
         for i in range (0,len(composition['layers'])):
-            try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+            try: 
                 if (name == composition['layers'][i]['params']['LAYERS']):
                     inComposite = True
             except:
                 pass
-            try: ## osetreni pokud neni vrstva v korektnim tvaru na laymanu - apliakce nespadne
+            try: 
                 if (name == composition['layers'][i]['protocol']['LAYERS']):
                     inComposite = True
             except:
@@ -2586,24 +2433,7 @@ class Layman(QObject):
             self.iface.removeToolBarIcon(action)
         del self.toolbar
 
-    #--------------------------------------------------------------------------
-    def bounds(self, layers):
-
-        extent = None
-        for layer in layers:
-            if layer.type() == 0:
-                transform = QgsCoordinateTransform(layer.crs(), QgsCoordinateReferenceSystem('EPSG:4326'), QgsProject.instance()) # WGS 84 / UTM zone 33N
-                try:
-                    layerExtent = transform.transform(layer.extent())
-                except QgsCsException:
-                    print("exception in transform layer srs")
-                    layerExtent = QgsRectangle(-180, -90, 180, 90)
-                if extent is None:
-                    extent = layerExtent
-                else:
-                    extent.combineExtentWith(layerExtent)
-
-        return (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+   
     def copySymbols(self,symbol, tempPath, fileNames):
         for i in range(symbol.symbolLayerCount()):
             sl = symbol.symbolLayer(i)
@@ -2633,15 +2463,7 @@ class Layman(QObject):
             print("sld loaded")
         QgsProject.instance().addMapLayer(vlayer)
         vlayer.triggerRepaint()
-    def checkLoadedLayer(self):
-        layers = iface.layerTreeView().selectedLayers()
-        if (len(layers) > 0):
-            self.json_export()
-        else:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Message", "Není načtena vrstva!")
-            else:
-                QMessageBox.information(None, "Message", "You must load layer first!")
+    
     def tranformExtent(self, ext):
         src = QgsProject.instance().crs()
         dest = QgsCoordinateReferenceSystem(4326)
@@ -2675,11 +2497,8 @@ class Layman(QObject):
             eymin = ymin
             eymax = ymax       
         
-        center = QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y())
-        # abstract = self.dlg.lineEdit_7.text()
-        
-        self.schemaVersion = "2.0.0"
-        
+        center = QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()) 
+        self.schemaVersion = "2.0.0"        
         if LooseVersion(self.laymanVersion) > LooseVersion("1.16.0"):
             comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"describedBy": self.schemaURl,"schema_version": self.schemaVersion,"nativeExtent": [xmin,ymin,xmax,ymax],"extent":[exmin,eymin,exmax,eymax],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
         else:
@@ -3122,9 +2941,7 @@ class Layman(QObject):
     def patchThread2(self, layer_name, data, id):    
         if not (self.json_export(layer_name, id)):
             self.reprojectionFailed.emit(layer_name)
-            return
-
-        #try:
+            return        
         geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))
 
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
@@ -3164,8 +2981,7 @@ class Layman(QObject):
             if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
                 try:
                     url = self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.utils.removeUnacceptableChars(layer_name)
-                    response = requests.get(url , headers = self.utils.getAuthHeader(self.authCfg))
-                    #response = self.utils.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.utils.removeUnacceptableChars(layer_name), payload = None, files = None)
+                    response = requests.get(url , headers = self.utils.getAuthHeader(self.authCfg))                    
                     if (response.status_code == 400):
                         time.sleep(3)                    
                         response = requests.get(url , headers = self.utils.getAuthHeader(self.authCfg))
@@ -3177,12 +2993,10 @@ class Layman(QObject):
                 try:
                     self.uploaded = self.uploaded + 1
                 except:
-                    pass
-                #QgsMessageLog.logMessage("imports_"+layer_name)
+                    pass                
                 self.exportLayerSuccessful.emit(layer_name)
 
-            else:
-                #QgsMessageLog.logMessage("importn_"+layer_name)
+            else:             
                 self.exportLayerFailed.emit(layer_name)
                 self.writePostLog(str(layer_name), str(response.status_code), str(response.content))       
             QgsMessageLog.logMessage("exportPatch")
@@ -3311,8 +3125,7 @@ class Layman(QObject):
             filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) ## chunky se ukládají do adresáře v tempu
             if not (os.path.exists(filePath)):
                 os.mkdir(filePath)           
-            if externalFile:
-                #### externi soubory
+            if externalFile:       
                 f = open(externalFile, 'rb')
                 externalExt = externalFile[-4:]
                 arr = []
@@ -4713,10 +4526,6 @@ class Layman(QObject):
         self.menu_ImportLayerDialog.setEnabled(True)
         self.menu_UserInfoDialog.setEnabled(True)
         self.menu_CurrentCompositionDialog.setEnabled(True)  
-            
-
- 
-
     def beforeAmp(self, s):
         ret = ""       
         for i in (s):
@@ -4843,16 +4652,14 @@ class Layman(QObject):
                     print(res['about']['applications']['layman']['version'])
                     self.laymanVersion = res['about']['applications']['layman']['version']
                 except:
-                    self.laymanVersion = "0.0.0"
-          
-                ## check for new version
+                    self.laymanVersion = "0.0.0"         
+                
 
                 versionCheck = self.utils.checkVersion()
                 if versionCheck[0] == False:
                     self.utils.showQgisBar(["Nová verze pluginu Layman k dispozici.","New version of Layman plugin available."], Qgis.Success)                     
 
-                ##
-
+              
                 self.authHeader = authHeader
                 self.authOptained()     
                 if hasattr(self, 'dlg'): 
@@ -4925,7 +4732,6 @@ class Layman(QObject):
         self.download_url(url, save_path)
 
         with ZipFile(save_path, 'r') as zipObj:
-           # Extract all the contents of zip file in different directory
            zipObj.extractall(tempfile.gettempdir())
         src = tempfile.gettempdir() + os.sep + "layman-qgis-plugin-master"
 
@@ -5016,7 +4822,6 @@ class Layman(QObject):
                 'style': open(stylePath, 'rb'),
                 'name': self.utils.removeUnacceptableChars(layer_name)
                 }
-        # print(payload)
         files = {'style': open(stylePath, 'rb')}
       
         response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', payload, files)

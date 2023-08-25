@@ -197,20 +197,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         dataAll = r.json()
         for row in range(0, len(dataAll)):
             self.compositionDict[dataAll[row]['name']] = dataAll[row]['title']                    
-    # def enableButton(self, item, col):
-
-
-    #     self.pushButton.setEnabled(True)        
-    #     #self.pushButton_mapWFS.setEnabled(True)     
-    #     #self.pushButton_deleteLayers.setEnabled(True)
-    #     self.pushButton_editMeta.setEnabled(True)
-    #     self.pushButton_setMapPermissions.setEnabled(True)
-    #     self.pushButton_addRaster.setEnabled(True)
-    #     try:
-    #         if (self.WMSenable):
-    #             self.pushButton_addWMS.setEnabled(True)
-    #     except:
-    #         pass          
+      
         
     def enableLoadMapButtons(self, item):
         self.pushButton_mapWFS.setEnabled(True)
