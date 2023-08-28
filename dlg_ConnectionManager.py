@@ -25,8 +25,10 @@ import os
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 from .layman_utils import ProxyStyle
-from qgis.core import  QgsSettings
+from qgis.core import  QgsSettings, QgsApplication
 from PyQt5.QtWidgets import QPushButton
+import threading
+
                              
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -169,3 +171,45 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.label_sign.setText('<a href="https://'+self.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
         else:
             self.label_sign.setText('<a href="https://'+self.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')            
+            
+    def logout(self):
+        self.layman.loggedThrowProject = False
+        self.layman.disableEnvironment()          
+        if self.layman.laymanUsername != "browser":
+            userEndpoint = self.URI+ "/rest/current-user"
+            r = self.utils.requestWrapper("DELETE", userEndpoint, payload = None, files = None)
+            QgsApplication.authManager().clearCachedConfig(self.layman.authCfg)         
+        ## flush variables   
+        else:
+            self.layman.laymanUsername = ""        
+        # try:
+        self.layman.textbox.setText("Layman")
+        self.close() 
+        self.pushButton_NoLogin.setEnabled(True)
+        self.pushButton_Connect.setEnabled(True)
+        # except:
+        #     pass
+        try:
+            QgsProject.instance().crsChanged.disconnect()
+        except:
+            print("crs changed not connected")
+        self.layman.menu_UserInfoDialog.setEnabled(True)
+        self.layman.laymanUsername = ""
+        self.layman.isAuthorized = False        
+        self.layman.current = None
+        self.layman.liferayServer = None     
+        self.layman.compositeList = []           
+    def withoutLogin(self, servers, i):
+        self.layman.menu_CurrentCompositionDialog.setEnabled(False)
+        self.layman.isAuthorized = False
+        self.layman.URI = servers[i][1]
+        self.utils.URI = servers[i][1]
+        self.layman.menu_AddLayerDialog.setEnabled(True)    
+        self.layman.laymanUsername = "browser"
+        self.pushButton_logout.setEnabled(True)
+        self.pushButton_NoLogin.setEnabled(False)
+        self.pushButton_Connect.setEnabled(False)
+        self.layman.menu_UserInfoDialog.setEnabled(True)
+        self.layman.menu_AddMapDialog.setEnabled(True)
+        threading.Thread(target=lambda: self.layman.fillCompositionDict()).start()
+        self.close()           

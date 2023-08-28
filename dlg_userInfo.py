@@ -39,7 +39,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, utils, iface, isAuthorized, server, laymanUsername, URI,laymanVersion, parent=None):
+    def __init__(self, utils, iface, isAuthorized, server, laymanUsername, URI,laymanVersion, layman, parent=None):
         """Constructor."""
         super(UserInfoDialog, self).__init__(parent)
         self.setupUi(self)
@@ -52,6 +52,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
         self.laymanVersion = laymanVersion
         app = QtWidgets.QApplication.instance()     
         proxy_style = ProxyStyle(app.style())
+        self.layman = layman
         self.setStyle(proxy_style)
         self.setUi()
     
@@ -68,16 +69,16 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
         port = self.utils.getConfigItem("port") 
         if not port:
             self.comboBox_port.setCurrentIndex(0)
-            self.port = "7070"
+            self.layman.port = "7070"
         else:
             if port == "7070":
-                self.port = "7070"
+                self.layman.port = "7070"
                 self.comboBox_port.setCurrentIndex(0)
             elif port == "7071":
-                self.port = "7071"
+                self.layman.port = "7071"
                 self.comboBox_port.setCurrentIndex(1) 
             elif port == "7072":
-                self.port = "7072"
+                self.layman.port = "7072"
                 self.comboBox_port.setCurrentIndex(2) 
         self.comboBox_port.currentIndexChanged.connect(self.utils.setPortValue)                                                        
         if self.server != None and self.laymanUsername != "":

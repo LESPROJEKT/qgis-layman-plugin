@@ -241,7 +241,7 @@ class Layman(QObject):
             
         self.timer = QTimer()
         self.timer.timeout.connect(self.refreshWfsLayers)
-        self.timer.start(10000)            
+        self.timer.start(10000)             
 
     
     def tr(self, message):     
@@ -1110,7 +1110,7 @@ class Layman(QObject):
                 return item[1]
                                                       
     def run_UserInfoDialog(self):        
-        self.userInfoDialog = UserInfoDialog(self.utils ,self.iface, self.isAuthorized, self.liferayServer, self.laymanUsername, self.URI, self.laymanVersion)
+        self.userInfoDialog = UserInfoDialog(self.utils ,self.iface, self.isAuthorized, self.liferayServer, self.laymanUsername, self.URI, self.laymanVersion, self)
         self.userInfoDialog.show()
      
   
@@ -1477,33 +1477,7 @@ class Layman(QObject):
         else:          
             self.dlg.close()
             
-    def logout(self):
-        self.loggedThrowProject = False
-        self.disableEnvironment()          
-        if self.laymanUsername != "browser":
-            userEndpoint = self.URI+ "/rest/current-user"
-            r = self.utils.requestWrapper("DELETE", userEndpoint, payload = None, files = None)
-            QgsApplication.authManager().clearCachedConfig(self.authCfg)         
-        ## flush variables   
-        else:
-            self.laymanUsername = ""        
-        try:
-            self.textbox.setText("Layman")
-            self.dlg.close() 
-            self.dlg.pushButton_NoLogin.setEnabled(True)
-            self.dlg.pushButton_Connect.setEnabled(True)
-        except:
-            pass
-        try:
-            QgsProject.instance().crsChanged.disconnect()
-        except:
-            print("crs changed not connected")
-        self.menu_UserInfoDialog.setEnabled(True)
-        self.laymanUsername = ""
-        self.isAuthorized = False        
-        self.current = None
-        self.liferayServer = None     
-        self.compositeList = []
+    
        
      
     def disableEnvironment(self):
