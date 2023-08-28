@@ -25,7 +25,7 @@ import os
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 from .layman_utils import ProxyStyle
-from qgis.core import  QgsSettings, QgsApplication
+from qgis.core import  QgsSettings, QgsApplication, QgsProject
 from PyQt5.QtWidgets import QPushButton
 import threading
 
@@ -73,7 +73,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
                     else:
                        self.comboBox_server.addItem(servers[i][0].replace("www.", "").replace("https://", ""))
             else:         
-                if not self.loggedThrowProject:
+                if not self.layman.loggedThrowProject:
                     if self.server == servers[i][1] and self.server != "http://157.230.109.174/client":
                         self.comboBox_server.addItem(self.server.replace("/client",""))
                         self.layman.setServers(servers, i) 

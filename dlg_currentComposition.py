@@ -167,8 +167,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if self.laymanUsername != self.layman.instance.getWorkspace():
                 self.pushButton_setPermissions.setEnabled(False)
                 self.pushButton_delete.setEnabled(False)
-            if 'access_rights' in composition:         
-                
+            if 'access_rights' in composition:
                 if self.laymanUsername not in composition['access_rights']['write']:                    
                     self.treeWidget_layers.setEnabled(False)               
                     self.pushButton_editMeta.setEnabled(False)
@@ -181,7 +180,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.label_readonly.hide()
             elif self.laymanUsername == self.layman.instance.getWorkspace():
                 pass
-            else:
+            else:              
                 self.pushButton_editMeta.setEnabled(False)   
                 self.pushButton_setPermissions.setEnabled(False)
                 self.pushButton_delete.setEnabled(False)              
@@ -209,13 +208,24 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             return
         composition = self.layman.instance.getComposition()
         if self.layman.current != None:
-            self.layman.instance.refreshComposition()                     
-            self.pushButton_editMeta.setEnabled(True)
-            self.pushButton_new.setEnabled(True)
-            self.pushButton_setPermissions.setEnabled(True)                        
-            self.pushButton_save.setEnabled(True)
-            self.pushButton_delete.setEnabled(True)
-            self.pushButton_qfield.setEnabled(True)  
+            print(self.layman.instance.getComposition())
+            if self.laymanUsername not in self.layman.instance.getAllPermissions()['write']:                    
+                    self.treeWidget_layers.setEnabled(False)               
+                    self.pushButton_editMeta.setEnabled(False)
+                    self.pushButton_setPermissions.setEnabled(False)                    
+                    self.pushButton_save.setEnabled(False)
+                    self.pushButton_delete.setEnabled(False)
+                    self.pushButton_setPermissions.setEnabled(False)
+                    self.label_readonly.show()  
+            else:   
+                self.label_readonly.hide()                 
+                self.layman.instance.refreshComposition()                     
+                self.pushButton_editMeta.setEnabled(True)
+                self.pushButton_new.setEnabled(True)
+                self.pushButton_setPermissions.setEnabled(True)                        
+                self.pushButton_save.setEnabled(True)
+                self.pushButton_delete.setEnabled(True)
+                self.pushButton_qfield.setEnabled(True)  
         
         try:
             self.setWindowTitle("Kompozice: " + composition['title']) if self.locale == "cs" else self.setWindowTitle("Composition: " + composition['title'])
@@ -260,9 +270,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 if self.locale == "cs":
                     item.setToolTip(0,"Tato vrstva je zobrazena a je součástí načtené kompozice.")
                 else:
-                    item.setToolTip(0,"This layer is displayed and is part of the loaded composition.")
-                # if layerType == QgsMapLayer.VectorLayer:
-                #     layer.editingStopped.connect(self.layerEditStopped)            
+                    item.setToolTip(0,"This layer is displayed and is part of the loaded composition.")                           
             else:
                 item.setCheckState(0,0)      
                 if self.locale == "cs":
@@ -283,11 +291,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     try:
                         layer.editingStopped.disconnect()
                     except:
-                        print("connect to stopEditing not exists")
-
-            
-            self.treeWidget_layers.addTopLevelItem(item)
-        
+                        print("connect to stopEditing not exists")            
+            self.treeWidget_layers.addTopLevelItem(item)        
         iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)     
         notActive = set(layerList) - set(layersInCanvas)  
         
@@ -395,8 +400,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
             self.treeWidget_layers.setItemWidget(item,2, cell)
 
-            self.treeWidget_layers.setItemWidget(item,1, cellServices)   
-            ## qpushbutton   
+            self.treeWidget_layers.setItemWidget(item,1, cellServices)        
                                             
             if self.layman.instance.getServiceForLayer(item.text(0)) in (["HSLayers.Layer.WMS", "XYZ"]):
                 cellButton = QPushButton("...", None)                
@@ -538,11 +542,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.updateLayerPropsInComposition()       
         self.layman.syncOrder2(self.getLayersOrder())    
         self.layman.patchMap2()        
-        self.layman.writeValuesToProject(self.URI, composition['name'])   
-        # QgsMessageLog.logMessage("updateMapDone")
-        # QgsMessageLog.logMessage("layersUploaded")
+        self.layman.writeValuesToProject(self.URI, composition['name'])  
         self.layman.showExportInfo.emit("F")
-        self.layman.onRefreshCurrentForm.emit()    
+        self.onRefreshCurrentForm.emit()    
         self.progressDone.emit()                
     def saveMapLayers(self):
         layerList = list()

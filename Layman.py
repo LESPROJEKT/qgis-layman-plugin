@@ -1363,20 +1363,7 @@ class Layman(QObject):
        
 
    
-    def withoutLogin(self, servers, i):
-        self.menu_CurrentCompositionDialog.setEnabled(False)
-        self.isAuthorized = False
-        self.URI = servers[i][1]
-        self.utils.URI = servers[i][1]
-        self.menu_AddLayerDialog.setEnabled(True)    
-        self.laymanUsername = "browser"
-        self.dlg.pushButton_logout.setEnabled(True)
-        self.dlg.pushButton_NoLogin.setEnabled(False)
-        self.dlg.pushButton_Connect.setEnabled(False)
-        self.menu_UserInfoDialog.setEnabled(True)
-        self.menu_AddMapDialog.setEnabled(True)
-        threading.Thread(target=lambda: self.fillCompositionDict()).start()
-        self.dlg.close()    
+      
     
              
     def checkAllLayers(self, checked):

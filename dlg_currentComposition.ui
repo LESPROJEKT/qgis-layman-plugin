@@ -247,7 +247,7 @@
     <widget class="QCheckBox" name="checkBox_all">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>14</x>
        <y>0</y>
        <width>161</width>
        <height>20</height>
