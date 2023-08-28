@@ -134,8 +134,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.locale == "cs":
             self.label_sign.setText('<a href="https://'+self.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
         else:
-            self.label_sign.setText('<a href="https://'+self.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')
-        pushbuttons = self.findChildren(QPushButton)    
+            self.label_sign.setText('<a href="https://'+self.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')         
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")        
         self.pushButton_logout.clicked.connect(lambda: self.logout())
         

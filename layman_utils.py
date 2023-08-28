@@ -131,7 +131,7 @@ class LaymanUtils(QObject):
             return [False, version]
     def setAuthCfg(self,authCfg):
         self.authCfg = authCfg        
-    def getAuthHeader(self, authCfg):        
+    def getAuthHeader(self, authCfg): 
         if self.isAuthorized:
             config = QgsAuthMethodConfig()            
             url = QUrl(self.URI+ "/rest/current-user")
@@ -139,7 +139,8 @@ class LaymanUtils(QObject):
             i = 0
             success = QgsApplication.authManager().updateNetworkRequest(xx, authCfg)                 
             if success[0] == True:
-                header = (xx.rawHeader(QByteArray(b"Authorization")))                
+                header = (xx.rawHeader(QByteArray(b"Authorization")))    
+                print(header)            
                 authHeader ={
                   "Authorization": str(header, 'utf-8')
                 }
@@ -505,10 +506,10 @@ class LaymanUtils(QObject):
         with open(tempf, 'wb') as f:
             f.write(response.content)                 
         return response.status_code, suffix.replace(".","")                    
-    def getUserName(self):
-        userEndpoint = self.URI+ "/rest/current-user"  
+    def getUserName(self):       
+        userEndpoint = self.URI+ "/rest/current-user"        
         r = self.requestWrapper("GET", userEndpoint, payload = None, files = None)
-        res = self.fromByteToJson(r.content)
+        res = self.fromByteToJson(r.content) 
         return res['username']
     
     def getUserFullName(self):
@@ -681,7 +682,19 @@ QPushButton::indicator {
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep +'layman_user.INI'
         config = configparser.ConfigParser()
         config.read(file)
-        return config        
+        return config  
+    
+    def checkWgsExtent(self, layer):
+        WgsXmax = 180
+        WgsXmin = -180
+        WgsYmax = 90
+        WgsYmin = -90
+        extent = layer.extent()
+        if (extent.xMaximum() > WgsXmax or extent.xMinimum() < WgsXmin or extent.yMaximum() > WgsYmax or extent.yMinimum() < WgsYmin ):
+            return False
+        else:
+            return True
+              
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:

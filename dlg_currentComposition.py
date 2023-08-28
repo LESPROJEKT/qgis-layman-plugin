@@ -166,19 +166,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.refreshCurrentForm()
             if self.laymanUsername != self.layman.instance.getWorkspace():
                 self.pushButton_setPermissions.setEnabled(False)
-                self.pushButton_delete.setEnabled(False)
-            if 'access_rights' in composition:
-                if self.laymanUsername not in composition['access_rights']['write']:                    
-                    self.treeWidget_layers.setEnabled(False)               
-                    self.pushButton_editMeta.setEnabled(False)
-                    self.pushButton_setPermissions.setEnabled(False)                    
-                    self.pushButton_save.setEnabled(False)
-                    self.pushButton_delete.setEnabled(False)
-                    self.pushButton_setPermissions.setEnabled(False)
-                    self.label_readonly.show()
-                else:
-                    self.label_readonly.hide()
-            elif self.laymanUsername == self.layman.instance.getWorkspace():
+                self.pushButton_delete.setEnabled(False)            
+            if self.laymanUsername == self.layman.instance.getWorkspace():
                 pass
             else:              
                 self.pushButton_editMeta.setEnabled(False)   
@@ -1330,4 +1319,24 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.showErr.emit([" Změny nebyly uloženy.", " Changes was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
         self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])                            
         
-           
+    def deleteCurrentMap(self):
+        composition = self.layman.instance.getComposition()
+        if self.locale == "cs":
+            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Chcete opravdu smazat tuto kompozici?")
+        else:
+            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Do you want really delete this composition?")
+        msgbox.addButton(QMessageBox.Yes)
+        msgbox.addButton(QMessageBox.No)
+        msgbox.setDefaultButton(QMessageBox.No)
+        reply = msgbox.exec()
+        if (reply == QMessageBox.Yes):
+            url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+composition['name']           
+            response = self.utils.requestWrapper("DELETE", url, payload = None, files = None)
+            if (response.status_code == 200):
+                self.utils.showQgisBar([" Kompozice  " + composition['name'] + " byla úspešně smazána."," Composition  " + composition['name'] + " was sucessfully deleted."], Qgis.Success)  
+            else:
+                self.utils.showErr.emit([" Kompozice  " + composition['name'] + " nebyla smazána.", " Composition  " + composition['name'] + " was not sucessfully deleted."], "code: " + str(response.status_code), str(response.content), Qgis.Warning)               
+
+            self.layman.instance = None
+            self.layman.current = None
+            self.close()           
