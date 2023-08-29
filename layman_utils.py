@@ -139,8 +139,7 @@ class LaymanUtils(QObject):
             i = 0
             success = QgsApplication.authManager().updateNetworkRequest(xx, authCfg)                 
             if success[0] == True:
-                header = (xx.rawHeader(QByteArray(b"Authorization")))    
-                print(header)            
+                header = (xx.rawHeader(QByteArray(b"Authorization")))  
                 authHeader ={
                   "Authorization": str(header, 'utf-8')
                 }

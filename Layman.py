@@ -48,7 +48,6 @@ from zipfile import ZipFile
 
 import pandas as pd
 import processing
-import PyQt5
 import qgis.core
 import qgis.gui
 import qgis.utils
@@ -2767,10 +2766,13 @@ class Layman(QObject):
     def checkFileSizeLimit(self, size):
         if size > 2000000000:            
             self.utils.showQgisBar(["Tato vrstva je větší než 2GB. Může být serverem odmítnuta.","This layer is bigger than 2GB. It can be refused by server."], Qgis.Warning)  
-    def patchThread2(self, layer_name, data, id):    
-        if not (self.json_export(layer_name, id)):
-            self.reprojectionFailed.emit(layer_name)
-            return        
+    def patchThread2(self, layer_name, data, id):   
+        for layer in QgsProject.instance().mapLayers().values(): 
+            if layer.name() == layer_name:
+                if layer.type() == QgsMapLayerType.VectorLayer:
+                    if not (self.json_export(layer_name, id)):
+                        self.reprojectionFailed.emit(layer_name)
+                        return        
         geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))
 
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
@@ -2789,10 +2791,12 @@ class Layman(QObject):
             self.mergeGeojsons(paths, self.getTempPath(self.utils.removeUnacceptableChars(layer.name())),self.utils.removeUnacceptableChars(layer.name()))
 
         else:
-            if not (self.json_export(layer_name)):
-                self.reprojectionFailed.emit(layer_name)
-                return
-            
+            for layer in QgsProject.instance().mapLayers().values(): 
+                if layer.name() == layer_name:
+                    if layer.type() == QgsMapLayerType.VectorLayer:
+                        if not (self.json_export(layer_name)):
+                            self.reprojectionFailed.emit(layer_name)
+                            return           
 
         geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))
   
@@ -3057,11 +3061,13 @@ class Layman(QObject):
             for layer in layers:
                 paths.append(self.json_exportMix(layer))
             self.mergeGeojsons(paths, self.getTempPath(self.utils.removeUnacceptableChars(layer.name()))),self.utils.removeUnacceptableChars(layer.name())
-
         else:
-            if not (self.json_export(layer_name)):
-                self.reprojectionFailed.emit(layer_name)
-                return      
+            for layer in QgsProject.instance().mapLayers().values(): 
+                if layer.name() == layer_name:
+                    if layer.type() == QgsMapLayerType.VectorLayer:
+                        if not (self.json_export(layer_name)):
+                            self.reprojectionFailed.emit(layer_name)
+                            return      
         geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))
         if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
             stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")

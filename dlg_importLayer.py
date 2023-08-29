@@ -35,6 +35,7 @@ from PyQt5.QtWidgets import (QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterat
 import threading
 import re
 import json
+import PyQt5
 from .layman_utils import ProxyStyle
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
