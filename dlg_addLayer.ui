@@ -451,12 +451,12 @@
       <rect>
        <x>10</x>
        <y>10</y>
-       <width>93</width>
+       <width>151</width>
        <height>28</height>
       </rect>
      </property>
      <property name="text">
-      <string>Back</string>
+      <string>Back to layers</string>
      </property>
      <property name="icon">
       <iconset>

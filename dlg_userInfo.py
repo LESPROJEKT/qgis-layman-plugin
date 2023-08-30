@@ -32,6 +32,10 @@ from PyQt5.QtCore import Qt
 
 from .layman_utils import LaymanUtils
 from .layman_utils import ProxyStyle
+import tempfile
+import shutil
+from PyQt5.QtWidgets import QMessageBox
+from zipfile import ZipFile
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -58,8 +62,6 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
     
     def setUi(self):
         self.utils.recalculateDPI()
-        # self.pushButton_update.setStyleSheet("#pushButton_update {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_update:hover{background: #66ab27 ;}#pushButton_update:disabled{background: #64818b ;}")
-        # self.pushButton_close.setStyleSheet("#pushButton_close {color: #fff !important;text-transform: uppercase; font-size:"+self.utils.fontSize+"; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} #pushButton_close:hover{background: #66ab27 ;}#pushButton_close:disabled{background: #64818b ;}")
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.label_older.setCursor(QCursor(Qt.PointingHandCursor))
         self.label_older.mousePressEvent = lambda event: self.getOldVersion()  
@@ -112,7 +114,63 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
         self.pushButton_close.clicked.connect(lambda: self.close())    
     
-            
+    def updatePlugin(self, version):
+        if (len(version.split(".")) > 2):
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Aktualizace pluginu", "Tato verze pluginu není v QGIS repozitáři a může obsahovat nové netestované funkcionality. Chcete opravdu instalovat tuto verzi?")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Plugin update", "This version of the plugin is not included in the QGIS repository and may contain new untested functionalities. Do you really want to install this version?")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.No):
+                return
+        url = "https://gitlab.com/plan4all/layman-qgis-plugin/-/archive/master/layman-qgis-plugin-master.zip"
+        if not self.checkQgisVersion():        
+            if self.locale == "cs":
+                msgbox = QMessageBox(QMessageBox.Question, "Aktualizace pluginu", "Plugin vyžaduje verzi QGIS 3.26 a vyšší. Chcete přesto pokračovat?")
+            else:
+                msgbox = QMessageBox(QMessageBox.Question, "Plugin update", "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?")
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if (reply == QMessageBox.No):
+                return
+        self.installPlugin(url)
+    def installPlugin(self, url):
+        save_path = tempfile.gettempdir() + os.sep + "layman.zip"
+        self.download_url(url, save_path)
+
+        with ZipFile(save_path, 'r') as zipObj:
+           zipObj.extractall(tempfile.gettempdir())
+        src = tempfile.gettempdir() + os.sep + "layman-qgis-plugin-master"
+
+        self.copytree(src, self.plugin_dir)
+        self.close()
+        self.layman.disableEnvironment()
+        QMessageBox.information(None, "Layman", "Layman plugin was updated. Please restart QGIS.")              
      
     
                        
+    def copytree(self, src, dst, symlinks=False, ignore=None):
+        try:
+            shutil.rmtree(dst)
+            os.mkdir(dst)
+        except:
+            self.utils.emitMessageBox.emit(["Plugin nebyl aktualizován!", "Plugin was not updated!"])              
+            return
+        for item in os.listdir(src):
+
+            s = os.path.join(src, item)
+            d = os.path.join(dst, item)
+            if os.path.isdir(s):
+                shutil.copytree(s, d, symlinks, ignore)
+            else:
+                shutil.copy2(s, d)
+    def download_url(self, url, save_path, chunk_size=128):
+        r = requests.get(url, stream=True)
+        with open(save_path, 'wb') as fd:
+            for chunk in r.iter_content(chunk_size=chunk_size):
+                fd.write(chunk)                        

@@ -61,7 +61,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_Connect.setEnabled(False)      
         path = self.layman.plugin_dir + os.sep + "server_list.txt"
         servers = self.utils.csvToArray(path)
-        self.label_APIKey_2.setToolTip("Username is important only with first login")       
+      
         for i in range (0,len(servers)):
 
             if not self.server:
@@ -104,7 +104,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
                 if len(config['DEFAULT']['login']) > 0:
                     self.layman.Agrimail = config['DEFAULT']['login']
                     self.pushButton_Connect.setEnabled(True)  
-                self.lineEdit_userName.setText(config['DEFAULT']['login'])
+                # self.lineEdit_userName.setText(config['DEFAULT']['login'])
 
             for i in range (0, self.comboBox_server.count()):   
                 if not self.server:
@@ -120,7 +120,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             except:
                 print("layman directory already exists")       
             self.pushButton_Connect.setEnabled(True)
-        self.lineEdit_userName.textChanged.connect(self.checkUsername)
+        # self.lineEdit_userName.textChanged.connect(self.checkUsername)
         self.pushButton_close.clicked.connect(lambda: self.close())
         if QgsSettings().value("laymanLastServer") != None:
             self.comboBox_server.setCurrentIndex(int(QgsSettings().value("laymanLastServer")))
@@ -143,7 +143,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_NoLogin.setEnabled(False)
             self.pushButton_Connect.setEnabled(False)
             self.comboBox_server.setEnabled(False)
-            self.lineEdit_userName.setEnabled(False)
+            # self.lineEdit_userName.setEnabled(False)
             if self.locale == "cs":
                 self.setWindowTitle("Layman - Přihlášený uživatel: " + self.laymanUsername)
             else:
@@ -154,7 +154,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_NoLogin.setEnabled(True)
             self.pushButton_Connect.setEnabled(True)
             self.comboBox_server.setEnabled(True)
-            self.lineEdit_userName.setEnabled(True)
+            # self.lineEdit_userName.setEnabled(True)
         self.utils.setAuthCfg(self.layman.authCfg)    
         self.show()    
     def checkUsername(self, name):
