@@ -36,6 +36,7 @@ import tempfile
 import shutil
 from PyQt5.QtWidgets import QMessageBox
 from zipfile import ZipFile
+from qgis.core import Qgis
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -116,7 +117,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
     
     def updatePlugin(self, version):
         if (len(version.split(".")) > 2):
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Aktualizace pluginu", "Tato verze pluginu není v QGIS repozitáři a může obsahovat nové netestované funkcionality. Chcete opravdu instalovat tuto verzi?")
             else:
                 msgbox = QMessageBox(QMessageBox.Question, "Plugin update", "This version of the plugin is not included in the QGIS repository and may contain new untested functionalities. Do you really want to install this version?")
@@ -128,7 +129,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
                 return
         url = "https://gitlab.com/plan4all/layman-qgis-plugin/-/archive/master/layman-qgis-plugin-master.zip"
         if not self.checkQgisVersion():        
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Aktualizace pluginu", "Plugin vyžaduje verzi QGIS 3.26 a vyšší. Chcete přesto pokračovat?")
             else:
                 msgbox = QMessageBox(QMessageBox.Question, "Plugin update", "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?")
@@ -147,7 +148,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
            zipObj.extractall(tempfile.gettempdir())
         src = tempfile.gettempdir() + os.sep + "layman-qgis-plugin-master"
 
-        self.copytree(src, self.plugin_dir)
+        self.copytree(src, self.layman.plugin_dir)
         self.close()
         self.layman.disableEnvironment()
         QMessageBox.information(None, "Layman", "Layman plugin was updated. Please restart QGIS.")              
@@ -162,7 +163,6 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.emitMessageBox.emit(["Plugin nebyl aktualizován!", "Plugin was not updated!"])              
             return
         for item in os.listdir(src):
-
             s = os.path.join(src, item)
             d = os.path.join(dst, item)
             if os.path.isdir(s):
@@ -174,3 +174,11 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
         with open(save_path, 'wb') as fd:
             for chunk in r.iter_content(chunk_size=chunk_size):
                 fd.write(chunk)                        
+    def checkQgisVersion(self):
+        version = Qgis.QGIS_VERSION_INT
+        major = version // 10000
+        minor = (version // 100) % 100      
+        if major > 3 or (major == 3 and minor >= 26):
+            return True
+        else:
+            return False                

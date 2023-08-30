@@ -127,6 +127,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_setPermissions.setEnabled(False)
         self.pushButton_delete.setEnabled(False)
         self.pushButton_qfield.setEnabled(False)
+        self.pushButton_copyUrl.setEnabled(False)
         self.label_readonly.hide()
         self.label_log.hide()        
         self.label_raster.hide()
