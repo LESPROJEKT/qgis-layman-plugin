@@ -297,10 +297,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         resamplingMethod = self.comboBox_resampling.currentText()
         if not self.checkRegex(items, regex):
             print("regex nesedí na názvy")
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Regulerní výraz nesedí na jeden nebo více názvů.")
-            else:
-                QMessageBox.information(None, "Layman", "The regular expression does not match one or more names.")
+            self.utils.emitMessageBox.emit(["Regulerní výraz nesedí na jeden nebo více názvů.", "The regular expression does not match one or more names."])
             return       
         self.progressBar.setMaximum(0)
         self.progressBar.show()

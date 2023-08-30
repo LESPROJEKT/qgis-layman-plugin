@@ -36,7 +36,6 @@ import traceback
 import pandas as pd
 from .layman_utils import ProxyStyle
 
-# This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'dlg_addMap.ui'))
 
@@ -277,14 +276,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if value == 2:
             self.utils.appendIniItem("mapCheckbox", "1")
         if value == 0:
-            self.utils.appendIniItem("mapCheckbox", "0")        
-            
-            
-            
-            
-            
-           
-            
+            self.utils.appendIniItem("mapCheckbox", "0")  
     def deleteMap(self,name):
    
         if self.layman.locale == "cs":
@@ -392,7 +384,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)
         data = r.json()
         layers = QgsProject.instance().mapLayers()
-        if len(layers) > 0:
+        if len(layers) > 0:            
             if self.layman.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.")
             else:
@@ -414,10 +406,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def loadLayer(self, data, service, groupName = ''):    
         if not 'layers' in data:       
             print("corrupted composition")
-            if self.layman.locale == "cs":
-                QMessageBox.information(None, "Layman", "Kompozice je poškozena!")
-            else:
-                QMessageBox.information(None, "Layman", "Map composition is corrupted!")
+            self.utils.emitMessageBox.emit(["Kompozice je poškozena!", "Map composition is corrupted!"])
             return      
         groupName = ''
         threads = list()
@@ -632,20 +621,13 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.listWidget_read.addItem(self.comboBox_users.currentText())
                     return True
                 else:
-                    
-                    if self.layman.locale == "cs":
-                        QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
-                    else:
-                        QMessageBox.information(None, "Layman", "This user already exists in the list!")
+                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])           
                     return False
             else:              
                 if ((self.comboBox_users.currentText() not in itemsTextListWrite) and type == "write"):               
                     return True
                 else:                    
-                    if self.layman.locale == "cs":
-                        QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
-                    else:
-                        QMessageBox.information(None, "Layman", "This user already exists in the list!")
+                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])                    
                     return False                        
     def removeWritePermissionList(self):
         self.deleteItem(self.listWidget_read.currentItem().text())
@@ -794,15 +776,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.objectName() == "AddMapDialog":
             self.progressBar_loader.hide()             
             if success:
-                if self.layman.locale == "cs":
-                    QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
-                else:
-                    QMessageBox.information(None, "Saved", "Permissions was saved successfully.")                
+                self.utils.emitMessageBox.emit(["Práva byla úspěšně uložena.", "Permissions was saved successfully."])                    
             else:
-                if self.layman.locale == "cs":
-                    QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""))
-                else:
-                    QMessageBox.information(None, "Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                  
+                self.utils.emitMessageBox.emit(["Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""), "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]","")])                   
     def setWritePermissionList(self):
         allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]    
         if self.comboBox_users.currentText() in allItems:

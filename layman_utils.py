@@ -17,6 +17,7 @@ class LaymanUtils(QObject):
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)  
     setVisibility = pyqtSignal(QgsMapLayer)
     loadStyle = pyqtSignal(QgsMapLayer)
+    emitMessageBox = pyqtSignal(list)
       
     def __init__(self, iface, locale,laymanUsername,  parent=None):
         super(LaymanUtils, self).__init__(parent=parent)
@@ -32,7 +33,7 @@ class LaymanUtils(QObject):
         self.showErr.connect(self.showMessageError)
         self.setVisibility.connect(self._setVisibility)
         self.loadStyle.connect(self._loadStyle)
-        
+        self.emitMessageBox.connect(self._onEmitMessageBox) 
     def getConfigItem(self, key):
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'
         config = configparser.RawConfigParser()
@@ -135,11 +136,11 @@ class LaymanUtils(QObject):
         if self.isAuthorized:
             config = QgsAuthMethodConfig()            
             url = QUrl(self.URI+ "/rest/current-user")
-            xx = QNetworkRequest(url)   
+            req = QNetworkRequest(url)   
             i = 0
-            success = QgsApplication.authManager().updateNetworkRequest(xx, authCfg)                 
+            success = QgsApplication.authManager().updateNetworkRequest(req, authCfg)                 
             if success[0] == True:
-                header = (xx.rawHeader(QByteArray(b"Authorization")))  
+                header = (req.rawHeader(QByteArray(b"Authorization")))  
                 authHeader ={
                   "Authorization": str(header, 'utf-8')
                 }
@@ -693,7 +694,13 @@ QPushButton::indicator {
             return False
         else:
             return True
-              
+        
+    def _onEmitMessageBox(self, message):    
+        if self.locale == "cs":
+            QMessageBox.information(None, "Layman", message[0])
+        else:
+            QMessageBox.information(None, "Layman", message[1])              
+            
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:

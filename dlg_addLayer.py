@@ -148,7 +148,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
 
-        #### set permissions part
     def setPermissionsUI(self, layerName): 
         self.listWidget_read.clear()
         self.listWidget_write.clear()
@@ -262,10 +261,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             url = r['metadata']['record_url']
             webbrowser.open(url, new=2) ## redirect na micku pro více info
         except:
-            if self.layman.locale == "cs":
-                QMessageBox.information(None, "Layman", "Odkaz není k dispozici.")
-            else:
-                QMessageBox.information(None, "Layman", "Link is unavailable.")
+            self.utils.emitMessageBox.emit(["Odkaz není k dispozici.", "Link is unavailable."])
+
 
     def copyLayerUrl(self, name, workspace, service):
         url = self.URI+'/rest/'+workspace+'/layers/'+self.utils.removeUnacceptableChars(name)
@@ -484,10 +481,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 visibility = ''
                 success = self.utils.loadWms(wmsUrl, layerName,layerNameTitle, format, epsg, workspace, groupName,subgroup, timeDimension,visibility, everyone)
                 if not success:
-                    if self.layman.locale == "cs":
-                        QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
-                    else:
-                        QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
+                    self.utils.emitMessageBox.emit(["Vrstva: "+layerName + " je poškozena a nebude načtena.", "Layer: "+layerName + " is corrupted and will not be loaded."])
+                 
             if (service == "WFS"):
                 try:
                     wfsUrl = data['wfs']['url']
@@ -497,13 +492,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 print("loading WFS")
                 success = self.utils.loadWfs(wfsUrl, layerName, layerNameTitle, workspace)
                 if not success:
-                    if self.layman.locale == "cs":
-                        QMessageBox.information(None, "Layman", "Vrstva: "+layerName + " je poškozena a nebude načtena.")
-                    else:
-                        QMessageBox.information(None, "Layman", "Layer: "+layerName + " is corrupted and will not be loaded.")
+                    self.utils.emitMessageBox.emit(["Vrstva: "+layerName + " je poškozena a nebude načtena.", "Layer: "+layerName + " is corrupted and will not be loaded."])
+                   
             QgsMessageLog.logMessage("layersLoaded")
         else:
-            self.layman.emitMessageBox.emit(["Vrstva "+layerName+ " nelze nahrát","Something went wrong with layer: " + layerName])
+            self.utils.emitMessageBox.emit(["Vrstva "+layerName+ " nelze nahrát","Something went wrong with layer: " + layerName])
             QgsMessageLog.logMessage("layersLoaded")
     def write_log_message(self,message, tag, level):
         if message == "layersLoaded":            
@@ -550,20 +543,13 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.listWidget_read.addItem(self.comboBox_users.currentText())
                     return True
                 else:
-                    
-                    if self.layman.locale == "cs":
-                        QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
-                    else:
-                        QMessageBox.information(None, "Layman", "This user already exists in the list!")
+                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])         
                     return False
             else:              
                 if ((self.comboBox_users.currentText() not in itemsTextListWrite) and type == "write"):               
                     return True
                 else:                    
-                    if self.layman.locale == "cs":
-                        QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
-                    else:
-                        QMessageBox.information(None, "Layman", "This user already exists in the list!")
+                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])              
                     return False
     def setWritePermissionList(self):
         allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]    
@@ -719,15 +705,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.objectName() == "AddLayerDialog":
             self.progressBar_loader.hide()             
             if success:
-                if self.layman.locale == "cs":
-                    QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
-                else:
-                    QMessageBox.information(None, "Saved", "Permissions was saved successfully.")                
+                self.utils.emitMessageBox.emit(["Práva byla úspěšně uložena.", "Permissions was saved successfully."])                           
             else:
-                if self.layman.locale == "cs":
-                    QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""))
-                else:
-                    QMessageBox.information(None, "Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                
+                self.utils.emitMessageBox.emit(["Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""), "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]","")])                           
                     
     def removeReadPermissionList(self, usersDictReversed):       
         if usersDictReversed[self.laymanUsername] == self.listWidget_read.currentItem().text() or usersDictReversed[self.laymanUsername] == self.listWidget_write.currentRow():

@@ -565,10 +565,8 @@ class Layman(QObject):
 
     def itemClick(self, item, col):
         if item.checkState(0) == 2 and self.checkIfLayerIsInMoreGroups(QgsProject.instance().mapLayersByName(item.text(0))[0]):
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena bude pouze nadřazená.")
-            else:
-                QMessageBox.information(None, "Layman", "Layer " + item.text(0) +" is nested in two groups. Only parent group will be saved.")
+            self.utils.emitMessageBox.emit(["Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena bude pouze nadřazená.", "Layer " + item.text(0) +" is nested in two groups. Only parent group will be saved."])
+            
           
         else:
             self.dlg.label_info.setText("")
@@ -672,11 +670,7 @@ class Layman(QObject):
         login = self.dlg2.lineEdit_userName.text()
         passwd = self.dlg2.lineEdit_password.text()
         if login == "" or passwd == "":
-            if self.locale == "cs":
-                QMessageBox.information(None, "Info", "Nejsou vyplněny přihlašovací údaje!")
-
-            else:
-                QMessageBox.information(None, "Info", "Please fill login credentials!")
+            self.utils.emitMessageBox.emit(["Nejsou vyplněny přihlašovací údaje!", "Please fill login credentials!"])
             return
         payload =  {
           "username": login,
@@ -764,10 +758,8 @@ class Layman(QObject):
         if response.status_code == 201:            
             self.uploadQFiles(res['id'],"")
         else:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Taková kompozice již existuje. Vyberte prosím jiný název.")
-            else:
-                QMessageBox.information(None, "Layman", "This composition already exists. Please choose another name.")
+            self.utils.emitMessageBox.emit(["Taková kompozice již existuje. Vyberte prosím jiný název.", "This composition already exists. Please choose another name."])
+
     def convertQProject(self):
         import random
         import string
@@ -789,11 +781,7 @@ class Layman(QObject):
     def uploadQFiles(self, project, path):
         layers = QgsProject.instance().mapLayers().values()        
         if len(layers) == 0:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Warning", "Nejsou vrstvy k exportu!")
-
-            else:
-                QMessageBox.information(None, "Warning", "No layers to export!")
+            self.utils.emitMessageBox.emit(["Nejsou vrstvy k exportu!", "No layers to export!"])
             return
         mypath = self.convertQProject()
         self.dlg2.progressBar.show()
@@ -1212,19 +1200,14 @@ class Layman(QObject):
             self.cataloguePosition = self.cataloguePosition - 20
             threading.Thread(target=lambda: self.loadMickaMaps()).start()
         else:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Není možné listovat doleva!")
-            else:
-                QMessageBox.information(None, "Layman", "Not possible page to left!")
+            self.utils.emitMessageBox.emit(["Není možné listovat doleva!", "Not possible page to left!"])    
     def goRight(self):
         if self.cataloguePosition < 500:            
             self.cataloguePosition = self.cataloguePosition + 20           
             threading.Thread(target=lambda: self.loadMickaMaps()).start()
         else:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Není možné listovat doprava!")
-            else:
-                QMessageBox.information(None, "Layman", "Not possible page to right!")
+            self.utils.emitMessageBox.emit(["Není možné listovat doprava!", "Not possible page to right!"])   
+    
                 
     def mickaSearch(self):
         query = self.dlg.lineEdit_search.text()     
@@ -1630,10 +1613,8 @@ class Layman(QObject):
         for thread in threading.enumerate():
             self.ThreadsUploadsA.add(thread.name)  
         if self.duplicateLayers():
-            if self.locale == "cs":
-                QMessageBox.information(None, "Warning", "Duplicita v názvech vrstev!")
-            else:
-                QMessageBox.information(None, "Warning", "Duplicity in layer names!")
+            self.utils.emitMessageBox.emit(["Duplicita v názvech vrstev!", "Duplicity in layer names!"])   
+   
             return
         ## hlidani nove pridanych vrstev pro symbologii      
         composition = self.instance.getComposition()
@@ -1940,10 +1921,8 @@ class Layman(QObject):
             except:
                 print("progressbar doesnt exist")
         if message == "uniqLayers":
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Jména vrstev jsou duplicitní.")
-            else:
-                QMessageBox.information(None, "Layman", "Layer names are duplicated.")    
+            self.utils.emitMessageBox.emit(["Jména vrstev jsou duplicitní.", "Layer names are duplicated."])   
+  
 
         if message == "layersUploaded":         
             try:
@@ -1985,10 +1964,8 @@ class Layman(QObject):
             except:
                 pass
         if message == "errorConnection":
-            if self.locale == "cs":
-                QMessageBox.information(None, "Error", "Spojení se serverem selhalo! Vrstva nebyla nahrána.")
-            else:
-                QMessageBox.information(None, "Error", "Connection with server failed! Layer was not exported.")
+            self.utils.emitMessageBox.emit(["Spojení se serverem selhalo! Vrstva nebyla nahrána.", "Connection with server failed! Layer was not exported."]) 
+        
         if message == "export":
             try:
                 self.dlg.progressBar.hide()
@@ -2048,10 +2025,8 @@ class Layman(QObject):
        
      
         if message == "wrongName":
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Nepodporovaný znak v názvu.")
-            else:
-                QMessageBox.information(None, "Layman", "Unsupported char in name.")
+            self.utils.emitMessageBox.emit(["Nepodporovaný znak v názvu.", "Unsupported char in name."]) 
+  
         if message == "invalid":
             try:
                 self.dlg.progressBar.hide()
@@ -2062,10 +2037,8 @@ class Layman(QObject):
                 self.dlg.progressBar_loader.hide()
             except:
                 pass
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Vrstva není validní!")
-            else:
-                QMessageBox.information(None, "Layman", "Layer is invalid!")
+            self.utils.emitMessageBox.emit(["Vrstva není validní!", "Layer is invalid!"]) 
+         
         if message == "wrongCrs":
             try:
                 self.dlg.progressBar.hide()
@@ -2075,10 +2048,8 @@ class Layman(QObject):
                 self.dlg.progressBar_loader.hide()
             except:
                 pass
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Nastavena naplatná projekce.")
-            else:
-                QMessageBox.information(None, "Layman", "Invalid projection.")
+            self.utils.emitMessageBox.emit(["Nastavena naplatná projekce.", "Invalid projection."]) 
+        
        
         if message == "BmpNotSupported":
             try:
@@ -2090,10 +2061,7 @@ class Layman(QObject):
                 self.dlg.progressBar_loader.hide()
             except:
                 pass
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Formát rastru BMP není podporován.")
-            else:
-                QMessageBox.information(None, "Layman", "Raster format BMP is not supported.")
+            self.utils.emitMessageBox.emit(["Formát rastru BMP není podporován.", "Raster format BMP is not supported."]) 
             try:
                 self.dlg.progressBar.hide()
             except:
@@ -2413,10 +2381,8 @@ class Layman(QObject):
         path = iface.activeLayer().dataProvider().dataSourceUri()
         path = path.split("|")[0].replace("'","")
         if (layer == None):
-            if self.locale == "cs":
-                QMessageBox.information(None, "Message", "Není načtena vrstva!")
-            else:
-                QMessageBox.information(None, "Message", "You must load layer first!")
+            self.utils.emitMessageBox.emit(["Není načtena vrstva!", "You must load layer first!"]) 
+
         else:           
             defaultDir = os.path.dirname(path)            
             dialog = QFileDialog()
@@ -2464,10 +2430,7 @@ class Layman(QObject):
                 result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(layer, tempFile, "utf-8", crs, ogr_driver_name)
                 print(result2)
                 if(result2[0] == 2):
-                    if self.locale == "cs":
-                        QMessageBox.information(None, "Layman", "Soubor není možné přepsat. Je již otevřený jiným procesem.")
-                    else:
-                        QMessageBox.information(None, "Layman", "It is not possible overwrite this file. File is already open in other process.")
+                    self.utils.emitMessageBox.emit(["Soubor není možné přepsat. Je již otevřený jiným procesem.", "It is not possible overwrite this file. File is already open in other process."])                    
                     return
                 if os.path.basename(layer_name.replace(".geojson", "")) != '':
                     QgsProject.instance().removeMapLayer(layer.id())
@@ -3288,10 +3251,8 @@ class Layman(QObject):
                             QgsMessageLog.logMessage("invalid")                
                     
             else:
-                if self.locale == "cs":
-                    QMessageBox.information(None, "Layman", "Vrstva "+layer_name+" nemá atributy!")
-                else:
-                    QMessageBox.information(None, "Layman", "Layer "+layer_name+" does not have attributes!")
+                self.utils.emitMessageBox.emit(["Vrstva "+layer_name+" nemá atributy!", "Layer "+layer_name+" does not have attributes!"]) 
+
     def setProcessingItem(self, layer_name):
         queue = len(self.processingList)
         self.processingList.append([queue, layer_name, 0])
@@ -4128,14 +4089,7 @@ class Layman(QObject):
     def forbidRename(self):
         if ((int(round(time.time() * 1000)) - self.millis)  > 3000):
             self.millis = int(round(time.time() * 1000))
-
-            if self.locale == "cs":
-                QMessageBox.information(None, "Layman", "Vrstva s kombinovanou geometií nemůže být přejmenována.")
-            else:
-                QMessageBox.information(None, "Layman", "Layer with mixed geometry can´t be renamed.")
- 
-
-
+            self.utils.emitMessageBox.emit(["Vrstva s kombinovanou geometií nemůže být přejmenována.", "Layer with mixed geometry can´t be renamed."])
 
     def getTypesOfGeom(self, vlayer):
         feats = vlayer.getFeatures()
@@ -4354,17 +4308,11 @@ class Layman(QObject):
         try:
             res = self.utils.fromByteToJson(r.content)   
         except:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Error", "Layman server neodpověděl!")
-            else:
-                QMessageBox.information(None, "Error", "Layman server not respond!")
+            self.utils.emitMessageBox.emit(["Layman server neodpověděl!", "Layman server not respond!"])
             self.disableEnvironment()
             return
         if res is None:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Error", "Layman server neodpověděl!")
-            else:
-                QMessageBox.information(None, "Error", "Layman server not respond!")            
+            self.utils.emitMessageBox.emit(["Layman server neodpověděl!", "Layman server not respond!"])         
             self.logout()
             return               
         if 'code' in res:          
@@ -4380,10 +4328,7 @@ class Layman(QObject):
                 
            if res['code'] == 32:
                 self.disableEnvironment()
-                if self.locale == "cs":
-                    QMessageBox.information(None, "Error", "Oauth2 autorizace nebyla úspěšná!")
-                else:
-                    QMessageBox.information(None, "Error", "Oauth2 authorization was not successfull!")
+                self.utils.emitMessageBox.emit(["Oauth2 autorizace nebyla úspěšná!", "Oauth2 authorization was not successfull!"])          
                 self.textbox.setText("Layman")
                 return False
         else:          
@@ -4393,11 +4338,8 @@ class Layman(QObject):
                 url = self.liferayServer.replace('https:\\','')
                 self.textbox.setText('<a href="'+self.liferayServer+'">' + url + '</a>')                
             except Exception as ex:
-                print(ex)   
-                if self.locale == "cs":
-                    QMessageBox.information(None, "Error", "Komunikaci se serverem nelze navázat!")
-                else:
-                    QMessageBox.information(None, "Error", "Communication with the server cannot be established!")               
+                print(ex) 
+                self.utils.emitMessageBox.emit(["Komunikaci se serverem nelze navázat!", "Communication with the server cannot be established!"])  
                 self.logout()
                 return False
         return True
@@ -4439,10 +4381,7 @@ class Layman(QObject):
                 try:
                     self.name = self.utils.getUserName()             
                 except:
-                    if self.locale == "cs":
-                        QMessageBox.information(None, "Message", "Autorizace nebyla úspěšná!")
-                    else:
-                        QMessageBox.information(None, "Message", "Autorization was not sucessfull!")                    
+                    self.utils.emitMessageBox.emit(["Autorizace nebyla úspěšná!", "Autorization was not sucessfull!"])                
                 url = self.URI+ "/rest/about/version"
                 print(url)              
                 r = self.utils.requestWrapper("GET", url, payload = None, files = None)                
@@ -4488,10 +4427,7 @@ class Layman(QObject):
             shutil.rmtree(dst)
             os.mkdir(dst)
         except:
-            if self.locale == "cs":
-                QMessageBox.information(None, "Error", "Plugin nebyl aktualizován!")
-            else:
-                QMessageBox.information(None, "Error", "Plugin was not updated!")
+            self.utils.emitMessageBox.emit(["Plugin nebyl aktualizován!", "Plugin was not updated!"])              
             return
         for item in os.listdir(src):
 
