@@ -123,6 +123,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_editMeta.clicked.connect(lambda: self.setStackWidget("metadata"))  
         self.pushButton_new.clicked.connect(lambda: self.setStackWidget("new"))
         self.pushButton_editMeta.setEnabled(False)
+        self.pushButton_new.show()
         self.pushButton_save.setEnabled(False)
         self.pushButton_setPermissions.setEnabled(False)
         self.pushButton_delete.setEnabled(False)
@@ -156,13 +157,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             try:                
                 len(composition['layers'])
             except:            
-                self.progressBar_loader.hide() 
-                self.pushButton_editMeta.setEnabled(False)                
-                self.pushButton_setPermissions.setEnabled(False)     
-                self.pushButton_save.setEnabled(False)
-                self.pushButton_delete.setEnabled(False)
-                self.pushButton_qfield.setEnabled(False)   
-                self.pushButton_new.clicked.connect(lambda: self.showAddMapDialog(True))
+             
                 return
             self.refreshCurrentForm()
             if self.laymanUsername != self.layman.instance.getWorkspace():
@@ -194,6 +189,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.show()
         result = self.exec_()  
     def refreshCurrentForm(self, layerAdded = None):
+        self.pushButton_new.show()  
         if self.layman.instance == None:
             return
         composition = self.layman.instance.getComposition()
@@ -581,19 +577,14 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     if self.utils.removeUnacceptableChars(composition['layers'][i]['title']) == self.utils.removeUnacceptableChars(item.text(0).split(" (")[0]):
                         del composition['layers'][i]
                         pom = pom + 1
-
             iterator +=1
 
         uniq = self.checkUniqueName(layers)
         if uniq:
-            if len(layers) > 0:
-                
-                
+            if len(layers) > 0:          
                 newLayers = list()                
                 for item in self.currentSet:                    
-                    layersFromServer = list()                    
-             
-
+                    layersFromServer = list() 
                     if item[2] == "Add from server" or item[2] == "Přidat ze serveru":
                         for layer in layers:                                                    
                    
@@ -605,13 +596,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         for layer in layers:
                             if layer.name() == item[0]:
                                 newLayers.append(layer)
- 
-
-                if len(newLayers) > 0:   
-                                
-                    self.layman.addLayerToComposite2(composition, layers, self.currentSet)
-
-            #self.close()
+                if len(newLayers) > 0:                                   
+                    self.layman.addLayerToComposition(composition, layers, self.currentSet)            
             return True
         else:
             QgsMessageLog.logMessage("uniqLayers")
@@ -773,8 +759,6 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
       
         self.failed = list()
         self.statusHelper = True
-      
-        
         # if self.utils.hasLaymanLayer(layerName[0], self.layman.current):
         if self.utils.hasLaymanLayer(layerName[0], self.layman.instance.getWorkspace()):
             if self.layman.locale == "cs":
@@ -897,18 +881,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 self.permissionInfo.emit(False, self.failed, 0)               
     def afterPermissionDone(self, success, failed, info):
-        if self.objectName() == "CurrentMapDialog":
-            self.progressBar_loader.hide()             
-            if success:
-                if self.layman.locale == "cs":
-                    QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
-                else:
-                    QMessageBox.information(None, "Saved", "Permissions was saved successfully.")                
+        self.progressBar_loader.hide()             
+        if success:
+            if self.layman.locale == "cs":
+                QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
             else:
-                if self.layman.locale == "cs":
-                    QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""))
-                else:
-                    QMessageBox.information(None, "Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                
+                QMessageBox.information(None, "Saved", "Permissions was saved successfully.")                
+        else:
+            if self.layman.locale == "cs":
+                QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""))
+            else:
+                QMessageBox.information(None, "Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                
                     
                     
                     
@@ -1072,8 +1055,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.showErr.emit([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, str(allInfo), Qgis.Warning, "")        
             
     def setNewUI(self): 
-        self.label_info.hide()
-        self.label_2.hide()        
+        self.label_info.hide()    
+        self.pushButton_new.hide()      
         layers = QgsProject.instance().mapLayers().values()     
         self.treeWidget.itemClicked.connect(self.setExtent)
         for layer in layers:         
@@ -1219,6 +1202,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.prj=QgsProject.instance()
                 # self.prj.removeAll.connect(self.layman.removeSignals)        
                 QgsProject.instance().setTitle(title)  
+                self.pushButton_editMeta.setEnabled(True)   
+                self.pushButton_setPermissions.setEnabled(True)
+                self.pushButton_delete.setEnabled(True)              
+                self.pushButton_save.setEnabled(True)
+                self.pushButton_copyUrl.setEnabled(True)
+                self.label_readonly.hide()
+                self.treeWidget_layers.setEnabled(True)   
         self.setStackWidget("main")                         
     def setDefaultExtent(self, ext):
         self.lineEdit_3.setText(str(ext.xMinimum()))
@@ -1341,3 +1331,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.layman.instance = None
             self.layman.current = None
             self.close()           
+    def setWritePermissionList(self):
+        allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]    
+        if self.comboBox_users.currentText() in allItems:
+            if self.checkAddedItemDuplicity("write"):
+                itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
+              
+                if (self.comboBox_users.currentText() in itemsTextListRead):
+                  
+                    self.listWidget_write.addItem(self.comboBox_users.currentText())
+                    print("1")
+                else:            
+                    self.listWidget_write.addItem(self.comboBox_users.currentText())
+                    self.listWidget_read.addItem(self.comboBox_users.currentText())
+                    print("2")              

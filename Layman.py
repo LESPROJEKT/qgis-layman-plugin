@@ -1086,7 +1086,7 @@ class Layman(QObject):
  
 
                 if len(newLayers) > 0:                   
-                    self.addLayerToComposite2(composition, layers)           
+                    self.addLayerToComposition(composition, layers)           
             return True
         else:
             QgsMessageLog.logMessage("uniqLayers")
@@ -3357,10 +3357,10 @@ class Layman(QObject):
                 if(str(param[0]) == "timeDimensionExtent"):
                     dimension = (param[1])
              
-            if (len(layers) == 1):
-                layers = str(layers).replace("[", "").replace("]", "").replace("'", "")
-            else:
-                layers = str(layers).replace("'", "")
+            # if (len(layers) == 1):
+            layers = str(layers).replace("[", "").replace("]", "").replace("'", "")
+            # else:
+            #     layers = str(layers).replace("'", "")
             self.existLayer = False       
             if dimension == "":
                 composition['layers'].append({"metadata":{},"visibility":True,"opacity":layer.opacity(),"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS" if not arc else "ArcGISRest","dimensions":{},"singleTile":False, "greyscale": greyScale,  "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
@@ -3456,7 +3456,7 @@ class Layman(QObject):
         end = string.find("'", start)
         value = string[start:end]   
         return value                                        
-    def addLayerToComposite2(self,composition, layersList, currentSet): 
+    def addLayerToComposition(self,composition, layersList, currentSet): 
         for layer in layersList:
             self.showExportInfo.emit("Nahrávání vrstvy: " + layer.name() if self.locale == "cs" else "Uploading layer: " + layer.name())
             if (isinstance(layer,QgsRasterLayer)) and layer.dataProvider().uri().uri() != "":
@@ -3767,7 +3767,8 @@ class Layman(QObject):
         return title
     def parseWMSlayers(self, layerString):
         ### ocekavany string je ve formatu pole napr [vrstva1,vrstva2,...]
-        if (layerString[0] == "[" and layerString[-1:] == "]"):
+        #if (layerString[0] == "[" and layerString[-1:] == "]"):
+        if "," in layerString:
             s = layerString.replace("[","").replace("]","").split(",")
             res = ""
             for i in range(0, len(s)):
@@ -3789,10 +3790,19 @@ class Layman(QObject):
     def loadArcGisRest(self, url, layerName,  groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False):        
         r = requests.get(url + "?f=json")        
         res = json.loads(r.content)
-        id = 0
-        for layer in res['layers']:
-            if layer['name'] == layerName:
-                id = layer['id']    
+        id = 0   
+        
+        if len(res['layers']) == 1:
+            print(layerName,res['layers'])
+            id =  res['layers'][0]['id']
+        else:            
+            for layer in res['layers']:
+                print(layer, res['layers'])
+                if layer['name'] == layerName:
+                    id = layer['id']  
+       
+        
+                          
         rlayer = QgsRasterLayer("url="+url+" layer='"+str(id)+"'", layerName, "arcgismapserver")          
         print(rlayer.isValid())
         if (rlayer.isValid()):
@@ -3801,8 +3811,7 @@ class Layman(QObject):
                 rlayer.setMaximumScale(self.utils.resolutionToScale(minRes))
                 rlayer.setScaleBasedVisibility(True)
             if (groupName != '' or subgroupName != ''):            
-                self.addWmsToGroup(subgroupName,rlayer, "")
-                              
+                self.addWmsToGroup(subgroupName,rlayer, "")                              
             else:
                 self.params = []
                 self.params.append(visibility)              
@@ -3824,16 +3833,16 @@ class Layman(QObject):
 
     def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False, legend="0"):               
         layerName = self.parseWMSlayers(layerName) 
+
         epsg = QgsProject.instance().crs().authid()
         url = url.replace("%2F", "/").replace("%3A",":")
-        urlWithParams = 'contextualWMSLegend='+legend+'&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url            
+        # urlWithParams = 'contextualWMSLegend='+legend+'&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url            
         quri = QgsDataSourceUri()
         try:  
             if timeDimension != {}:  
                 if 'values' in timeDimension['time']:           
                     print("wmst")             
-                    quri.setParam("type", "wmst")
-                      #quri.setParam("timeDimensionExtent", "1995-01-01/2021-12-31/PT5M")                        
+                    quri.setParam("type", "wmst")                                        
                     quri.setParam("timeDimensionExtent", str(timeDimension['time']['values']))
                     quri.setParam("allowTemporalUpdates", "true")
                     quri.setParam("temporalSource", "provider")
@@ -3845,7 +3854,7 @@ class Layman(QObject):
                     quri.setParam("temporalSource", "provider")            
         except Exception as e:
             print(e)
-            print("error with time wms")
+            print("error with time wms")    
         quri.setParam("layers", layerName.replace("'", ""))
         quri.setParam("styles", '')
         quri.setParam("format", 'image/png')  
@@ -3855,7 +3864,7 @@ class Layman(QObject):
         quri.setParam("IgnoreReportedLayerExtents", '1')   
         if (self.isAuthorized):
             if not everyone:
-                quri.setParam("authcfg", self.authCfg)   # <---- here my authCfg url parameter
+                quri.setParam("authcfg", self.authCfg)   
         quri.setParam("contextualWMSLegend", legend)
         quri.setParam("url", url)        
         rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')       

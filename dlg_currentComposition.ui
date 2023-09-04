@@ -253,7 +253,7 @@
     <widget class="QCheckBox" name="checkBox_all">
      <property name="geometry">
       <rect>
-       <x>14</x>
+       <x>10</x>
        <y>0</y>
        <width>161</width>
        <height>20</height>
@@ -295,73 +295,12 @@
     </widget>
    </widget>
    <widget class="QWidget" name="page2">
-    <widget class="QPushButton" name="pushButton_save_permissions">
-     <property name="geometry">
-      <rect>
-       <x>20</x>
-       <y>383</y>
-       <width>111</width>
-       <height>27</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Save</string>
-     </property>
-     <property name="icon">
-      <iconset>
-       <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
-     </property>
-    </widget>
-    <widget class="QComboBox" name="comboBox_users">
-     <property name="geometry">
-      <rect>
-       <x>70</x>
-       <y>63</y>
-       <width>541</width>
-       <height>22</height>
-      </rect>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="pushButton_addRead">
-     <property name="geometry">
-      <rect>
-       <x>20</x>
-       <y>343</y>
-       <width>111</width>
-       <height>27</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Add</string>
-     </property>
-     <property name="icon">
-      <iconset>
-       <normaloff>icons/add.png</normaloff>icons/add.png</iconset>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="pushButton_addWrite">
-     <property name="geometry">
-      <rect>
-       <x>330</x>
-       <y>343</y>
-       <width>111</width>
-       <height>27</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Add</string>
-     </property>
-     <property name="icon">
-      <iconset>
-       <normaloff>icons/add.png</normaloff>icons/add.png</iconset>
-     </property>
-    </widget>
     <widget class="QPushButton" name="pushButton_back">
      <property name="geometry">
       <rect>
        <x>20</x>
        <y>20</y>
-       <width>111</width>
+       <width>151</width>
        <height>28</height>
       </rect>
      </property>
@@ -373,97 +312,171 @@
        <normaloff>icons/back.png</normaloff>icons/back.png</iconset>
      </property>
     </widget>
-    <widget class="QPushButton" name="pushButton_removeRead">
+    <widget class="QGroupBox" name="groupBox_3">
      <property name="geometry">
       <rect>
-       <x>190</x>
-       <y>343</y>
-       <width>111</width>
+       <x>21</x>
+       <y>50</y>
+       <width>591</width>
+       <height>331</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>Map permissions</string>
+     </property>
+     <widget class="QLabel" name="label">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>262</y>
+        <width>101</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Available users:</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_29">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>30</y>
+        <width>55</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Read:</string>
+      </property>
+     </widget>
+     <widget class="QListWidget" name="listWidget_write">
+      <property name="geometry">
+       <rect>
+        <x>310</x>
+        <y>50</y>
+        <width>261</width>
+        <height>191</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_addRead">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>293</y>
+        <width>101</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Add</string>
+      </property>
+      <property name="icon">
+       <iconset>
+        <normaloff>icons/add.png</normaloff>icons/add.png</iconset>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_addWrite">
+      <property name="geometry">
+       <rect>
+        <x>309</x>
+        <y>293</y>
+        <width>101</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Add</string>
+      </property>
+      <property name="icon">
+       <iconset>
+        <normaloff>icons/add.png</normaloff>icons/add.png</iconset>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_removeWrite">
+      <property name="geometry">
+       <rect>
+        <x>470</x>
+        <y>293</y>
+        <width>101</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Remove</string>
+      </property>
+      <property name="icon">
+       <iconset>
+        <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
+      </property>
+     </widget>
+     <widget class="QListWidget" name="listWidget_read">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>50</y>
+        <width>261</width>
+        <height>191</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_3">
+      <property name="geometry">
+       <rect>
+        <x>310</x>
+        <y>30</y>
+        <width>55</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Write:</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="comboBox_users">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>257</y>
+        <width>431</width>
+        <height>22</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_removeRead">
+      <property name="geometry">
+       <rect>
+        <x>180</x>
+        <y>293</y>
+        <width>101</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Remove</string>
+      </property>
+      <property name="icon">
+       <iconset>
+        <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QPushButton" name="pushButton_save_permissions">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>396</y>
+       <width>151</width>
        <height>27</height>
       </rect>
      </property>
      <property name="text">
-      <string>Remove</string>
+      <string>Save</string>
      </property>
      <property name="icon">
       <iconset>
-       <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="pushButton_removeWrite">
-     <property name="geometry">
-      <rect>
-       <x>500</x>
-       <y>343</y>
-       <width>111</width>
-       <height>27</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Remove</string>
-     </property>
-     <property name="icon">
-      <iconset>
-       <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label">
-     <property name="geometry">
-      <rect>
-       <x>20</x>
-       <y>65</y>
-       <width>55</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Users:</string>
-     </property>
-    </widget>
-    <widget class="QListWidget" name="listWidget_read">
-     <property name="geometry">
-      <rect>
-       <x>20</x>
-       <y>142</y>
-       <width>281</width>
-       <height>191</height>
-      </rect>
-     </property>
-    </widget>
-    <widget class="QListWidget" name="listWidget_write">
-     <property name="geometry">
-      <rect>
-       <x>330</x>
-       <y>142</y>
-       <width>281</width>
-       <height>191</height>
-      </rect>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_2">
-     <property name="geometry">
-      <rect>
-       <x>20</x>
-       <y>110</y>
-       <width>55</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Read:</string>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_3">
-     <property name="geometry">
-      <rect>
-       <x>330</x>
-       <y>110</y>
-       <width>55</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Write:</string>
+       <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
      </property>
     </widget>
    </widget>
@@ -498,8 +511,8 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>355</y>
-       <width>141</width>
+       <y>350</y>
+       <width>151</width>
        <height>31</height>
       </rect>
      </property>
@@ -609,7 +622,7 @@
       <rect>
        <x>20</x>
        <y>395</y>
-       <width>141</width>
+       <width>151</width>
        <height>27</height>
       </rect>
      </property>
@@ -665,7 +678,7 @@
       <rect>
        <x>20</x>
        <y>20</y>
-       <width>111</width>
+       <width>151</width>
        <height>28</height>
       </rect>
      </property>
@@ -814,8 +827,8 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>330</y>
-       <width>131</width>
+       <y>395</y>
+       <width>151</width>
        <height>27</height>
       </rect>
      </property>
@@ -1011,7 +1024,7 @@
       <rect>
        <x>20</x>
        <y>20</y>
-       <width>111</width>
+       <width>151</width>
        <height>28</height>
       </rect>
      </property>
@@ -1064,7 +1077,7 @@
       <rect>
        <x>20</x>
        <y>20</y>
-       <width>111</width>
+       <width>151</width>
        <height>28</height>
       </rect>
      </property>
@@ -1291,8 +1304,8 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>311</y>
-       <width>111</width>
+       <y>394</y>
+       <width>141</width>
        <height>28</height>
       </rect>
      </property>

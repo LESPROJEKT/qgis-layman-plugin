@@ -447,6 +447,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         self.layman.current = None
                         return
                 # self.layerServices[layerName] = 'OpenLayers.Layer.Vector'
+            if className == 'ArcGISRest':  
+                layerName = data['layers'][x]['title']              
             try:
                 print(layerName)
             except:

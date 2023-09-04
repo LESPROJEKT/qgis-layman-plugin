@@ -80,6 +80,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def setPermissionsWidget(self, option):        
         self.page1.setVisible(option)
         self.page2.setVisible(not option)
+        self.page1.setFixedHeight(700) 
         if option == True:
             names = list()
             for i in range (0, len(self.treeWidget.selectedItems())):
@@ -207,7 +208,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.listWidget_write.addItem(name)          
         if not self.permissionsConnected:            
             self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())
-            self.pushButton_save.clicked.connect(lambda: self.askForMapPermissionChanges(layerName, usersDict, "layers"))
+            self.pushButton_save.clicked.connect(lambda: self.askForMapPermissionChanges(layerName, usersDict, "layers"))          
             self.pushButton_addRead.clicked.connect(lambda:  self.checkAddedItemDuplicity("read"))
             self.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
             self.pushButton_removeRead.clicked.connect(lambda: self.removeReadPermissionList(usersDictReversed))
