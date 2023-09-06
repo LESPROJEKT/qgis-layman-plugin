@@ -13,11 +13,18 @@ from .dlg_errMsg import ErrMsgDialog
 import tempfile
 from PyQt5 import QtWidgets, QtGui, QtCore
 import csv
+import threading
+import base64
+import hashlib
+import webbrowser
+import time
+
 class LaymanUtils(QObject): 
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)  
     setVisibility = pyqtSignal(QgsMapLayer)
     loadStyle = pyqtSignal(QgsMapLayer)
     emitMessageBox = pyqtSignal(list)
+    authorizationSuccessfull = pyqtSignal()    
       
     def __init__(self, iface, locale,laymanUsername,  parent=None):
         super(LaymanUtils, self).__init__(parent=parent)
@@ -29,11 +36,20 @@ class LaymanUtils(QObject):
         self.laymanUsername = laymanUsername
         self.currentLayer = []
         self.connectEvents()
+        self.server = None
+        self.initFiles()
+        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
+        if os.path.isfile(path):
+            self.authFileTime =os.path.getmtime(path)
     def connectEvents(self):         
         self.showErr.connect(self.showMessageError)
         self.setVisibility.connect(self._setVisibility)
         self.loadStyle.connect(self._loadStyle)
         self.emitMessageBox.connect(self._onEmitMessageBox) 
+        self.authorizationSuccessfull.connect(self._onAutorizationSucessfull)  
+    def initFiles(self):
+        if os.path.exists(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt") == False:
+            open(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt", "w").close        
     def getConfigItem(self, key):
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'
         config = configparser.RawConfigParser()
@@ -707,6 +723,93 @@ QPushButton::indicator {
         for widget in container.findChildren(QPushButton):
             widget.setStyleSheet(css)
 
+    
+    def getAuthCode(self):
+        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt"        
+        f = open(path, "r")
+        ret =  f.read()
+        f.close()
+        return ret                    
+    def _onAutorizationSucessfull(self):      
+        self.getToken()  
+    def setAuthHeader(self):
+        self.api.authHeader ={
+          "Authorization": "Bearer " + self.access_token, 
+          "AuthorizationIssUrl" : self.server+'/o/oauth2/authorize'
+        }              
+    def getToken(self):
+        tokenEndpoint = self.server+"/o/token/"
+        data = {
+        'client_id': self.client_id,
+        'client_secret': self.client_secret,
+        'code': self.code,
+        'code_verifier': self.code_verifier,
+        'redirect_uri': self.redirect_uri,
+        'grant_type': "authorization_code"
+        }     
+        r = requests.post(url = tokenEndpoint, data = data) 
+        print(r.content)
+        res = json.loads(r.content)
+        self.access_token = res['access_token']
+        self.refresh_token = res['refresh_token']
+        self.expires_in = res['expires_in']
+        self.setAuthHeader()
+        self.set_buttons(True)  
+    def checkAuthChange(self):
+        i = 0
+        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
+        while(i < 500):
+            if self.authFileTime == os.path.getmtime(path):
+                pass
+            else:
+                self.authFileTime = os.path.getmtime(path)
+                with open(path, 'r') as file:
+                    self.code = file.readline().strip()
+                self.authorizationSuccessfull.emit()             
+                i = i + 500            
+            i = i +1
+            time.sleep(0.5)    
+                                    
+    def login(self, authcfg_id, server, client_id, client_secret):
+        self.isAuthorized = True
+        self.server = server
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.authCfg = authcfg_id
+        self.code_challenge = self.getCodeChallenge(self.getCodeVerifier())
+        authcfg_id = self.authCfg
+        self.redirect_uri = "http://127.0.0.1:7070/oauthn2/callback"
+        threading.Thread(target=lambda: self.checkAuthChange()).start()   
+        self.client_id = "hG8sWyPJ7ysgrIHEjCxoPDWchd4CAxUQ72yZNf9F"      
+        #url = f'{self.server}/o/authorize/?response_type=code&code_challenge={self.code_challenge}&code_challenge_method=S256&client_id={self.client_id}&redirect_uri={self.redirect_uri}'
+        url = f'{self.server}/o/authorize/?response_type=code&client_id={self.client_id}&redirect_uri={self.redirect_uri}/client/oauthn2/callback'
+        try:
+            r = requests.get("http://127.0.0.1:7070") 
+            print(r.content)
+            if (r.content == b'Layman QGIS.'):
+                print("webserver already running")
+                webbrowser.open(url, new=2)   
+        except:
+            self.webServerTread = StartWebServerDaemon()
+            self.webServerTread.daemon = True
+            self.webServerTread.start()
+            print("running webserver") 
+            webbrowser.open(url, new=2)
+    def getCodeVerifier(self):
+        code_verifier = base64.urlsafe_b64encode(os.urandom(40)).decode('utf-8')
+        code_verifier = re.sub('[^a-zA-Z0-9]+', '', code_verifier)
+        self.code_verifier = code_verifier
+        return (code_verifier)
+      
+    def getCodeChallenge(self, code_verifier):
+            code_challenge = hashlib.sha256(code_verifier.encode('utf-8')).digest()
+            code_challenge = base64.urlsafe_b64encode(code_challenge).decode('utf-8')
+            code_challenge = code_challenge.replace('=', '')
+            self.code_challenge = code_challenge
+            return (code_challenge)
+    
+    
+    
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:
@@ -748,5 +851,23 @@ class ProxyStyle(QtWidgets.QProxyStyle):
                         QtWidgets.QStyle.PM_ButtonShiftVertical, option, widget
                     ),
                 )
-                painter.drawPixmap(iconRect, pixmap)                 
-                
+                painter.drawPixmap(iconRect, pixmap)  
+                               
+class StartWebServerDaemon(threading.Thread):    
+    def run(self):
+        from subprocess import Popen, PIPE
+        import platform
+        import sys
+        import subprocess
+        import time
+        import os
+        from pathlib import Path      
+        d= os.path.dirname(Path(__file__).absolute()) + os.sep+"webserver" + os.sep + "http_handler.py" 
+        global process
+        if platform.system() == 'Windows':
+            try:          
+                process = subprocess.call(["python", d],stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600, shell=True)
+            except:                 
+                print("killed")
+        else:                
+            process = subprocess.Popen(["python " + d],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)                

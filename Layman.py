@@ -4386,8 +4386,9 @@ class Layman(QObject):
         self.isAuthorized = True
         self.utils.isAuthorized = True  
         self.setup_oauth(self.authCfg, self.liferayServer)    
-        self.utils.setAuthCfg(self.authCfg)      
-        authHeader = self.utils.getAuthHeader(self.authCfg)  
+        #self.utils.setAuthCfg(self.authCfg)      
+        self.utils.login(self.authCfg, self.liferayServer, self.client_id, self.client_secret)
+        # authHeader = self.utils.getAuthHeader(self.authCfg)  
         print(authHeader)
         if (authHeader):
             if self.registerUserIfNotExists(): 
