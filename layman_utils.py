@@ -778,11 +778,11 @@ QPushButton::indicator {
         self.authCfg = authcfg_id
         self.code_challenge = self.getCodeChallenge(self.getCodeVerifier())
         authcfg_id = self.authCfg
-        self.redirect_uri = "http://127.0.0.1:7070/oauthn2/callback"
+        self.redirect_uri = "http://127.0.0.1:7070"
         threading.Thread(target=lambda: self.checkAuthChange()).start()   
         self.client_id = "hG8sWyPJ7ysgrIHEjCxoPDWchd4CAxUQ72yZNf9F"      
         #url = f'{self.server}/o/authorize/?response_type=code&code_challenge={self.code_challenge}&code_challenge_method=S256&client_id={self.client_id}&redirect_uri={self.redirect_uri}'
-        url = f'{self.server}/o/authorize/?response_type=code&client_id={self.client_id}&redirect_uri={self.redirect_uri}/client/oauthn2/callback'
+        url = f'{self.server}/o/authorize/?response_type=code&client_id={self.client_id}&redirect_uri={self.redirect_uri}/client/oauthn2-liferay/callback'
         try:
             r = requests.get("http://127.0.0.1:7070") 
             print(r.content)
