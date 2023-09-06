@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.26
 description=Layman
-version=1.102.21
+version=2.0.0
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -25,6 +25,7 @@ repository=https://gitlab.com/Vrobel/layman_qgis/-/blob/master/README.md
 
 # Uncomment the following line and add your changelog:
 changelog=
+    2.0 - form rebuild
 	1.60 - owner permissions bug fixed, removed experimental flag
 	1.64 - map composition can get extent from own layers, form bugs in manage form fixed
 	1.65 - support QML on Layman server > v10.0.0

@@ -34,16 +34,6 @@
   <property name="windowTitle">
    <string>Layman - Export Layer to server</string>
   </property>
-  <widget class="QListWidget" name="listWidget_listLayers">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>381</width>
-     <height>191</height>
-    </rect>
-   </property>
-  </widget>
   <widget class="QPushButton" name="pushButton">
    <property name="geometry">
     <rect>
@@ -55,6 +45,10 @@
    </property>
    <property name="text">
     <string>Export layer</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/export.png</normaloff>icons/export.png</iconset>
    </property>
   </widget>
   <widget class="QPushButton" name="pushButton_close">
@@ -70,38 +64,6 @@
     <string>Close</string>
    </property>
   </widget>
-  <widget class="QTreeWidget" name="treeWidget">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>431</width>
-     <height>211</height>
-    </rect>
-   </property>
-   <property name="sizePolicy">
-    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-     <horstretch>0</horstretch>
-     <verstretch>0</verstretch>
-    </sizepolicy>
-   </property>
-   <property name="selectionMode">
-    <enum>QAbstractItemView::ExtendedSelection</enum>
-   </property>
-   <property name="selectionBehavior">
-    <enum>QAbstractItemView::SelectRows</enum>
-   </property>
-   <column>
-    <property name="text">
-     <string>Layer</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Type</string>
-    </property>
-   </column>
-  </widget>
   <widget class="QProgressBar" name="progressBar">
    <property name="enabled">
     <bool>true</bool>
@@ -113,6 +75,12 @@
      <width>171</width>
      <height>23</height>
     </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
    </property>
    <property name="maximum">
     <number>0</number>
@@ -137,7 +105,7 @@
   <widget class="QLabel" name="label_progress">
    <property name="geometry">
     <rect>
-     <x>270</x>
+     <x>262</x>
      <y>271</y>
      <width>371</width>
      <height>16</height>
@@ -158,6 +126,10 @@
    </property>
    <property name="text">
     <string>Copy error log</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/warning.png</normaloff>icons/warning.png</iconset>
    </property>
   </widget>
   <widget class="QLabel" name="label">
@@ -183,7 +155,228 @@
     </rect>
    </property>
   </widget>
+  <widget class="QStackedWidget" name="stackedWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>431</width>
+     <height>221</height>
+    </rect>
+   </property>
+   <property name="currentIndex">
+    <number>0</number>
+   </property>
+   <widget class="QWidget" name="page_main">
+    <widget class="QTreeWidget" name="treeWidget">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>431</width>
+       <height>211</height>
+      </rect>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::ExtendedSelection</enum>
+     </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+     <column>
+      <property name="text">
+       <string>Layer</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Type</string>
+      </property>
+     </column>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="page_time">
+    <widget class="QGroupBox" name="groupBox_2">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>40</y>
+       <width>421</width>
+       <height>171</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>Export time series</string>
+     </property>
+     <widget class="QLineEdit" name="lineEdit_name">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>60</y>
+        <width>230</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="placeholderText">
+       <string>Name:</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_timeSeries">
+      <property name="geometry">
+       <rect>
+        <x>116</x>
+        <y>127</y>
+        <width>180</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Export time series</string>
+      </property>
+      <property name="icon">
+       <iconset>
+        <normaloff>icons/export.png</normaloff>icons/export.png</iconset>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="lineEdit_regex">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>90</y>
+        <width>230</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="placeholderText">
+       <string>Regex:</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="comboBox_layers">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>30</y>
+        <width>231</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="currentText">
+       <string/>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QPushButton" name="pushButton_backTime">
+     <property name="geometry">
+      <rect>
+       <x>2</x>
+       <y>4</y>
+       <width>121</width>
+       <height>28</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Back</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="page_postgis">
+    <widget class="QGroupBox" name="groupBox">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>40</y>
+       <width>421</width>
+       <height>161</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>Login to database</string>
+     </property>
+     <widget class="QLineEdit" name="lineEdit_pass">
+      <property name="geometry">
+       <rect>
+        <x>121</x>
+        <y>70</y>
+        <width>161</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="echoMode">
+       <enum>QLineEdit::Password</enum>
+      </property>
+      <property name="placeholderText">
+       <string>Password:</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="lineEdit_username">
+      <property name="geometry">
+       <rect>
+        <x>121</x>
+        <y>34</y>
+        <width>161</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="placeholderText">
+       <string>Username:</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_pass">
+      <property name="geometry">
+       <rect>
+        <x>121</x>
+        <y>115</y>
+        <width>161</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Confirm</string>
+      </property>
+      <property name="icon">
+       <iconset>
+        <normaloff>icons/export.png</normaloff>icons/export.png</iconset>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QPushButton" name="pushButton_backPostgis">
+     <property name="geometry">
+      <rect>
+       <x>2</x>
+       <y>4</y>
+       <width>121</width>
+       <height>28</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Back</string>
+     </property>
+    </widget>
+   </widget>
+  </widget>
  </widget>
+ <tabstops>
+  <tabstop>pushButton_close</tabstop>
+  <tabstop>pushButton_errLog</tabstop>
+  <tabstop>comboBox_resampling</tabstop>
+  <tabstop>treeWidget</tabstop>
+  <tabstop>pushButton</tabstop>
+  <tabstop>lineEdit_username</tabstop>
+  <tabstop>lineEdit_pass</tabstop>
+  <tabstop>pushButton_pass</tabstop>
+  <tabstop>lineEdit_name</tabstop>
+  <tabstop>pushButton_timeSeries</tabstop>
+  <tabstop>lineEdit_regex</tabstop>
+  <tabstop>pushButton_backPostgis</tabstop>
+  <tabstop>pushButton_backTime</tabstop>
+  <tabstop>comboBox_layers</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

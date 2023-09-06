@@ -40,6 +40,10 @@
    <property name="text">
     <string>Update</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/refresh.png</normaloff>icons/refresh.png</iconset>
+   </property>
   </widget>
   <widget class="QPushButton" name="pushButton_close">
    <property name="geometry">
