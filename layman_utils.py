@@ -148,7 +148,7 @@ class LaymanUtils(QObject):
             return [False, version]
     def setAuthCfg(self,authCfg):
         self.authCfg = authCfg        
-    def getAuthHeader(self, authCfg): 
+    def getAuthHeader(self, authCfg): ## potřeba updatovat request pro služby
         if self.isAuthorized:
             config = QgsAuthMethodConfig()            
             url = QUrl(self.URI+ "/rest/current-user")
@@ -737,7 +737,7 @@ QPushButton::indicator {
           "Authorization": "Bearer " + self.access_token, 
           "AuthorizationIssUrl" : self.server+'/o/oauth2/authorize'
         }              
-    def getToken(self):
+    def getToken(self):     
         tokenEndpoint = self.server+"/o/token/"
         data = {
         'client_id': self.client_id,
@@ -759,16 +759,16 @@ QPushButton::indicator {
         i = 0
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
         while(i < 500):
-            if self.authFileTime == os.path.getmtime(path):
-                pass
-            else:
+            if not self.authFileTime == os.path.getmtime(path): 
                 self.authFileTime = os.path.getmtime(path)
                 with open(path, 'r') as file:
                     self.code = file.readline().strip()
+                    print(self.code)
                 self.authorizationSuccessfull.emit()             
                 i = i + 500            
             i = i +1
-            time.sleep(0.5)    
+            time.sleep(0.5)  
+    
                                     
     def login(self, authcfg_id, server, client_id, client_secret):
         self.isAuthorized = True
@@ -778,11 +778,11 @@ QPushButton::indicator {
         self.authCfg = authcfg_id
         self.code_challenge = self.getCodeChallenge(self.getCodeVerifier())
         authcfg_id = self.authCfg
-        self.redirect_uri = "http://127.0.0.1:7070"
+        self.redirect_uri = "http://127.0.0.1:7070/client/oauthn2-liferay/callback"
         threading.Thread(target=lambda: self.checkAuthChange()).start()   
         self.client_id = "hG8sWyPJ7ysgrIHEjCxoPDWchd4CAxUQ72yZNf9F"      
         #url = f'{self.server}/o/authorize/?response_type=code&code_challenge={self.code_challenge}&code_challenge_method=S256&client_id={self.client_id}&redirect_uri={self.redirect_uri}'
-        url = f'{self.server}/o/authorize/?response_type=code&client_id={self.client_id}&redirect_uri={self.redirect_uri}/client/oauthn2-liferay/callback'
+        url = f'{self.server}/o/authorize/?response_type=code&client_id={self.client_id}&redirect_uri={self.redirect_uri}'
         try:
             r = requests.get("http://127.0.0.1:7070") 
             print(r.content)
