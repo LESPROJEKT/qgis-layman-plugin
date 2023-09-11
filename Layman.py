@@ -174,6 +174,7 @@ class Layman(QObject):
         self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
         self.schemaVersion = "2.0.0"
         self.port = "7070"
+        self.currentOpened = False
         self.DPI = self.getDPI()
         self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']      
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
@@ -384,8 +385,10 @@ class Layman(QObject):
             parent=self.iface.mainWindow())
     #--------------------------------------------------------------------------
                  
-    def run_CurrentCompositionDialog(self, refresh = False):      
-        self.dlg_current = CurrentCompositionDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)   
+    def run_CurrentCompositionDialog(self, refresh = False):           
+        if self.currentOpened is False:
+            self.currentOpened = True
+            self.dlg_current = CurrentCompositionDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)   
         
        
     def comboBoxChanged(self, text):        

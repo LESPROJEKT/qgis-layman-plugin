@@ -1345,3 +1345,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.listWidget_write.addItem(self.comboBox_users.currentText())
                     self.listWidget_read.addItem(self.comboBox_users.currentText())
                     print("2")              
+    def reject(self):
+        super().reject()   
+        self.layman.currentOpened = False
+                     
