@@ -1771,8 +1771,7 @@ class Layman(QObject):
         else:
             return True  
 
-    def wms_wfs3(self, layerName, index, type):        
-        somethingChanged = False
+    def wms_wfs3(self, layerName, index, type):       
         composition = self.instance.getComposition()
         layerName = self.utils.removeUnacceptableChars(layerName)
         for layer in composition['layers']:
@@ -1802,9 +1801,7 @@ class Layman(QObject):
 
                     del layer['params']
                     del layer['url']
-                    self.layerServices[self.utils.removeUnacceptableChars(layer['title'])] = 'OpenLayers.Layer.Vector'                    
-                    somethingChanged = True
-
+                    self.layerServices[self.utils.removeUnacceptableChars(layer['title'])] = 'OpenLayers.Layer.Vector' 
                 if type == 'WMS':
                     print("set layer to wms")                 
                     composition['style'] = '' 
@@ -1822,11 +1819,7 @@ class Layman(QObject):
                         "VERSION": "1.3.0"
                       }
                     del layer['protocol']
-                    self.layerServices[self.utils.removeUnacceptableChars(layer['title'])] = "HSLayers.Layer.WMS"                    
-
-                    somethingChanged = True 
-
-   
+                    self.layerServices[self.utils.removeUnacceptableChars(layer['title'])] = "HSLayers.Layer.WMS"  
     def setup_oauth(self, authcfg_id, authcfg_name):
       
         if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e' and authcfg_id != '7f22y3g' and authcfg_id != 'a67e5fc' and authcfg_id != '7f22y3h': ## prozatím pro test toto id ma wagtail

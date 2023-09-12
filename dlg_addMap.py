@@ -229,21 +229,27 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.clear()
         url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title'
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-        data = r.json()     
+        try:
+            data = r.json()     
+        except:
+            self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
+            return            
         if onlyOwn and self.isAuthorized:
             for row in range(0, len(data)):
                 if "native_crs" in data[row]:
                     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", data[row]['native_crs']])
                 else:
                     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
-                self.treeWidget.addTopLevelItem(item)
-            #QgsMessageLog.logMessage("loadMaps")
-            
+                self.treeWidget.addTopLevelItem(item)   
             self.progressDone.emit()
         elif not self.isAuthorized:
             url = self.URI+'/rest/maps?order_by=title'
-            r = self.utils.requestWrapper("GET", url, payload = None, files = None)       
-            dataAll = r.json()
+            r = self.utils.requestWrapper("GET", url, payload = None, files = None)  
+            try:     
+                dataAll = r.json()
+            except:
+                self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
+                return                  
             permissions = ""
             for row in range(0, len(dataAll)):
                 if "native_crs" in dataAll[row]:
@@ -254,7 +260,11 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             url = self.URI+'/rest/maps?order_by=title'
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-            dataAll = r.json()
+            try:  
+                dataAll = r.json()
+            except:
+                self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
+                return                 
             permissions = ""
             for row in range(0, len(dataAll)):
                 if self.laymanUsername in dataAll[row]['access_rights']['read'] or "EVERYONE" in dataAll[row]['access_rights']['read']:
@@ -268,11 +278,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions, dataAll[row]['native_crs']])
                     else:
                         item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])                    
-                    self.treeWidget.addTopLevelItem(item)
-        #QgsMessageLog.logMessage("loadMaps")
+                    self.treeWidget.addTopLevelItem(item)   
         self.progressDone.emit()            
-    def rememberValueMap(self, value):
-        ## 2 true, 0 false
+    def rememberValueMap(self, value): 
         if value == 2:
             self.utils.appendIniItem("mapCheckbox", "1")
         if value == 0:
