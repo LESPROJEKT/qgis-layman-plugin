@@ -1349,4 +1349,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def reject(self):
         super().reject()   
         self.layman.currentOpened = False
+        self.onRefreshCurrentForm.disconnect() 
+        QgsProject.instance().layerWasAdded.disconnect()  
+        QgsProject.instance().layerRemoved.disconnect()
         print(self.layman.dlg_current)

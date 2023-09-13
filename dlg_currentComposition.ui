@@ -1359,6 +1359,59 @@
    </widget>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>pushButton_new</tabstop>
+  <tabstop>pushButton_editMeta</tabstop>
+  <tabstop>pushButton_save</tabstop>
+  <tabstop>pushButton_delete</tabstop>
+  <tabstop>radioButton_wms</tabstop>
+  <tabstop>pushButton_setPermissions</tabstop>
+  <tabstop>pushButton_qfield</tabstop>
+  <tabstop>pushButton_copyUrl</tabstop>
+  <tabstop>checkBox_all</tabstop>
+  <tabstop>treeWidget_layers</tabstop>
+  <tabstop>pushButton_back</tabstop>
+  <tabstop>listWidget_write</tabstop>
+  <tabstop>pushButton_addRead</tabstop>
+  <tabstop>pushButton_addWrite</tabstop>
+  <tabstop>pushButton_removeWrite</tabstop>
+  <tabstop>listWidget_read</tabstop>
+  <tabstop>comboBox_users</tabstop>
+  <tabstop>pushButton_removeRead</tabstop>
+  <tabstop>pushButton_save_permissions</tabstop>
+  <tabstop>lineEdit_4</tabstop>
+  <tabstop>pushButton_defaultExtent</tabstop>
+  <tabstop>lineEdit_5</tabstop>
+  <tabstop>lineEdit_2</tabstop>
+  <tabstop>textEdit_description</tabstop>
+  <tabstop>treeWidget</tabstop>
+  <tabstop>pushButton_CreateComposition</tabstop>
+  <tabstop>lineEdit_3</tabstop>
+  <tabstop>lineEdit_6</tabstop>
+  <tabstop>pushButton_back_2</tabstop>
+  <tabstop>pushButton_close2</tabstop>
+  <tabstop>lineEdit_ymin</tabstop>
+  <tabstop>lineEdit_ymax</tabstop>
+  <tabstop>lineEdit_xmax</tabstop>
+  <tabstop>lineEdit_xmin</tabstop>
+  <tabstop>pushButton_save_meta</tabstop>
+  <tabstop>lineEdit_scale</tabstop>
+  <tabstop>lineEdit_name</tabstop>
+  <tabstop>lineEdit_abstract</tabstop>
+  <tabstop>lineEdit_user</tabstop>
+  <tabstop>lineEdit_title</tabstop>
+  <tabstop>lineEdit_units</tabstop>
+  <tabstop>lineEdit_epsg</tabstop>
+  <tabstop>pushButton_back_3</tabstop>
+  <tabstop>pushButton_range_2</tabstop>
+  <tabstop>pushButton_range</tabstop>
+  <tabstop>pushButton_back_4</tabstop>
+  <tabstop>checkBox_singleTile</tabstop>
+  <tabstop>checkBox_visibility</tabstop>
+  <tabstop>checkBox_greyScale</tabstop>
+  <tabstop>checkBox_baseLayer</tabstop>
+  <tabstop>pushButton_save_props</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

@@ -406,7 +406,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.crsChangedConnect = False
                 QgsProject.instance().setCrs(crs)
                 self.crsChangedConnect = True
-                QgsProject.instance().setTitle(data['title'])               
+                QgsProject.instance().setTitle(data['title'])    
+                           
         
         self.loadLayer(data,service, name)        
     def loadLayer(self, data, service, groupName = ''):    
