@@ -3476,17 +3476,13 @@ class Layman(QObject):
                     minScale = None    
                 composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":layer.name(),"className":"OpenLayers.Layer.Vector","style": "","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layer.maximumScale())),"name": str(title),"protocol":{"format": "hs.format.externalWFS","url": url},"ratio":1.5,"visibility": layerTreeNode.isVisible(),"dimensions":{}})
             elif (isinstance(layer,QgsVectorLayer))  or layer.dataProvider().uri().uri() == "":
-
                 layers = []
                 layers.append(layer)
                 successful = 0                
                 path = ""
                 path = self.getGroupOfLayer(layer)
                 if path == 'root':
-                    path = ""
-
-
-              
+                    path = ""              
                 for i in range (0, len(layers)):
                     for item in currentSet:
                         if self.utils.removeUnacceptableChars(item[0]) == self.utils.removeUnacceptableChars(layers[i].name()):
@@ -3711,30 +3707,7 @@ class Layman(QObject):
         for i in reversed(range (0, len(data['layers']))):       
              if (self.utils.removeUnacceptableChars(data['layers'][i]['title']) ==  name ):
                 existingLayers.append(self.utils.removeUnacceptableChars(data['layers'][i]['title']))        
-        return existingLayers
-
-    def addComposite(self, data, service, groupName = ''):  
-        for x in range(len(data['layers'])- 1, -1, -1):        
-            repairUrl = self.URI+"/geoserver/"+self.laymanUsername+"/ows"
-            layerName = data['layers'][x]['params']['LAYERS']
-            format = data['layers'][x]['params']['FORMAT']        
-            epsg = 'EPSG:4326'           
-            wmsName = data['layers'][x]['params']['LAYERS']
-            className = data['layers'][x]['className']
-            layerNameTitle = self.getLayerTitle(layerName)
-            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName           
-            r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-            res = r.json()
-            if service == 'WMS':
-                UrlWms = data['layers'][x]['url']
-                if className == 'XYZ':
-                    self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName)
-                else:
-                    self.loadWms(UrlWms, layerName,layerNameTitle, format,epsg, groupName)
-
-            if service == 'WFS':                
-                UrlWms = data['layers'][x]['url']
-                self.loadWfs(UrlWfs, layerName,layerNameTitle, groupName)
+        return existingLayers    
 
     def convertUrlFromHex(self, url):
         url = url.replace('%3A',':')
@@ -3776,7 +3749,6 @@ class Layman(QObject):
                     res = res+ s[i].replace(" ", "")
                 else:
                     res = res+ s[i].replace(" ", "") + "&layers="
-
 
             for i in range(0, len(s)-1):
                 res = res + "&styles"

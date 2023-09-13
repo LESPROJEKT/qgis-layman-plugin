@@ -333,8 +333,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             if "client" in self.URI:
                 url = self.URI+'/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'
             else:  
-                url = self.URI+'/client/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'
-            
+                url = self.URI+'/client/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'            
         try:     
             df=pd.DataFrame([url])
             df.to_clipboard(index=False,header=False)    
@@ -363,8 +362,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 self.crsChangedConnect = False
                 QgsProject.instance().setCrs(crs)
-                self.crsChangedConnect = True
-      
+                self.crsChangedConnect = True      
         self.pushButton_map.setEnabled(False) 
         self.loadComposition.emit(name, service, workspace)
       
@@ -408,7 +406,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.crsChangedConnect = False
                 QgsProject.instance().setCrs(crs)
                 self.crsChangedConnect = True
-                QgsProject.instance().setTitle(data['title'])                
+                QgsProject.instance().setTitle(data['title'])               
         
         self.loadLayer(data,service, name)        
     def loadLayer(self, data, service, groupName = ''):    
@@ -422,7 +420,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         groups = list()
         groupPositions = list()
         groupsSet = set()
-        for x in range(len(data['layers'])- 1, -1, -1):       ## descending order
+        for x in range(len(data['layers'])- 1, -1, -1): 
             print("iteration")
             try:
                 subgroupName =  data['layers'][x]['path']
@@ -437,12 +435,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             className = data['layers'][x]['className']
             visibility = data['layers'][x]['visibility']            
             if className == 'XYZ':
-                layerName = data['layers'][x]['title']
-                # self.layerServices[layerName] = 'XYZ'
+                layerName = data['layers'][x]['title']               
             if className == 'HSLayers.Layer.WMS':
-                layerName = data['layers'][x]['params']['LAYERS']
-                # self.layerServices[layerName] = 'HSLayers.Layer.WMS'
-
+                layerName = data['layers'][x]['params']['LAYERS']  
             if className == 'OpenLayers.Layer.Vector' or className == 'Vector':                
                 try:
                     layerName = data['layers'][x]['name']
@@ -453,8 +448,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         QgsMessageLog.logMessage("compositionSchemaError")
                         self.instance = None
                         self.layman.current = None
-                        return
-                # self.layerServices[layerName] = 'OpenLayers.Layer.Vector'
+                        return            
             if className == 'ArcGISRest':  
                 layerName = data['layers'][x]['title']              
             try:
@@ -589,8 +583,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 
             else:
                 self.wrongLayers = True              
-            i = i + 1   
-        
+            i = i + 1           
         self.layman.reorderGroups(groups, groupsSet, groupPositions)
         self.layman.afterCompositionLoaded()         
         self.progressDone.emit()       

@@ -63,6 +63,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setStyle(proxy_style)
         self.setupUi(self)
         self.setUi()
+    
         
          
         
@@ -147,7 +148,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             layerList = list()
             serviceList = list()
             try:
-                if self.locale == "cs":
+                if self.layman.locale == "cs":
                     self.setWindowTitle("Kompozice: "+composition['title'])
                 else:
                     self.setWindowTitle("Composition: "+composition['title'])
@@ -214,7 +215,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.pushButton_qfield.setEnabled(True)  
         
         try:
-            self.setWindowTitle("Kompozice: " + composition['title']) if self.locale == "cs" else self.setWindowTitle("Composition: " + composition['title'])
+            self.setWindowTitle("Kompozice: " + composition['title']) if self.layman.locale == "cs" else self.setWindowTitle("Composition: " + composition['title'])
         except:
             print("titulek nenačten")
         self.treeWidget_layers.clear()
@@ -253,13 +254,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 if serviceList[i] == 'XYZ':                        
                     item.setText(1, "XYZ")
                 item.setCheckState(0,2)
-                if self.locale == "cs":
+                if self.layman.locale == "cs":
                     item.setToolTip(0,"Tato vrstva je zobrazena a je součástí načtené kompozice.")
                 else:
                     item.setToolTip(0,"This layer is displayed and is part of the loaded composition.")                           
             else:
                 item.setCheckState(0,0)      
-                if self.locale == "cs":
+                if self.layman.locale == "cs":
                     item.setToolTip(0,"Tato vrstva není součástí kompozice.")
                 else:
                     item.setToolTip(0,"This layer is not part of the composition.")
@@ -285,7 +286,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         for layer in notActive:            
             item = QTreeWidgetItem()
             
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 item.setText(0,layer + " (Smazána z projektu)")
                 item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
                 item.setData(0, QtCore.Qt.CheckStateRole, None)
@@ -298,7 +299,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             brush.setColor(QColor(255,17,0))
             item.setForeground(0,brush)
             item.setCheckState(0,0)
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 item.setToolTip(0,"Tato vrstva se nevyskytuje v mapovém okně QGIS, ale je obsažena v kompozici.")
             else:
                 item.setToolTip(0,"This layer does not appear in the QGIS map window, but is included in the composition.")
@@ -363,23 +364,23 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         cellServices.addItems(['WFS', 'WMS'])                                                        
 
             if (self.layman.instance.isLayerInComposition(self.utils.removeUnacceptableChars(item.text(0)))):
-                if self.locale == "cs":
+                if self.layman.locale == "cs":
                     cell.addItems(['Beze změny','Přepsat data','Smazat'])
                 else:
                     cell.addItems(['No change','Overwrite geometry','Remove'])
             elif item.text(0).replace(" (Smazána z projektu)", "").replace(" (Removed from canvas)", "") in  notActive:
-                if self.locale == "cs":
+                if self.layman.locale == "cs":
                     cell.addItems(['Beze změny','Smazat'])
                 else:
                     cell.addItems(['No change','Remove'])                        
             else:
                 if self.utils.checkExistingLayer(item.text(0)):           
-                    if self.locale == "cs":
+                    if self.layman.locale == "cs":
                         cell.addItems(['Beze změny','Přidat ze serveru','Přidat a přepsat'])
                     else:
                         cell.addItems(['No change','Add from server','Add and overwrite' ])
                 else:
-                    if self.locale == "cs":
+                    if self.layman.locale == "cs":
                         cell.addItems(['Beze změny','Přidat'])
                     else:
                         cell.addItems(['No change','Add'])
@@ -420,7 +421,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
    
         #self.differentThanBefore() zvýraznit
         if self.duplicateLayers():
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 QMessageBox.information(None, "Warning", "Duplicita v názvech vrstev!")
             else:
                 QMessageBox.information(None, "Warning", "Duplicity in layer names!")
@@ -468,7 +469,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         return ret                
     def itemClick(self, item, col):
         if item.checkState(0) == 2 and self.checkIfLayerIsInMoreGroups(QgsProject.instance().mapLayersByName(item.text(0))[0]):
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 QMessageBox.information(None, "Layman", "Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena bude pouze nadřazená.")
             else:
                 QMessageBox.information(None, "Layman", "Layer " + item.text(0) +" is nested in two groups. Only parent group will be saved.")
@@ -923,7 +924,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_save_meta.clicked.connect(lambda: self.modifyMeta())
         self.pushButton_range_2.clicked.connect(lambda: self.setRangeFromCanvas())
         self.pushButton_range.clicked.connect(lambda: self.setExtentFromLayers())
-        if self.locale == "cs":
+        if self.layman.locale == "cs":
             self.pushButton_range.setToolTip("Získá informaci o rozsahu z wms capatibilies.")
             self.pushButton_range_2.setToolTip("Získá informaci o rozsahu z okna QGI.")
         else:
@@ -965,7 +966,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setStackWidget("main")
         composition = self.layman.instance.getComposition()
         try:
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 self.setWindowTitle("Kompozice: "+composition['title'])
             else:
                 self.setWindowTitle("Composition: "+composition['title'])
@@ -1019,7 +1020,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         if renge[i]['minx'] < xmin:                            
                             xmin = renge[i]['minx']
         if (xmin == None or xmax == None or ymin == None or ymax==None):
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 QMessageBox.information(None, "Layman", "Záznam prostorového rozsahu vrstev vybrané kompozice nebyl nalezen!")
             else:
                 QMessageBox.information(None, "Layman", "A record of the layers spatial extent for the selected composition was not found!")
@@ -1075,7 +1076,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if projectPath != "":
             projectName = os.path.basename(projectPath).split(".")[0]
             if projectName[0] in ["0","1","2","3","4","5","6","7","8","9"]:
-                if self.locale == "cs":
+                if self.layman.locale == "cs":
                     QMessageBox.information(None, "Message", "Není povoleno číslo v prvník znaku titulku! Není možné předvyplnit název.")
                 else:
                     QMessageBox.information(None, "Message", "Number in first character of title is not allowed! Title can not be prefilled.")
@@ -1114,7 +1115,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_4.setText(str(xmax))
         self.lineEdit_5.setText(str(ymin))
         self.lineEdit_6.setText(str(ymax))
-        if self.locale == "cs":
+        if self.layman.locale == "cs":
             self.label_4.setText("Rozsah vrstvy: " + it.text(0))
         else:
             self.label_4.setText("Extent of layer: " + it.text(0))        
@@ -1143,7 +1144,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 self.pushButton_CreateComposition.setEnabled(False)
                 self.label_info.show()
-                if self.locale == "cs":
+                if self.layman.locale == "cs":
                     self.label_info.setText("Kompozice s tímto jménem již existuje!")
                 else:
                     self.label_info.setText("Composition name already exists!")           
@@ -1158,7 +1159,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         
     def checkForChars(self, string):
         if self.checkForSpecialChars(string):
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 QMessageBox.information(None, "Layman", "Nepodporovaný znak.")
             else:
                 QMessageBox.information(None, "Layman", "Unsupported char.")
@@ -1169,13 +1170,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def createComposition(self,  title, abstract, setCurrent = False):         
         self.compositionDict = self.utils.fillCompositionDict()
         if QgsProject.instance().crs().authid() not in self.layman.supportedEpsg:
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 QMessageBox.information(None, "Message", "Není nastaveno podporované EPSG projektu.")
             else:
                 QMessageBox.information(None, "Message", "Project EPSG is not supported.")
             return
         if (title == ""):
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 QMessageBox.information(None, "Message", "Není vyplněn titulek!")
             else:
                 QMessageBox.information(None, "Message", "Title is not filled!")
@@ -1217,35 +1218,35 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_6.setText(str(ext.yMaximum()))                
     def setGuiForItem(self, item):
         if item.text(1) == "GEOJSON":
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 item.setToolTip(1,"Vrstva načtená z lokálního souboru geojson.")
             else:
                 item.setToolTip(1,"Layer loaded from a local geojson file.")
 
         if item.text(1) == "SHP":
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 item.setToolTip(1,"Vrstva načtená z lokálního souboru SHP.")
             else:
                 item.setToolTip(1,"Layer loaded from a local SHP file.")
 
         if item.text(1) == "MEMORY":
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 item.setToolTip(1,"Vrstva uložená v paměti QGIS. Po vypnutí QGIS bude smazána.")
             else:
                 item.setToolTip(1,"Layer stored in QGIS memory. It will be deleted after QGIS is turned off.")
 
         if item.text(1) == "WMS":
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 item.setToolTip(1,"Vrstva načtená přes službu WMS poskytující data v rasterovém formátu. Je možné tuto službu zaměnit za vektorovou službu WFS pomocí tlačítka.")
             else:
                 item.setToolTip(1,"A layer loaded over a WMS service that provides data in a raster format. It is possible to change this service to a WFS vector service using the button.")
         if item.text(1) == "WFS":
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 item.setToolTip(1,"Vrstva načtená přes službu WFS poskytující data ve vektorovém formátu. Je možné tuto službu zaměnit za rasterovou službu WMS pomocí tlačítka. Změny v této vrstvě jsou ukládány na server.")
             else:
                 item.setToolTip(1,"A layer loaded over a WFS service that provides data in a vector format. It is possible to change this service to a WMS raster service using the button. Changes in this layer are saved to the server.")
         if item.text(1) == "OGR":
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 item.setToolTip(1,"Vektorová vrstva načtená z lokálního souboru.")
             else:
                 item.setToolTip(1,"Vector layer loaded from a local file.")        
@@ -1312,7 +1313,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         
     def deleteCurrentMap(self):
         composition = self.layman.instance.getComposition()
-        if self.locale == "cs":
+        if self.layman.locale == "cs":
             msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Chcete opravdu smazat tuto kompozici?")
         else:
             msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Do you want really delete this composition?")
@@ -1344,8 +1345,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:            
                     self.listWidget_write.addItem(self.comboBox_users.currentText())
                     self.listWidget_read.addItem(self.comboBox_users.currentText())
-                    print("2")              
+                    print("2") 
     def reject(self):
         super().reject()   
         self.layman.currentOpened = False
-                     
+        print(self.layman.dlg_current)

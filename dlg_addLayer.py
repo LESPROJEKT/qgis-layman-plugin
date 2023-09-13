@@ -143,8 +143,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.checkBox_own.setEnabled(False)
 
-        self.label_loading.show()
-        # self.utils.set_icon_size_for_all_buttons(self)
+        self.label_loading.show()       
         self.show()
         result = self.exec_()
 
@@ -378,7 +377,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions])
                 self.layerNamesDict[data[row]['title']] = data[row]['name']
                 self.treeWidget.addTopLevelItem(item)
-
             QgsMessageLog.logMessage("layersLoaded")
         self.progressBar_loader.hide()
    
