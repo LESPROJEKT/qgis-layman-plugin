@@ -701,12 +701,29 @@ QPushButton::indicator {
         else:
             QMessageBox.information(None, "Layman", message[1])              
     def set_icon_size_for_all_buttons(self, container):       
-        css = f"QPushButton {{ background-image: url(''); background-size: 5px 5px; }}"
-    
-        # Apply the CSS rule to all QPushButton widgets within the container
+        css = f"QPushButton {{ background-image: url(''); background-size: 5px 5px; }}"   
         for widget in container.findChildren(QPushButton):
             widget.setStyleSheet(css)
+    def compare_json_layers(self, schema1, schema2):
+        layers1 = schema1["layers"]
+        layers2 = schema2["layers"]      
+        layer_names1 = set(layer["title"] for layer in layers1)
+        layer_names2 = set(layer["title"] for layer in layers2)
+        print(layer_names1, layer_names2)
+        # Rozdíl mezi názvy vrstev
+        extra_layers1 = layer_names1 - layer_names2
+        extra_layers2 = layer_names2 - layer_names1
 
+        if extra_layers1:
+            print(f"Ve schématu jedna ubyly tyto vrstvy oproti schématu dva: {', '.join(extra_layers1)}")
+            return True
+        if extra_layers2:
+            print(f"Ve schématu jedna přibyly tyto vrstvy oproti schématu dva: {', '.join(extra_layers2)}")
+            return True
+        if not extra_layers1 and not extra_layers2:
+            print("Všechny vrstvy jsou shodné mezi oběma schématy.")
+            return False
+        return [extra_layers1, extra_layers2]
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:
