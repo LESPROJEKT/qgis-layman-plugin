@@ -369,6 +369,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def readMapJsonThread(self,name, service, workspace=""):    
         self.unloadedLayers = list()
         self.processingRequest = True   
+        old_loaded = self.layman.current 
+        if self.layman.instance != None:
+            old_composition = self.layman.instance.getComposition()       
         self.layman.current = name
         if workspace != "":### nactemdef loadData(self,name):
             self.selectedWorkspace = workspace            
@@ -390,24 +393,35 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)
         data = r.json()
         layers = QgsProject.instance().mapLayers()
-        if len(layers) > 0:            
-            if self.layman.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content.")
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            reply = msgbox.exec()
-            if (reply == QMessageBox.Yes):
-                self.layman.iface.newProject()
-                projection = data['projection'].replace("epsg:","").replace("EPSG:","")
-                crs=QgsCoordinateReferenceSystem(int(projection))
-                self.crsChangedConnect = False
-                QgsProject.instance().setCrs(crs)
-                self.crsChangedConnect = True
-                QgsProject.instance().setTitle(data['title'])    
-                           
+        if len(layers) > 0:
+            if name != old_loaded:            
+                if self.layman.locale == "cs":
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.")
+                else:
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content.")
+                msgbox.addButton(QMessageBox.Yes)
+                msgbox.addButton(QMessageBox.No)
+                msgbox.setDefaultButton(QMessageBox.No)
+                reply = msgbox.exec()
+                if (reply == QMessageBox.Yes):
+                    self.layman.iface.newProject()
+                    projection = data['projection'].replace("epsg:","").replace("EPSG:","")
+                    crs=QgsCoordinateReferenceSystem(int(projection))
+                    self.crsChangedConnect = False
+                    QgsProject.instance().setCrs(crs)
+                    self.crsChangedConnect = True
+                    QgsProject.instance().setTitle(data['title'])    
+            else: 
+                if self.utils.compare_json_layers(data, old_composition):
+                    self.layman.iface.newProject()
+                else:
+                    project = QgsProject.instance()                       
+                    for layer_id in project.mapLayers():
+                        layer = project.mapLayer(layer_id)
+                        provider = layer.dataProvider()
+                        provider.reloadData()
+                        self.progressDone.emit()    
+                    return       
         
         self.loadLayer(data,service, name)        
     def loadLayer(self, data, service, groupName = ''):    

@@ -144,6 +144,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_save.setEnabled(True)
             self.pushButton_delete.setEnabled(True)
             self.pushButton_qfield.setEnabled(True)  
+            self.pushButton_copyUrl.setEnabled(True)
             self.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl())
             layerList = list()
             serviceList = list()
