@@ -1058,6 +1058,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             
     def setNewUI(self): 
         self.label_info.hide()    
+        self.treeWidget.clear()
         self.pushButton_new.hide()      
         layers = QgsProject.instance().mapLayers().values()     
         self.treeWidget.itemClicked.connect(self.setExtent)
