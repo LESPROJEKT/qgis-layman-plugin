@@ -185,6 +185,7 @@ class Layman(QObject):
         self.watcherState.addPath(path)  
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
         self.dependencies = True
+        self.firstLogin = True
         self.resamplingMethods = {
             "Není vybrán": "No value",
             "Nejbližší": "nearest",
@@ -1387,9 +1388,11 @@ class Layman(QObject):
         self.dlg.treeWidget.clear()       
         uri = self.URI.replace("/client", "")       
         if query == "":
-            url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"           
+            #url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"           
+            url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng"           
         else:
-            url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"            
+            #url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"            
+            url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng"            
         r = self.utils.requestWrapper("GET", url, payload = None, files = None) 
         try:
             self.mickaRet = r.json() 
@@ -1737,14 +1740,13 @@ class Layman(QObject):
             
             if (i - j) < len(composition['layers']):
                 name = self.utils.removeUnacceptableChars(composition['layers'][i - j]['title'])          
-                if name == self.utils.removeUnacceptableChars(layers[i].name()):
-                    #check = True
+                if name == self.utils.removeUnacceptableChars(layers[i].name()):             
                     print("matched")
                     matched = matched + 1
                     lastMatchIndex = i
                 else:
                     print("no matched")
-                    j = j + 1 ## pokud se jména nepotkaji j reprezentuje "zpozdeni indexu" kompozice vuci vrstvam v layertree
+                    j = j + 1 
             else:
                 print("no matched")
                 j = j + 1
@@ -1872,10 +1874,9 @@ class Layman(QObject):
             "username": "",
             "version": 1
             }
-
         if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
             authConfig = QgsAuthMethodConfig('OAuth2')
-            authConfig.setId(authcfg_id)
+            authConfig.setId(authcfg_id)            
             authConfig.setName(authcfg_name)
             authConfig.setUri(self.liferayServer)
             authConfig.setConfig('oauth2config', json.dumps(cfgjson))
@@ -1889,7 +1890,6 @@ class Layman(QObject):
             authConfig.setConfig('oauth2config', json.dumps(cfgjson))
             if QgsApplication.authManager().updateAuthenticationConfig(authConfig):
                 return authcfg_id
-
         return None
               
      
@@ -4348,8 +4348,10 @@ class Layman(QObject):
                 self.rememberLastServer(self.dlg.comboBox_server.currentIndex())
                 self.dlg.pushButton_Connect.setEnabled(False)
         self.isAuthorized = True
-        self.utils.isAuthorized = True  
-        self.setup_oauth(self.authCfg, self.liferayServer)    
+        self.utils.isAuthorized = True        
+        if self.firstLogin or (self.authCfg not in QgsApplication.authManager().configIds()):
+            self.setup_oauth(self.authCfg, self.liferayServer)    
+            self.firstLogin = False
         self.utils.setAuthCfg(self.authCfg)      
         authHeader = self.utils.getAuthHeader(self.authCfg)  
         print(authHeader)
