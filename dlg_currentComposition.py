@@ -123,7 +123,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.dlg_current = self
         self.utils.recalculateDPI()
         self.pushButton_setPermissions.clicked.connect(lambda: self.setStackWidget("permissions"))
-        self.pushButton_back.clicked.connect(lambda: self.setStackWidget("main"))  
+        self.pushButton_back.clicked.connect(lambda: self.setStackWidget("main", False))  
         self.pushButton_editMeta.clicked.connect(lambda: self.setStackWidget("metadata"))  
         self.pushButton_new.clicked.connect(lambda: self.setStackWidget("new"))        
         self.pushButton_new.show()
