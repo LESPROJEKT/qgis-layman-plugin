@@ -75,14 +75,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
    
 
            
-    def setStackWidget(self, option): 
+    def setStackWidget(self, option, refresh = True): 
         if option == "main":       
             self.page1.setVisible(True)
             self.page2.setVisible(False)
             self.page3.setVisible(False)
             self.page4.setVisible(False)
             self.page5.setVisible(False)
-            self.refreshCurrentForm()
+            if refresh:
+                self.refreshCurrentForm()
+            else:
+                self.setVisibilityForCurrent(True)                
         if option == "permissions": 
             self.page1.setVisible(False)
             self.page2.setVisible(True)
@@ -122,14 +125,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_setPermissions.clicked.connect(lambda: self.setStackWidget("permissions"))
         self.pushButton_back.clicked.connect(lambda: self.setStackWidget("main"))  
         self.pushButton_editMeta.clicked.connect(lambda: self.setStackWidget("metadata"))  
-        self.pushButton_new.clicked.connect(lambda: self.setStackWidget("new"))
-        self.pushButton_editMeta.setEnabled(False)
+        self.pushButton_new.clicked.connect(lambda: self.setStackWidget("new"))        
         self.pushButton_new.show()
-        self.pushButton_save.setEnabled(False)
-        self.pushButton_setPermissions.setEnabled(False)
-        self.pushButton_delete.setEnabled(False)
-        self.pushButton_qfield.setEnabled(False)
-        self.pushButton_copyUrl.setEnabled(False)
+        self.setVisibilityForCurrent(False)
         self.label_readonly.hide()
         self.label_log.hide()        
         self.label_raster.hide()
@@ -138,13 +136,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.layman.current != None:
             self.layman.instance.refreshComposition()
             composition = self.layman.instance.getComposition()        
-            self.pushButton_editMeta.setEnabled(True)
-            self.pushButton_new.setEnabled(True)
-            self.pushButton_setPermissions.setEnabled(True)                        
-            self.pushButton_save.setEnabled(True)
-            self.pushButton_delete.setEnabled(True)
-            self.pushButton_qfield.setEnabled(True)  
-            self.pushButton_copyUrl.setEnabled(True)
+            self.setVisibilityForCurrent(True)
             self.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl())
             layerList = list()
             serviceList = list()
@@ -162,24 +154,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
              
                 return
             self.refreshCurrentForm()
-            if self.laymanUsername != self.layman.instance.getWorkspace():
-                self.pushButton_setPermissions.setEnabled(False)
-                self.pushButton_delete.setEnabled(False)            
-            if self.laymanUsername == self.layman.instance.getWorkspace():
-                pass
-            else:              
-                self.pushButton_editMeta.setEnabled(False)   
-                self.pushButton_setPermissions.setEnabled(False)
-                self.pushButton_delete.setEnabled(False)              
-                self.pushButton_save.setEnabled(False)
-                self.label_readonly.show()
+            if self.laymanUsername != self.layman.instance.getWorkspace():             
+                self.setVisibilityForCurrent(True)
         if not self.isAuthorized:      
-            self.pushButton_new.setEnabled(False)
-            self.pushButton_setPermissions.setEnabled(False)      
-            self.pushButton_editMeta.setEnabled(False)
-            self.treeWidget_layers.setEnabled(False)      
-            self.pushButton_save.setEnabled(False)
-            self.pushButton_delete.setEnabled(False)
+            self.setVisibilityForCurrent(False)
         if not self.pushButton_save.receivers(self.pushButton_save.clicked) > 0:          
             self.pushButton_close2.clicked.connect(lambda: self.close())                  
             self.pushButton_save.clicked.connect(lambda: self.updateComposition())
@@ -190,6 +168,26 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressBar_loader.hide()  
         self.show()
         result = self.exec_()  
+    def setVisibilityForCurrent(self, visible):
+        if self.laymanUsername != self.layman.instance.getWorkspace() and visible == True:
+            self.pushButton_editMeta.setEnabled(False)   
+            self.pushButton_setPermissions.setEnabled(False)
+            self.pushButton_delete.setEnabled(False)              
+            self.pushButton_save.setEnabled(False)
+            self.pushButton_copyUrl.setEnabled(True)   
+            self.pushButton_qfield.setEnabled(True)
+            self.pushButton_new.setEnabled(True)
+            self.label_readonly.show()
+            self.pushButton_new.show()    
+        else:      
+            self.pushButton_new.show()       
+            self.pushButton_new.setEnabled(visible)
+            self.pushButton_setPermissions.setEnabled(visible)      
+            self.pushButton_editMeta.setEnabled(visible)            
+            self.pushButton_save.setEnabled(visible)
+            self.pushButton_delete.setEnabled(visible)     
+            self.pushButton_copyUrl.setEnabled(visible)   
+            self.pushButton_qfield.setEnabled(visible)
     def refreshCurrentForm(self, layerAdded = None):
         self.pushButton_new.show()  
         if self.layman.instance == None:
@@ -213,7 +211,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.pushButton_setPermissions.setEnabled(True)                        
                 self.pushButton_save.setEnabled(True)
                 self.pushButton_delete.setEnabled(True)
-                self.pushButton_qfield.setEnabled(True)  
+                self.pushButton_qfield.setEnabled(True) 
+                self.pushButton_copyUrl.setEnabled(True) 
+        
         
         try:
             self.setWindowTitle("Kompozice: " + composition['title']) if self.layman.locale == "cs" else self.setWindowTitle("Composition: " + composition['title'])
@@ -903,7 +903,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         composition = self.layman.instance.getComposition()
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.lineEdit_name.hide() 
-        self.pushButton_back_3.clicked.connect(lambda: self.setStackWidget("main"))                
+        self.pushButton_back_3.clicked.connect(lambda: self.setStackWidget("main", False))                
         self.lineEdit_name.setText(composition['name'])
         self.lineEdit_abstract.setText(composition['abstract'])
         self.lineEdit_title.setText(composition['title'])
@@ -964,7 +964,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.utils.showErr.emit([" Metadata nebyla upravena.", " Map metadata was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
 
-        self.setStackWidget("main")
+        self.setStackWidget("main", False)
         composition = self.layman.instance.getComposition()
         try:
             if self.layman.locale == "cs":
@@ -1067,7 +1067,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 item = QTreeWidgetItem([layer.name()])
                 self.treeWidget.addTopLevelItem(item)
         ext = self.layman.iface.mapCanvas().extent()
-        self.pushButton_back_2.clicked.connect(lambda: self.setStackWidget("main"))     
+        self.pushButton_back_2.clicked.connect(lambda: self.setStackWidget("main", False))     
         self.lineEdit_3.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.lineEdit_4.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.lineEdit_5.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
@@ -1088,6 +1088,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_4.setText(str(ext.xMaximum()))
         self.lineEdit_5.setText(str(ext.yMinimum()))
         self.lineEdit_6.setText(str(ext.yMaximum()))
+        self.pushButton_editMeta.setEnabled(False)   
+        self.pushButton_setPermissions.setEnabled(False)
+        self.pushButton_delete.setEnabled(False)              
+        self.pushButton_save.setEnabled(False)
+        self.pushButton_qfield.setEnabled(False)
+        self.pushButton_copyUrl.setEnabled(False)
         self.pushButton_defaultExtent.clicked.connect(lambda: self.setDefaultExtent(ext))       
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")  
         self.pushButton_CreateComposition.clicked.connect(lambda: self.createComposition(self.lineEdit_2.text(),self.textEdit_description.toPlainText(), True))
@@ -1212,7 +1218,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.pushButton_copyUrl.setEnabled(True)
                 self.label_readonly.hide()
                 self.treeWidget_layers.setEnabled(True)   
-        self.setStackWidget("main")                         
+        self.setStackWidget("main", True)                         
     def setDefaultExtent(self, ext):
         self.lineEdit_3.setText(str(ext.xMinimum()))
         self.lineEdit_4.setText(str(ext.xMaximum()))
@@ -1262,7 +1268,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                            
                            
     def setLayerPropertiesUI(self):             
-        self.pushButton_back_4.clicked.connect(lambda: self.setStackWidget("main")) 
+        self.pushButton_back_4.clicked.connect(lambda: self.setStackWidget("main", False)) 
         layerName = self.treeWidget_layers.selectedItems()[0].text(0)      
         self.label_name.setText(layerName)
         self.pushButton_save_props.clicked.connect(lambda: self.saveCompositionLayerChanges(layerName))        
