@@ -1188,6 +1188,7 @@ class Layman(QObject):
     def run_AddMickaDialog(self):
         self.dlg = AddMickaDialog()
         self.dlg.show()   
+        self.cataloguePosition = 1
         QgsMessageLog.logMessage("disableProgressBar")
         threading.Thread(target=lambda: self.loadMickaMaps()).start()
         self.dlg.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
@@ -1197,11 +1198,14 @@ class Layman(QObject):
         self.dlg.pushButton_search.clicked.connect(lambda: self.mickaSearch())
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
     def goLeft(self):
+        print(self.cataloguePosition)
         if self.cataloguePosition > 30:
             self.cataloguePosition = self.cataloguePosition - 20
             threading.Thread(target=lambda: self.loadMickaMaps()).start()
         else:
-            self.utils.emitMessageBox.emit(["Není možné listovat doleva!", "Not possible page to left!"])    
+            self.cataloguePosition = self.cataloguePosition = 1
+            threading.Thread(target=lambda: self.loadMickaMaps()).start()
+            # self.utils.emitMessageBox.emit(["Není možné listovat doleva!", "Not possible page to left!"])    
     def goRight(self):
         if self.cataloguePosition < 500:            
             self.cataloguePosition = self.cataloguePosition + 20           
@@ -1218,7 +1222,7 @@ class Layman(QObject):
         epsg = list()
         if "crs" in self.mickaRet['records'][row]:
             for record in  self.mickaRet['records'][row]['crs']:
-                epsg.append(record['code'])     
+                epsg.append(record['code'])  
         if 'operatesOn' in self.mickaRet['records'][row]:
             for record in  self.mickaRet['records'][row]['operatesOn']:
                 if "title" in record:
@@ -1278,6 +1282,7 @@ class Layman(QObject):
         else:
             print("neni vrstva")
         QgsMessageLog.logMessage("disableProgressBar")
+        
     def getWmsUrl(self, url, epsg):        
         url = url.replace("%2F", "/").replace("%3A",":")
         try:
@@ -1383,7 +1388,7 @@ class Layman(QObject):
             ret = self.getNameByTitle(val, False)
             return ret
                      
-    def loadMickaMaps(self, query = ""):
+    def loadMickaMaps(self, query = ""):        
         self.dlg.progressBar_loader.show()
         self.dlg.treeWidget.clear()       
         uri = self.URI.replace("/client", "")       

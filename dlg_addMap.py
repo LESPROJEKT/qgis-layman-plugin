@@ -393,6 +393,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)
         data = r.json()
         layers = QgsProject.instance().mapLayers()
+        if len(data["layers"]) == 0:
+            self.progressDone.emit() 
+            self.utils.emitMessageBox.emit(["Mapová kompozice je prázdná!", "Map composition is empty!"])   
+            return
         if len(layers) > 0:
             if name != old_loaded:            
                 if self.layman.locale == "cs":
@@ -421,8 +425,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         provider = layer.dataProvider()
                         provider.reloadData()
                         self.progressDone.emit()    
-                    return       
-        
+                    return  
         self.loadLayer(data,service, name)        
     def loadLayer(self, data, service, groupName = ''):    
         if not 'layers' in data:       
