@@ -3553,10 +3553,10 @@ class Layman(QObject):
         files = {'file': (tempFile, open(tempFile, 'rb')),}       
         data = { 'name' :  composition['name'], 'title' :composition['title'], 'description' : composition['abstract'], 'access_rights.read': self.laymanUsername,   'access_rights.write': self.laymanUsername}
         url = self.URI+'/rest/'+self.laymanUsername+'/maps'
-        response = requests.post(url , files=files, data = data, headers = self.utils.getAuthHeader(self.authCfg))  
+        response = requests.post(url , files=files, data = data, headers = self.utils.getAuthHeader(self.authCfg)) 
         if (response.status_code == 200):
             self.utils.showQgisBar([" Kompozice  " + composition['name'] + " byla úspešně vytvořena."," Composition  " + composition['name'] + " was sucessfully created."], Qgis.Success)       
-        else:
+        else:         
             self.utils.showErr.emit([" Kompozice  " + composition['name'] + " nebyla vytvořena.", " Composition  " + composition['name'] + " was not sucessfully created."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)        
 
     def showProgressBar(self, bar):

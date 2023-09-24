@@ -57,6 +57,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.laymanUsername = laymanUsername
         self.URI = URI
         self.layman = layman
+        self.pushButton_CreateCompositionConnected = False
         self.layerServices = {}
         app = QtWidgets.QApplication.instance()     
         proxy_style = ProxyStyle(app.style())
@@ -169,6 +170,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.show()
         result = self.exec_()  
     def setVisibilityForCurrent(self, visible):
+        if self.layman.instance is None:
+            self.pushButton_editMeta.setEnabled(False)   
+            self.pushButton_setPermissions.setEnabled(False)
+            self.pushButton_delete.setEnabled(False)              
+            self.pushButton_save.setEnabled(False)
+            self.pushButton_copyUrl.setEnabled(False)   
+            self.pushButton_qfield.setEnabled(False)
+            self.pushButton_new.setEnabled(True)
+            self.label_readonly.hide()
+            self.pushButton_new.show()  
+            return
         if self.laymanUsername != self.layman.instance.getWorkspace() and visible == True:
             self.pushButton_editMeta.setEnabled(False)   
             self.pushButton_setPermissions.setEnabled(False)
@@ -1095,8 +1107,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_qfield.setEnabled(False)
         self.pushButton_copyUrl.setEnabled(False)
         self.pushButton_defaultExtent.clicked.connect(lambda: self.setDefaultExtent(ext))       
-        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")  
-        self.pushButton_CreateComposition.clicked.connect(lambda: self.createComposition(self.lineEdit_2.text(),self.textEdit_description.toPlainText(), True))
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}") 
+        if not self.pushButton_CreateCompositionConnected:                        
+            self.pushButton_CreateComposition.clicked.connect(lambda: self.createComposition(self.lineEdit_2.text(),self.textEdit_description.toPlainText(), True))
+            self.pushButton_CreateCompositionConnected = True
         
     def setExtent(self, it, col):
         layer = QgsProject.instance().mapLayersByName(it.text(0))
