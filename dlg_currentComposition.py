@@ -59,7 +59,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman = layman
         self.pushButton_CreateCompositionConnected = False
         self.layerServices = {}
-        app = QtWidgets.QApplication.instance()     
+        app = QtWidgets.QApplication.instance() 
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)   ## set to top      
         proxy_style = ProxyStyle(app.style())
         self.setStyle(proxy_style)
         self.setupUi(self)
