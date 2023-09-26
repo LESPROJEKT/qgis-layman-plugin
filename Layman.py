@@ -3379,8 +3379,10 @@ class Layman(QObject):
             composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"XYZ","singleTile":False,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
         print("legend set to:")
         print(legend[0])
-        if legend[0] in ["1", "0"]:
-            if legend[1] != [""]:
+        if legend[0] in ["1", "0"]:            
+            if len(legend) == 1:
+                composition["legends"] = []
+            elif legend[1] != [""]:
                 composition["legends"] = legend[1]         
             else:                
                 composition["legends"] = []
