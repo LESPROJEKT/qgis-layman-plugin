@@ -27,8 +27,9 @@ from PyQt5 import uic
 from PyQt5 import QtWidgets, QtCore
 from qgis.core import *
 from PyQt5.QtGui import  QRegExpValidator,QBrush, QColor
-from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton, QApplication
+from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton, QApplication, QDesktopWidget
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRegExp
+from qgis.PyQt.QtCore import QPoint
 import threading
 import requests
 import xml.etree.ElementTree as ET
@@ -60,6 +61,14 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_CreateCompositionConnected = False
         self.layerServices = {}
         app = QtWidgets.QApplication.instance() 
+        main_window = self.layman.iface.mainWindow() 
+        desktop = QDesktopWidget()
+        screen_rect = desktop.screenGeometry(main_window)
+        dialog_rect = self.frameGeometry()
+        x = (screen_rect.width() - dialog_rect.width()) // 2
+        y = (screen_rect.height() - dialog_rect.height()) // 2
+        dialog_rect.moveTopLeft(screen_rect.topLeft() + QPoint(x-100, y))
+        self.move(dialog_rect.topLeft())
         # self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)   ## set to top      
         proxy_style = ProxyStyle(app.style())
         self.setStyle(proxy_style)
@@ -899,6 +908,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressBar_loader.hide()             
         if success:
             if self.layman.locale == "cs":
+                
                 QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
             else:
                 QMessageBox.information(None, "Saved", "Permissions was saved successfully.")                
