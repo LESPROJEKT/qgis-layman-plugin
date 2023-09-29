@@ -907,8 +907,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def afterPermissionDone(self, success, failed, info):
         self.progressBar_loader.hide()             
         if success:
-            if self.layman.locale == "cs":
-                
+            if self.layman.locale == "cs":                
                 QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
             else:
                 QMessageBox.information(None, "Saved", "Permissions was saved successfully.")                

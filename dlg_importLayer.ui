@@ -207,7 +207,7 @@
       <rect>
        <x>0</x>
        <y>40</y>
-       <width>421</width>
+       <width>431</width>
        <height>171</height>
       </rect>
      </property>
@@ -291,7 +291,7 @@
       <rect>
        <x>0</x>
        <y>40</y>
-       <width>421</width>
+       <width>431</width>
        <height>161</height>
       </rect>
      </property>
@@ -301,7 +301,7 @@
      <widget class="QLineEdit" name="lineEdit_pass">
       <property name="geometry">
        <rect>
-        <x>121</x>
+        <x>130</x>
         <y>70</y>
         <width>161</width>
         <height>22</height>
@@ -317,7 +317,7 @@
      <widget class="QLineEdit" name="lineEdit_username">
       <property name="geometry">
        <rect>
-        <x>121</x>
+        <x>130</x>
         <y>34</y>
         <width>161</width>
         <height>22</height>
@@ -330,7 +330,7 @@
      <widget class="QPushButton" name="pushButton_pass">
       <property name="geometry">
        <rect>
-        <x>121</x>
+        <x>130</x>
         <y>115</y>
         <width>161</width>
         <height>27</height>

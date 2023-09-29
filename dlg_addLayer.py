@@ -130,7 +130,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.treeWidget.selectedItems()[0])).start())
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.checkIfPostgis(self.treeWidget.selectedItems()[0])).start())
         self.filter.valueChanged.connect(self.filterResults)
-        self.treeWidget.setColumnWidth(0, 300)
+        self.treeWidget.setColumnWidth(0, 250)
         self.treeWidget.setColumnWidth(2, 80)
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.checkBox_own.stateChanged.connect(self.rememberValueLayer)
@@ -297,7 +297,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def checkIfPostgis(self, it):
         layer = self.utils.removeUnacceptableChars(it.text(0))
         workspace = it.text(1)
-        url = self.URI+'/rest/'+workspace+'/layers/'+str(layer).lower()
+        url = self.URI+'/rest/'+workspace+'/layers/'+str(layer).lower()      
         r = requests.get(url, headers = self.utils.getAuthHeader(self.utils.authCfg))
         if "db" in r.json():
             if "external_uri" in r.json()["db"]:

@@ -56,6 +56,8 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         proxy_style = ProxyStyle(app.style())
         self.setStyle(proxy_style)
         self.setupUi(self)
+        self.postgis_login = None
+        self.postgis_pass = None
         self.setUi()
         
     def connectEvents(self):
@@ -65,12 +67,15 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if option == "time":       
             self.page_main.setVisible(False)
             self.page_time.setVisible(True)
-            self.page_postgis.setVisible(False)
+            self.page_postgis.setVisible(False)            
             self.showTSDialog()
         if option == "main":       
             self.page_main.setVisible(True)
             self.page_time.setVisible(False)
             self.page_postgis.setVisible(False)      
+            self.pushButton.show()
+            self.label.show()
+            self.comboBox_resampling.show()
         if option == "postgis":       
             self.page_main.setVisible(False)
             self.page_time.setVisible(False)
@@ -139,15 +144,27 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.selectSelectedLayer()
         self.treeWidget.header().resizeSection(0,250)
         self.pushButton_close.clicked.connect(lambda: self.close())  
-        self.show()      
+        self.show()    
+        
+    def rememberLoginPostgres(self, login, password):
+        self.postgis_login = login
+        self.postgis_pass = password
+                  
     def callPostRequest(self, layers):        
         resamplingMethod = self.comboBox_resampling.currentText()
         if resamplingMethod == "No value":
             resamplingMethod = "Není vybrán"
         def showPostgreDialog(layer):
             self.setStackWidget("postgis")
+            self.pushButton.hide()
+            self.label.hide()
+            self.comboBox_resampling.hide()
+            if self.postgis_login is not None and self.postgis_pass is not None:
+                self.lineEdit_username.setText(self.postgis_login)
+                self.lineEdit_pass.setText(self.postgis_pass)
             self.pushButton_backPostgis.clicked.connect(lambda: self.setStackWidget("main"))
-            self.pushButton_pass.clicked.connect(lambda: self.layman.postPostreLayer(layer, self.lineEdit_username.text(), self.lineEdit_pass.text()))            
+            self.pushButton_pass.clicked.connect(lambda: self.layman.postPostreLayer(layer, self.lineEdit_username.text(), self.lineEdit_pass.text()))
+            self.pushButton_pass.clicked.connect(lambda: self.rememberLoginPostgres(self.lineEdit_username.text(), self.lineEdit_pass.text()))            
         self.pushButton_errLog.hide()
         self.ThreadsA = set()
         for thread in threading.enumerate():
@@ -284,9 +301,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 print("Pattern found in the string.")
                 self.lineEdit_regex.setText(pattern)   
         return False              
-    def showTSDialog(self):
-        # self.dlg2 = TimeSeriesDialog()
-        # self.dlg2.show()            
+    def showTSDialog(self):                
         for item in self.treeWidget.selectedItems():
             self.comboBox_layers.addItem(item.text(0))
         self.pushButton_timeSeries.clicked.connect(lambda: self.prepareTSUpdate(self.treeWidget.selectedItems(), self.lineEdit_regex.text() , self.lineEdit_name.text()))    

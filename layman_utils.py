@@ -46,17 +46,18 @@ class LaymanUtils(QObject):
     def getDPI(self):
         return self.iface.mainWindow().physicalDpiX()/self.iface.mainWindow().logicalDpiX()      
                
-    def requestWrapper(self, type, url, payload = None, files = None):       
+    def requestWrapper(self, type, url, payload = None, files = None, emitErr = True):       
         try:
             response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files) 
         except Exception as ex:   
             info = str(ex)            
             self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
             return
-        print(response.status_code)
-        if response.status_code != 200: 
-            print(url)
-            self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)    
+        # print(response.status_code)
+        if emitErr:
+            if response.status_code != 200: 
+                print(url)
+                self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)    
         return response        
            
     def recalculateDPI(self):

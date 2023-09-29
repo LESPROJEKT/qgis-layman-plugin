@@ -3589,8 +3589,7 @@ class Layman(QObject):
         with open(jsonPath, 'rb') as f:
             d = json.load(f)
         
-        files = {'file': (jsonPath, open(jsonPath, 'rb')),}
-       # data = { 'name' :  composition['name'], 'title' : composition['title'], 'description' : composition['abstract'], 'access_rights.read': self.laymanUsername + ', EVERYONE',   'access_rights.write': self.laymanUsername}
+        files = {'file': (jsonPath, open(jsonPath, 'rb')),}       
         data = { 'name' :  composition['name'], 'title' : composition['title'], 'description' : composition['abstract']}
 
         read = self.instance.getAllPermissions()['read']
@@ -3745,7 +3744,6 @@ class Layman(QObject):
         return title
     def parseWMSlayers(self, layerString):
         ### ocekavany string je ve formatu pole napr [vrstva1,vrstva2,...]
-        #if (layerString[0] == "[" and layerString[-1:] == "]"):
         if "," in layerString:
             s = layerString.replace("[","").replace("]","").split(",")
             res = ""
@@ -3759,8 +3757,7 @@ class Layman(QObject):
                     res = res+ s[i].replace(" ", "") + "&layers="
 
             for i in range(0, len(s)-1):
-                res = res + "&styles"
-            #return res.replace("_","")
+                res = res + "&styles"  
             return res
         else:
             return layerString
@@ -3812,8 +3809,7 @@ class Layman(QObject):
         layerName = self.parseWMSlayers(layerName) 
 
         epsg = QgsProject.instance().crs().authid()
-        url = url.replace("%2F", "/").replace("%3A",":")
-        # urlWithParams = 'contextualWMSLegend='+legend+'&crs='+epsg+'&IgnoreReportedLayerExtents=1&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url            
+        url = url.replace("%2F", "/").replace("%3A",":")        
         quri = QgsDataSourceUri()
         try:  
             if timeDimension != {}:  
@@ -4143,9 +4139,7 @@ class Layman(QObject):
             new_order = list()
             for g in groupsPositions:
                 new_order.append(g[1])
-            # Find the group you want to reorder
-            
-            
+            # Find the group you want to reorder   
             for cha in root.children():
                 i = 0
                 for name in new_order:
@@ -4546,16 +4540,23 @@ class Layman(QObject):
                 'name': self.utils.removeUnacceptableChars(layer_name)
                 }
         files = {'style': open(stylePath, 'rb')}
-      
-        response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', payload, files)
+        url = self.URI+'/rest/'+self.laymanUsername+'/layers'
+        response = self.utils.requestWrapper("POST", url, payload, files)
         status = response.status_code
         if status == 409:
             print("layer already exists")
             self.utils.showQgisBar(["Vrsta "+layer_name+ " již existuje!","Layer "+layer_name+ " already exists!"], Qgis.Warning)  
         if status == 200:
             self.utils.showQgisBar(["Vrsta "+layer_name+ " úspěšně uložena.","Layer "+layer_name+ " was successfully saved."], Qgis.Success)  
-            self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")                  
-      
+            self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")    
+        if status == 400:
+            if "detail" in self.utils.fromByteToJson(response.content)["detail"]:
+                if "password authentication failed for user" in self.utils.fromByteToJson(response.content)["detail"]["detail"]:      
+                    self.utils.showQgisBar(["Špatné jméno nebo heslo","Wrong login or password"], Qgis.Warning)      
+                else:                              
+                    self.utils.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)   
+            else:                     
+                self.utils.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)       
         layer.afterCommitChanges.connect(self.patchPostreLayer)
    
         
