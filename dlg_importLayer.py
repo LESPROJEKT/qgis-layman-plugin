@@ -29,15 +29,13 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 from qgis.core import *
 import tempfile
-from .dlg_postgrePass import PostgrePasswordDialog
-from .dlg_timeSeries import TimeSeriesDialog
 from PyQt5.QtWidgets import (QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterator)
 import threading
 import re
 import json
 import PyQt5
 from .layman_utils import ProxyStyle
-
+from PyQt5 import QtGui
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'dlg_importLayer.ui'))
@@ -56,6 +54,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         proxy_style = ProxyStyle(app.style())
         self.setStyle(proxy_style)
         self.setupUi(self)
+        self.firstPostgreRun = True
         self.postgis_login = None
         self.postgis_pass = None
         self.setUi()
@@ -149,7 +148,9 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def rememberLoginPostgres(self, login, password):
         self.postgis_login = login
         self.postgis_pass = password
-                  
+    def showPassword(self, show):
+        self.lineEdit_pass.setEchoMode(
+            QtWidgets.QLineEdit.Normal if show else QtWidgets.QLineEdit.Password)              
     def callPostRequest(self, layers):        
         resamplingMethod = self.comboBox_resampling.currentText()
         if resamplingMethod == "No value":
@@ -159,6 +160,14 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton.hide()
             self.label.hide()
             self.comboBox_resampling.hide()
+            if self.firstPostgreRun:
+                icon = QtGui.QIcon(os.path.dirname(__file__)+os.sep + 'icons' + os.sep + 'eye-icon.png')
+                self.showPassAction = QtWidgets.QAction(icon, 'Show password', self)
+                self.lineEdit_pass.addAction(
+                    self.showPassAction, QtWidgets.QLineEdit.TrailingPosition)            
+                self.showPassAction.setCheckable(True)
+                self.showPassAction.toggled.connect(self.showPassword)
+                self.firstPostgreRun = False
             if self.postgis_login is not None and self.postgis_pass is not None:
                 self.lineEdit_username.setText(self.postgis_login)
                 self.lineEdit_pass.setText(self.postgis_pass)
