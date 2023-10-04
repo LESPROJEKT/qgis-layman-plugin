@@ -4545,20 +4545,20 @@ class Layman(QObject):
         status = response.status_code
         if status == 409:
             print("layer already exists")
-            self.utils.showQgisBar(["Vrsta "+layer_name+ " již existuje!","Layer "+layer_name+ " already exists!"], Qgis.Warning)  
+            self.utils.showQBar.emit(["Vrsta "+layer_name+ " již existuje!","Layer "+layer_name+ " already exists!"], Qgis.Warning)  
         if status == 200:
-            self.utils.showQgisBar(["Vrsta "+layer_name+ " úspěšně uložena.","Layer "+layer_name+ " was successfully saved."], Qgis.Success)  
+            self.utils.showQBar.emit(["Vrsta "+layer_name+ " úspěšně uložena.","Layer "+layer_name+ " was successfully saved."], Qgis.Success)  
             self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")    
         if status == 400:
             if "detail" in self.utils.fromByteToJson(response.content)["detail"]:
                 if "password authentication failed for user" in self.utils.fromByteToJson(response.content)["detail"]["detail"]:      
-                    self.utils.showQgisBar(["Špatné jméno nebo heslo","Wrong login or password"], Qgis.Warning)      
+                    self.utils.showQBar.emit(["Špatné jméno nebo heslo","Wrong login or password"], Qgis.Warning)      
                 else:                              
                     self.utils.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)   
             else:                     
                 self.utils.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)       
         layer.afterCommitChanges.connect(self.patchPostreLayer)
-   
+        
         
     def patchPostreLayer(self):  
         def patchPostreLayerThread():

@@ -150,7 +150,9 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.postgis_pass = password
     def showPassword(self, show):
         self.lineEdit_pass.setEchoMode(
-            QtWidgets.QLineEdit.Normal if show else QtWidgets.QLineEdit.Password)              
+            QtWidgets.QLineEdit.Normal if show else QtWidgets.QLineEdit.Password)   
+    def postPostreLayerThread(self, layer, username, password):    
+        threading.Thread(target=lambda: self.layman.postPostreLayer(layer, username, password)).start()                   
     def callPostRequest(self, layers):        
         resamplingMethod = self.comboBox_resampling.currentText()
         if resamplingMethod == "No value":
@@ -172,7 +174,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.lineEdit_username.setText(self.postgis_login)
                 self.lineEdit_pass.setText(self.postgis_pass)
             self.pushButton_backPostgis.clicked.connect(lambda: self.setStackWidget("main"))
-            self.pushButton_pass.clicked.connect(lambda: self.layman.postPostreLayer(layer, self.lineEdit_username.text(), self.lineEdit_pass.text()))
+            self.pushButton_pass.clicked.connect(lambda: self.postPostreLayerThread(layer, self.lineEdit_username.text(), self.lineEdit_pass.text()))
             self.pushButton_pass.clicked.connect(lambda: self.rememberLoginPostgres(self.lineEdit_username.text(), self.lineEdit_pass.text()))            
         self.pushButton_errLog.hide()
         self.ThreadsA = set()

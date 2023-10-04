@@ -18,6 +18,7 @@ class LaymanUtils(QObject):
     setVisibility = pyqtSignal(QgsMapLayer)
     loadStyle = pyqtSignal(QgsMapLayer)
     emitMessageBox = pyqtSignal(list)
+    showQBar = pyqtSignal(list,Qgis.MessageLevel)
       
     def __init__(self, iface, locale,laymanUsername,  parent=None):
         super(LaymanUtils, self).__init__(parent=parent)
@@ -34,6 +35,7 @@ class LaymanUtils(QObject):
         self.setVisibility.connect(self._setVisibility)
         self.loadStyle.connect(self._loadStyle)
         self.emitMessageBox.connect(self._onEmitMessageBox) 
+        self.showQBar.connect(self.showQgisBar)
     def getConfigItem(self, key):
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'
         config = configparser.RawConfigParser()
