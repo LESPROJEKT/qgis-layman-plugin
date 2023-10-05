@@ -1,6 +1,5 @@
 import requests
 import re
-import json
 from qgis.core import *
 
 class CurrentComposition(object):

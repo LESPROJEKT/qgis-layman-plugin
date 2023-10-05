@@ -27,7 +27,7 @@ from PyQt5 import uic
 from PyQt5 import QtWidgets, QtCore
 from qgis.core import *
 from PyQt5.QtGui import  QRegExpValidator,QBrush, QColor
-from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton, QApplication, QDesktopWidget
+from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton,  QDesktopWidget
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRegExp
 from qgis.PyQt.QtCore import QPoint
 import threading

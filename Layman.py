@@ -1186,45 +1186,15 @@ class Layman(QObject):
         self.dlg = ConnectionManagerDialog(self.utils, server, self.laymanUsername, self.URI, self)    
         
     def run_AddMickaDialog(self):
-        self.dlg = AddMickaDialog()
-        self.dlg.show()   
-        self.cataloguePosition = 1
-        QgsMessageLog.logMessage("disableProgressBar")
-        threading.Thread(target=lambda: self.loadMickaMaps()).start()
-        self.dlg.pushButton_map.clicked.connect(lambda: QgsMessageLog.logMessage("showLoader"))
-        self.dlg.pushButton_map.clicked.connect(lambda: self.loadLayersMicka(self.dlg.treeWidget.selectedItems()[0].text(0),self.dlg.treeWidget.indexOfTopLevelItem(self.dlg.treeWidget.currentItem())))
-        self.dlg.pushButton_stepLeft.clicked.connect(lambda: self.goLeft())
-        self.dlg.pushButton_stepRight.clicked.connect(lambda: self.goRight())
-        self.dlg.pushButton_search.clicked.connect(lambda: self.mickaSearch())
-        self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
-    def goLeft(self):
-        print(self.cataloguePosition)
-        if self.cataloguePosition > 30:
-            self.cataloguePosition = self.cataloguePosition - 20
-            threading.Thread(target=lambda: self.loadMickaMaps()).start()
-        else:
-            self.cataloguePosition = self.cataloguePosition = 1
-            threading.Thread(target=lambda: self.loadMickaMaps()).start()
-            # self.utils.emitMessageBox.emit(["Není možné listovat doleva!", "Not possible page to left!"])    
-    def goRight(self):
-        if self.cataloguePosition < 500:            
-            self.cataloguePosition = self.cataloguePosition + 20           
-            threading.Thread(target=lambda: self.loadMickaMaps()).start()
-        else:
-            self.utils.emitMessageBox.emit(["Není možné listovat doprava!", "Not possible page to right!"])   
-    
-                
-    def mickaSearch(self):
-        query = self.dlg.lineEdit_search.text()     
-        threading.Thread(target=lambda: self.loadMickaMaps(query)).start()
+        self.dlg = AddMickaDialog(self.URI, self.utils, self) 
         
-    def loadLayersMicka(self, name, row):   
+    def loadLayersMicka(self, name, row, mickaRet):   
         epsg = list()
-        if "crs" in self.mickaRet['records'][row]:
-            for record in  self.mickaRet['records'][row]['crs']:
+        if "crs" in mickaRet['records'][row]:
+            for record in  mickaRet['records'][row]['crs']:
                 epsg.append(record['code'])  
-        if 'operatesOn' in self.mickaRet['records'][row]:
-            for record in  self.mickaRet['records'][row]['operatesOn']:
+        if 'operatesOn' in mickaRet['records'][row]:
+            for record in  mickaRet['records'][row]['operatesOn']:
                 if "title" in record:
                     title = record['title']
                 else:
@@ -1273,14 +1243,11 @@ class Layman(QObject):
                                 rlayer = QgsRasterLayer(urlWithParams, title, 'wms')
                                 if (rlayer.isValid()):
                                     QgsProject.instance().addMapLayer(rlayer)
-                                    loaded = True                               
-
-
-                   
+                                    loaded = True 
                 else:
                     print("online not found")
         else:
-            print("neni vrstva")
+            self.utils.emitMessageBox.emit(["Není vrstva k načtení!", "No layer to load!"]) 
         QgsMessageLog.logMessage("disableProgressBar")
         
     def getWmsUrl(self, url, epsg):        
@@ -1388,30 +1355,7 @@ class Layman(QObject):
             ret = self.getNameByTitle(val, False)
             return ret
                      
-    def loadMickaMaps(self, query = ""):        
-        self.dlg.progressBar_loader.show()
-        self.dlg.treeWidget.clear()       
-        uri = self.URI.replace("/client", "")       
-        if query == "":
-            #url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"           
-            url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng"           
-        else:
-            #url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"            
-            url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng"            
-        r = self.utils.requestWrapper("GET", url, payload = None, files = None) 
-        try:
-            self.mickaRet = r.json() 
-        except:            
-            print("micka neni k dispozici")  
-            print(r.content)    
-            return
-   
-        
-        for record in self.mickaRet['records']:          
-            if "title" in record:
-                item = QTreeWidgetItem([record['title']])
-                self.dlg.treeWidget.addTopLevelItem(item)     
-        QgsMessageLog.logMessage("disableProgressBar")
+    
    
 
     def run_AddLayerDialog(self):
@@ -4524,8 +4468,7 @@ class Layman(QObject):
         else:    
             return ("postgresql://"+username+":"+password+"@"+host+":"+port+"/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
     def postPostreLayer(self, layer, username, password):
-        uri = self.preparePostgresUri(layer, username, password)
-        # print(uri)
+        uri = self.preparePostgresUri(layer, username, password)      
         layer_name = layer.name()
         if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
             stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")

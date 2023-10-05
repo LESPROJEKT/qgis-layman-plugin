@@ -32,7 +32,6 @@ import tempfile
 from PyQt5.QtWidgets import (QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterator)
 import threading
 import re
-import json
 import PyQt5
 from .layman_utils import ProxyStyle
 from PyQt5 import QtGui

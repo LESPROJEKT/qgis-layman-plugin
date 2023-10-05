@@ -26,6 +26,12 @@ import os
 
 from PyQt5 import uic
 from PyQt5 import QtWidgets
+import threading
+from PyQt5.QtWidgets import QTreeWidgetItem
+from PyQt5.QtCore import pyqtSignal
+from qgis.core import Qgis
+
+
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -33,12 +39,79 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class AddMickaDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
+    progressDone = pyqtSignal()
+    def __init__(self, uri,utils, layman, parent=None):
         """Constructor."""
         super(AddMickaDialog, self).__init__(parent)
-        # Set up the user interface from Designer through FORM_CLASS.
-        # After self.setupUi() you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
+        self.cataloguePosition = 1     
+        self.utils = utils
+        self.layman = layman
+        self.URI = uri
         self.setupUi(self)
+        self.setUi()        
+        self.connectEvents()
+        
+    def setUi(self):    
+        self.cataloguePosition = 1
+        self.progressDone.emit()
+        self.loadMickaMaps()
+        self.pushButton_map.clicked.connect(lambda: self.progressBar_loader.show())
+        self.pushButton_map.clicked.connect(lambda: self.layman.loadLayersMicka(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.indexOfTopLevelItem(self.treeWidget.currentItem()), self.mickaRet))
+        self.pushButton_stepLeft.clicked.connect(lambda: self.goLeft())
+        self.pushButton_stepRight.clicked.connect(lambda: self.goRight())
+        self.pushButton_search.clicked.connect(lambda: self.mickaSearch())
+        self.pushButton_close.clicked.connect(lambda: self.close())
+        self.show()   
+    def connectEvents(self):
+        self.progressDone.connect(self._onProgressDone)    
+    def goLeft(self):
+        print(self.cataloguePosition)
+        if self.cataloguePosition > 30:
+            self.cataloguePosition = self.cataloguePosition - 20
+            self.loadMickaMaps()
+        else:
+            self.cataloguePosition = self.cataloguePosition = 1
+            self.loadMickaMaps()
+    def goRight(self):
+        if self.cataloguePosition < 500:            
+            self.cataloguePosition = self.cataloguePosition + 20           
+            self.loadMickaMaps()
+        else:
+            self.utils.emitMessageBox.emit(["Není možné listovat doprava!", "Not possible page to right!"])   
+    
+                
+    def mickaSearch(self):
+        query = self.lineEdit_search.text()     
+        self.loadMickaMaps(query)
+
+    def loadMickaMaps(self, query = ""):
+        self.progressBar_loader.show()        
+        self.treeWidget.clear()         
+        threading.Thread(target=lambda: self.loadMickaMapsThread(query)).start()
+        
+    def loadMickaMapsThread(self, query = ""):  
+        uri = self.URI.replace("/client", "")       
+        if query == "":
+            #url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"           
+            url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng"           
+        else:
+            #url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"            
+            url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng"            
+        r = self.utils.requestWrapper("GET", url, payload = None, files = None) 
+        self.mickaRet = r.json()    
+        try:
+            self.mickaRet = r.json() 
+        except:            
+            self.utils.showQBar.emit(["Micka není k dispozici","Micka is not available"], Qgis.Warning)             
+            return   
+        
+        for record in self.mickaRet['records']:          
+            if "title" in record:
+                item = QTreeWidgetItem([record['title']])
+                self.treeWidget.addTopLevelItem(item)     
+        self.progressDone.emit()
+    def _onProgressDone(self):
+        try:
+            self.progressBar_loader.hide()
+        except:
+            pass   
