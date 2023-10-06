@@ -394,8 +394,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         data = r.json()
         layers = QgsProject.instance().mapLayers()
         if len(data["layers"]) == 0:
-            self.progressDone.emit() 
-            self.utils.emitMessageBox.emit(["Mapová kompozice je prázdná!", "Map composition is empty!"])   
+            self.progressDone.emit()           
+            self.utils.showQgisBar(["Mapová kompozice je načtena, ale neobsahuje žádné vrstvy.","Map composition is loaded but not contains layers."], Qgis.Success)  
             return
         if len(layers) > 0:
             if name != old_loaded:            

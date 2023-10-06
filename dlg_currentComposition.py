@@ -43,7 +43,7 @@ from .layman_utils import ProxyStyle
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'dlg_currentComposition.ui'))
 
-
+dialog_running = False
 class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     permissionInfo = pyqtSignal(bool,list, int)
     progressDone = pyqtSignal()
@@ -51,7 +51,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     onRefreshCurrentForm = pyqtSignal()
     def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
+        global dialog_running
         super(CurrentCompositionDialog, self).__init__(parent)
+        if dialog_running:
+            return
+        dialog_running = True
         self.setObjectName("CurrentMapDialog")
         self.utils = utils
         self.isAuthorized = isAuthorized
@@ -189,7 +193,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_qfield.setEnabled(False)
             self.pushButton_new.setEnabled(True)
             self.label_readonly.hide()
-            self.pushButton_new.show()  
+            self.pushButton_new.show()              
             return
         if self.laymanUsername != self.layman.instance.getWorkspace() and visible == True:
             self.pushButton_editMeta.setEnabled(False)   
@@ -200,7 +204,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_qfield.setEnabled(True)
             self.pushButton_new.setEnabled(True)
             self.label_readonly.show()
-            self.pushButton_new.show()    
+            self.pushButton_new.show()   
+            self.checkBox_all.setEnabled(False) 
         else:      
             self.pushButton_new.show()       
             self.pushButton_new.setEnabled(visible)
@@ -210,6 +215,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_delete.setEnabled(visible)     
             self.pushButton_copyUrl.setEnabled(visible)   
             self.pushButton_qfield.setEnabled(visible)
+            self.checkBox_all.setEnabled(visible)
     def refreshCurrentForm(self, layerAdded = None):
         self.pushButton_new.show()  
         if self.layman.instance == None:
@@ -1209,9 +1215,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             return
         if (title == ""):
             if self.layman.locale == "cs":
-                QMessageBox.information(None, "Message", "Není vyplněn titulek!")
+                QMessageBox.information(None, "Message", "Není vyplněn název!")
             else:
-                QMessageBox.information(None, "Message", "Title is not filled!")
+                QMessageBox.information(None, "Message", "Name is not filled!")
+            return                
         else:
             name = self.utils.removeUnacceptableChars(title)
             data = self.layman.getEmptyComposite(name,title, abstract) 
@@ -1380,8 +1387,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     print("2") 
     def reject(self):
         super().reject()   
+        global dialog_running 
+        dialog_running = False      
         self.layman.currentOpened = False
         self.onRefreshCurrentForm.disconnect() 
-        QgsProject.instance().layerWasAdded.disconnect()  
-        QgsProject.instance().layerRemoved.disconnect()
+        try:
+            QgsProject.instance().layerWasAdded.disconnect()  
+            QgsProject.instance().layerRemoved.disconnect()
+        except:
+            print("not connected")            
         print(self.layman.dlg_current)
