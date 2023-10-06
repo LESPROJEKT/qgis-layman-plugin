@@ -281,10 +281,11 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         for item in self.treeWidget.selectedItems():
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
             if isinstance(layer, QgsRasterLayer):
+                print(self.utils.isBinaryRaster(layer))
                 if self.utils.isBinaryRaster(layer):
-                    text = "Nejbližší" if self.locale == "cs" else "nearest"
+                    text = "Nejbližší" if self.layman.locale == "cs" else "nearest"
                 else: 
-                    text = "Není vybrán" if self.locale == "cs" else "No value"   
+                    text = "Není vybrán" if self.layman.locale == "cs" else "No value"            
                 self.comboBox_resampling.setCurrentText(text)
                 value = True 
         self.comboBox_resampling.setEnabled(value)            

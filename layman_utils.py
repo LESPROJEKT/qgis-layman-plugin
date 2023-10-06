@@ -651,7 +651,8 @@ class LaymanUtils(QObject):
 
     def isBinaryRaster(self,raster_layer):
         min_val, max_val = self.get_raster_min_max(raster_layer)
-        if min_val == 0 and max_val == 1:
+        print(min_val, max_val)
+        if min_val == 0.0 and max_val == 1.0:
             return True
         else:
             return False        
