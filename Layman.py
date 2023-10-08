@@ -1791,7 +1791,7 @@ class Layman(QObject):
             "redirectPort": int(self.port),
             "redirectUrl": "client/oauthn2-liferay/callback",
             "refreshTokenUrl": "",
-            "requestTimeout": 60,
+            "requestTimeout": 2,
             "requestUrl": self.liferayServer + "/o/oauth2/authorize",
             "scope": "",
             "tokenUrl": self.liferayServer + "/o/oauth2/token",
@@ -1816,7 +1816,7 @@ class Layman(QObject):
             "redirectPort": int(self.port),
             "redirectUrl": "qgis/oauthn2/callback",
             "refreshTokenUrl": "",
-            "requestTimeout": 60,
+            "requestTimeout": 2,
             "requestUrl": self.liferayServer + "/o/authorize",
             "scope": "",
             "tokenUrl": self.liferayServer + "/o/token/",
@@ -4343,6 +4343,9 @@ class Layman(QObject):
 
                 self.projectReaded(True)            
                 self.fillCompositionDict()
+        else:
+            if self.dlg.objectName() == "ConnectionManagerDialog":
+                self.dlg.refreshAfterFailedLogin()
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
         with open(save_path, 'wb') as fd:

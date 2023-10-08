@@ -49,6 +49,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     postgisFound = pyqtSignal(bool)
     layerDeletedSuccessfully = pyqtSignal()
     permissionInfo = pyqtSignal(bool,list, int)
+    progressDone = pyqtSignal()
     
     
     def __init__(self, utils, isAuthorized, laymanUsername, URI, layman, parent=None):
@@ -72,6 +73,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         QgsApplication.messageLog().messageReceived.connect(self.write_log_message)
         self.layerDeletedSuccessfully.connect(self._onLayerDeletedSuccessfully)
         self.permissionInfo.connect(self.afterPermissionDone)
+        self.progressDone.connect(self._onProgressDone)
 
 
     
@@ -633,11 +635,15 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 print("there is not possible set permissions for layer")
           
     def updatePermissions(self,layerName, userDict, type, check=False):   
-        print(layerName)    
+        if len(layerName) == 0:
+            if not self.utils.checkPublicationStatus(layerName[0]):
+               self.utils.showQgisBar(["Tato vrstva je stále v publikaci. V tuto chvíli není možné aktualizovat práva","This layer is still in publication. It is not possible to update permissions at this time."], Qgis.Warning)   
+               self.progressDone.emit()
+               return
         itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
         itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]
         userNamesRead = list()  
-        print(itemsTextListRead)
+        # print(itemsTextListRead)
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":            
                 userNamesRead.append("EVERYONE")          
@@ -655,49 +661,22 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 if "," in pom:
                     pom = pom.split(", ")[1]
                 userNamesWrite.append(userDict[pom])
-        data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}     
-        
-      
+        data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}    
         for layer in layerName:
             layer = self.utils.removeUnacceptableChars(layer)      
             url = self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer
-            response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))  
-            print(layer)
-            print(response.content)
+            response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))             
             if (response.status_code != 200):
                 self.failed.append(layer)         
                 self.utils.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
                 (list,str,str,Qgis.MessageLevel, str)  
-                self.statusHelper = False                  
-      
-        if (type == "maps" and check):
-            if self.statusHelper:
-                layerList = list()              
-                for i in range (0,len(self.compositeList)):
-                    if self.compositeList[i]['name'] == self.utils.removeUnacceptableChars(layerName[0]):
-                        for j in range (0,len(self.compositeList[i]['layers'])):
-                            if self.compositeList[i]['layers'][j]['className'] == "HSLayers.Layer.WMS":
-                                layerList.append(self.compositeList[i]['layers'][j]['params']['LAYERS'])
-                            if self.compositeList[i]['layers'][j]['className'] == "OpenLayers.Layer.Vector":                            
-                                layerList.append(self.utils.removeUnacceptableChars(self.compositeList[i]['layers'][j]['title']))
-                print("updating permissions for layers:" + str(layerList))                
-                threading.Thread(target=self.updatePermissions(layerList,userDict, "layers")).start()
-                return
-            else:
-                self.permissionInfo.emit(False, self.failed, 0)              
-
-        elif (type == "layers" and check):
-            for name in layerName:
-                compositionList = self.getCompositionsByLayer(name)
-                for comp in compositionList: 
-                    self.updatePermissions([comp],userDict, "maps", False)
-                    return      
-        else:      
-            if (self.statusHelper and self.info == 0):
-                print(self.failed)
-                self.permissionInfo.emit(True, self.failed, 0)                
-            else:
-                self.permissionInfo.emit(False, self.failed, 0)                
+                self.statusHelper = False 
+         
+        if (self.statusHelper and self.info == 0):
+            print(self.failed)
+            self.permissionInfo.emit(True, self.failed, 0)                
+        else:
+            self.permissionInfo.emit(False, self.failed, 0)                
                 
     def afterPermissionDone(self, success, failed, info):
         if self.objectName() == "AddLayerDialog":
@@ -759,4 +738,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layerName)+ ".qml"
                 layer.loadNamedStyle(tempf)
         QgsProject.instance().addMapLayer(layer)     
-        layer.afterCommitChanges.connect(self.layman.patchPostreLayer)                    
+        layer.afterCommitChanges.connect(self.layman.patchPostreLayer)               
+    def _onProgressDone(self):
+        self.progressBar_loader.hide()         

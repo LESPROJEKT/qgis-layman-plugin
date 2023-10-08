@@ -40,7 +40,8 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self,utils, server, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(ConnectionManagerDialog, self).__init__(parent)
-        app = QtWidgets.QApplication.instance()     
+        app = QtWidgets.QApplication.instance()   
+        self.setObjectName("ConnectionManagerDialog")  
         proxy_style = ProxyStyle(app.style())        
         self.setStyle(proxy_style)
         self.setupUi(self)
@@ -170,7 +171,8 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.label_sign.setText('<a href="https://'+self.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
         else:
             self.label_sign.setText('<a href="https://'+self.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')            
-            
+    def refreshAfterFailedLogin(self):
+        self.pushButton_Connect.setEnabled(True)        
     def logout(self):
         self.layman.loggedThrowProject = False
         self.layman.disableEnvironment()          

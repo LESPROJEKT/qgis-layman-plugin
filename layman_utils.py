@@ -150,9 +150,9 @@ class LaymanUtils(QObject):
                 return authHeader
             else:
                 if self.locale == "cs":
-                    QMessageBox.information(None, "Message", "Autorizace nebyla úspěšná! Prosím zkuste to znovu.")
+                    QMessageBox.information(None, "Message", "Autorizace nebyla úspěšná! Zkuste to prosím znovu.")
                 else:
-                    QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")
+                    QMessageBox.information(None, "Message", "Autorization was not sucessfull! Please try it again.")                 
                 return False
         else:
             return ""         
@@ -648,11 +648,20 @@ class LaymanUtils(QObject):
         stats = provider.bandStatistics(1, QgsRasterBandStats.All, extent, 0)
         min_val, max_val = stats.minimumValue, stats.maximumValue
         return min_val, max_val
-
+    def checkPublicationStatus(self, layer):
+        url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer
+        r = requests.get(url, headers = self.utils.getAuthHeader(self.utils.authCfg))
+        response = self.fromByteToJson(r.content) 
+        if not 'layman_metadata' in response:
+            return False
+        if response['layman_metadata'] == 'COMPLETE':
+            return True
+        else:
+            return False
     def isBinaryRaster(self,raster_layer):
         min_val, max_val = self.get_raster_min_max(raster_layer)
         print(min_val, max_val)
-        if min_val == 0.0 and max_val == 1.0:
+        if min_val == 0 and max_val == 1:
             return True
         else:
             return False        
