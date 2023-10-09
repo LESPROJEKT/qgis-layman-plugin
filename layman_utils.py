@@ -51,27 +51,27 @@ class LaymanUtils(QObject):
     def getDPI(self):
         return self.iface.mainWindow().physicalDpiX()/self.iface.mainWindow().logicalDpiX()      
                
-    # def requestWrapper(self, type, url, payload = None, files = None, emitErr = True):       
-    #     try:
-    #         response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files) 
-    #     except Exception as ex:   
-    #         info = str(ex)            
-    #         self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
-    #         return
-    #     # print(response.status_code)
-    #     if emitErr:
-    #         if response.status_code != 200: 
-    #             print(url)
-    #             self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)    
-    #     return response        
-    async def requestWrapper(self, type, url, payload=None, files=None, emitErr=True):
+    def requestWrapper(self, type, url, payload = None, files = None, emitErr = True):       
+        try:
+            response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files) 
+        except Exception as ex:   
+            info = str(ex)            
+            self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
+            return
+        # print(response.status_code)
+        if emitErr:
+            if response.status_code != 200: 
+                print(url)
+                self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)    
+        return response        
+    async def requestWrapper2(self, type, url, payload=None, files=None, emitErr=True):
         try:
             # Rozdělení URL na host a cestu
             host = url.split('://')[1]
             path = '/' + '/'.join(host.split('/')[1:])
 
             # Použití definovaných headers
-            headers = self.another_class.getAuthHeader(self.another_class.authCfg)
+            headers = self.getAuthHeader(self.authCfg)
 
             # Vytvoření spojení s webovým serverem
             conn = http.client.HTTPSConnection(host)
@@ -84,13 +84,14 @@ class LaymanUtils(QObject):
 
             if emitErr and response.status != 200:
                 content = response.read().decode('utf-8')
-                self.another_class.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successful"], f"code: {response.status}", content, Qgis.Warning, url)
+                self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successful"], f"code: {response.status}", content, Qgis.Warning, url)
 
             conn.close()
             return response
         except Exception as ex:
+            print("xxxx")
             info = str(ex)
-            self.another_class.showErr.emit(["Připojení není k dispozici", "Connection is not available"], info, str(info), Qgis.Warning, "")
+            self.showErr.emit(["Připojení není k dispozici", "Connection is not available"], info, str(info), Qgis.Warning, "")
   
     def recalculateDPI(self):
         self.DPI = self.getDPI()

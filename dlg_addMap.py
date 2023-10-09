@@ -35,7 +35,7 @@ from .currentComposition import CurrentComposition
 import traceback
 import pandas as pd
 from .layman_utils import ProxyStyle
-
+import asyncio
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'dlg_addMap.ui'))
 
@@ -224,11 +224,21 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 item.setHidden(True)
             else:
                 item.setHidden(False)
-            iterator +=1            
-    def loadMapsThread(self, onlyOwn):        
+            iterator +=1   
+    async def some_function(self, type, url, payload):  
+        print("txt")     
+        response = await self.utils.requestWrapper2(type, url, payload=payload, files = None)
+        
+        # Zpracujte odpověď podle potřeby
+        res = self.utils.fromByteToJson(response.content)
+        
+        return res  # Vraťte hodnotu res                     
+    async def loadMapsThread(self, onlyOwn):        
         self.treeWidget.clear()
         url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title'
-        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        #r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        r = await self.some_function("GET", url, None)
+        print(r)
         try:
             data = r.json()     
         except:
