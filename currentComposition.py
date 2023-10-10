@@ -39,7 +39,7 @@ class CurrentComposition(object):
         for layer in self.composition['layers']:          
             if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(layer['title']):
                 print(layerName , layer['className'])
-                print(layer['className'] == "HSLayers.Layer.WMS")
+                print(layer['className'] == "WMS")
                 return layer['className']
             
             
@@ -93,10 +93,10 @@ class CurrentComposition(object):
         return "n"
     def hasLaymanLayer(self):
         for layer in self.composition['layers']:
-            if layer['className'] == "OpenLayers.Layer.Vector":
+            if layer['className'] == "Vector":
                 if '/geoserver/' in layer['protocol']['url']:
                     return True
-            if layer['className'] == "HSLayers.Layer.WMS":
+            if layer['className'] == "WMS":
                 if '/geoserver/' in layer['url']:
                     return True
         return False

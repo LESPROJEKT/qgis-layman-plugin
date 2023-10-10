@@ -276,9 +276,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if self.utils.removeUnacceptableChars(layer.name()) in layerList:
                 i = layerList.index(self.utils.removeUnacceptableChars(layer.name()))
 
-                if serviceList[i] == 'OpenLayers.Layer.Vector':                       
+                if serviceList[i] == 'Vector':                       
                     item.setText(1, "WFS")
-                if serviceList[i] == 'HSLayers.Layer.WMS':                       
+                if serviceList[i] == 'WMS':                       
                     item.setText(1, "WMS")
                 if serviceList[i] == 'XYZ':                        
                     item.setText(1, "XYZ")
@@ -347,7 +347,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             while iterator.value():
                 item = iterator.value()
                 item.setCheckState(0,2)                
-                self.layerServices[self.utils.removeUnacceptableChars(item.text(0))] = "HSLayers.Layer.WMS"
+                self.layerServices[self.utils.removeUnacceptableChars(item.text(0))] = "WMS"
                 iterator +=1
      
         if not checked:
@@ -418,7 +418,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
             self.treeWidget_layers.setItemWidget(item,1, cellServices)        
                                             
-            if self.layman.instance.getServiceForLayer(item.text(0)) in (["HSLayers.Layer.WMS", "XYZ"]):
+            if self.layman.instance.getServiceForLayer(item.text(0)) in (["WMS", "XYZ"]):
                 cellButton = QPushButton("...", None)                
                 cellButton.clicked.connect(lambda: self.setStackWidget("props"))
                 self.treeWidget_layers.setItemWidget(item,3, cellButton)
@@ -529,9 +529,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         i= 0
         for item in self.currentSet:
             service = self.layman.instance.getServiceForLayer(item[0])
-            if service == "HSLayers.Layer.WMS" and item[1] == "WFS":
+            if service == "WMS" and item[1] == "WFS":
                 self.layman.wms_wfs3(item[0], i, item[1])                
-            if service == "OpenLayers.Layer.Vector" and item[1] == "WMS":                
+            if service == "Vector" and item[1] == "WMS":                
                 self.layman.wms_wfs3(item[0], i, item[1])
             i = i +1    
         
@@ -830,9 +830,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}       
         for layer in composition['layers']:
             name = None
-            if (layer['className'] == 'OpenLayers.Layer.Vector'):
+            if (layer['className'] == 'Vector'):
                 name = layer['protocol']['LAYERS']
-            if (layer['className'] == 'HSLayers.Layer.WMS'):
+            if (layer['className'] == 'WMS'):
                 name = layer['params']['LAYERS']
             if name is not None:
                 response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.layman.authCfg))         
@@ -889,9 +889,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 for i in range (0,len(self.compositeList)):
                     if self.compositeList[i]['name'] == self.utils.removeUnacceptableChars(layerName[0]):
                         for j in range (0,len(self.compositeList[i]['layers'])):
-                            if self.compositeList[i]['layers'][j]['className'] == "HSLayers.Layer.WMS":
+                            if self.compositeList[i]['layers'][j]['className'] == "WMS":
                                 layerList.append(self.compositeList[i]['layers'][j]['params']['LAYERS'])
-                            if self.compositeList[i]['layers'][j]['className'] == "OpenLayers.Layer.Vector":                            
+                            if self.compositeList[i]['layers'][j]['className'] == "Vector":                            
                                 layerList.append(self.utils.removeUnacceptableChars(self.compositeList[i]['layers'][j]['title']))
                 print("updating permissions for layers:" + str(layerList))                
                 threading.Thread(target=self.updatePermissions(layerList,userDict, "layers")).start()
@@ -1027,7 +1027,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             renge.append(name.attrib)
         for i in range(len(composition['layers'])):
             className = composition['layers'][i]['className']
-            if className == 'HSLayers.Layer.WMS' or 'OpenLayers.Layer.Vector':
+            if className == 'WMS' or 'Vector':
                 name = self.utils.removeUnacceptableChars(composition['layers'][i]['title'])
      
                

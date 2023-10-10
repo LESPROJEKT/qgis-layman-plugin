@@ -616,9 +616,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}       
         for layer in composition['layers']:
             name = None
-            if (layer['className'] == 'OpenLayers.Layer.Vector'):
+            if (layer['className'] == 'Vector'):
                 name = layer['protocol']['LAYERS']
-            if (layer['className'] == 'HSLayers.Layer.WMS'):
+            if (layer['className'] == 'WMS'):
                 name = layer['params']['LAYERS']
             if name is not None:
                 response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.authCfg))  

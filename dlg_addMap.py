@@ -454,9 +454,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             visibility = data['layers'][x]['visibility']            
             if className == 'XYZ':
                 layerName = data['layers'][x]['title']               
-            if className == 'HSLayers.Layer.WMS':
+            if className == 'WMS':
                 layerName = data['layers'][x]['params']['LAYERS']  
-            if className == 'OpenLayers.Layer.Vector' or className == 'Vector':                
+            if className == 'Vector':                
                 try:
                     layerName = data['layers'][x]['name']
                 except:
@@ -478,7 +478,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
 
             if self.layman.checkLayerOnLayman(layerName):              
 
-                if className == 'HSLayers.Layer.WMS':                 
+                if className == 'WMS':                 
                     layerName = data['layers'][x]['params']['LAYERS']
                     format = data['layers'][x]['params']['FORMAT']
                     epsg = 'EPSG:4326'
@@ -550,7 +550,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.layman.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)
                   
 
-                if className == 'OpenLayers.Layer.Vector' or className == 'Vector':
+                if  className == 'Vector':
                     epsg = 'EPSG:4326'
                     minRes = data['layers'][x]['minResolution']
                     maxRes = data['layers'][x]['maxResolution']                   
@@ -708,9 +708,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}       
         for layer in composition['layers']:
             name = None
-            if (layer['className'] == 'OpenLayers.Layer.Vector'):
+            if (layer['className'] == 'Vector'):
                 name = layer['protocol']['LAYERS']
-            if (layer['className'] == 'HSLayers.Layer.WMS'):
+            if (layer['className'] == 'WMS'):
                 name = layer['params']['LAYERS']
             if name is not None:
                 response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.layman.authCfg))  
@@ -771,9 +771,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 for i in range (0,len(self.compositeList)):
                     if self.compositeList[i]['name'] == self.utils.removeUnacceptableChars(layerName[0]):
                         for j in range (0,len(self.compositeList[i]['layers'])):
-                            if self.compositeList[i]['layers'][j]['className'] == "HSLayers.Layer.WMS":
+                            if self.compositeList[i]['layers'][j]['className'] == "WMS":
                                 layerList.append(self.compositeList[i]['layers'][j]['params']['LAYERS'])
-                            if self.compositeList[i]['layers'][j]['className'] == "OpenLayers.Layer.Vector":                            
+                            if self.compositeList[i]['layers'][j]['className'] == "Vector":                            
                                 layerList.append(self.utils.removeUnacceptableChars(self.compositeList[i]['layers'][j]['title']))
                 print("updating permissions for layers:" + str(layerList))                
                 threading.Thread(target=self.updatePermissions(layerList,userDict, "layers")).start()
