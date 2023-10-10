@@ -277,9 +277,11 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.treeWidget.addTopLevelItem(item)
         else:
             url = self.URI+'/rest/maps?order_by=title'
-            r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+            
+            #r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+            r =  await (self.utils.requestWrapper2("GET", url))
             try:  
-                dataAll = r.json()
+                dataAll = self.utils.fromByteToJson(r) 
             except:
                 self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
                 return                 

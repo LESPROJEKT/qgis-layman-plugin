@@ -69,17 +69,17 @@ class LaymanUtils(QObject):
     async def requestWrapper2(self, type, url, payload=None, files=None, emitErr=True):
         # Vytvoříme spojení s hostem s vypnutým ověřováním certifikátu
         parsed_url = urllib.parse.urlparse(url)
-        self.host = parsed_url.netloc
-        self.port = 443
-        self.path = parsed_url.path + '?' + parsed_url.query
+        host = parsed_url.netloc
+        port = 443
+        path = parsed_url.path + '?' + parsed_url.query
         
         context = ssl.create_default_context()
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
-        conn = http.client.HTTPSConnection(self.host, self.port, context=context)
+        conn = http.client.HTTPSConnection(host, port, context=context)
         
         # Pošleme asynchronní GET request
-        conn.request("GET", self.path)
+        conn.request("GET", path)
         
         # Získáme response
         response = await asyncio.to_thread(conn.getresponse)
