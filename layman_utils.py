@@ -15,6 +15,8 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 import csv
 import http.client
 import asyncio
+import ssl
+import urllib.parse
 
 class LaymanUtils(QObject): 
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)  
@@ -65,33 +67,57 @@ class LaymanUtils(QObject):
                 self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)    
         return response        
     async def requestWrapper2(self, type, url, payload=None, files=None, emitErr=True):
-        try:
-            # Rozdělení URL na host a cestu
-            host = url.split('://')[1]
-            path = '/' + '/'.join(host.split('/')[1:])
+        # Vytvoříme spojení s hostem s vypnutým ověřováním certifikátu
+        parsed_url = urllib.parse.urlparse(url)
+        self.host = parsed_url.netloc
+        self.port = 443
+        self.path = parsed_url.path + '?' + parsed_url.query
+        
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        conn = http.client.HTTPSConnection(self.host, self.port, context=context)
+        
+        # Pošleme asynchronní GET request
+        conn.request("GET", self.path)
+        
+        # Získáme response
+        response = await asyncio.to_thread(conn.getresponse)
+        
+        # Přečteme obsah response
+        response_content = response.read()
+        
+        # Zavřeme spojení
+        conn.close()
+        
+        return response_content
+        # try:
+        #     # Rozdělení URL na host a cestu
+        #     host = url.split('://')[1]
+        #     path = '/' + '/'.join(host.split('/')[1:])
 
-            # Použití definovaných headers
-            headers = self.getAuthHeader(self.authCfg)
+        #     # Použití definovaných headers
+        #     headers = self.getAuthHeader(self.authCfg)
 
-            # Vytvoření spojení s webovým serverem
-            conn = http.client.HTTPSConnection(host)
+        #     # Vytvoření spojení s webovým serverem
+        #     conn = http.client.HTTPSConnection(host)
 
-            # Odeslání požadavku
-            conn.request(type, path, body=payload, headers=headers)
+        #     # Odeslání požadavku
+        #     conn.request(type, path, body=payload, headers=headers)
 
-            # Získání odpovědi
-            response = conn.getresponse()
+        #     # Získání odpovědi
+        #     response = conn.getresponse()
 
-            if emitErr and response.status != 200:
-                content = response.read().decode('utf-8')
-                self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successful"], f"code: {response.status}", content, Qgis.Warning, url)
+        #     if emitErr and response.status != 200:
+        #         content = response.read().decode('utf-8')
+        #         self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successful"], f"code: {response.status}", content, Qgis.Warning, url)
 
-            conn.close()
-            return response
-        except Exception as ex:
-            print("xxxx")
-            info = str(ex)
-            self.showErr.emit(["Připojení není k dispozici", "Connection is not available"], info, str(info), Qgis.Warning, "")
+        #     conn.close()
+        #     return response
+        # except Exception as ex:
+        #     print("xxxx")
+        #     info = str(ex)
+        #     self.showErr.emit(["Připojení není k dispozici", "Connection is not available"], info, str(info), Qgis.Warning, "")
   
     def recalculateDPI(self):
         self.DPI = self.getDPI()

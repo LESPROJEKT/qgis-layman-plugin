@@ -49,7 +49,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(AddMapDialog, self).__init__(parent)
-        self.setObjectName("AddMapDialog")
+        self.setObjectName("AddMapDialog")        
+       
         self.utils = utils
         self.isAuthorized = isAuthorized
         self.laymanUsername = laymanUsername
@@ -59,6 +60,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         proxy_style = ProxyStyle(app.style())
         self.setStyle(proxy_style)
         self.setupUi(self)
+        
         self.setUi()
         
     def connectEvents(self):
@@ -97,7 +99,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.filter.valueChanged.connect(self.disableButtonsAddMap)
         self.pushButton_close.clicked.connect(lambda: self.close())        
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.checkBox_own.stateChanged.connect(self.loadMapsThread)
+        self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadMapsThread(state)))
         self.checkBox_own.stateChanged.connect(self.disableButtonsAddMap)
         self.checkBox_own.stateChanged.connect(self.rememberValueMap)
         self.mapDeletedSuccessfully.emit()
@@ -117,7 +119,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if checked == "1":
             self.checkBox_own.setCheckState(2)
             checked = True
-        self.loadMapsThread(checked)
+        asyncio.run(self.loadMapsThread(checked))
+        
       
         
     def setPermissionsUI(self, mapName):        
@@ -225,22 +228,27 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 item.setHidden(False)
             iterator +=1   
-    async def some_function(self, type, url, payload):  
-        print("txt")     
-        response = await self.utils.requestWrapper2(type, url, payload=payload, files = None)
+    async def req(self, type, url, payload):  
+        #host = "www.seznam.cz"
+        port = 443
+        path = ""#"/podnikani_a_domacnost/kancelarske_aplikace/ostatni/adobeacrobatreader/download/249965/1/?md5=p2akPOCNx3epZW19O2aIbw&expires=1696850854"
         
-        # Zpracujte odpověď podle potřeby
-        res = self.utils.fromByteToJson(response.content)
+        # Inicializujeme třídu pro asynchronní zpracování
         
-        return res  # Vraťte hodnotu res                     
+        
+        # Asynchronně zpracujeme request
+        #type, url, payload=None, files=None, emitErr=True
+        response_content = await self.utils.requestWrapper2("GET", port, url)
+        
+        # Zpracovaný response
+        print(f"Content length: {len(response_content)} bytes")                 
     async def loadMapsThread(self, onlyOwn):        
         self.treeWidget.clear()
-        url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title'
-        #r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-        r = await self.some_function("GET", url, None)
-        print(r)
+        url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title'       
+        r = await (self.utils.requestWrapper2("GET", url))
+        print(self.utils.fromByteToJson(r))
         try:
-            data = r.json()     
+            data = self.utils.fromByteToJson(r)    
         except:
             self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
             return            
@@ -323,7 +331,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 checked = False
             if checked == "1":
                 checked = True            
-            self.loadMapsThread(checked)                       
+            asyncio.run(self.loadMapsThread(checked))                       
             
     def _onMapDeletedSuccessfully(self):
         if self.objectName() == "AddMapDialog":
