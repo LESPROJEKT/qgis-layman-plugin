@@ -228,25 +228,11 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 item.setHidden(False)
             iterator +=1   
-    async def req(self, type, url, payload):  
-        #host = "www.seznam.cz"
-        port = 443
-        path = ""#"/podnikani_a_domacnost/kancelarske_aplikace/ostatni/adobeacrobatreader/download/249965/1/?md5=p2akPOCNx3epZW19O2aIbw&expires=1696850854"
-        
-        # Inicializujeme třídu pro asynchronní zpracování
-        
-        
-        # Asynchronně zpracujeme request
-        #type, url, payload=None, files=None, emitErr=True
-        response_content = await self.utils.requestWrapper2("GET", port, url)
-        
-        # Zpracovaný response
-        print(f"Content length: {len(response_content)} bytes")                 
+           
     async def loadMapsThread(self, onlyOwn):        
         self.treeWidget.clear()
         url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title'       
-        r = await (self.utils.requestWrapper2("GET", url))
-        print(self.utils.fromByteToJson(r))
+        r = await (self.utils.asyncRequestWrapper("GET", url))
         try:
             data = self.utils.fromByteToJson(r)    
         except:
@@ -262,9 +248,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.progressDone.emit()
         elif not self.isAuthorized:
             url = self.URI+'/rest/maps?order_by=title'
-            r = self.utils.requestWrapper("GET", url, payload = None, files = None)  
+            r = self.utils.asyncRequestWrapper("GET", url)  
             try:     
-                dataAll = r.json()
+                dataAll = self.utils.fromByteToJson(r) 
             except:
                 self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
                 return                  
@@ -279,7 +265,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             url = self.URI+'/rest/maps?order_by=title'
             
             #r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-            r =  await (self.utils.requestWrapper2("GET", url))
+            r =  await (self.utils.asyncRequestWrapper("GET", url))
             try:  
                 dataAll = self.utils.fromByteToJson(r) 
             except:
