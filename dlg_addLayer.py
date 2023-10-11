@@ -34,6 +34,7 @@ import pandas as pd
 from PyQt5.QtWidgets import QPushButton
 from PyQt5 import uic
 import tempfile
+import asyncio
 
 
 
@@ -136,7 +137,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.checkBox_own.stateChanged.connect(self.rememberValueLayer)
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")       
         self.progressBar_loader.show()
-        self.loadLayersThread(checked)
+        asyncio.run(self.loadLayersThread(checked))
         self.checkBox_own.stateChanged.connect(self.loadLayersThread)
         if self.isAuthorized:
             self.checkBox_own.setEnabled(True)
@@ -323,13 +324,14 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if value == 0:
             self.utils.appendIniItem("layerCheckbox", "0")
 
-    def loadLayersThread(self, onlyOwn=False):
+    async def loadLayersThread(self, onlyOwn=False):
         self.layerNamesDict = dict()
         self.treeWidget.clear()
         if self.laymanUsername and self.isAuthorized:
             url = self.URI+'/rest/'+self.laymanUsername+'/layers'
-            r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-            data = r.json()  
+            #r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+            r = await (self.utils.asyncRequestWrapper("GET", url))
+            data = self.utils.fromByteToJson(r) 
             if onlyOwn:
                 for row in range(0, len(data)):
                     if "native_crs" in data[row] and 'wfs_wms_status' in data[row]:
@@ -342,8 +344,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 QgsMessageLog.logMessage("layersLoaded")
             else:
                 url = self.URI+'/rest/layers'
-                r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-                dataAll = r.json()
+                #r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+                r = await (self.utils.asyncRequestWrapper("GET", url))
+                dataAll = self.utils.fromByteToJson(r)
                 permissions = ""
                 for row in range(0, len(dataAll)):
                     if self.laymanUsername in dataAll[row]['access_rights']['read'] or "EVERYONE" in dataAll[row]['access_rights']['read']:
@@ -364,8 +367,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 QgsMessageLog.logMessage("layersLoaded")
         else:
             url = self.URI+'/rest/layers'
-            r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-            data = r.json()
+            #r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+            r = await (self.utils.asyncRequestWrapper("GET", url))
+            data = self.utils.fromByteToJson(r)
             for row in range(0, len(data)):
                 if "EVERYONE" in data[row]['access_rights']['read']:
                     permissions = "read"
