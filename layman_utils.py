@@ -13,6 +13,11 @@ from .dlg_errMsg import ErrMsgDialog
 import tempfile
 from PyQt5 import QtWidgets, QtGui, QtCore
 import csv
+import http.client
+import asyncio
+import ssl
+import urllib.parse
+
 class LaymanUtils(QObject): 
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)  
     setVisibility = pyqtSignal(QgsMapLayer)
@@ -61,7 +66,32 @@ class LaymanUtils(QObject):
                 print(url)
                 self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)    
         return response        
-           
+    async def asyncRequestWrapper(self, type, url, payload=None, files=None, emitErr=True):
+        parsed_url = urllib.parse.urlparse(url)
+        host = parsed_url.netloc
+        port = 443
+        path = parsed_url.path + '?' + parsed_url.query     
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE              
+        if type == "GET":
+            conn = http.client.HTTPSConnection(host, port, context=context)
+            conn.request("GET", path)
+        elif type == "POST":
+            conn = http.client.HTTPSConnection(host, port, context=context)
+            conn.request("POST", path, body=payload, headers={"Content-Type": "application/json"})
+      
+            
+        response = await asyncio.to_thread(conn.getresponse)
+        response_content = response.read()
+        if emitErr and response.status != 200:
+            # Zpracování chybového stavu a emitování chybové zprávy
+            content = response_content.decode('utf-8')
+            self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successful"], f"code: {response.status}", content, Qgis.Warning, url)
+        conn.close()
+        return response_content
+       
+  
     def recalculateDPI(self):
         self.DPI = self.getDPI()
         if self.DPI < 0.85:
