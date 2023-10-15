@@ -69,7 +69,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def connectEvents(self):
         self.enableWfsButton.connect(self.onWfsButton)
-        self.getLayers.connect(self.loadLayersThread)
+        self.getLayers.connect(lambda state: asyncio.run(self.loadLayersThread(state)))
         self.postgisFound.connect(self.on_postgis_found)
         QgsApplication.messageLog().messageReceived.connect(self.write_log_message)
         self.layerDeletedSuccessfully.connect(self._onLayerDeletedSuccessfully)
@@ -131,14 +131,16 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.treeWidget.selectedItems()[0])).start())
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.checkIfPostgis(self.treeWidget.selectedItems()[0])).start())
         self.filter.valueChanged.connect(self.filterResults)
-        self.treeWidget.setColumnWidth(0, 250)
+        self.treeWidget.setColumnWidth(0, 200)
+        self.treeWidget.setColumnWidth(1, 80)
         self.treeWidget.setColumnWidth(2, 80)
+        self.treeWidget.setColumnWidth(3, 100)
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.checkBox_own.stateChanged.connect(self.rememberValueLayer)
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")       
         self.progressBar_loader.show()
         asyncio.run(self.loadLayersThread(checked))
-        self.checkBox_own.stateChanged.connect(self.loadLayersThread)
+        self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadLayersThread(state)))        
         if self.isAuthorized:
             self.checkBox_own.setEnabled(True)
         else:
@@ -421,7 +423,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_delete.setEnabled(True)
             self.pushButton.setEnabled(True)
     def setPermissionsButton(self, item):
-        if item.text(2) != "own":
+        if item.text(2) != "own" and item.text(4) != "AVAILABLE":
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_delete.setEnabled(False)
         else:
@@ -520,6 +522,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if checked == "1":
             checked = True      
         self.getLayers.emit(checked)
+    
 
         if response.status_code == 200:        
             self.layerDeletedSuccessfully.emit()
