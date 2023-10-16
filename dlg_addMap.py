@@ -45,6 +45,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     progressDone = pyqtSignal()
     loadComposition = pyqtSignal(str,str,str)
     permissionInfo = pyqtSignal(bool,list, int)
+    readCompositionFailed = pyqtSignal()
     
     def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
@@ -68,6 +69,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressDone.connect(self._onProgressDone)
         self.loadComposition.connect(self.readMapJsonThread)
         self.permissionInfo.connect(self.afterPermissionDone)
+        self.readCompositionFailed.connect(self._onReadCompositionFailed)
     def setPermissionsWidget(self, option):        
         self.page1.setVisible(not option)
         self.page2.setVisible(option)
@@ -231,7 +233,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
            
     async def loadMapsThread(self, onlyOwn):        
         self.treeWidget.clear()
-        url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title'       
+        url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title' 
         r = await (self.utils.asyncRequestWrapper("GET", url))
         try:
             data = self.utils.fromByteToJson(r)    
@@ -820,3 +822,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.listWidget_write.addItem(self.comboBox_users.currentText())
                     self.listWidget_read.addItem(self.comboBox_users.currentText())
                     print("2")                    
+    def _onReadCompositionFailed(self):
+        self.utils.showQgisBar(["Špatný formát kompozice.","Wrong format of composition"], Qgis.Warning)   
+        if self.objectName() == "AddMapDialog":
+            self.progressBar_loader.hide()                    

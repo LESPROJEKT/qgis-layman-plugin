@@ -75,6 +75,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layerDeletedSuccessfully.connect(self._onLayerDeletedSuccessfully)
         self.permissionInfo.connect(self.afterPermissionDone)
         self.progressDone.connect(self._onProgressDone)
+        
 
 
     
