@@ -344,6 +344,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         
     def checkAllLayers(self, checked):
         if checked:
+            self.checkBox_all.setText("Odebrat vše") if self.layman.locale == "cs" else self.checkBox_all.setText("Uncheck all layers")        
             iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
             while iterator.value():
                 item = iterator.value()
@@ -352,6 +353,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 iterator +=1
      
         if not checked:
+            self.checkBox_all.setText("Vybrat vše") if self.layman.locale == "cs" else self.checkBox_all.setText("Check all layers")                   
             iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
             while iterator.value():
                 item = iterator.value()
