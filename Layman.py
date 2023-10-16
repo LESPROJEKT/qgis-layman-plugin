@@ -351,14 +351,14 @@ class Layman(QObject):
         icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'layers-down.png'
         self.menu_AddLayerDialog = self.add_action(
             icon_path,
-            text=self.tr(u'Load layer from server'),
+            text=self.tr(u'Layers cataloque'),
             callback=self.run_AddLayerDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow())
         icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_3.svg'
         self.menu_AddMapDialog = self.add_action(
             icon_path,
-            text=self.tr(u'Load map from server'),
+            text=self.tr(u'Map compositions cataloque'),
             callback=self.run_AddMapDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow())      

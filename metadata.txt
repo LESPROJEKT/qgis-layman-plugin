@@ -24,8 +24,7 @@ repository=https://gitlab.com/Vrobel/layman_qgis/-/blob/master/README.md
 # Recommended items:
 
 # Uncomment the following line and add your changelog:
-changelog=
-    2.0 - form rebuild
+changelog=    
 	1.60 - owner permissions bug fixed, removed experimental flag
 	1.64 - map composition can get extent from own layers, form bugs in manage form fixed
 	1.65 - support QML on Layman server > v10.0.0
@@ -49,6 +48,7 @@ changelog=
 	1.95 - layer take EPSG from project 
 	1.96 - compatibility with QGIS 3.26
 	1.97 - raster time series export
+	2.0 - form rebuild
 # Tags are comma separated with spaces allowed
 tags=python
 

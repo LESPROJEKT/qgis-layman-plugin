@@ -32,7 +32,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Layman - Layers</string>
+   <string>Layman - Layers cataloque</string>
   </property>
   <widget class="QPushButton" name="pushButton">
    <property name="geometry">

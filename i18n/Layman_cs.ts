@@ -172,8 +172,8 @@
     <name>AddMapDialog</name>
     <message>
         <location filename="../dlg_addMap.ui" line="35"/>
-        <source>Layman - Add Map</source>
-        <translation>Layman - Načíst mapovou kompozici</translation>
+        <source>Layman - Map compositions cataloque</source>
+        <translation>Layman - Katalog mapových kompozic</translation>
     </message>
     <message>
         <location filename="../dlg_addMap.ui" line="47"/>
@@ -615,11 +615,11 @@
     </message>
 </context>
 <context>
-    <name>DialogBase</name>
+    <name>AddLayerDialog</name>
     <message>
         <location filename="../dlg_addLayer.ui" line="35"/>
-        <source>Layman - Layers</source>
-        <translation>Layman - Vrstvy</translation>
+        <source>Layman - Layers cataloque</source>
+        <translation>Layman - Katalog vrstev</translation>
     </message>
     <message>
         <location filename="../dlg_addLayer.ui" line="47"/>
@@ -1489,13 +1489,13 @@
     </message>
     <message>
         <location filename="../Layman.py" line="352"/>
-        <source>Load layer from server</source>
-        <translation>Načíst vrstvu ze serveru</translation>
+        <source>Layers cataloque</source>
+        <translation>Katalog vrstev</translation>
     </message>
     <message>
         <location filename="../Layman.py" line="359"/>
-        <source>Load map from server</source>
-        <translation>Načíst mapovou kompozici</translation>
+        <source>Map compositions cataloque</source>
+        <translation>Katalog mapových kompozic</translation>
     </message>
     <message>
         <location filename="../Layman.py" line="366"/>
