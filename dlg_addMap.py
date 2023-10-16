@@ -375,9 +375,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.current = name
         if workspace != "":### nactemdef loadData(self,name):
             self.selectedWorkspace = workspace            
-            url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file' 
+            url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'                 
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-            data = r.json()
+            data = r.json()         
             self.layman.instance = CurrentComposition(self.URI, name, workspace, self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
             self.layman.instance.setComposition(data)   
         else:
@@ -385,13 +385,14 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         name = self.utils.removeUnacceptableChars(name)     
         workspace = self.getCompositionWorkspace(name)
         self.selectedWorkspace = workspace           
-        try:
-            url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'
-        except:
-            QgsMessageLog.logMessage("compositionSchemaError")
-            return      
-        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-        data = r.json()
+        # try:
+        #     url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'
+        # except:
+        #     QgsMessageLog.logMessage("compositionSchemaError")
+        #     return      
+        # r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        # data = r.json()
+        # print(data) 
         layers = QgsProject.instance().mapLayers()
         if len(data["layers"]) == 0:
             self.progressDone.emit()           
@@ -554,7 +555,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     epsg = 'EPSG:4326'
                     minRes = data['layers'][x]['minResolution']
                     maxRes = data['layers'][x]['maxResolution']                   
-                    layerNameTitle = data['layers'][x]['title']
+                    layerNameTitle = data['layers'][x]['title']             
                     repairUrl = data['layers'][x]['protocol']['url']
                     repairUrl = self.utils.convertUrlFromHex(repairUrl)
                     subgroupName = ""
