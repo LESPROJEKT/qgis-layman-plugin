@@ -67,7 +67,7 @@ class LaymanUtils(QObject):
                 self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)    
         return response        
     async def asyncRequestWrapper(self, type, url, payload=None, files=None, emitErr=True):
-        parsed_url = urllib.parse.urlparse(url)
+        parsed_url = urllib.parse.urlparse(url)  
         host = parsed_url.netloc
         port = 443
         path = parsed_url.path + '?' + parsed_url.query     
@@ -76,10 +76,10 @@ class LaymanUtils(QObject):
         context.verify_mode = ssl.CERT_NONE              
         if type == "GET":
             conn = http.client.HTTPSConnection(host, port, context=context)
-            conn.request("GET", path)
+            conn.request("GET", path, headers=self.getAuthHeader(self.authCfg))
         elif type == "POST":
             conn = http.client.HTTPSConnection(host, port, context=context)
-            conn.request("POST", path, body=payload, headers={"Content-Type": "application/json"})
+            conn.request("POST", path, body=payload, headers=self.getAuthHeader(self.authCfg))
       
             
         response = await asyncio.to_thread(conn.getresponse)
@@ -88,7 +88,7 @@ class LaymanUtils(QObject):
             # Zpracování chybového stavu a emitování chybové zprávy
             content = response_content.decode('utf-8')
             self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successful"], f"code: {response.status}", content, Qgis.Warning, url)
-        conn.close()
+        conn.close()  
         return response_content
        
   

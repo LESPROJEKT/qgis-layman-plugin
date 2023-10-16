@@ -4244,7 +4244,7 @@ class Layman(QObject):
 
                 print("user exists")
 
-                self.laymanUsername = res['detail']['username']
+                self.laymanUsername = res['detail']['username']          
                 print("username is: " + self.laymanUsername )
                 url = self.liferayServer.replace('https:\\','').replace('.cz','').replace('http:\\','').replace('www.','').replace('.com','')               
                 self.setPluginLabel.emit('<a href="'+self.liferayServer+'">' + url + '</a>')
@@ -4258,7 +4258,7 @@ class Layman(QObject):
         else:          
             try:
                 print("creating new user: " + res['username'])
-                self.laymanUsername =  res['username']
+                self.laymanUsername =  res['username']     
                 url = self.liferayServer.replace('https:\\','')
                 self.textbox.setText('<a href="'+self.liferayServer+'">' + url + '</a>')                
             except Exception as ex:

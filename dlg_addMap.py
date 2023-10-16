@@ -380,7 +380,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             old_composition = self.layman.instance.getComposition()       
         self.layman.current = name
         if workspace != "":### nactemdef loadData(self,name):
-            self.selectedWorkspace = workspace            
+            # self.selectedWorkspace = workspace            
             url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file' 
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)
             data = r.json()
@@ -388,16 +388,16 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.layman.instance.setComposition(data)   
         else:
             print("workspace nepredan")     
-        name = self.utils.removeUnacceptableChars(name)     
-        workspace = self.getCompositionWorkspace(name)
-        self.selectedWorkspace = workspace           
-        try:
-            url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'
-        except:
-            QgsMessageLog.logMessage("compositionSchemaError")
-            return      
-        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-        data = r.json()
+            workspace = self.getCompositionWorkspace(name)
+            try:
+                url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'
+            except:
+                QgsMessageLog.logMessage("compositionSchemaError")
+                return      
+            r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+            data = r.json()
+        name = self.utils.removeUnacceptableChars(name)  
+        # self.selectedWorkspace = workspace
         layers = QgsProject.instance().mapLayers()
         if len(data["layers"]) == 0:
             self.progressDone.emit()           
