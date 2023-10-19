@@ -132,7 +132,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
         self.comboBox_server.currentTextChanged.connect(self.setReg)
         self.label_sign.setOpenExternalLinks(True)
-        if self.locale == "cs":
+        if self.layman.locale == "cs":
             self.label_sign.setText('<a href="https://'+self.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
         else:
             self.label_sign.setText('<a href="https://'+self.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')         
@@ -145,7 +145,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_Connect.setEnabled(False)
             self.comboBox_server.setEnabled(False)
             # self.lineEdit_userName.setEnabled(False)
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 self.setWindowTitle("Layman - Přihlášený uživatel: " + self.laymanUsername)
             else:
                 self.setWindowTitle("Layman - Logged user: " + self.laymanUsername)
@@ -167,7 +167,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_Connect.setEnabled(False)
     def setReg(self):
         registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
-        if self.locale == "cs":
+        if self.layman.locale == "cs":
             self.label_sign.setText('<a href="https://'+self.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Registrovat</a>')
         else:
             self.label_sign.setText('<a href="https://'+self.comboBox_server.currentText().replace('https://','').replace('home','')+registerSuffix+'">Register</a>')            
