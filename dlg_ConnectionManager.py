@@ -198,7 +198,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.laymanUsername = ""
         self.layman.isAuthorized = False        
         self.layman.current = None
-        self.layman.liferayServer = None     
+        self.layman.server = None     
         self.layman.compositeList = []           
     def withoutLogin(self, servers, i):
         self.layman.menu_CurrentCompositionDialog.setEnabled(False)

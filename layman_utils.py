@@ -767,6 +767,9 @@ QPushButton::indicator {
             print("Všechny vrstvy jsou shodné mezi oběma schématy.")
             return False
         return [extra_layers1, extra_layers2]
+    def decode_url(self, encoded_url):
+        decoded_url = urllib.parse.unquote(encoded_url)
+        return decoded_url
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:

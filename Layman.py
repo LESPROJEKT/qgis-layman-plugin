@@ -24,7 +24,6 @@
 """
 
 import base64
-import configparser
 import copy
 import json
 import os
@@ -141,7 +140,7 @@ class Layman(QObject):
         self.laymanUsername = ""
         self.authHeader = None
         self.Agrimail = ""        
-        self.liferayServer = None
+        self.server = None
         self.laymanServer = None            
         self.authCfg = "957je05"
         self.importedLayer = None
@@ -492,7 +491,7 @@ class Layman(QObject):
                             if server == servers[i][1]:                                
                                 self.setServers(servers, i)                             
                                   
-                                self.liferayServer = server.replace("/client","")
+                                self.server = server.replace("/client","")
                         self.openAuthLiferayUrl2("",True)     
                         self.loggedThrowProject = True           
         else:
@@ -1098,13 +1097,8 @@ class Layman(QObject):
                 return item[1]
                                                       
     def run_UserInfoDialog(self):        
-        self.userInfoDialog = UserInfoDialog(self.utils ,self.iface, self.isAuthorized, self.liferayServer, self.laymanUsername, self.URI, self.laymanVersion, self)
+        self.userInfoDialog = UserInfoDialog(self.utils ,self.iface, self.isAuthorized, self.server, self.laymanUsername, self.URI, self.laymanVersion, self)
         self.userInfoDialog.show()
-     
-  
-
-    
-
     def initFiles(self):
         tempFileFolder = tempfile.gettempdir() + os.sep + "atlas"
         if not os.path.exists(tempFileFolder):
@@ -1418,7 +1412,7 @@ class Layman(QObject):
     def setServers(self, servers, i):      
         self.URI = servers[i][1]
         self.utils.URI = servers[i][1]
-        self.liferayServer = servers[i][0]
+        self.server = servers[i][0]
         self.client_id = servers[i][2]    
         try:
             self.client_secret = servers[i][3]
@@ -1792,9 +1786,9 @@ class Layman(QObject):
             "redirectUrl": "client/oauthn2-liferay/callback",
             "refreshTokenUrl": "",
             "requestTimeout": 6,
-            "requestUrl": self.liferayServer + "/o/oauth2/authorize",
+            "requestUrl": self.server + "/o/oauth2/authorize",
             "scope": "",
-            "tokenUrl": self.liferayServer + "/o/oauth2/token",
+            "tokenUrl": self.server + "/o/oauth2/token",
             "username": "",
             "version": 1
             }
@@ -1817,9 +1811,9 @@ class Layman(QObject):
             "redirectUrl": "qgis/oauthn2/callback",
             "refreshTokenUrl": "",
             "requestTimeout": 6,
-            "requestUrl": self.liferayServer + "/o/authorize",
+            "requestUrl": self.server + "/o/authorize",
             "scope": "",
-            "tokenUrl": self.liferayServer + "/o/token/",
+            "tokenUrl": self.server + "/o/token/",
             "username": "",
             "version": 1
             }
@@ -1827,7 +1821,7 @@ class Layman(QObject):
             authConfig = QgsAuthMethodConfig('OAuth2')
             authConfig.setId(authcfg_id)            
             authConfig.setName(authcfg_name)
-            authConfig.setUri(self.liferayServer)
+            authConfig.setUri(self.server)
             authConfig.setConfig('oauth2config', json.dumps(cfgjson))
             if QgsApplication.authManager().storeAuthenticationConfig(authConfig):
                 return authcfg_id
@@ -1835,7 +1829,7 @@ class Layman(QObject):
             authConfig = QgsAuthMethodConfig()
             QgsApplication.authManager().loadAuthenticationConfig(authcfg_id, authConfig, True)
             authConfig.setName(authcfg_name)
-            authConfig.setUri(self.liferayServer)
+            authConfig.setUri(self.server)
             authConfig.setConfig('oauth2config', json.dumps(cfgjson))
             if QgsApplication.authManager().updateAuthenticationConfig(authConfig):
                 return authcfg_id
@@ -3705,8 +3699,10 @@ class Layman(QObject):
             return res
         else:
             return layerString
-    def loadArcGisRest(self, url, layerName,  groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False):        
-        r = requests.get(url + "?f=json")        
+    def loadArcGisRest(self, url, layerName,  groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False):       
+        url = self.utils.decode_url(url + "?f=json")
+        print(url) 
+        r = requests.get(url)        
         res = json.loads(r.content)
         id = 0   
         
@@ -4246,8 +4242,8 @@ class Layman(QObject):
 
                 self.laymanUsername = res['detail']['username']          
                 print("username is: " + self.laymanUsername )
-                url = self.liferayServer.replace('https:\\','').replace('.cz','').replace('http:\\','').replace('www.','').replace('.com','')               
-                self.setPluginLabel.emit('<a href="'+self.liferayServer+'">' + url + '</a>')
+                url = self.server.replace('https:\\','').replace('.cz','').replace('http:\\','').replace('www.','').replace('.com','')               
+                self.setPluginLabel.emit('<a href="'+self.server+'">' + url + '</a>')
                     
                 
            if res['code'] == 32:
@@ -4259,8 +4255,8 @@ class Layman(QObject):
             try:
                 print("creating new user: " + res['username'])
                 self.laymanUsername =  res['username']     
-                url = self.liferayServer.replace('https:\\','')
-                self.textbox.setText('<a href="'+self.liferayServer+'">' + url + '</a>')                
+                url = self.server.replace('https:\\','')
+                self.textbox.setText('<a href="'+self.server+'">' + url + '</a>')                
             except Exception as ex:
                 print(ex) 
                 self.utils.emitMessageBox.emit(["Komunikaci se serverem nelze navázat!", "Communication with the server cannot be established!"])  
@@ -4284,7 +4280,7 @@ class Layman(QObject):
         server, type_conversion_ok = proj.readEntry("Layman", "Server","")
         if server == "":
             self.current = None
-        self.liferayServer = None
+        self.server = None
         self.compositeList = []
        
     def openAuthLiferayUrl2(self, load="", autoLog = False):         
@@ -4295,7 +4291,7 @@ class Layman(QObject):
         self.isAuthorized = True
         self.utils.isAuthorized = True        
         if self.firstLogin or (self.authCfg not in QgsApplication.authManager().configIds()):
-            self.setup_oauth(self.authCfg, self.liferayServer)    
+            self.setup_oauth(self.authCfg, self.server)    
             self.firstLogin = False
         self.utils.setAuthCfg(self.authCfg)      
         authHeader = self.utils.getAuthHeader(self.authCfg)  
@@ -4416,7 +4412,7 @@ class Layman(QObject):
                 print ("vytváření adresáře selhalo")       
         self.utils.appendIniItem('login',self.Agrimail)
         self.utils.appendIniItem('id',self.client_id)
-        self.utils.appendIniItem('server',self.liferayServer)
+        self.utils.appendIniItem('server',self.server)
         self.utils.appendIniItem('layman',self.URI)   
     
     def checkQgisVersion(self):

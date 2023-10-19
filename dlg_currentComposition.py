@@ -355,7 +355,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if not checked:
             self.checkBox_all.setText("Vybrat vše") if self.layman.locale == "cs" else self.checkBox_all.setText("Check all layers")                   
             iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
-            while iterator.value():
+            while iterator.value():           
                 item = iterator.value()
                 item.setCheckState(0,0)                
                 self.layerServices = {}
@@ -380,7 +380,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         while iterator.value():
             item = iterator.value()                
             cell = QComboBox()
-            cell.currentTextChanged.connect(self.comboBoxChanged)
+            #cell.currentTextChanged.connect(self.comboBoxChanged)
             cellServices = QComboBox()
             for layer in layersArr:                
                 if self.utils.removeUnacceptableChars(layer.name()) == self.utils.removeUnacceptableChars(item.text(0)):
@@ -434,8 +434,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             while iterator.value():
                 item = iterator.value()
                 if item.checkState(0) == 0 and (self.treeWidget_layers.itemWidget(item,2).currentText() == "Add from server" or self.treeWidget_layers.itemWidget(item,2).currentText() == "Přidat ze serveru" or self.treeWidget_layers.itemWidget(item,2).currentText() == "Add and overwrite" or  self.treeWidget_layers.itemWidget(item,2).currentText() == 'Přidat' or self.treeWidget_layers.itemWidget(item,2).currentText() == "Přidat a přepsat" or self.treeWidget_layers.itemWidget(item,2).currentText() == 'Add'  ):
-                    item.setCheckState(0,2)
-
+                    item.setCheckState(0,2)                  
                 iterator +=1
         except:
             print("neni v canvasu")                        
