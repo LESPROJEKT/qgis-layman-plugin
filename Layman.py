@@ -38,10 +38,10 @@ import unicodedata
 import urllib.parse
 import xml.etree.ElementTree as ET
 import zipfile
-from builtins import object, range, str
+from builtins import range, str
 from distutils.version import LooseVersion
 from os import walk
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 from urllib.request import urlopen
 from zipfile import ZipFile
 
@@ -52,27 +52,21 @@ import qgis.gui
 import qgis.utils
 import requests
 from owslib.wms import WebMapService
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import (QByteArray, QCoreApplication, QDir,
-                          QFileSystemWatcher, QObject, QRegExp, QSettings,
-                          QSize, Qt, QTimer, QTranslator, QUrl, pyqtSignal,
+from PyQt5.QtCore import (QCoreApplication, 
+                          QFileSystemWatcher, QObject, QSettings,
+                          Qt, QTimer, QTranslator, QUrl, pyqtSignal,
                           qVersion)
-from PyQt5.QtGui import (QBrush, QColor, QCursor, QDoubleValidator, QIcon,
-                         QPixmap, QRegExpValidator)
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from PyQt5.QtWidgets import (QAbstractItemView, QAction, QApplication,
-                             QComboBox, QDialog, QFileDialog, QHBoxLayout,
-                             QInputDialog, QLabel, QLineEdit, QListWidgetItem,
-                             QMessageBox, QProgressBar, QProgressDialog,
-                             QPushButton, QTreeWidget, QTreeWidgetItem,
-                             QTreeWidgetItemIterator, QWidget)
+from PyQt5.QtGui import (QColor, QIcon                         )
+from PyQt5.QtNetwork import QNetworkRequest
+from PyQt5.QtWidgets import (QAction, QApplication, QFileDialog, QLabel, QListWidgetItem, QMessageBox, QProgressBar, 
+                             QPushButton, QTreeWidgetItem,
+                             QTreeWidgetItemIterator)
 from qgis.core import *
 from qgis.core import QgsApplication, QgsSettings
-from qgis.gui import QgsMapCanvas
 from qgis.PyQt.QtNetwork import (QHttpMultiPart, QHttpPart, QNetworkReply,
                                  QNetworkRequest)
 from qgis.utils import iface
-
+from .resources import *
 from Layman.qfield.cloud_converter import CloudConverter
 
 ## forms
@@ -90,7 +84,7 @@ from .dlg_LoginQfield import LoginQfieldDialog
 from .dlg_showQProject import ShowQProjectDialog
 from .dlg_userInfo import UserInfoDialog
 from .layman_utils import LaymanUtils
-from .resources import *
+
 
 
 class Layman(QObject):
@@ -178,10 +172,7 @@ class Layman(QObject):
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
         QgsProject.instance().readProject.connect(lambda: self.projectReaded(False))  
         self.processingList = []
-        self.writeState(0)
-        path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt"
-        self.watcherState = QFileSystemWatcher()
-        self.watcherState.addPath(path)  
+        self.writeState(0)   
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
         self.dependencies = True
         self.firstLogin = True
@@ -1198,7 +1189,7 @@ class Layman(QObject):
                 if "online" in record:
                     for online in record['online']:
                         protocol = online['protocolText']
-                        url = online['url']                 
+                        url = online['url']                
 
                         if "OGC:WMS" in protocol and not loaded:
                             print("load wms")

@@ -399,7 +399,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.objectName() == "AddLayerDialog":
             if self.checkFileType(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.selectedItems()[0].text(1)) == "vector":
                 if self.objectName() == "AddLayerDialog":
-                    print(self.pushButton_wfs.setEnabled(True))
+                    self.pushButton_wfs.setEnabled(True)
                     self.enableWfsButton.emit(True, self.pushButton_wfs)
             elif self.checkFileType(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.selectedItems()[0].text(1)) == "raster":
                 if self.objectName() == "AddLayerDialog":
@@ -634,8 +634,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             if (layer['className'] == 'HSLayers.Layer.WMS'):
                 name = layer['params']['LAYERS']
             if name is not None:
-                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.authCfg))  
-                print(response.content)
+                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.authCfg))                 
                 if (response.status_code != 200):        
                     try:
                         if self.utils.fromByteToJson(response.content)["code"] == 15:
@@ -655,8 +654,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                return
         itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
         itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]
-        userNamesRead = list()  
-        # print(itemsTextListRead)
+        userNamesRead = list()
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":            
                 userNamesRead.append("EVERYONE")          
@@ -720,8 +718,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         workspace = it.text(1)
         url = self.URI+'/rest/'+workspace+'/layers/'+str(layerName).lower() 
         r = requests.get(url, headers = self.utils.getAuthHeader(self.utils.authCfg))
-        data = r.json()
-        print(data)
+        data = r.json()     
         table = data["db"]["table"]
         schema = data["db"]["schema"]
         geo_column = data["db"]["geo_column"]           
@@ -735,8 +732,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if ("host.docker.internal" in host):
             host = host.replace("host.docker.internal","localhost") 
         uri = "dbname='"+dbname+"' host="+host+" port="+port+" user='"+user+"' table="+ table +" key='id' srid="+srid
-        style = self.layman.getStyle(layerName, None, workspace)
-        print(style)
+        style = self.layman.getStyle(layerName, None, workspace)      
         layer = QgsVectorLayer(uri, it.text(0), 'postgres')  
         if not layer.isValid():
             self.utils.showQgisBar(["Vrstva nebyla úspěšně načtena.","Layer was not successfully loaded."], Qgis.Warning)
