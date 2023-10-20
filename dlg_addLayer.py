@@ -126,7 +126,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if not self.isAuthorized:
             self.label_noUser.show()
             self.checkBox_own.setEnabled(False)
-        self.treeWidget.itemClicked.connect(self.enableDeleteButton)
+        self.treeWidget.itemClicked.connect(lambda item, col: threading.Thread(target=lambda: self.enableButtons(item, col)).start())
         self.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
         self.treeWidget.itemClicked.connect(self.setPermissionsButton)
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.treeWidget.selectedItems()[0])).start())
@@ -387,7 +387,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             QgsMessageLog.logMessage("layersLoaded")
         self.progressBar_loader.hide()
    
-    def enableDeleteButton(self, item, col):
+    def enableButtons(self, item, col):
         self.pushButton.setEnabled(True)
         self.pushButton_urlWfs.setEnabled(True)
         self.pushButton_urlWms.setEnabled(True)
@@ -414,17 +414,22 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         except:
             pass
     def checkSelectedCount(self):
-        if (len(self.treeWidget.selectedItems()) > 1):
+        selected_items = self.treeWidget.selectedItems()
+        all_conditions_met = all(
+            item.text(2) == "own" or item.text(4) == "AVAILABLE"
+            for item in selected_items
+        )       
+        if (len(self.treeWidget.selectedItems()) > 1) and all_conditions_met:
             self.pushButton_setPermissions.setEnabled(True)
             self.pushButton_delete.setEnabled(True)
             self.pushButton.setEnabled(True)
             self.checkBox_thumbnail.setCheckState(2)
         else:
-            self.pushButton_setPermissions.setEnabled(True)
-            self.pushButton_delete.setEnabled(True)
-            self.pushButton.setEnabled(True)
+            self.pushButton_setPermissions.setEnabled(False)
+            self.pushButton_delete.setEnabled(False)
+            self.pushButton.setEnabled(False)
     def setPermissionsButton(self, item):
-        if item.text(2) != "own" and item.text(4) != "AVAILABLE":
+        if item.text(2) != "own" or item.text(4) != "AVAILABLE":
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_delete.setEnabled(False)
         else:

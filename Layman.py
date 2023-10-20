@@ -1206,10 +1206,8 @@ class Layman(QObject):
                             
                             rlayer = QgsRasterLayer(urlWithParams, title, 'wms')
                             if (rlayer.isValid()):
-                                QgsProject.instance().addMapLayer(rlayer)
-                            
+                                QgsProject.instance().addMapLayer(rlayer)                            
                             loaded = True
-
                         elif "OGC:WFS" in protocol and not loaded:
                             r = url.split("/")
                             acc = (r[len(r)-2])
