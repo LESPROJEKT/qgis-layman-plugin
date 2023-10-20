@@ -426,8 +426,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.checkBox_thumbnail.setCheckState(2)
         else:
             self.pushButton_setPermissions.setEnabled(False)
-            self.pushButton_delete.setEnabled(False)
-            self.pushButton.setEnabled(False)
+            self.pushButton_delete.setEnabled(False)      
     def setPermissionsButton(self, item):
         if item.text(2) != "own" or item.text(4) != "AVAILABLE":
             self.pushButton_setPermissions.setEnabled(False)
