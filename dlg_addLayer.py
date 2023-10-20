@@ -426,7 +426,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.checkBox_thumbnail.setCheckState(2)
         else:
             self.pushButton_setPermissions.setEnabled(False)
-            self.pushButton_delete.setEnabled(False)      
+            self.pushButton_delete.setEnabled(False)  
     def setPermissionsButton(self, item):
         if item.text(2) != "own" or item.text(4) != "AVAILABLE":
             self.pushButton_setPermissions.setEnabled(False)
@@ -498,7 +498,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 try:
                     wfsUrl = data['wfs']['url']
                 except:
-                    self.showErr.emit(["Vrstva není k dispozici!", "Layer is not available!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)
+                    self.utils.showErr.emit(["Vrstva není k dispozici!", "Layer is not available!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)
                     return
                 print("loading WFS")
                 success = self.utils.loadWfs(wfsUrl, layerName, layerNameTitle, workspace)
@@ -628,9 +628,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}       
         for layer in composition['layers']:
             name = None
-            if (layer['className'] == 'OpenLayers.Layer.Vector'):
+            if (layer['className'] == 'OpenLayers.Layer.Vector' or layer['className'] == 'Vector'):
                 name = layer['protocol']['LAYERS']
-            if (layer['className'] == 'HSLayers.Layer.WMS'):
+            if (layer['className'] == 'HSLayers.Layer.WMS' or layer['className'] == 'WMS'):
                 name = layer['params']['LAYERS']
             if name is not None:
                 response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.authCfg))                 

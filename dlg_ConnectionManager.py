@@ -175,21 +175,21 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_Connect.setEnabled(True)        
     def logout(self):
         self.layman.loggedThrowProject = False
-        self.layman.disableEnvironment()          
+        self.layman.disableEnvironment()      
+        self.layman.current = None            
         if self.layman.laymanUsername != "browser":
             userEndpoint = self.URI+ "/rest/current-user"
             r = self.utils.requestWrapper("DELETE", userEndpoint, payload = None, files = None)
             QgsApplication.authManager().clearCachedConfig(self.layman.authCfg)         
         ## flush variables   
         else:
-            self.layman.laymanUsername = ""        
-        # try:
+            self.layman.laymanUsername = ""       
+    
         self.layman.textbox.setText("Layman")
         self.close() 
         self.pushButton_NoLogin.setEnabled(True)
         self.pushButton_Connect.setEnabled(True)
-        # except:
-        #     pass
+
         try:
             QgsProject.instance().crsChanged.disconnect()
         except:
@@ -199,7 +199,9 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.isAuthorized = False        
         self.layman.current = None
         self.layman.server = None     
-        self.layman.compositeList = []           
+        self.layman.compositeList = []   
+        self.layman.URI = None     
+        self.layman.instance = None   
     def withoutLogin(self, servers, i):
         self.layman.menu_CurrentCompositionDialog.setEnabled(False)
         self.layman.isAuthorized = False
@@ -212,5 +214,6 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_Connect.setEnabled(False)
         self.layman.menu_UserInfoDialog.setEnabled(True)
         self.layman.menu_AddMapDialog.setEnabled(True)
+        self.layman.instance = None
         threading.Thread(target=lambda: self.layman.fillCompositionDict()).start()
         self.close()           

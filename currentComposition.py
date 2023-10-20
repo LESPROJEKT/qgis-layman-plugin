@@ -93,10 +93,10 @@ class CurrentComposition(object):
         return "n"
     def hasLaymanLayer(self):
         for layer in self.composition['layers']:
-            if layer['className'] == "OpenLayers.Layer.Vector":
+            if layer['className'] == "OpenLayers.Layer.Vector" or layer['className'] == "Vector":
                 if '/geoserver/' in layer['protocol']['url']:
                     return True
-            if layer['className'] == "HSLayers.Layer.WMS":
+            if layer['className'] == "HSLayers.Layer.WMS" or layer['className'] == "WMS": 
                 if '/geoserver/' in layer['url']:
                     return True
         return False

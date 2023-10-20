@@ -164,8 +164,7 @@ class Layman(QObject):
         self.mixedLayers = list()
         self.supportedEpsg = ["EPSG:3857", "EPSG:4326",  "EPSG:5514",  "EPSG:32633",  "EPSG:32634",  "EPSG:3034",  "EPSG:3035",  "EPSG:3059"]
         self.qLogged = False
-        self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"
-        self.schemaVersion = "2.0.0"
+            
         self.port = "7070"
         self.DPI = self.getDPI()
         self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']      
@@ -375,7 +374,11 @@ class Layman(QObject):
             parent=self.iface.mainWindow())
     #--------------------------------------------------------------------------
                  
-    def run_CurrentCompositionDialog(self, refresh = False):      
+    def run_CurrentCompositionDialog(self, refresh = False): 
+        print("isAuthorized")     
+        print(self.isAuthorized)
+        print(self.laymanUsername, self.URI)
+        print(self.current)
         self.dlg_current = CurrentCompositionDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)   
         
        
@@ -386,7 +389,6 @@ class Layman(QObject):
                 item = iterator.value()
                 if item.checkState(0) == 0 and (self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == "Add from server" or self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == "Přidat ze serveru" or self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == "Add and overwrite" or  self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == 'Přidat' or self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == "Přidat a přepsat" or self.dlg.treeWidget_layers.itemWidget(item,2).currentText() == 'Add'  ) :
                     item.setCheckState(0,2)
-
                 iterator +=1
         except:
             print("neni v canvasu")
@@ -967,10 +969,10 @@ class Layman(QObject):
         self.existLayer = False       
         if (type == "wms"):
             wmsUrl = (self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows').replace("/client","")
-            composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+            composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":self.rasterService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
         if (type == "wfs"):
             wfsUrl = (self.URI+'/geoserver/'+self.laymanUsername+'/wfs').replace("/client","")
-            composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":"OpenLayers.Layer.Vector","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": "hs.format.WFS","url": wfsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+            composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":self.vectorService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": self.vectorProtocol,"url": wfsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
 
     def checkIfLayersExists(self):
         layerListServer = list()
@@ -1359,10 +1361,10 @@ class Layman(QObject):
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)
         composition = r.json()
         for layer in composition['layers']:
-            if layer['className'] == "OpenLayers.Layer.Vector":
+            if layer['className'] == "OpenLayers.Layer.Vector" or layer['className'] == "Vector":
                 if '/geoserver/' in layer['protocol']['url']:
                     return True
-            if layer['className'] == "HSLayers.Layer.WMS":
+            if layer['className'] == "HSLayers.Layer.WMS" or layer['className'] == "WMS":
                 if '/geoserver/' in layer['url']:
                     return True
         return False   
@@ -1603,9 +1605,9 @@ class Layman(QObject):
         i= 0
         for item in currentSet:
             service = self.instance.getServiceForLayer(item[0])
-            if service == "HSLayers.Layer.WMS" and item[1] == "WFS":
+            if service in ("HSLayers.Layer.WMS", "WMS") and item[1] == "WFS":
                 self.wms_wfs3(item[0], i, item[1])                
-            if service == "OpenLayers.Layer.Vector" and item[1] == "WMS":                
+            if service in ("OpenLayers.Layer.Vector","Vector") and item[1] == "WMS":                
                 self.wms_wfs3(item[0], i, item[1])
             i = i +1    
         
@@ -1724,18 +1726,18 @@ class Layman(QObject):
                     data = r.json()
                     url = data['wfs']['url']
 
-                    layer['className'] = "OpenLayers.Layer.Vector"
+                    layer['className'] = self.vectorService
                     layer['protocol'] = {
                         "FROMCRS": "EPSG:3857",
                         "INFO_FORMAT": "application/vnd.ogc.gml",
                         "LAYERS": name,
-                        "format": "hs.format.WFS",
+                        "format": self.vectorProtocol,
                         "url": url
                       }
 
                     del layer['params']
                     del layer['url']
-                    self.layerServices[self.utils.removeUnacceptableChars(layer['title'])] = 'OpenLayers.Layer.Vector' 
+                    return self.vectorService
                 if type == 'WMS':
                     print("set layer to wms")                 
                     composition['style'] = '' 
@@ -1744,7 +1746,7 @@ class Layman(QObject):
                     data = r.json()
                     url = data['wms']['url']
 
-                    layer['className'] = "HSLayers.Layer.WMS"
+                    layer['className'] = self.rasterService
                     layer['url'] = url
                     layer['params'] = {
                         "FORMAT": "image/png",
@@ -1753,7 +1755,7 @@ class Layman(QObject):
                         "VERSION": "1.3.0"
                       }
                     del layer['protocol']
-                    self.layerServices[self.utils.removeUnacceptableChars(layer['title'])] = "HSLayers.Layer.WMS"  
+                    return self.rasterService
     def setup_oauth(self, authcfg_id, authcfg_name):
       
         if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e' and authcfg_id != '7f22y3g' and authcfg_id != 'a67e5fc' and authcfg_id != '7f22y3h': ## prozatím pro test toto id ma wagtail
@@ -2272,7 +2274,7 @@ class Layman(QObject):
             eymax = ymax       
         
         center = QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()) 
-        self.schemaVersion = "2.0.0"        
+        # self.schemaVersion = "2.0.0"        
         if LooseVersion(self.laymanVersion) > LooseVersion("1.16.0"):
             comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"describedBy": self.schemaURl,"schema_version": self.schemaVersion,"nativeExtent": [xmin,ymin,xmax,ymax],"extent":[exmin,eymin,exmax,eymax],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
         else:
@@ -3287,13 +3289,13 @@ class Layman(QObject):
             self.existLayer = False       
             if dimension == "":
                 if not arc:
-                    composition['layers'].append({"metadata":{},"visibility":True,"opacity":layer.opacity(),"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions":{},"singleTile":False, "greyscale": greyScale,  "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml", "FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
+                    composition['layers'].append({"metadata":{},"visibility":True,"opacity":layer.opacity(),"title":str(nameInList).replace("'", ""),"className":self.rasterService,"dimensions":{},"singleTile":False, "greyscale": greyScale,  "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml", "FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
                 else:
                     composition['layers'].append({"metadata":{},"visibility":True,"opacity":layer.opacity(),"title":str(nameInList).replace("'", ""),"className":"ArcGISRest","dimensions":{},"singleTile":False, "greyscale": greyScale,  "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml"},"ratio":1.5,"dimensions":{}})
                                         
             else:              
                 if not arc:    
-                    composition['layers'].append({"metadata":{},"visibility":True,"opacity":layer.opacity(),"title":str(nameInList).replace("'", ""),"className":"HSLayers.Layer.WMS","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
+                    composition['layers'].append({"metadata":{},"visibility":True,"opacity":layer.opacity(),"title":str(nameInList).replace("'", ""),"className":self.rasterService,"dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":format,"VERSION":"1.3.0"},"ratio":1.5})
                 else:                    
                     composition['layers'].append({"metadata":{},"visibility":True,"opacity":layer.opacity(),"title":str(nameInList).replace("'", ""),"className":"ArcGISRest","dimensions": { "time": { "default": dimension.split(",")[0], "name": "time", "unitSymbol": None, "units": "ISO8601", "value": dimension.split(",")[0], "values": dimension} },"singleTile":True,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": layers,"INFO_FORMAT":"application/vnd.ogc.gml"},"ratio":1.5})
            
@@ -3409,7 +3411,7 @@ class Layman(QObject):
                     minScale = (self.utils.scaleToResolution(layer.minimumScale()))                    
                 else:
                     minScale = None    
-                composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":layer.name(),"className":"OpenLayers.Layer.Vector","style": "","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layer.maximumScale())),"name": str(title),"protocol":{"format": "hs.format.externalWFS","url": url},"ratio":1.5,"visibility": layerTreeNode.isVisible(),"dimensions":{}})
+                composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":layer.name(),"className":self.vectorService,"style": "","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layer.maximumScale())),"name": str(title),"protocol":{"format": "hs.format.externalWFS","url": url},"ratio":1.5,"visibility": layerTreeNode.isVisible(),"dimensions":{}})
             elif (isinstance(layer,QgsVectorLayer))  or layer.dataProvider().uri().uri() == "":
                 layers = []
                 layers.append(layer)
@@ -3435,18 +3437,18 @@ class Layman(QObject):
                                 self.saveXYZ(layers[i])
                             else:
                                 wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'_wms/ows'
-                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5, "visibility": True,"dimensions":{}})
+                                composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":self.rasterService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5, "visibility": True,"dimensions":{}})
                                                
                     elif service == 'wfs':
                         wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'/wfs'
                         styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ str(layerName) + "/style"
 
-                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":"OpenLayers.Layer.Vector","style": styleUrl,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"name": str(layerName),"protocol":{"format": "hs.format.WFS","url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":self.vectorService,"style": styleUrl,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"name": str(layerName),"protocol":{"format": self.vectorProtocol,"url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
 
 
                     else:
                         wmsUrl = self.URI.replace("/client", "") +'/geoserver/'+self.laymanUsername+'_wms/ows'
-                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":"HSLayers.Layer.WMS","singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+                        composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":self.rasterService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
                     successful = successful + 1
                 print("saving layer records to composition")
                
@@ -3530,6 +3532,7 @@ class Layman(QObject):
         response = self.utils.requestWrapper("POST", self.URI+'/rest/'+workspace+'/maps', data, files)   
         self.processingRequest = False        
         res = self.utils.fromByteToJson(response.content)
+        print(response.content)
         return response   
 
     def deleteLayer(self, layerName):
@@ -4271,7 +4274,19 @@ class Layman(QObject):
             self.current = None
         self.server = None
         self.compositeList = []
-       
+    def setSchemaVersion(self):
+        if LooseVersion(self.laymanVersion) >= LooseVersion("1.21.1"):  
+            self.vectorService = "Vector"
+            self.rasterService = "WMS"    
+            self.schemaVersion = "3.0.0"   
+            self.vectorProtocol = "WFS"    
+            self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/3.0.0/schema.json"    
+        else:           
+            self.schemaVersion = "2.0.0"
+            self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"   
+            self.rasterService = "HSLayers.Layer.WMS"  
+            self.vectorService = "OpenLayers.Layer.Vector"   
+            self.vectorProtocol = "hs.format.WFS"
     def openAuthLiferayUrl2(self, load="", autoLog = False):         
         if hasattr(self, 'dlg'):            
             if isinstance(self.dlg, ConnectionManagerDialog):
@@ -4302,7 +4317,7 @@ class Layman(QObject):
                     self.laymanVersion = res['about']['applications']['layman']['version']
                 except:
                     self.laymanVersion = "0.0.0"         
-                
+                self.setSchemaVersion()
 
                 versionCheck = self.utils.checkVersion()
                 if versionCheck[0] == False:
