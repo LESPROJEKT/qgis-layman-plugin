@@ -230,7 +230,7 @@ class Layman(QObject):
             
         self.timer = QTimer()
         self.timer.timeout.connect(self.refreshWfsLayers)
-        self.timer.start(10000)             
+        self.timer.start(60000)             
 
     
     def tr(self, message):     
@@ -4578,6 +4578,8 @@ class Layman(QObject):
         for layer in layers:      
             if layer.type() == QgsMapLayerType.VectorLayer and layer.dataProvider().name() == 'WFS':              
                 layer.dataProvider().reloadData() 
+                layer.triggerRepaint()
+                
  
               
     def run(self):
