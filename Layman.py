@@ -1289,8 +1289,7 @@ class Layman(QObject):
             layerName = self.parseWMSlayers(str(list(wms.contents)))
             urlWithParams = 'contextualWMSLegend=0&crs='+epsg+'&dpiMode=7&featureCount=10&format=image/png&layers='+layerName+'&styles=&url=' + url.split("?")[0]
         return urlWithParams.replace("'","")
-    def run_AddMapDialog(self):
-        
+    def run_AddMapDialog(self):        
         self.dlg = AddMapDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)
        
     
@@ -1300,10 +1299,6 @@ class Layman(QObject):
         proj.writeEntry("Layman", "Name", name)
         proj.writeEntry("Layman", "Workspace", self.laymanUsername)
         proj.write()
-       
-
-   
-      
     
              
     def checkAllLayers(self, checked):
@@ -1401,9 +1396,10 @@ class Layman(QObject):
         self.menu_UserInfoDialog.setEnabled(False)
         self.menu_CurrentCompositionDialog.setEnabled(False)
     def setServers(self, servers, i):      
-        self.URI = servers[i][1]
+        self.URI = servers[i][1]       
         self.utils.URI = servers[i][1]
-        self.server = servers[i][0]
+        self.server = servers[i][0]   
+        self.serverURI = self.server.replace("https", "http") 
         self.client_id = servers[i][2]    
         try:
             self.client_secret = servers[i][3]
@@ -1714,8 +1710,7 @@ class Layman(QObject):
             if self.utils.removeUnacceptableChars(layer['title']) == layerName:
                 if type == "WFS":
                     print("set layer to wfs")                 
-                    styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ layerName + "/style"
-                    composition['style'] = styleUrl
+                    styleUrl = self.serverURI+'/rest/'+self.laymanUsername+'/layers/'+ layerName + "/style"
                     try:
                         name = layer['params']['LAYERS']
                     except:
@@ -1724,7 +1719,7 @@ class Layman(QObject):
                     url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name                  
                     r = self.utils.requestWrapper("GET", url, payload = None, files = None)
                     data = r.json()
-                    url = data['wfs']['url']
+                    url = data['wfs']['url'].replace("https", "http")
 
                     layer['className'] = self.vectorService
                     layer['protocol'] = {
@@ -1732,20 +1727,19 @@ class Layman(QObject):
                         "INFO_FORMAT": "application/vnd.ogc.gml",
                         "LAYERS": name,
                         "format": self.vectorProtocol,
-                        "url": url
+                        "url": url,
+                        "style": styleUrl
                       }
 
                     del layer['params']
                     del layer['url']
                     return self.vectorService
                 if type == 'WMS':
-                    print("set layer to wms")                 
-                    composition['style'] = '' 
+                    print("set layer to wms")
                     url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName         
                     r = self.utils.requestWrapper("GET", url, payload = None, files = None)
                     data = r.json()
-                    url = data['wms']['url']
-
+                    url = data['wms']['url'].replace("https", "http")
                     layer['className'] = self.rasterService
                     layer['url'] = url
                     layer['params'] = {
@@ -2275,12 +2269,13 @@ class Layman(QObject):
         
         center = QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()) 
         # self.schemaVersion = "2.0.0"        
+        print (self.laymanVersion)
         if LooseVersion(self.laymanVersion) > LooseVersion("1.16.0"):
             comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"describedBy": self.schemaURl,"schema_version": self.schemaVersion,"nativeExtent": [xmin,ymin,xmax,ymax],"extent":[exmin,eymin,exmax,eymax],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
         else:
             comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(exmin),str(eymin),str(exmax),str(eymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}        
 
-       
+        print(comp)
         return comp
     def loadLocalFile(self):
         options = QFileDialog.Options()
@@ -2938,9 +2933,6 @@ class Layman(QObject):
                     self.processingRaster.emit(i,resumableTotalChunks)                    
             except:
                 pass
-                  
-             
-
         QgsMessageLog.logMessage("export")
     def postThread(self, layer_name,data, q,progress):
         if layer_name in self.mixedLayers:
@@ -3430,8 +3422,7 @@ class Layman(QObject):
                     
                     else:
                         minScale = None
-                    if service == 'wms':                      
-                        
+                    if service == 'wms':
                         if True:
                             if self.isXYZ(layers[i].name()):
                                 self.saveXYZ(layers[i])
@@ -3442,40 +3433,27 @@ class Layman(QObject):
                     elif service == 'wfs':
                         wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'/wfs'
                         styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ str(layerName) + "/style"
-
                         composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":self.vectorService,"style": styleUrl,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"name": str(layerName),"protocol":{"format": self.vectorProtocol,"url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
-
-
                     else:
                         wmsUrl = self.URI.replace("/client", "") +'/geoserver/'+self.laymanUsername+'_wms/ows'
                         composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":self.rasterService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
                     successful = successful + 1
-                print("saving layer records to composition")
-               
+                print("saving layer records to composition")              
 
                 for i in range (0, len(layers)):
-
-
-
                     inComposite = False
                     layerName = self.utils.removeUnacceptableChars(layers[i].name()).lower()
                     if (self.checkExistingLayer(layers[i].name()) and inComposite):
                         j = self.getLayerInCompositePosition(x)                        
-                        if self.isXYZ(layers[i].name()):                       
-                            pass
-                        else:
+                        if not self.isXYZ(layers[i].name()):
                             self.postRequest(layers[i].name(), True)
                             layerName = self.utils.removeUnacceptableChars(layers[i].name())
-
                     else:
                         if self.isXYZ(layers[i].name()):                           
                             pass
                         else:
-                            self.postRequest(layers[i].name(), True)
-                     
+                            self.postRequest(layers[i].name(), True)                     
         self.processingRequest = False
-
-
 
     def getProgressBarStep(self, count):
         return (100/count)  
@@ -3500,8 +3478,7 @@ class Layman(QObject):
         bar.setRange(0,0) ## range 0,0 je nekonečný
         self.showProgressBar(bar)
         bar.show()
-        iface.mainWindow().statusBar().addWidget(bar)
-   
+        iface.mainWindow().statusBar().addWidget(bar)   
     
     def compositionToClipboard(self):
 
@@ -3539,25 +3516,17 @@ class Layman(QObject):
         url = self.URI+'/rest/'+self.laymanUsername+"/layers/" + layerName     
         r = self.utils.requestWrapper("DELETE", url, payload = None, files = None)
 
-  
-
-
     def patchLayer(self, layer_name, data):            
         self.layerName = self.utils.removeUnacceptableChars(layer_name)
-
         geoPath = self.getTempPath(self.layerName)
-
         if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0")  and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
             stylePath = self.getTempPath(self.layerName).replace("geojson", "qml")
         else:
-            stylePath = self.getTempPath(self.layerName).replace("geojson", "sld")      
-
+            stylePath = self.getTempPath(self.layerName).replace("geojson", "sld")  
         if(os.path.isfile(stylePath)): ## existuje styl?
             files = [('file', open(geoPath, 'rb')), ('style', open(stylePath, 'rb'))]
-
         else:
             files = {'file': (geoPath, open(geoPath, 'rb')),}
-
         layer_name = layer_name.lower()
         layer_name = layer_name.replace(" ", "_")
         layer_name = self.utils.removeUnacceptableChars(layer_name)
@@ -4229,14 +4198,11 @@ class Layman(QObject):
             return               
         if 'code' in res:          
            if res['code'] == 34: # res['code'] == 34, code 35 je pokud již jiný uživatel má účet, který chceme registrovat (code 35 pravděpodobně nemůže nastat)
-
                 print("user exists")
-
                 self.laymanUsername = res['detail']['username']          
                 print("username is: " + self.laymanUsername )
                 url = self.server.replace('https:\\','').replace('.cz','').replace('http:\\','').replace('www.','').replace('.com','')               
-                self.setPluginLabel.emit('<a href="'+self.server+'">' + url + '</a>')
-                    
+                self.setPluginLabel.emit('<a href="'+self.server+'">' + url + '</a>')                   
                 
            if res['code'] == 32:
                 self.disableEnvironment()
@@ -4263,8 +4229,7 @@ class Layman(QObject):
         print("connection lost")
         self.disableEnvironment()   
         self.textbox.setText("Layman")
-        ## flush variables
-       
+        ## flush variables       
         self.menu_UserInfoDialog.setEnabled(True)
         self.laymanUsername = ""
         self.isAuthorized = False
@@ -4275,7 +4240,7 @@ class Layman(QObject):
         self.server = None
         self.compositeList = []
     def setSchemaVersion(self):
-        if LooseVersion(self.laymanVersion) >= LooseVersion("1.21.1"):  
+        if False:# LooseVersion(self.laymanVersion) >= LooseVersion("1.21.1"):  
             self.vectorService = "Vector"
             self.rasterService = "WMS"    
             self.schemaVersion = "3.0.0"   
@@ -4318,12 +4283,9 @@ class Layman(QObject):
                 except:
                     self.laymanVersion = "0.0.0"         
                 self.setSchemaVersion()
-
                 versionCheck = self.utils.checkVersion()
                 if versionCheck[0] == False:
-                    self.utils.showQgisBar(["Nová verze pluginu Layman k dispozici.","New version of Layman plugin available."], Qgis.Success)                     
-
-              
+                    self.utils.showQgisBar(["Nová verze pluginu Layman k dispozici.","New version of Layman plugin available."], Qgis.Success) 
                 self.authHeader = authHeader
                 self.authOptained()     
                 if hasattr(self, 'dlg'): 

@@ -26,8 +26,8 @@ import os
 from PyQt5 import uic
 from PyQt5 import QtWidgets, QtCore
 from qgis.core import *
-from PyQt5.QtGui import  QRegExpValidator,QBrush, QColor
-from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton,  QDesktopWidget
+from PyQt5.QtGui import  QRegExpValidator,QBrush, QColor, QPixmap
+from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton,  QDesktopWidget, QDialog, QLabel, QVBoxLayout
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRegExp
 from qgis.PyQt.QtCore import QPoint
 import threading
@@ -459,9 +459,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         #self.differentThanBefore() zvýraznit
         if self.duplicateLayers():
             if self.layman.locale == "cs":
-                QMessageBox.information(None, "Warning", "Duplicita v názvech vrstev!")
+                self.showInfoDialogOnTop("Duplicita v názvech vrstev!")
             else:
-                QMessageBox.information(None, "Warning", "Duplicity in layer names!")
+                self.showInfoDialogOnTop("Duplicity in layer names!")
             return
         ## hlidani nove pridanych vrstev pro symbologii      
         composition = self.layman.instance.getComposition()
@@ -507,9 +507,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def itemClick(self, item, col):
         if item.checkState(0) == 2 and self.checkIfLayerIsInMoreGroups(QgsProject.instance().mapLayersByName(item.text(0))[0]):
             if self.layman.locale == "cs":
-                QMessageBox.information(None, "Layman", "Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena bude pouze nadřazená.")
+                self.showInfoDialogOnTop("Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena bude pouze nadřazená.")
             else:
-                QMessageBox.information(None, "Layman", "Layer " + item.text(0) +" is nested in two groups. Only parent group will be saved.")
+                self.showInfoDialogOnTop("Layer " + item.text(0) +" is nested in two groups. Only parent group will be saved.")
           
         else:
             self.label_info.setText("")
@@ -726,21 +726,28 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.listWidget_read.addItem(self.comboBox_users.currentText())
                     return True
                 else:
-                    
-                    if self.layman.locale == "cs":
-                        QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
-                    else:
-                        QMessageBox.information(None, "Layman", "This user already exists in the list!")
+                    if self.layman.locale == "cs":                
+                        self.showInfoDialogOnTop("Tento uživatel se již v seznamu vyskytuje!")                        
+                    else:                        
+                        self.showInfoDialogOnTop("This user already exists in the list!")                    
                     return False
             else:              
                 if ((self.comboBox_users.currentText() not in itemsTextListWrite) and type == "write"):               
                     return True
-                else:                    
-                    if self.layman.locale == "cs":
-                        QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
-                    else:
-                        QMessageBox.information(None, "Layman", "This user already exists in the list!")
-                    return False                        
+                else:     
+                    if self.layman.locale == "cs":                
+                        self.showInfoDialogOnTop("Tento uživatel se již v seznamu vyskytuje!")                        
+                    else:                        
+                        self.showInfoDialogOnTop("This user already exists in the list!")  
+                    return False      
+    def showInfoDialogOnTop(self, text):
+        msgbox = QMessageBox()     
+        msgbox.setWindowTitle("Layman")
+        msgbox.setText(text)
+        msgbox.setIcon(QMessageBox.Information)
+        msgbox.addButton(QMessageBox.Ok)
+        msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
+        msgbox.exec()                                  
     def removeWritePermissionList(self):
         self.deleteItem(self.listWidget_read.currentItem().text())
         self.listWidget_read.removeItemWidget(self.listWidget_read.takeItem(self.listWidget_read.currentRow()))
@@ -767,32 +774,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         except:
             self.pushButton_removeWrite.setEnabled(False)
             print("neni vybrana polozka")                 
-    def checkAddedItemDuplicity(self, type):
-        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]        
-        allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]      
-        if self.comboBox_users.currentText() in allItems:
-            if type == "read":
-              
-                if ((self.comboBox_users.currentText() not in itemsTextListRead)):                  
-                    self.listWidget_read.addItem(self.comboBox_users.currentText())
-                    return True
-                else:
-                    
-                    if self.layman.locale == "cs":
-                        QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
-                    else:
-                        QMessageBox.information(None, "Layman", "This user already exists in the list!")
-                    return False
-            else:              
-                if ((self.comboBox_users.currentText() not in itemsTextListWrite) and type == "write"):               
-                    return True
-                else:                    
-                    if self.layman.locale == "cs":
-                        QMessageBox.information(None, "Layman", "Tento uživatel se již v seznamu vyskytuje!")
-                    else:
-                        QMessageBox.information(None, "Layman", "This user already exists in the list!")
-                    return False   
+   
     def askForLayerPermissionChanges(self,layerName, userDict, type):
       
         self.failed = list()
@@ -800,12 +782,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         # if self.utils.hasLaymanLayer(layerName[0], self.layman.current):
         if self.utils.hasLaymanLayer(layerName[0], self.layman.instance.getWorkspace()):
             if self.layman.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
+                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i pro jednotlivé vrstvy, které mapová kompozice obsahuje?")
             else:
                 msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Do you want set these permissions to layers included in map composition?")
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
+            msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
             reply = msgbox.exec()
             if (reply == QMessageBox.Yes):  
                 threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
@@ -922,14 +905,14 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressBar_loader.hide()             
         if success:
             if self.layman.locale == "cs":                
-                QMessageBox.information(None, "Uloženo", "Práva byla úspěšně uložena.")
+                self.showInfoDialogOnTop("Práva byla úspěšně uložena.")
             else:
-                QMessageBox.information(None, "Saved", "Permissions was saved successfully.")                
+                self.showInfoDialogOnTop("Permissions was saved successfully.")                
         else:
             if self.layman.locale == "cs":
-                QMessageBox.information(None, "Chyba", "Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""))
+                self.showInfoDialogOnTop("Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""))
             else:
-                QMessageBox.information(None, "Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                
+                self.showInfoDialogOnTop("Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                
                     
                     
                     
@@ -1058,9 +1041,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                             xmin = renge[i]['minx']
         if (xmin == None or xmax == None or ymin == None or ymax==None):
             if self.layman.locale == "cs":
-                QMessageBox.information(None, "Layman", "Záznam prostorového rozsahu vrstev vybrané kompozice nebyl nalezen!")
+                self.showInfoDialogOnTop("Záznam prostorového rozsahu vrstev vybrané kompozice nebyl nalezen!")
             else:
-                QMessageBox.information(None, "Layman", "A record of the layers spatial extent for the selected composition was not found!")
+                self.showInfoDialogOnTop("A record of the layers spatial extent for the selected composition was not found!")
         else:
             self.lineEdit_xmin.setText(str(xmin))
             self.lineEdit_xmax.setText(str(xmax))
@@ -1115,9 +1098,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             projectName = os.path.basename(projectPath).split(".")[0]
             if projectName[0] in ["0","1","2","3","4","5","6","7","8","9"]:
                 if self.layman.locale == "cs":
-                    QMessageBox.information(None, "Message", "Není povoleno číslo v prvník znaku titulku! Není možné předvyplnit název.")
+                    self.showInfoDialogOnTop("Není povoleno číslo v prvník znaku titulku! Není možné předvyplnit název.")
                 else:
-                    QMessageBox.information(None, "Message", "Number in first character of title is not allowed! Title can not be prefilled.")
+                    self.showInfoDialogOnTop("Message", "Number in first character of title is not allowed! Title can not be prefilled.")
             else:
                 self.lineEdit_2.setText(projectName)
         self.lineEdit_3.setText(str(ext.xMinimum()))
@@ -1206,9 +1189,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def checkForChars(self, string):
         if self.checkForSpecialChars(string):
             if self.layman.locale == "cs":
-                QMessageBox.information(None, "Layman", "Nepodporovaný znak.")
+                self.showInfoDialogOnTop("Nepodporovaný znak.")
             else:
-                QMessageBox.information(None, "Layman", "Unsupported char.")
+                self.showInfoDialogOnTop("Layman", "Unsupported char.")
         else:
             self.pushButton_CreateComposition.setEnabled(True)
             self.label_info.setText("")            
@@ -1217,15 +1200,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.compositionDict = self.utils.fillCompositionDict()
         if QgsProject.instance().crs().authid() not in self.layman.supportedEpsg:
             if self.layman.locale == "cs":
-                QMessageBox.information(None, "Message", "Není nastaveno podporované EPSG projektu.")
+                self.showInfoDialogOnTop("Není nastaveno podporované EPSG projektu.")
             else:
-                QMessageBox.information(None, "Message", "Project EPSG is not supported.")
+                self.showInfoDialogOnTop("Project EPSG is not supported.")
             return
         if (title == ""):
             if self.layman.locale == "cs":
-                QMessageBox.information(None, "Message", "Není vyplněn název!")
+                self.showInfoDialogOnTop("Není vyplněn název!")
             else:
-                QMessageBox.information(None, "Message", "Name is not filled!")
+                self.showInfoDialogOnTop("Name is not filled!")
             return                
         else:
             name = self.utils.removeUnacceptableChars(title)
@@ -1405,3 +1388,4 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         except:
             print("not connected")            
         print(self.layman.dlg_current)
+        
