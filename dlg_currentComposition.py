@@ -618,6 +618,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             iterator +=1
 
         uniq = self.checkUniqueName(layers)
+      
         if uniq:
             if len(layers) > 0:          
                 newLayers = list()                

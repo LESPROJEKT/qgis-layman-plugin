@@ -228,9 +228,9 @@ class Layman(QObject):
         except FileExistsError:
             print("Directory " , tempDir ,  " already exists")
             
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.refreshWfsLayers)
-        self.timer.start(60000)             
+        # self.timer = QTimer()
+        # self.timer.timeout.connect(self.refreshWfsLayers)
+        # self.timer.start(60000)             
 
     
     def tr(self, message):     
@@ -969,11 +969,12 @@ class Layman(QObject):
         self.existLayer = False       
         if (type == "wms"):
             wmsUrl = (self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows').replace("/client","")
+            print(wmsUrl)
             composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":self.rasterService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
         if (type == "wfs"):
             wfsUrl = (self.URI+'/geoserver/'+self.laymanUsername+'/wfs').replace("/client","")
             composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":self.vectorService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": self.vectorProtocol,"url": wfsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
-
+       
     def checkIfLayersExists(self):
         layerListServer = list()
         foundedOnServer = False
@@ -1069,7 +1070,7 @@ class Layman(QObject):
                         for layer in layers:                                                    
                    
                             if layer.name() == item[0]:                               
-                                self.addExistingLayerToComposition(layer.name(),composition,item[1].lower())
+                                self.addExistingLayerToComposition(layer.name(),composition,item[1].lower())                                
                                 layers.remove(layer)
                     
                     if item[2] == "Add and overwrite" or item[2] =='Add' or item[2] == "Přidat a přepsat" or item[2] =='Přidat':
@@ -1399,7 +1400,7 @@ class Layman(QObject):
         self.URI = servers[i][1]       
         self.utils.URI = servers[i][1]
         self.server = servers[i][0]   
-        self.serverURI = self.server.replace("https", "http") 
+        self.serverURI = self.server
         self.client_id = servers[i][2]    
         try:
             self.client_secret = servers[i][3]
@@ -1607,7 +1608,7 @@ class Layman(QObject):
                 self.wms_wfs3(item[0], i, item[1])
             i = i +1    
         
-        duplicityCheck = self.saveMapLayers()
+        duplicityCheck = self.saveMapLayers()       
         if not duplicityCheck:
             QgsMessageLog.logMessage("layersLoaded")            
             return
@@ -1719,7 +1720,7 @@ class Layman(QObject):
                     url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name                  
                     r = self.utils.requestWrapper("GET", url, payload = None, files = None)
                     data = r.json()
-                    url = data['wfs']['url'].replace("https", "http")
+                    url = data['wfs']['url'].replace("http", "https")
 
                     layer['className'] = self.vectorService
                     layer['protocol'] = {
@@ -1739,7 +1740,7 @@ class Layman(QObject):
                     url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName         
                     r = self.utils.requestWrapper("GET", url, payload = None, files = None)
                     data = r.json()
-                    url = data['wms']['url'].replace("https", "http")
+                    url = data['wms']['url'].replace("http", "https")
                     layer['className'] = self.rasterService
                     layer['url'] = url
                     layer['params'] = {
@@ -3268,7 +3269,7 @@ class Layman(QObject):
                     format = format.replace("'", "")
                 if(str(param[0]) == "url"):
                     url = (param[1]) 
-                    url = url.replace("'", "")                   
+                    url = url.replace("'", "")                 
                 if(str(param[0]) == "layers"):
                     layers.append(param[1])
                 if(str(param[0]) == "timeDimensionExtent"):
@@ -3386,7 +3387,7 @@ class Layman(QObject):
         for layer in layersList:
             self.showExportInfo.emit("Nahrávání vrstvy: " + layer.name() if self.locale == "cs" else "Uploading layer: " + layer.name())
             if (isinstance(layer,QgsRasterLayer)) and layer.dataProvider().uri().uri() != "":
-                print("External WMS detected")
+                print("External WMS detected")                
                 self.addExternalWMSToComposite(layer.name())
             if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
                 print("External WFS detected")
@@ -3394,7 +3395,7 @@ class Layman(QObject):
                 path = self.getGroupOfLayer(layer)
                 if path == 'root':
                     path = ""
-                url = self.findParamForWfs("url='", layer)  
+                url = self.findParamForWfs("url='", layer)
                 title = self.findParamForWfs("typename='", layer)  
                 layerTreeRoot = QgsProject.instance().layerTreeRoot()
                 layerTreeNode = layerTreeRoot.findLayer(layer.id())    
@@ -3487,7 +3488,8 @@ class Layman(QObject):
         df.to_clipboard(index=False,header=False)
     def patchMap2(self):
         self.showExportInfo.emit("Ukládání kompozice" if self.locale == "cs" else "Saving composition")
-        composition = self.instance.getComposition() 
+        composition = self.instance.getComposition()       
+       
         tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
         with open(tempFile, 'w') as outfile:
             json.dump(composition, outfile)
@@ -3505,11 +3507,11 @@ class Layman(QObject):
         print("export map")      
         workspace = self.instance.getWorkspace()       
         r = self.utils.requestWrapper("DELETE", self.URI+'/rest/'+workspace+'/maps/'+composition['name'], payload = None, files = None)      
-        time.sleep(1)       
+        time.sleep(0.5)        
         response = self.utils.requestWrapper("POST", self.URI+'/rest/'+workspace+'/maps', data, files)   
         self.processingRequest = False        
-        res = self.utils.fromByteToJson(response.content)
-        print(response.content)
+        res = self.utils.fromByteToJson(response.content)    
+        # print(response.content)
         return response   
 
     def deleteLayer(self, layerName):
