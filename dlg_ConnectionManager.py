@@ -177,13 +177,13 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.loggedThrowProject = False
         self.layman.disableEnvironment()      
         self.layman.current = None            
-        if self.layman.laymanUsername != "browser":
-            userEndpoint = self.layman.URI+ "/rest/current-user"
-            r = self.utils.requestWrapper("DELETE", userEndpoint, payload = None, files = None)
-            QgsApplication.authManager().clearCachedConfig(self.layman.authCfg)         
+        # if self.layman.laymanUsername != "browser":
+        #     userEndpoint = self.layman.URI+ "/rest/current-user"
+        #     r = self.utils.requestWrapper("DELETE", userEndpoint, payload = None, files = None)
+        #     QgsApplication.authManager().clearCachedConfig(self.layman.authCfg)         
         ## flush variables   
-        else:
-            self.layman.laymanUsername = ""       
+        # else:
+        self.layman.laymanUsername = ""       
     
         self.layman.textbox.setText("Layman")
         self.close() 
