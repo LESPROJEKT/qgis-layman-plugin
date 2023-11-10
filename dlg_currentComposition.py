@@ -281,8 +281,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             item.setText(0, layer.name())               
             layersInCanvas.append(self.utils.removeUnacceptableChars(layer.name()))          
             if self.utils.removeUnacceptableChars(layer.name()) in layerList:
-                i = layerList.index(self.utils.removeUnacceptableChars(layer.name()))
-
+                i = layerList.index(self.utils.removeUnacceptableChars(layer.name()))               
                 if serviceList[i] == self.layman.vectorService:                       
                     item.setText(1, "WFS")
                 if serviceList[i] == self.layman.rasterService:                       
@@ -1051,13 +1050,20 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.lineEdit_ymin.setText(str(ymin))
             self.lineEdit_ymax.setText(str(ymax))
 
-    def setRangeFromCanvas(self):
+    def setRangeFromCanvas(self):        
         ext = self.layman.iface.mapCanvas().extent()
-        self.lineEdit_xmin.setText(str(ext.xMinimum()))
-        self.lineEdit_xmax.setText(str(ext.xMaximum()))
-        self.lineEdit_ymin.setText(str(ext.yMinimum()))
-        self.lineEdit_ymax.setText(str(ext.yMaximum()))        
-        
+        coords = self.tranformCoords(ext.xMinimum(), ext.xMaximum(), ext.yMinimum(), ext.yMaximum())
+        self.lineEdit_xmin.setText(str(coords[0]))
+        self.lineEdit_xmax.setText(str(coords[1]))
+        self.lineEdit_ymin.setText(str(coords[2]))
+        self.lineEdit_ymax.setText(str(coords[3]))        
+    def tranformCoords(self, xmin, xmax, ymin, ymax):
+        src = QgsProject.instance().crs()
+        dest = QgsCoordinateReferenceSystem(4326)
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        max = tform.transform(QgsPointXY(float(xmax),float(ymax)))
+        min = tform.transform(QgsPointXY(float(xmin),float(ymin)))
+        return [min.x(), max.x(), min.y(), max.y()]       
     def copyCompositionUrl(self, composition=None):  
         if not composition:
             url = self.layman.instance.getUrl()
