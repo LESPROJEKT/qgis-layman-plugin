@@ -1134,15 +1134,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         ymin = ext.yMinimum()
         ymax = ext.yMaximum()
         if QgsProject.instance().crs().authid() == 'EPSG:5514' and layer[0].crs().authid() == 'EPSG:4326':         
-            max = self.krovakToWgs(xmax, ymax)
-            min = self.krovakToWgs(xmin, ymin)
+            max = self.utils.krovakToWgs(xmax, ymax)
+            min = self.utils.krovakToWgs(xmin, ymin)
             xmin = min[0]
             xmax = max[0]
             ymin = min[1]
             ymax = max[1]
         if QgsProject.instance().crs().authid() == 'EPSG:4326' and layer[0].crs().authid() == 'EPSG:5514':
-            max = self.wgsToKrovak(xmax, ymax)
-            min = self.wgsToKrovak(xmin, ymin)
+            max = self.utils.wgsToKrovak(xmax, ymax)
+            min = self.utils.wgsToKrovak(xmin, ymin)
             xmin = min[0]
             xmax = max[0]
             ymin = min[1]
