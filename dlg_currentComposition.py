@@ -1351,12 +1351,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def deleteCurrentMap(self):
         composition = self.layman.instance.getComposition()
         if self.layman.locale == "cs":
-            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Chcete opravdu smazat tuto kompozici?")
+            msgbox = QMessageBox(QMessageBox.Question, "Smazat mapu", "Chcete opravdu smazat tuto kompozici?")
         else:
             msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Do you want really delete this composition?")
         msgbox.addButton(QMessageBox.Yes)
         msgbox.addButton(QMessageBox.No)
         msgbox.setDefaultButton(QMessageBox.No)
+        msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
         reply = msgbox.exec()
         if (reply == QMessageBox.Yes):
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+composition['name']           
