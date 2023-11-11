@@ -969,11 +969,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         src = QgsProject.instance().crs()
         dest = QgsCoordinateReferenceSystem(4326)
         tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
-        #transformace extentu
-        composition['extent'][0] = float(self.lineEdit_xmin.text().replace(",","."))
-        composition['extent'][2] = float(self.lineEdit_xmax.text().replace(",","."))
-        composition['extent'][1] = float(self.lineEdit_ymin.text().replace(",","."))
-        composition['extent'][3] = float(self.lineEdit_ymax.text().replace(",","."))
+        #transformace extentu   
+        coords = self.tranformCoords(float(self.lineEdit_xmin.text().replace(",",".")), float(self.lineEdit_xmax.text().replace(",",".")), float(self.lineEdit_ymin.text().replace(",",".")), float(self.lineEdit_ymax.text().replace(",",".")))
+        composition['extent'][0] = str(coords[0])
+        composition['extent'][2] = str(coords[1])
+        composition['extent'][1] = str(coords[2])
+        composition['extent'][3] = str(coords[3])
+        composition["nativeExtent"] =  [float(self.lineEdit_xmin.text().replace(",",".")),float(self.lineEdit_ymin.text().replace(",",".")),float(self.lineEdit_xmax.text().replace(",",".")),float(self.lineEdit_ymax.text().replace(",","."))]
         center = tform.transform(QgsPointXY(self.layman.iface.mapCanvas().extent().center().x(), self.layman.iface.mapCanvas().extent().center().y()))
         composition['center'][0] = float(center.x())
         composition['center'][1] = float(center.y())
@@ -1133,14 +1135,14 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         xmax = ext.xMaximum()
         ymin = ext.yMinimum()
         ymax = ext.yMaximum()
-        if QgsProject.instance().crs().authid() == 'EPSG:5514' and layer[0].crs().authid() == 'EPSG:4326':         
+        if QgsProject.instance().crs().authid() == 'EPSG:5514' and layer[0].crs().authid() == 'EPSG:4326':                    
             max = self.utils.krovakToWgs(xmax, ymax)
             min = self.utils.krovakToWgs(xmin, ymin)
             xmin = min[0]
             xmax = max[0]
             ymin = min[1]
             ymax = max[1]
-        if QgsProject.instance().crs().authid() == 'EPSG:4326' and layer[0].crs().authid() == 'EPSG:5514':
+        if QgsProject.instance().crs().authid() == 'EPSG:4326' and layer[0].crs().authid() == 'EPSG:5514':             
             max = self.utils.wgsToKrovak(xmax, ymax)
             min = self.utils.wgsToKrovak(xmin, ymin)
             xmin = min[0]
