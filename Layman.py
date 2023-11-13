@@ -66,6 +66,7 @@ from qgis.core import QgsApplication, QgsSettings
 from qgis.PyQt.QtNetwork import (QHttpMultiPart, QHttpPart, QNetworkReply,
                                  QNetworkRequest)
 from qgis.utils import iface
+from urllib.parse import urlparse
 from .resources import *
 from Layman.qfield.cloud_converter import CloudConverter
 
@@ -964,15 +965,22 @@ class Layman(QObject):
                 item.setForeground(0, QColor(0,0,0))
             iterator +=1        
         return ret        
-    def addExistingLayerToComposition(self, title, composition, type):
+    def addExistingLayerToComposition(self, title, composition, type, layer):
+        if self.laymanUsername in self.findUrlParam(layer):
+            if (type == "wms"):
+                username = self.laymanUsername +'_wms'
+            else:    
+                username = self.laymanUsername             
+        else:
+            username = self.parseUsernameFromUrl(self.findUrlParam(layer))
         name = self.utils.removeUnacceptableChars(title)       
         self.existLayer = False       
         if (type == "wms"):
-            wmsUrl = (self.URI+'/geoserver/'+self.laymanUsername+'_wms/ows').replace("/client","")
+            wmsUrl = (self.URI+'/geoserver/'+username+'/ows').replace("/client","")
             print(wmsUrl)
             composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":self.rasterService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
         if (type == "wfs"):
-            wfsUrl = (self.URI+'/geoserver/'+self.laymanUsername+'/wfs').replace("/client","")
+            wfsUrl = (self.URI+'/geoserver/'+username+'/wfs').replace("/client","")
             composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":self.vectorService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": self.vectorProtocol,"url": wfsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
        
     def checkIfLayersExists(self):
@@ -1070,7 +1078,7 @@ class Layman(QObject):
                         for layer in layers:                                                    
                    
                             if layer.name() == item[0]:                               
-                                self.addExistingLayerToComposition(layer.name(),composition,item[1].lower())                                
+                                self.addExistingLayerToComposition(layer.name(),composition,item[1].lower(), layer)                                
                                 layers.remove(layer)
                     
                     if item[2] == "Add and overwrite" or item[2] =='Add' or item[2] == "Přidat a přepsat" or item[2] =='Přidat':
@@ -3382,7 +3390,25 @@ class Layman(QObject):
         start = layer.dataProvider().uri().uri().find(param) + len(param)
         end = string.find("'", start)
         value = string[start:end]   
-        return value                                        
+        return value   
+    def parseUsernameFromUrl(self, url):     
+        parsed_url = urlparse(url)     
+        path = parsed_url.path  
+        path_segments = path.split("/")
+        username = path_segments[-2]
+        return username
+    
+    def findUrlParam(self, layer):
+        uri_value = layer.dataProvider().uri().uri()
+        parameters = uri_value.split("&")
+        url_param = None
+        for param in parameters:
+            if "url=" in param:
+                url_param = param
+                break
+        if url_param:
+            print(url_param)        
+            return url_param                             
     def addLayerToComposition(self,composition, layersList, currentSet): 
         for layer in layersList:
             self.showExportInfo.emit("Nahrávání vrstvy: " + layer.name() if self.locale == "cs" else "Uploading layer: " + layer.name())

@@ -627,7 +627,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         for layer in layers:                                                    
                    
                             if layer.name() == item[0]:                               
-                                self.layman.addExistingLayerToComposition(layer.name(),composition,item[1].lower())
+                                self.layman.addExistingLayerToComposition(layer.name(),composition,item[1].lower(), layer)
                                 layers.remove(layer)
                     
                     if item[2] == "Add and overwrite" or item[2] =='Add' or item[2] == "Přidat a přepsat" or item[2] =='Přidat':
