@@ -2386,8 +2386,7 @@ class Layman(QObject):
             layers = QgsProject.instance().mapLayersByName(layer_name)            
             for lay in layers:
                 if lay.id() == id:
-                    layer = lay
-                    
+                    layer = lay                    
         else:
             layer = QgsProject.instance().mapLayersByName(layer_name)[0]
 
@@ -2426,8 +2425,26 @@ class Layman(QObject):
             layer.saveSldStyle(sld_filename)
             self.insertPictureToQML(layer)
             layer.saveNamedStyle(qml_filename)
-            self.insertBinaryToQml(layer, qml_filename)           
+            self.insertBinaryToQml(layer, qml_filename)      
+            ## QML fix for layman server
+            self.QmlCompatibility(qml_filename)     
             return True
+    def QmlCompatibility(self, qml_filename):       
+        tree = ET.parse(qml_filename)
+        root = tree.getroot()       
+        for layer_class in root.findall(".//layer[@class]"):            
+            option_map = layer_class.find("./Option[@type='Map']")         
+            if option_map is not None:            
+                options = option_map.findall("./Option")
+                for option in options:              
+                    name = option.get("name")
+                    value = option.get("value")              
+                    prop_element = ET.Element("prop")
+                    prop_element.set("v", value)
+                    prop_element.set("k", name)                   
+                    layer_class.append(prop_element)       
+        duplicated_tree = ET.ElementTree(root)
+        duplicated_tree.write(qml_filename)                
     def json_exportMix(self, layer):
         filePath = self.getTempPath(self.utils.removeUnacceptableChars(layer.name() + str(layer.geometryType())).lower())
         ogr_driver_name = "GeoJSON"
@@ -2485,7 +2502,7 @@ class Layman(QObject):
             symbol  = layer.renderer().categories()
             for i in symbol:               
                 if isinstance(i.symbol().symbolLayer(0), QgsMarkerLineSymbolLayer):    
-                    if isinstance(i.symbol().symbolLayer(0).subSymbol().symbolLayer(0), QgsSvgMarkerSymbolLayer):
+                    if isinstance(i.symbol().symbolLayer(0).subSymbol().symbolLayer(0), QgsSvgMarkerSymbolLayer) or isinstance(i.symbol().symbolLayer(0).subSymbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
                         path = (i.symbol().symbolLayer(0).subSymbol().symbolLayer(0).path())
                         if path[:4] != "base":
                             if os.path.exists(path):
@@ -2579,15 +2596,15 @@ class Layman(QObject):
                     
                         decoded =   encoded_string.decode("utf-8")                    
                         i.symbol().symbolLayer(0).setPath("base64:"  + decoded)                        
-        elif isinstance(single_symbol_renderer, QgsSingleSymbolRenderer):
+        elif isinstance(single_symbol_renderer, QgsSingleSymbolRenderer) or isinstance(single_symbol_renderer, QgsLineSymbol):
             try:
                 symbols = single_symbol_renderer.symbol()
             except:
                 print("nevhodny typ" + str(type(single_symbol_renderer)))
                 return
             for symbol in symbols:
-                if isinstance(symbol, QgsSvgMarkerSymbolLayer) or isinstance(symbol, QgsRasterMarkerSymbolLayer):
-                    path = symbol.path()
+                if isinstance(symbol, QgsSvgMarkerSymbolLayer) or isinstance(symbol, QgsRasterMarkerSymbolLayer) or isinstance(symbol, QgsRasterLineSymbolLayer):
+                    path = symbol.path()                    
                     try:
                         if os.path.exists(path):
                             with open(path, "rb") as image_file:
@@ -2597,7 +2614,20 @@ class Layman(QObject):
                             symbol.setPath("base64:"  + decoded)                            
                     except:
                         print("binary path")
-
+                if  isinstance(symbol, QgsMarkerLineSymbolLayer):
+                    symbols2 = symbol.subSymbol()
+                    for symbol2 in symbols2:
+                        if isinstance(symbol2, QgsRasterMarkerSymbolLayer):
+                            path = symbol2.path()                    
+                            try:
+                                if os.path.exists(path):
+                                    with open(path, "rb") as image_file:
+                                        encoded_string = base64.b64encode(image_file.read())                                    
+                                    decoded =   encoded_string.decode("utf-8")                            
+                                    symbol2.setPath("base64:"  + decoded)                            
+                            except:
+                                print("binary path")
+                        
     def mergeGeojsons(self, paths, output, layerName):
         feats = list()      
         top = '''
@@ -2958,10 +2988,9 @@ class Layman(QObject):
                             self.reprojectionFailed.emit(layer_name)
                             return      
         geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-            stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
-        else:
-            stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+        #if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
+        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+        #lePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
             if os.path.getsize(geoPath) > 800000000:
                 self.checkFileSizeLimit(os.path.getsize(geoPath))
@@ -3547,10 +3576,10 @@ class Layman(QObject):
     def patchLayer(self, layer_name, data):            
         self.layerName = self.utils.removeUnacceptableChars(layer_name)
         geoPath = self.getTempPath(self.layerName)
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0")  and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-            stylePath = self.getTempPath(self.layerName).replace("geojson", "qml")
-        else:
-            stylePath = self.getTempPath(self.layerName).replace("geojson", "sld")  
+        # if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0")  and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
+        stylePath = self.getTempPath(self.layerName).replace("geojson", "qml")
+        # else:
+        #     stylePath = self.getTempPath(self.layerName).replace("geojson", "sld")  
         if(os.path.isfile(stylePath)): ## existuje styl?
             files = [('file', open(geoPath, 'rb')), ('style', open(stylePath, 'rb'))]
         else:
