@@ -1647,16 +1647,10 @@ class Layman(QObject):
     def updateLayerStyle(self, layer_name, workspace):
         title = layer_name       
         layer_name = self.utils.removeUnacceptableChars(layer_name)
-        layer = QgsProject.instance().mapLayersByName(title)[0]
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-            tempFile = self.getTempPath(os.path.basename(layer_name))
-            stylePath = tempFile + ".qml"
-            layer.saveNamedStyle(stylePath)
-            
-        else:
-            tempFile = self.getTempPath(os.path.basename(layer_name))
-            stylePath = tempFile + ".sld"
-            layer.saveSldStyle(stylePath)
+        layer = QgsProject.instance().mapLayersByName(title)[0]    
+        tempFile = self.getTempPath(os.path.basename(layer_name))
+        stylePath = tempFile + ".qml"
+        layer.saveNamedStyle(stylePath)        
             
         files = [('style', open(stylePath, 'rb'))]
         url = self.URI+'/rest/'+workspace+"/layers/" + layer_name
@@ -3013,10 +3007,8 @@ class Layman(QObject):
                         if not (self.json_export(layer_name)):
                             self.reprojectionFailed.emit(layer_name)
                             return      
-        geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))
-        #if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
-        #lePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
+        geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))      
+        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")       
         if (os.path.getsize(geoPath) > self.CHUNK_SIZE):
             if os.path.getsize(geoPath) > 800000000:
                 self.checkFileSizeLimit(os.path.getsize(geoPath))
@@ -3601,11 +3593,8 @@ class Layman(QObject):
 
     def patchLayer(self, layer_name, data):            
         self.layerName = self.utils.removeUnacceptableChars(layer_name)
-        geoPath = self.getTempPath(self.layerName)
-        # if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0")  and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-        stylePath = self.getTempPath(self.layerName).replace("geojson", "qml")
-        # else:
-        #     stylePath = self.getTempPath(self.layerName).replace("geojson", "sld")  
+        geoPath = self.getTempPath(self.layerName)    
+        stylePath = self.getTempPath(self.layerName).replace("geojson", "qml")        
         if(os.path.isfile(stylePath)): ## existuje styl?
             files = [('file', open(geoPath, 'rb')), ('style', open(stylePath, 'rb'))]
         else:
@@ -4156,11 +4145,8 @@ class Layman(QObject):
     def registerLayer(self, title):        
         url = self.URI + "/rest/"+self.laymanUsername+"/layers"
         name = self.utils.removeUnacceptableChars(title)
-        geoPath = self.getTempPath(name).lower()
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-            stylePath = self.getTempPath(name).replace("geojson", "qml").lower()
-        else:
-            stylePath = self.getTempPath(name).replace("geojson", "sld")
+        geoPath = self.getTempPath(name).lower()       
+        stylePath = self.getTempPath(name).replace("geojson", "qml").lower()      
         files = {'style': (stylePath, open(stylePath, 'rb')),} # nahrávám sld
         payload = {
             'file': name.lower()+".geojson",
@@ -4517,13 +4503,9 @@ class Layman(QObject):
             return ("postgresql://"+username+":"+password+"@"+host+":"+port+"/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
     def postPostreLayer(self, layer, username, password):
         uri = self.preparePostgresUri(layer, username, password)      
-        layer_name = layer.name()
-        if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-            stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
-            layer.saveNamedStyle(stylePath)
-        else:
-            stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
-            layer.saveSldStyle(stylePath)
+        layer_name = layer.name()        
+        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+        layer.saveNamedStyle(stylePath)       
         payload = {                
                 'external_table_uri': uri,
                 'title': layer_name,                
@@ -4554,13 +4536,9 @@ class Layman(QObject):
     def patchPostreLayer(self):  
         def patchPostreLayerThread():
             layer = iface.activeLayer()
-            layer_name = layer.name()
-            if LooseVersion(self.laymanVersion) > LooseVersion("1.10.0") and qgis.core.Qgis.QGIS_VERSION_INT <= 32603:
-                stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
-                layer.saveNamedStyle(stylePath)
-            else:
-                stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "sld")
-                layer.saveSldStyle(stylePath)
+            layer_name = layer.name()            
+            stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
+            layer.saveNamedStyle(stylePath)           
             payload = {
                     'title': layer_name,                
                     'style': open(stylePath, 'rb'),
