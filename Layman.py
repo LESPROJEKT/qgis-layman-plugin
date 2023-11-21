@@ -2426,24 +2426,31 @@ class Layman(QObject):
             self.insertPictureToQML(layer)
             layer.saveNamedStyle(qml_filename)
             self.insertBinaryToQml(layer, qml_filename)      
-            ## QML fix for layman server
+            ## QML fix for layman server            
             self.QmlCompatibility(qml_filename)     
             return True
     def QmlCompatibility(self, qml_filename):       
         tree = ET.parse(qml_filename)
         root = tree.getroot()       
-        for layer_class in root.findall(".//layer[@class]"):            
+        for layer_class in root.findall(".//layer[@class]"):
+            if layer_class.find("./prop") is not None:
+            ## if element prop already exists - detect old versions
+                continue            
             option_map = layer_class.find("./Option[@type='Map']")         
             if option_map is not None:            
                 options = option_map.findall("./Option")
                 for option in options:              
                     name = option.get("name")
-                    value = option.get("value")              
+                    value = option.get("value")  
+                    if name is None:
+                        name = "default_name"
+                    if value is None:
+                        value = "default_value"            
                     prop_element = ET.Element("prop")
                     prop_element.set("v", value)
                     prop_element.set("k", name)                   
                     layer_class.append(prop_element)       
-        duplicated_tree = ET.ElementTree(root)
+        duplicated_tree = ET.ElementTree(root)      
         duplicated_tree.write(qml_filename)                
     def json_exportMix(self, layer):
         filePath = self.getTempPath(self.utils.removeUnacceptableChars(layer.name() + str(layer.geometryType())).lower())
@@ -2615,18 +2622,18 @@ class Layman(QObject):
                         print("binary path")
                 if isinstance(symbol, QgsRasterFillSymbolLayer):
                     path = symbol.imageFilePath()
-                    # try:
-                    if os.path.exists(path):
-                        with open(path, "rb") as image_file:
-                            encoded_string = base64.b64encode(image_file.read())                                
-                        decoded =   encoded_string.decode("utf-8")                            
-                        symbol.setImageFilePath("base64:"  + decoded)                            
-                    # except:
-                    #     print("binary path")
+                    try:
+                        if os.path.exists(path):
+                            with open(path, "rb") as image_file:
+                                encoded_string = base64.b64encode(image_file.read())                                
+                            decoded =   encoded_string.decode("utf-8")                            
+                            symbol.setImageFilePath("base64:"  + decoded)                            
+                    except:
+                        print("binary path")
                 if  isinstance(symbol, QgsMarkerLineSymbolLayer):
                     symbols2 = symbol.subSymbol()
                     for symbol2 in symbols2:
-                        if isinstance(symbol2, QgsRasterMarkerSymbolLayer):
+                        if isinstance(symbol2, QgsRasterMarkerSymbolLayer) or isinstance(symbol2, QgsSvgMarkerSymbolLayer):
                             path = symbol2.path()                    
                             try:
                                 if os.path.exists(path):
@@ -2636,6 +2643,16 @@ class Layman(QObject):
                                     symbol2.setPath("base64:"  + decoded)                            
                             except:
                                 print("binary path")
+                if  isinstance(symbol, QgsSVGFillSymbolLayer):             
+                        path = symbol.svgFilePath()                    
+                        try:
+                            if os.path.exists(path):
+                                with open(path, "rb") as image_file:
+                                    encoded_string = base64.b64encode(image_file.read())                                    
+                                decoded =   encoded_string.decode("utf-8")                            
+                                symbol.setSvgFilePath("base64:"  + decoded)                            
+                        except:
+                            print("binary path")                                
                         
     def mergeGeojsons(self, paths, output, layerName):
         feats = list()      
