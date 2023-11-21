@@ -698,15 +698,17 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+layerName[0]+"/file"
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)
             composition = r.json()
-        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]
+        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(1,self.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(1,self.listWidget_write.count())]
         userNamesRead = list()
+        userNamesRead.append(self.laymanUsername)
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":
                 userNamesRead.append("EVERYONE")          
             else:
                 userNamesRead.append(userDict[pom])
         userNamesWrite = list()    
+        userNamesWrite.append(self.laymanUsername)
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
@@ -736,9 +738,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
           
     def updatePermissions(self,layerName, userDict, type, check=False):   
         print(layerName)    
-        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]
+        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(1, self.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(1, self.listWidget_write.count())]
         userNamesRead = list()  
+        userNamesRead.append(self.laymanUsername)
         print(itemsTextListRead)
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":            
@@ -749,7 +752,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     pom = pom.split(", ")[1]     
                 print(userDict)                                               
                 userNamesRead.append(userDict[pom])
-        userNamesWrite = list()      
+        userNamesWrite = list()  
+        userNamesWrite.append(self.laymanUsername)    
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")

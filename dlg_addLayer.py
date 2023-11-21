@@ -651,9 +651,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                self.utils.showQgisBar(["Tato vrstva je stále v publikaci. V tuto chvíli není možné aktualizovat práva","This layer is still in publication. It is not possible to update permissions at this time."], Qgis.Warning)   
                self.progressDone.emit()
                return
-        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]
+        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(1, self.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(1, self.listWidget_write.count())]
         userNamesRead = list()
+        userNamesRead.append(self.laymanUsername)
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":            
                 userNamesRead.append("EVERYONE")          
@@ -663,7 +664,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     pom = pom.split(", ")[1]     
                 print(userDict)                                               
                 userNamesRead.append(userDict[pom])
-        userNamesWrite = list()      
+        userNamesWrite = list()     
+        userNamesWrite.append(self.laymanUsername) 
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")

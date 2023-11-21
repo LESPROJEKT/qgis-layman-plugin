@@ -804,15 +804,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+layerName[0]+"/file"
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)
             composition = r.json()
-        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]
+        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(1,self.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(1,self.listWidget_write.count())]
         userNamesRead = list()
+        userNamesRead.append(self.laymanUsername)
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":
                 userNamesRead.append("EVERYONE")          
             else:
                 userNamesRead.append(userDict[pom])
-        userNamesWrite = list()    
+        userNamesWrite = list()   
+        userNamesWrite.append(self.laymanUsername) 
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
@@ -839,10 +841,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 print("there is not possible set permissions for layer")
           
     def updatePermissions(self,layerName, userDict, type, check=False):   
-        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]
+        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(1, self.listWidget_read.count())]
+        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(1, self.listWidget_write.count())]
         userNamesRead = list() 
-
+        userNamesRead.append(self.laymanUsername)
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":            
                 userNamesRead.append("EVERYONE")          
@@ -851,7 +853,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     pom = pom.split(", ")[1]    
                                                               
                 userNamesRead.append(userDict[pom])
-        userNamesWrite = list()      
+        userNamesWrite = list()   
+        userNamesWrite.append(self.laymanUsername)   
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
