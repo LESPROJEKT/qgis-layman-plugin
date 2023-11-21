@@ -2596,24 +2596,33 @@ class Layman(QObject):
                     
                         decoded =   encoded_string.decode("utf-8")                    
                         i.symbol().symbolLayer(0).setPath("base64:"  + decoded)                        
-        elif isinstance(single_symbol_renderer, QgsSingleSymbolRenderer) or isinstance(single_symbol_renderer, QgsLineSymbol):
+        elif isinstance(single_symbol_renderer, QgsSingleSymbolRenderer) or isinstance(single_symbol_renderer, QgsLineSymbol)  or isinstance(single_symbol_renderer, QgsFillSymbol):
             try:
                 symbols = single_symbol_renderer.symbol()
             except:
                 print("nevhodny typ" + str(type(single_symbol_renderer)))
                 return
             for symbol in symbols:
-                if isinstance(symbol, QgsSvgMarkerSymbolLayer) or isinstance(symbol, QgsRasterMarkerSymbolLayer) or isinstance(symbol, QgsRasterLineSymbolLayer):
+                if isinstance(symbol, QgsSvgMarkerSymbolLayer) or isinstance(symbol, QgsRasterMarkerSymbolLayer) or isinstance(symbol, QgsRasterLineSymbolLayer): 
                     path = symbol.path()                    
                     try:
                         if os.path.exists(path):
                             with open(path, "rb") as image_file:
-                                encoded_string = base64.b64encode(image_file.read())
-                              
+                                encoded_string = base64.b64encode(image_file.read())                                
                             decoded =   encoded_string.decode("utf-8")                            
                             symbol.setPath("base64:"  + decoded)                            
                     except:
                         print("binary path")
+                if isinstance(symbol, QgsRasterFillSymbolLayer):
+                    path = symbol.imageFilePath()
+                    # try:
+                    if os.path.exists(path):
+                        with open(path, "rb") as image_file:
+                            encoded_string = base64.b64encode(image_file.read())                                
+                        decoded =   encoded_string.decode("utf-8")                            
+                        symbol.setImageFilePath("base64:"  + decoded)                            
+                    # except:
+                    #     print("binary path")
                 if  isinstance(symbol, QgsMarkerLineSymbolLayer):
                     symbols2 = symbol.subSymbol()
                     for symbol2 in symbols2:
