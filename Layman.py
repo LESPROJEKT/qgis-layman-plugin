@@ -965,7 +965,7 @@ class Layman(QObject):
                 item.setForeground(0, QColor(0,0,0))
             iterator +=1        
         return ret        
-    def addExistingLayerToComposition(self, title, composition, type, layer):
+    def addExistingLayerToComposition(self, title, composition, type, layer):    
         if self.laymanUsername in self.findUrlParam(layer):
             if (type == "wms"):
                 username = self.laymanUsername +'_wms'
@@ -3455,7 +3455,9 @@ class Layman(QObject):
                 break
         if url_param:
             print(url_param)        
-            return url_param                             
+            return url_param  
+        else:
+            return self.laymanUsername                           
     def addLayerToComposition(self,composition, layersList, currentSet): 
         for layer in layersList:
             self.showExportInfo.emit("Nahrávání vrstvy: " + layer.name() if self.locale == "cs" else "Uploading layer: " + layer.name())
