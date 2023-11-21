@@ -912,7 +912,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if self.layman.locale == "cs":
                 self.showInfoDialogOnTop("Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""))
             else:
-                self.showInfoDialogOnTop("Error", "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                
+                self.showInfoDialogOnTop("Permissions was not saved for layer: " + str(failed).replace("[","").replace("]",""))                
                     
                     
                     
