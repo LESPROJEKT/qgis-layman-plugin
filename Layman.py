@@ -4252,6 +4252,7 @@ class Layman(QObject):
         id = self.client_id.replace('-', '')
         login = login.replace(".","_")
         self.laymanUsername = login
+        self.utils.laymanUsername = self.laymanUsername
         user = {'username':login}      
         print("authheader: "+ str(self.utils.getAuthHeader(self.authCfg)))
 

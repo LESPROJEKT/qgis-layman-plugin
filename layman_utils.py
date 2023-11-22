@@ -678,9 +678,11 @@ class LaymanUtils(QObject):
         stats = provider.bandStatistics(1, QgsRasterBandStats.All, extent, 0)
         min_val, max_val = stats.minimumValue, stats.maximumValue
         return min_val, max_val
-    def checkPublicationStatus(self, layer):
+    def checkPublicationStatus(self, layer):        
         url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer
-        r = requests.get(url, headers = self.utils.getAuthHeader(self.utils.authCfg))
+        print(url)
+        r = requests.get(url, headers = self.getAuthHeader(self.authCfg))
+        print(r.content)
         response = self.fromByteToJson(r.content) 
         if not 'layman_metadata' in response:
             return False

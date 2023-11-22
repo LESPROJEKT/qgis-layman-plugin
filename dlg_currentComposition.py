@@ -673,6 +673,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             usersDict['EVERYONE'] = 'EVERYONE'
         usersDictReversed = dict()
+        usernameList = list()
+        usernameList.append('EVERYONE')
         if self.layman.locale == "cs":
             usersDictReversed['EVERYONE'] = 'VŠICHNI'
         else:
@@ -687,7 +689,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         for i in range (0, userCount):           
             usersDict[res[i]['name'] if res[i]['name'] !="" else res[i]['username']] = res[i]['username']
             usersDictReversed[res[i]['username']] = res[i]['name'] if res[i]['name'] !="" else res[i]['username']          
-            self.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username'])      
+            self.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username'])   
+            usernameList.append(res[i]['username'])   
         mapName = self.utils.removeUnacceptableChars(mapName)
         uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName        
         r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
@@ -695,17 +698,25 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.info = 0
         lenRead = len(res['access_rights']['read'])
         lenWrite = len(res['access_rights']['write'])
-        for i in range (0, lenRead):           
-            self.listWidget_read.addItem(usersDictReversed[res['access_rights']['read'][i]])
-        for i in range (0, lenWrite):         
-            self.listWidget_write.addItem(usersDictReversed[res['access_rights']['write'][i]])
+        for i in range (0, lenRead):
+            current_item = QtWidgets.QListWidgetItem(usersDictReversed[res['access_rights']['read'][i]]) 
+            self.listWidget_read.addItem(current_item)
+            hidden_text = res['access_rights']['read'][i]
+            print("hidden_text")
+            print(hidden_text)
+            self.setHiddenItem(current_item, hidden_text)
+        for i in range (0, lenWrite):
+            current_item = QtWidgets.QListWidgetItem(usersDictReversed[res['access_rights']['write'][i]])
+            self.listWidget_write.addItem(current_item)
+            hidden_text = res['access_rights']['read'][i]
+            self.setHiddenItem(current_item, hidden_text)
         if not self.permissionsConnected:          
             self.listWidget_read.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
             self.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())           
             self.pushButton_save_permissions.clicked.connect(lambda:  self.progressBar_loader.show())       
             self.pushButton_save_permissions.clicked.connect(lambda:self.askForLayerPermissionChanges([mapName], usersDict, "maps"))
-            self.pushButton_addRead.clicked.connect(lambda: self.checkAddedItemDuplicity("read"))
-            self.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList())
+            self.pushButton_addRead.clicked.connect(lambda: self.checkAddedItemDuplicity("read", usernameList))
+            self.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList(usernameList))
             self.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
             self.pushButton_removeWrite.clicked.connect(lambda: self.listWidget_write.removeItemWidget(self.listWidget_write.takeItem(self.listWidget_write.currentRow())))
             self.permissionsConnected = True        
@@ -715,7 +726,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         
           
             
-    def checkAddedItemDuplicity(self, type):
+    def checkAddedItemDuplicity(self, type, usernameList):
         itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
         itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]        
         allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]      
@@ -723,7 +734,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if type == "read":
               
                 if ((self.comboBox_users.currentText() not in itemsTextListRead)):                  
-                    self.listWidget_read.addItem(self.comboBox_users.currentText())
+                    current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())                   
+                    self.listWidget_read.addItem(current_item)
+                    hidden_text = usernameList[self.comboBox_users.currentIndex()]
+                    self.setHiddenItem(current_item, hidden_text)
                     return True
                 else:
                     if self.layman.locale == "cs":                
@@ -739,7 +753,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         self.showInfoDialogOnTop("Tento uživatel se již v seznamu vyskytuje!")                        
                     else:                        
                         self.showInfoDialogOnTop("This user already exists in the list!")  
-                    return False      
+                    return False 
+    def setHiddenItem(self,item, hidden_text):     
+        hidden_item = QtWidgets.QListWidgetItem(hidden_text)
+        hidden_item.setHidden(True)
+        item.setData(Qt.UserRole, hidden_item)                 
     def showInfoDialogOnTop(self, text):
         msgbox = QMessageBox()     
         msgbox.setWindowTitle("Layman")
@@ -841,27 +859,44 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 print("there is not possible set permissions for layer")
           
     def updatePermissions(self,layerName, userDict, type, check=False):   
-        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(1, self.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(1, self.listWidget_write.count())]
-        userNamesRead = list() 
-        userNamesRead.append(self.laymanUsername)
+        # itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(1, self.listWidget_read.count())]
+        
+        itemsTextListRead = [] 
+        for i in range(self.listWidget_read.count()):
+            current_item = self.listWidget_read.item(i) 
+            hidden_item = current_item.data(Qt.UserRole) 
+            if hidden_item is not None:
+                itemsTextListRead.append(hidden_item.text())
+        print(itemsTextListRead)
+         
+        # itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(1, self.listWidget_write.count())]
+        itemsTextListWrite = []
+        for i in range(self.listWidget_write.count()):
+            current_item = self.listWidget_write.item(i)
+            hidden_item = current_item.data(Qt.UserRole)  
+            if hidden_item is not None:
+                itemsTextListWrite.append(hidden_item.text())
+        userNamesRead = list()
+        # userNamesRead.append(self.laymanUsername)
+        print(itemsTextListWrite)       
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":            
                 userNamesRead.append("EVERYONE")          
-            else:          
+            else:
+                print(pom)
                 if "," in pom:
-                    pom = pom.split(", ")[1]    
-                                                              
-                userNamesRead.append(userDict[pom])
-        userNamesWrite = list()   
-        userNamesWrite.append(self.laymanUsername)   
+                    pom = pom.split(", ")[1]     
+                print(userDict)                                               
+                userNamesRead.append(pom)
+        userNamesWrite = list()     
+        # userNamesWrite.append(self.laymanUsername) 
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
             else:
                 if "," in pom:
                     pom = pom.split(", ")[1]
-                userNamesWrite.append(userDict[pom])
+                userNamesWrite.append(pom)
         data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}     
         
       
@@ -1375,20 +1410,29 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.layman.instance = None
             self.layman.current = None
             self.close()           
-    def setWritePermissionList(self):
+    def setWritePermissionList(self, usernameList):
         allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]    
         if self.comboBox_users.currentText() in allItems:
-            if self.checkAddedItemDuplicity("write"):
+            if self.checkAddedItemDuplicity("write", usernameList):
                 itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
               
                 if (self.comboBox_users.currentText() in itemsTextListRead):
-                  
-                    self.listWidget_write.addItem(self.comboBox_users.currentText())
+                    current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())  
+                    self.listWidget_write.addItem(current_item)
+                    hidden_text = usernameList[self.comboBox_users.currentIndex()]
+                    self.setHiddenItem(current_item, hidden_text)   
                     print("1")
-                else:            
-                    self.listWidget_write.addItem(self.comboBox_users.currentText())
-                    self.listWidget_read.addItem(self.comboBox_users.currentText())
-                    print("2") 
+                else:  
+                    current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())
+                    self.listWidget_read.addItem(current_item)                    
+                    hidden_text = usernameList[self.comboBox_users.currentIndex()]
+                    self.setHiddenItem(current_item, hidden_text)     
+                    current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())             
+                    self.listWidget_write.addItem(current_item) 
+                    self.listWidget_read.addItem(current_item)                    
+                    hidden_text = usernameList[self.comboBox_users.currentIndex()]
+                    self.setHiddenItem(current_item, hidden_text) 
+                    print("2")   
     def reject(self):
         super().reject()   
         global dialog_running 
