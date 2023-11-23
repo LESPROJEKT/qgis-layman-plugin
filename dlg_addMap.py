@@ -650,28 +650,40 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         except:
             self.pushButton_removeWrite.setEnabled(False)
             print("neni vybrana polozka")                    
-    def checkAddedItemDuplicity(self, type, usernameList):
-        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]        
+    def checkAddedItemDuplicity(self, type, usernameList):     
+        itemsTextListRead = [] 
+        for i in range(self.listWidget_read.count()):
+            current_item = self.listWidget_read.item(i) 
+            hidden_item = current_item.data(Qt.UserRole) 
+            if hidden_item is not None:
+                itemsTextListRead.append(hidden_item.text())    
+        itemsTextListWrite = [] 
+        for i in range(self.listWidget_write.count()):
+            current_item = self.listWidget_write.item(i) 
+            hidden_item = current_item.data(Qt.UserRole) 
+            if hidden_item is not None:
+                itemsTextListWrite.append(hidden_item.text())
         allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]      
         if self.comboBox_users.currentText() in allItems:
             if type == "read":
               
-                if ((self.comboBox_users.currentText() not in itemsTextListRead)):                  
+                if ((usernameList[self.comboBox_users.currentIndex()] not in itemsTextListRead)): 
                     current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())                   
                     self.listWidget_read.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)
+                    self.setHiddenItem(current_item, hidden_text)   
                     return True
                 else:
-                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])           
+                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])         
                     return False
-            else:              
-                if ((self.comboBox_users.currentText() not in itemsTextListWrite) and type == "write"):               
+            else:          
+                print(itemsTextListWrite)    
+                print(usernameList[self.comboBox_users.currentIndex()])
+                if ((usernameList[self.comboBox_users.currentIndex()] not in itemsTextListWrite) and type == "write"):               
                     return True
                 else:                    
-                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])                    
-                    return False                        
+                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])              
+                    return False                      
     def removeWritePermissionList(self):
         self.deleteItem(self.listWidget_read.currentItem().text())
         self.listWidget_read.removeItemWidget(self.listWidget_read.takeItem(self.listWidget_read.currentRow()))
@@ -848,9 +860,13 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]    
         if self.comboBox_users.currentText() in allItems:
             if self.checkAddedItemDuplicity("write", usernameList):
-                itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-              
-                if (self.comboBox_users.currentText() in itemsTextListRead):
+                itemsTextListRead = [] 
+                for i in range(self.listWidget_read.count()):
+                    current_item = self.listWidget_read.item(i) 
+                    hidden_item = current_item.data(Qt.UserRole) 
+                    if hidden_item is not None:
+                        itemsTextListRead.append(hidden_item.text())              
+                if (usernameList[self.comboBox_users.currentIndex()] in itemsTextListRead):
                     current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())  
                     self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
@@ -861,12 +877,12 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.listWidget_read.addItem(current_item)                    
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
                     self.setHiddenItem(current_item, hidden_text)     
+
                     current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())             
-                    self.listWidget_write.addItem(current_item) 
-                    self.listWidget_read.addItem(current_item)                    
+                    self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)
-                    print("2")                    
+                    self.setHiddenItem(current_item, hidden_text) 
+                    print("2")    
     def _onReadCompositionFailed(self):
         self.utils.showQgisBar(["Špatný formát kompozice.","Wrong format of composition"], Qgis.Warning)   
         if self.objectName() == "AddMapDialog":

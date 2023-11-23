@@ -649,10 +649,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             return False        
     def layersWasModified(self):
-        self.modified = True        
-        
-        
-        
+        self.modified = True  
         
     def setPermissionsUI(self, mapName):        
         self.listWidget_read.clear()
@@ -719,41 +716,42 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList(usernameList))
             self.pushButton_removeRead.clicked.connect(lambda: self.removeWritePermissionList())
             self.pushButton_removeWrite.clicked.connect(lambda: self.listWidget_write.removeItemWidget(self.listWidget_write.takeItem(self.listWidget_write.currentRow())))
-            self.permissionsConnected = True        
-          
-          
-          
-        
-          
+            self.permissionsConnected = True    
             
     def checkAddedItemDuplicity(self, type, usernameList):
-        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]        
+        itemsTextListRead = [] 
+        for i in range(self.listWidget_read.count()):
+            current_item = self.listWidget_read.item(i) 
+            hidden_item = current_item.data(Qt.UserRole) 
+            if hidden_item is not None:
+                itemsTextListRead.append(hidden_item.text())    
+        itemsTextListWrite = [] 
+        for i in range(self.listWidget_write.count()):
+            current_item = self.listWidget_write.item(i) 
+            hidden_item = current_item.data(Qt.UserRole) 
+            if hidden_item is not None:
+                itemsTextListWrite.append(hidden_item.text())
         allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]      
         if self.comboBox_users.currentText() in allItems:
             if type == "read":
               
-                if ((self.comboBox_users.currentText() not in itemsTextListRead)):                  
+                if ((usernameList[self.comboBox_users.currentIndex()] not in itemsTextListRead)): 
                     current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())                   
                     self.listWidget_read.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)
+                    self.setHiddenItem(current_item, hidden_text)   
                     return True
                 else:
-                    if self.layman.locale == "cs":                
-                        self.showInfoDialogOnTop("Tento uživatel se již v seznamu vyskytuje!")                        
-                    else:                        
-                        self.showInfoDialogOnTop("This user already exists in the list!")                    
+                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])         
                     return False
-            else:              
-                if ((self.comboBox_users.currentText() not in itemsTextListWrite) and type == "write"):               
+            else:          
+                print(itemsTextListWrite)    
+                print(usernameList[self.comboBox_users.currentIndex()])
+                if ((usernameList[self.comboBox_users.currentIndex()] not in itemsTextListWrite) and type == "write"):               
                     return True
-                else:     
-                    if self.layman.locale == "cs":                
-                        self.showInfoDialogOnTop("Tento uživatel se již v seznamu vyskytuje!")                        
-                    else:                        
-                        self.showInfoDialogOnTop("This user already exists in the list!")  
-                    return False 
+                else:                    
+                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])              
+                    return False   
     def setHiddenItem(self,item, hidden_text):     
         hidden_item = QtWidgets.QListWidgetItem(hidden_text)
         hidden_item.setHidden(True)
@@ -1414,9 +1412,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]    
         if self.comboBox_users.currentText() in allItems:
             if self.checkAddedItemDuplicity("write", usernameList):
-                itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-              
-                if (self.comboBox_users.currentText() in itemsTextListRead):
+                itemsTextListRead = [] 
+                for i in range(self.listWidget_read.count()):
+                    current_item = self.listWidget_read.item(i) 
+                    hidden_item = current_item.data(Qt.UserRole) 
+                    if hidden_item is not None:
+                        itemsTextListRead.append(hidden_item.text())              
+                if (usernameList[self.comboBox_users.currentIndex()] in itemsTextListRead):
                     current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())  
                     self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
@@ -1427,9 +1429,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.listWidget_read.addItem(current_item)                    
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
                     self.setHiddenItem(current_item, hidden_text)     
+
                     current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())             
-                    self.listWidget_write.addItem(current_item) 
-                    self.listWidget_read.addItem(current_item)                    
+                    self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
                     self.setHiddenItem(current_item, hidden_text) 
                     print("2")   

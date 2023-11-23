@@ -555,13 +555,25 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.progressBar_loader.hide()
             self.label_thumbnail.setText(' ')
     def checkAddedItemDuplicity(self, type, usernameList):
-        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]        
+        # itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
+        itemsTextListRead = [] 
+        for i in range(self.listWidget_read.count()):
+            current_item = self.listWidget_read.item(i) 
+            hidden_item = current_item.data(Qt.UserRole) 
+            if hidden_item is not None:
+                itemsTextListRead.append(hidden_item.text())
+        # itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]        
+        itemsTextListWrite = [] 
+        for i in range(self.listWidget_write.count()):
+            current_item = self.listWidget_write.item(i) 
+            hidden_item = current_item.data(Qt.UserRole) 
+            if hidden_item is not None:
+                itemsTextListWrite.append(hidden_item.text())
         allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]      
         if self.comboBox_users.currentText() in allItems:
             if type == "read":
               
-                if ((self.comboBox_users.currentText() not in itemsTextListRead)): 
+                if ((usernameList[self.comboBox_users.currentIndex()] not in itemsTextListRead)): 
                     current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())                   
                     self.listWidget_read.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
@@ -570,8 +582,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:
                     self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])         
                     return False
-            else:              
-                if ((self.comboBox_users.currentText() not in itemsTextListWrite) and type == "write"):               
+            else:          
+                print(itemsTextListWrite)    
+                print(usernameList[self.comboBox_users.currentIndex()])
+                if ((usernameList[self.comboBox_users.currentIndex()] not in itemsTextListWrite) and type == "write"):               
                     return True
                 else:                    
                     self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])              
@@ -580,9 +594,14 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]    
         if self.comboBox_users.currentText() in allItems:
             if self.checkAddedItemDuplicity("write", usernameList):
-                itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-              
-                if (self.comboBox_users.currentText() in itemsTextListRead):
+                # itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
+                itemsTextListRead = [] 
+                for i in range(self.listWidget_read.count()):
+                    current_item = self.listWidget_read.item(i) 
+                    hidden_item = current_item.data(Qt.UserRole) 
+                    if hidden_item is not None:
+                        itemsTextListRead.append(hidden_item.text())              
+                if (usernameList[self.comboBox_users.currentIndex()] in itemsTextListRead):
                     current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())  
                     self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
@@ -593,9 +612,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.listWidget_read.addItem(current_item)                    
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
                     self.setHiddenItem(current_item, hidden_text)     
+
                     current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())             
-                    self.listWidget_write.addItem(current_item) 
-                    self.listWidget_read.addItem(current_item)                    
+                    self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
                     self.setHiddenItem(current_item, hidden_text) 
                     print("2")   
