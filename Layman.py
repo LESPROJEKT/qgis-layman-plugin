@@ -304,7 +304,7 @@ class Layman(QObject):
         # Set callback        
         self.textbox.setText("Layman")
         self.connectEvents()      
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_1.svg'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'login.png'
         self.menu_Connection = self.add_action(
             icon_path,
             text=self.tr(u'Login'),
@@ -313,7 +313,7 @@ class Layman(QObject):
             parent=self.iface.mainWindow())
 
 
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_2.svg'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'save.png'
         self.menu_saveLocalFile = self.add_action(
             icon_path,
             text=self.tr(u'Save as to JSON and SLD'),
@@ -322,7 +322,7 @@ class Layman(QObject):
             parent=self.iface.mainWindow())
 
         self.first_start = True
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'file.png'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'open.png'
         self.menu_loadJson = self.add_action(
             icon_path,
             text=self.tr(u'Load from JSON'),
@@ -331,42 +331,42 @@ class Layman(QObject):
             parent=self.iface.mainWindow())
         self.first_start = True
 
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'layers-up.png'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'export_layers.png'
         self.menu_ImportLayerDialog = self.add_action(
             icon_path,
             text=self.tr(u'Export layer to server'),
             callback=self.run_ImportLayerDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow())
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'layers-down.png'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'layers_catalogue.png'
         self.menu_AddLayerDialog = self.add_action(
             icon_path,
             text=self.tr(u'Layers cataloque'),
             callback=self.run_AddLayerDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow())
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_3.svg'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'map_catalogue.png'
         self.menu_AddMapDialog = self.add_action(
             icon_path,
             text=self.tr(u'Map compositions cataloque'),
             callback=self.run_AddMapDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow())      
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'map.png'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'current_map.png'
         self.menu_CurrentCompositionDialog = self.add_action(
             icon_path,
             text=self.tr(u'Current composition'),
             callback=self.run_CurrentCompositionDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow())
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'micka.png'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'metadata.png'
         self.menu_AddMickaDialog = self.add_action(
             icon_path,
             text=self.tr(u'Browse the metadata catalog'),
             callback=self.run_AddMickaDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow())
-        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'l_4.svg'
+        icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'settings.png'
         self.menu_UserInfoDialog = self.add_action(
             icon_path,
             text=self.tr(u'User info'),

@@ -554,15 +554,13 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_urlWfs.setEnabled(False)
             self.progressBar_loader.hide()
             self.label_thumbnail.setText(' ')
-    def checkAddedItemDuplicity(self, type, usernameList):
-        # itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
+    def checkAddedItemDuplicity(self, type, usernameList):       
         itemsTextListRead = [] 
         for i in range(self.listWidget_read.count()):
             current_item = self.listWidget_read.item(i) 
             hidden_item = current_item.data(Qt.UserRole) 
             if hidden_item is not None:
-                itemsTextListRead.append(hidden_item.text())
-        # itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]        
+                itemsTextListRead.append(hidden_item.text())    
         itemsTextListWrite = [] 
         for i in range(self.listWidget_write.count()):
             current_item = self.listWidget_write.item(i) 
