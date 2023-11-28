@@ -103,7 +103,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             config = self.utils.loadIni()   
             if 'login' in config['DEFAULT']:
                 if len(config['DEFAULT']['login']) > 0:
-                    self.layman.Agrimail = config['DEFAULT']['login']
+                    #self.layman.Agrimail = config['DEFAULT']['login']
                     self.pushButton_Connect.setEnabled(True)  
                 # self.lineEdit_userName.setText(config['DEFAULT']['login'])
 

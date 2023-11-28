@@ -59,11 +59,10 @@ class LaymanUtils(QObject):
         except Exception as ex:   
             info = str(ex)            
             self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
-            return
-        # print(response.status_code)
+            return       
         if emitErr:
             if response.status_code != 200: 
-                print(url)
+                print(url)              
                 self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)    
         return response        
     async def asyncRequestWrapper(self, type, url, payload=None, files=None, emitErr=True):
@@ -109,8 +108,10 @@ class LaymanUtils(QObject):
         layout.addWidget(label2)
         layout.addWidget(button)
         widget.setLayout(layout)
+       
         def showDlg():
             self.dlgErr = ErrMsgDialog()            
+            self.dlgErr.setWindowFlags(self.dlgErr.windowFlags() | Qt.WindowStaysOnTopHint)
             self.dlgErr.pushButton_copyMsg.setStyleSheet("color: #fff !important; text-transform: uppercase;font-size:"+self.fontSize+";  text-decoration: none;   background: #72c02c;   padding: 6px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;") # Add the stylesheet             
             self.dlgErr.pushButton_copyMsg.clicked.connect(copy_to_clipboard)
             self.dlgErr.plainTextEdit.setPlainText(text[0] +" - "+ str(info) if self.locale == "cs" else text[1] +" - " + str(info))

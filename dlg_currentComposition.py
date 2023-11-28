@@ -59,7 +59,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setObjectName("CurrentMapDialog")
         self.utils = utils
         self.isAuthorized = isAuthorized
-        self.laymanUsername = laymanUsername
+        # self.layman.laymanUsername = laymanUsername
         self.URI = URI
         self.layman = layman
         self.pushButton_CreateCompositionConnected = False
@@ -170,9 +170,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
              
                 return
             self.refreshCurrentForm()
-            if self.laymanUsername != self.layman.instance.getWorkspace():             
+            if self.layman.laymanUsername != self.layman.instance.getWorkspace():             
                 self.setVisibilityForCurrent(True)
-
+        else:
+            self.pushButton_new.setEnabled(True)
         if not self.isAuthorized:      
             self.setVisibilityForCurrent(False)
         if not self.pushButton_save.receivers(self.pushButton_save.clicked) > 0:          
@@ -197,7 +198,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.label_readonly.hide()
             self.pushButton_new.show()              
             return
-        if self.laymanUsername != self.layman.instance.getWorkspace() and visible == True:
+        if self.layman.laymanUsername != self.layman.instance.getWorkspace() and visible == True:
             self.pushButton_editMeta.setEnabled(False)   
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_delete.setEnabled(False)              
@@ -230,7 +231,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             except:
                 writePermissions = []
                 print("get permissions failed")                
-            if self.laymanUsername not in writePermissions:                    
+            if self.layman.laymanUsername not in writePermissions:                    
                     self.treeWidget_layers.setEnabled(False)               
                     self.pushButton_editMeta.setEnabled(False)
                     self.pushButton_setPermissions.setEnabled(False)                    
@@ -261,9 +262,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         for i in reversed(range (0, len(composition['layers']))):                
             layerList.append(self.utils.removeUnacceptableChars(composition['layers'][i]['title']))
             serviceList.append(composition['layers'][i]['className'])
-
-        layers = QgsProject.instance().mapLayers().values()
-        
+        layers = QgsProject.instance().mapLayers().values()        
         layersInCanvas = []
         self.layerIds = list()
         layersArr = list()
@@ -340,8 +339,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 item.setToolTip(0,"This layer does not appear in the QGIS map window, but is included in the composition.")
      
             self.treeWidget_layers.addTopLevelItem(item)
-            self.layersWasModified()
-        urlServer = self.URI.replace("/client", "")      
+            self.layersWasModified()           
         self.addAvailableServices(layersArr,iterator, notActive)
                 
     def qfieldLogin(self):
@@ -556,7 +554,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     try:
                         self.layman.updateLayerStyle(lay['title'], lay['workspace'])
                     except:
-                        self.layman.updateLayerStyle(lay['title'], self.laymanUsername) ## pokud je starší typ kompozice
+                        self.layman.updateLayerStyle(lay['title'], self.layman.laymanUsername) ## pokud je starší typ kompozice
                     try:
                         self.layman.stylesToUpdate.remove(QgsProject.instance().mapLayersByName(lay['title'])[0])
                     except:
@@ -689,7 +687,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username'])   
             usernameList.append(res[i]['username'])   
         mapName = self.utils.removeUnacceptableChars(mapName)
-        uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName        
+        uri = self.URI + "/rest/"+self.layman.laymanUsername+"/maps/"+mapName        
         r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
         res = self.utils.fromByteToJson(r.content)
         self.info = 0
@@ -823,7 +821,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if loaded:
             composition = self.layman.instance.getComposition()
         else:
-            url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+layerName[0]+"/file"
+            url = self.URI + "/rest/"+self.layman.laymanUsername+"/maps/"+layerName[0]+"/file"
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)
             composition = r.json()
         itemsTextListRead = [] 
@@ -839,7 +837,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if hidden_item is not None:
                 itemsTextListWrite.append(hidden_item.text())
         userNamesRead = list()
-        userNamesRead.append(self.laymanUsername)
+        userNamesRead.append(self.layman.laymanUsername)
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":
                 if "," in pom:
@@ -851,7 +849,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 userNamesRead.append(pom)
                 # userNamesRead.append(userDict[pom])
         userNamesWrite = list()   
-        userNamesWrite.append(self.laymanUsername) 
+        userNamesWrite.append(self.layman.laymanUsername) 
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
@@ -866,7 +864,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if (layer['className'] == 'HSLayers.Layer.WMS' or layer['className'] == 'WMS'):
                 name = layer['params']['LAYERS']
             if name is not None:
-                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.layman.authCfg))         
+                response = requests.patch(self.URI+'/rest/'+self.layman.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.layman.authCfg))         
                 if (response.status_code != 200):        
                     try:
                         if self.utils.fromByteToJson(response.content)["code"] == 15:
@@ -913,7 +911,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}          
         for layer in layerName:
             layer = self.utils.removeUnacceptableChars(layer)      
-            url = self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer
+            url = self.URI+'/rest/'+self.layman.laymanUsername+'/'+type+'/'+layer
             response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))  
   
             if (response.status_code != 200):
@@ -1020,10 +1018,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
         #transformace extentu   
         coords = self.tranformCoords(float(self.lineEdit_xmin.text().replace(",",".")), float(self.lineEdit_xmax.text().replace(",",".")), float(self.lineEdit_ymin.text().replace(",",".")), float(self.lineEdit_ymax.text().replace(",",".")))
-        composition['extent'][0] = str(coords[0])
-        composition['extent'][2] = str(coords[1])
-        composition['extent'][1] = str(coords[2])
-        composition['extent'][3] = str(coords[3])
+        composition['extent'][0] = float(coords[0])
+        composition['extent'][2] = float(coords[1])
+        composition['extent'][1] = float(coords[2])
+        composition['extent'][3] = float(coords[3])
         composition["nativeExtent"] =  [float(self.lineEdit_xmin.text().replace(",",".")),float(self.lineEdit_ymin.text().replace(",",".")),float(self.lineEdit_xmax.text().replace(",",".")),float(self.lineEdit_ymax.text().replace(",","."))]
         center = tform.transform(QgsPointXY(self.layman.iface.mapCanvas().extent().center().x(), self.layman.iface.mapCanvas().extent().center().y()))
         composition['center'][0] = float(center.x())
@@ -1057,7 +1055,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         ymin = None
         ymax = None
         initRun = True
-        url = self.URI+'/client/geoserver/'+self.laymanUsername+'/ows?service=wms&version=1.1.1&request=GetCapabilities'        
+        url = self.URI+'/client/geoserver/'+self.layman.laymanUsername+'/ows?service=wms&version=1.1.1&request=GetCapabilities'        
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)      
         names = list()
         renge = list()
@@ -1115,7 +1113,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         max = tform.transform(QgsPointXY(float(xmax),float(ymax)))
         min = tform.transform(QgsPointXY(float(xmin),float(ymin)))
         return [min.x(), max.x(), min.y(), max.y()]       
-    def copyCompositionUrl(self, composition=None):  
+    def copyCompositionUrl(self, composition=None): 
         if not composition:
             url = self.layman.instance.getUrl()
         else:
@@ -1210,7 +1208,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         text = self.lineEdit_2.text()
         if text != "":
             text = self.utils.removeUnacceptableChars(text)            
-            url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+str(text)+"/file"
+            url = self.URI + "/rest/"+self.layman.laymanUsername+"/maps/"+str(text)+"/file"
             r = requests.get(url, headers = self.utils.getAuthHeader(self.layman.authCfg)) 
             res = r.json()            
             ch = True
@@ -1278,11 +1276,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 print("err")
             if setCurrent:                
                 self.layman.current = name
-                self.layman.selectedWorkspace = self.laymanUsername
+                self.layman.selectedWorkspace = self.layman.laymanUsername
                 url = self.URI+'/rest/'+self.layman.selectedWorkspace+'/maps/'+name+'/file'  
                 r = self.utils.requestWrapper("GET", url, payload = None, files = None)
                 data = r.json()        
-                self.layman.instance = CurrentComposition(self.URI, name, self.layman.selectedWorkspace, self.utils.getAuthHeader(self.layman.authCfg),self.laymanUsername)
+                self.layman.instance = CurrentComposition(self.URI, name, self.layman.selectedWorkspace, self.utils.getAuthHeader(self.layman.authCfg),self.layman.laymanUsername)
                 self.layman.instance.setComposition(data)
                 self.compositionDict[name] = title                
                 prj = QgsProject().instance()
@@ -1411,7 +1409,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
         reply = msgbox.exec()
         if (reply == QMessageBox.Yes):
-            url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+composition['name']           
+            url = self.URI+'/rest/'+self.layman.laymanUsername+'/maps/'+composition['name']           
             response = self.utils.requestWrapper("DELETE", url, payload = None, files = None)
             if (response.status_code == 200):
                 self.utils.showQgisBar([" Kompozice  " + composition['name'] + " byla úspešně smazána."," Composition  " + composition['name'] + " was sucessfully deleted."], Qgis.Success)  

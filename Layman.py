@@ -633,9 +633,8 @@ class Layman(QObject):
 
     def run_QfieldLoginDialog(self):
         self.dlg2 = LoginQfieldDialog()
-        self.dlg2.show()        
-        
-
+        self.dlg2.setWindowFlags(self.dlg2.windowFlags() | Qt.WindowStaysOnTopHint)
+        self.dlg2.show()             
         self.dlg2.pushButton_close.clicked.connect(lambda: self.dlg.close())
         self.dlg2.pushButton_Connect.clicked.connect(self.loginQfield)
         if self.settings.value("laymanRememberQfield"):
@@ -902,6 +901,8 @@ class Layman(QObject):
 
 
     def crsChanged(self):       
+        if self.current == None:
+            return
         if self.strip_accents(self.current) == self.strip_accents(QgsProject.instance().title()):
             if self.crsChangedConnect == True:
                 print("crs changed")              
@@ -4245,19 +4246,12 @@ class Layman(QObject):
     def strip_accents(self, s):
         text = ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
         return text.lower().replace(" ","").replace("_","")
-    def registerUserIfNotExists(self):
-        
-        userEndpoint = self.URI+ "/rest/current-user" 
-        login = self.beforeAmp(self.Agrimail)        
-        id = self.client_id.replace('-', '')
-        login = login.replace(".","_")
-        self.laymanUsername = login
-        self.utils.laymanUsername = self.laymanUsername
-        user = {'username':login}      
+    def registerUserIfNotExists(self):        
+        userEndpoint = self.URI+ "/rest/current-user"        
+        user = {'username': ''}      
         print("authheader: "+ str(self.utils.getAuthHeader(self.authCfg)))
-
         r = requests.patch(url = userEndpoint, data = user, headers = self.utils.getAuthHeader(self.authCfg))       
-        res = r.text      
+        res = r.text    
         try:
             res = self.utils.fromByteToJson(r.content)   
         except:
@@ -4272,7 +4266,8 @@ class Layman(QObject):
            if res['code'] == 34: # res['code'] == 34, code 35 je pokud již jiný uživatel má účet, který chceme registrovat (code 35 pravděpodobně nemůže nastat)
                 print("user exists")
                 self.laymanUsername = res['detail']['username']          
-                print("username is: " + self.laymanUsername )
+                print("username is: " + self.laymanUsername)
+                self.utils.laymanUsername = self.laymanUsername
                 url = self.server.replace('https:\\','').replace('.cz','').replace('http:\\','').replace('www.','').replace('.com','')               
                 self.setPluginLabel.emit('<a href="'+self.server+'">' + url + '</a>')                   
                 
@@ -4283,8 +4278,9 @@ class Layman(QObject):
                 return False
         else:          
             try:
-                print("creating new user: " + res['username'])
-                self.laymanUsername =  res['username']     
+                print("username is: " + res['username'])
+                self.laymanUsername =  res['username']  
+                self.utils.laymanUsername = self.laymanUsername   
                 url = self.server.replace('https:\\','')
                 self.textbox.setText('<a href="'+self.server+'">' + url + '</a>')                
             except Exception as ex:

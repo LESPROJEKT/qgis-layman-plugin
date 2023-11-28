@@ -50,8 +50,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(AddMapDialog, self).__init__(parent)
-        self.setObjectName("AddMapDialog")        
-       
+        self.setObjectName("AddMapDialog")
         self.utils = utils
         self.isAuthorized = isAuthorized
         self.laymanUsername = laymanUsername
@@ -60,8 +59,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         app = QtWidgets.QApplication.instance()     
         proxy_style = ProxyStyle(app.style())
         self.setStyle(proxy_style)
-        self.setupUi(self)
-        
+        self.setupUi(self)        
         self.setUi()
         
     def connectEvents(self):
@@ -304,8 +302,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.appendIniItem("mapCheckbox", "1")
         if value == 0:
             self.utils.appendIniItem("mapCheckbox", "0")  
-    def deleteMap(self,name):
-   
+    def deleteMap(self,name):   
         if self.layman.locale == "cs":
             msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Chcete opravdu smazat kompozici "+name+"?")
         else:
@@ -323,6 +320,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 self.utils.showQgisBar([" Kompozice  " + name + " nebyla smazána."," Composition  " + name + " was not sucessfully deleted."], Qgis.Warning)    
             self.mapDeletedSuccessfully.emit()
+            if self.layman.current == name:
+                self.layman.current = None
             try:
                 checked = self.utils.getConfigItem("mapcheckbox")
                 print(checked)
