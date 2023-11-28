@@ -742,15 +742,21 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.setHiddenItem(current_item, hidden_text)   
                     return True
                 else:
-                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])         
+                    if self.layman.locale == "cs":                
+                        self.showInfoDialogOnTop("Tento uživatel se již v seznamu vyskytuje!")
+                    else:
+                        self.showInfoDialogOnTop("This user already exists in the list!")                            
                     return False
             else:          
                 print(itemsTextListWrite)    
                 print(usernameList[self.comboBox_users.currentIndex()])
                 if ((usernameList[self.comboBox_users.currentIndex()] not in itemsTextListWrite) and type == "write"):               
                     return True
-                else:                    
-                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])              
+                else:         
+                    if self.layman.locale == "cs":                
+                        self.showInfoDialogOnTop("Tento uživatel se již v seznamu vyskytuje!")
+                    else:
+                        self.showInfoDialogOnTop("This user already exists in the list!")                                         
                     return False   
     def setHiddenItem(self,item, hidden_text):     
         hidden_item = QtWidgets.QListWidgetItem(hidden_text)
@@ -840,7 +846,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         for layer in composition['layers']:
             name = None
             if (layer['className'] == 'OpenLayers.Layer.Vector' or layer['className'] == 'Vector'):
-                name = layer['protocol']['LAYERS']
+                name = layer['name']
             if (layer['className'] == 'HSLayers.Layer.WMS' or layer['className'] == 'WMS'):
                 name = layer['params']['LAYERS']
             if name is not None:
@@ -852,30 +858,24 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                             return
                     except:
                         pass                                      
-                    self.showErr.emit(["Práva nebyla uložena! - " + name,"Permissions was not saved' - "+ name], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
+                    self.utils.showErr.emit(["Práva nebyla uložena! - " + name,"Permissions was not saved' - "+ name], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
             else:
                 print("there is not possible set permissions for layer")
           
-    def updatePermissions(self,layerName, userDict, type, check=False):   
-        # itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(1, self.listWidget_read.count())]
-        
+    def updatePermissions(self,layerName, userDict, type, check=False):  
         itemsTextListRead = [] 
         for i in range(self.listWidget_read.count()):
             current_item = self.listWidget_read.item(i) 
             hidden_item = current_item.data(Qt.UserRole) 
             if hidden_item is not None:
-                itemsTextListRead.append(hidden_item.text())
-        print(itemsTextListRead)
-         
-        # itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(1, self.listWidget_write.count())]
+                itemsTextListRead.append(hidden_item.text())    
         itemsTextListWrite = []
         for i in range(self.listWidget_write.count()):
             current_item = self.listWidget_write.item(i)
             hidden_item = current_item.data(Qt.UserRole)  
             if hidden_item is not None:
                 itemsTextListWrite.append(hidden_item.text())
-        userNamesRead = list()
-        # userNamesRead.append(self.laymanUsername)
+        userNamesRead = list()   
         print(itemsTextListWrite)       
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":            
@@ -886,8 +886,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     pom = pom.split(", ")[1]     
                 print(userDict)                                               
                 userNamesRead.append(pom)
-        userNamesWrite = list()     
-        # userNamesWrite.append(self.laymanUsername) 
+        userNamesWrite = list()      
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
@@ -895,9 +894,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 if "," in pom:
                     pom = pom.split(", ")[1]
                 userNamesWrite.append(pom)
-        data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}     
-        
-      
+        data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}          
         for layer in layerName:
             layer = self.utils.removeUnacceptableChars(layer)      
             url = self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer
@@ -1383,7 +1380,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if  response.status_code == 200:
             self.utils.showQgisBar([" Změny byly uloženy."," Changes was saved."], Qgis.Success)  
         else:
-            self.showErr.emit([" Změny nebyly uloženy.", " Changes was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
+            self.utils.showErr.emit([" Změny nebyly uloženy.", " Changes was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
         self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])                            
         
     def deleteCurrentMap(self):
