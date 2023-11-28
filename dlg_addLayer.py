@@ -408,8 +408,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def checkServiceButtons(self):
         if self.objectName() == "AddLayerDialog":
             if self.checkFileType(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.selectedItems()[0].text(1)) == "vector":
-                if self.objectName() == "AddLayerDialog":
-                    self.pushButton_wfs.setEnabled(True)
+                if self.objectName() == "AddLayerDialog":                   
                     self.enableWfsButton.emit(True, self.pushButton_wfs)
             elif self.checkFileType(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.selectedItems()[0].text(1)) == "raster":
                 if self.objectName() == "AddLayerDialog":
