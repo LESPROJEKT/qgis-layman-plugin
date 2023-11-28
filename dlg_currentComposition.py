@@ -826,22 +826,38 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+layerName[0]+"/file"
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)
             composition = r.json()
-        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(1,self.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(1,self.listWidget_write.count())]
+        itemsTextListRead = [] 
+        for i in range(self.listWidget_read.count()):
+            current_item = self.listWidget_read.item(i) 
+            hidden_item = current_item.data(Qt.UserRole) 
+            if hidden_item is not None:
+                itemsTextListRead.append(hidden_item.text()) 
+        itemsTextListWrite = []
+        for i in range(self.listWidget_write.count()):
+            current_item = self.listWidget_write.item(i)
+            hidden_item = current_item.data(Qt.UserRole)  
+            if hidden_item is not None:
+                itemsTextListWrite.append(hidden_item.text())
         userNamesRead = list()
         userNamesRead.append(self.laymanUsername)
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":
+                if "," in pom:
+                    pom = pom.split(", ")[1]
                 userNamesRead.append("EVERYONE")          
             else:
-                userNamesRead.append(userDict[pom])
+                if "," in pom:
+                    pom = pom.split(", ")[1]
+                userNamesRead.append(pom)
+                # userNamesRead.append(userDict[pom])
         userNamesWrite = list()   
         userNamesWrite.append(self.laymanUsername) 
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")
             else:            
-                userNamesWrite.append(userDict[pom])
+                # userNamesWrite.append(userDict[pom])
+                userNamesRead.append(pom)
         data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}       
         for layer in composition['layers']:
             name = None
