@@ -409,11 +409,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:
                     cell.addItems(['No change','Remove'])                        
             else:
-                if self.utils.checkExistingLayer(item.text(0)):           
+                if self.utils.checkExistingLayers(item.text(0)) and self.utils.checkExistingLayer(item.text(0)):           
                     if self.layman.locale == "cs":
                         cell.addItems(['Beze změny','Přidat ze serveru','Přidat a přepsat'])
                     else:
                         cell.addItems(['No change','Add from server','Add and overwrite' ])
+                elif self.utils.checkExistingLayers(item.text(0)):
+                    if self.layman.locale == "cs":
+                        cell.addItems(['Beze změny','Přidat ze serveru'])
+                    else:
+                        cell.addItems(['No change','Add from server'])                       
                 else:
                     if self.layman.locale == "cs":
                         cell.addItems(['Beze změny','Přidat'])

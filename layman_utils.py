@@ -593,6 +593,22 @@ class LaymanUtils(QObject):
             return True
         else:
             return False
+    def checkExistingLayers(self, layerName):
+        layerName = self.removeUnacceptableChars(layerName)
+        url = self.URI+'/rest/layers'
+        r = self.requestWrapper("GET", url, payload = None, files = None)      
+        if not r:
+            return
+        data = r.json()
+
+        pom = set()
+        for x in range(len(data)):
+            pom.add((data[x]['name']))
+        layerName = layerName.replace(" ", "_").lower()     
+        if (layerName in pom):
+            return True
+        else:
+            return False        
     def fillCompositionDict(self):
         compositionDict = {}
         url = self.URI+'/rest/maps'

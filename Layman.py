@@ -975,7 +975,8 @@ class Layman(QObject):
         else:
             username = self.parseUsernameFromUrl(self.findUrlParam(layer))
         name = self.utils.removeUnacceptableChars(title)       
-        self.existLayer = False       
+        self.existLayer = False
+        print(username) 
         if (type == "wms"):
             wmsUrl = (self.URI+'/geoserver/'+username+'/ows').replace("/client","")
             print(wmsUrl)
