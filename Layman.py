@@ -171,6 +171,7 @@ class Layman(QObject):
         self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']      
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
         QgsProject.instance().readProject.connect(lambda: self.projectReaded(False))  
+        self.iface.newProjectCreated.connect(self.removeCurrent)
         self.processingList = []
         self.writeState(0)   
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
@@ -435,7 +436,9 @@ class Layman(QObject):
 
     def addService(self, item):
         if item.checkState() == 2:
-            print("new layer")         
+            print("new layer")  
+    def removeCurrent(self):
+        self.current = None                   
     def projectReaded(self, afterLogged = False):      
         proj = QgsProject.instance()
         server, type_conversion_ok = proj.readEntry("Layman", "Server","")
@@ -489,7 +492,7 @@ class Layman(QObject):
                         self.openAuthLiferayUrl2("",True)     
                         self.loggedThrowProject = True           
         else:
-            
+            5/0
             self.current = None
     def compositionExists(self,name):     
                         
