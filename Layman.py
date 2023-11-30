@@ -491,8 +491,7 @@ class Layman(QObject):
                                 self.server = server.replace("/client","")
                         self.openAuthLiferayUrl2("",True)     
                         self.loggedThrowProject = True           
-        else:
-            5/0
+        else:            
             self.current = None
     def compositionExists(self,name):     
                         
