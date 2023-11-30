@@ -382,20 +382,19 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         urlServer = self.URI.replace("/client", "")
         while iterator.value():
             item = iterator.value()                
-            cell = QComboBox()
-            #cell.currentTextChanged.connect(self.comboBoxChanged)
+            cell = QComboBox()         
             cellServices = QComboBox()
             for layer in layersArr:                
-                if self.utils.removeUnacceptableChars(layer.name()) == self.utils.removeUnacceptableChars(item.text(0)):
+                if self.utils.removeUnacceptableChars(layer.name()) == self.utils.removeUnacceptableChars(item.text(0)) and cellServices.count() == 0:
                     if isinstance(layer, QgsRasterLayer) and "geoserver" in layer.dataProvider().dataSourceUri():
                         cellServices.addItems(['WMS','WFS'])
-                    if isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
+                    elif isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
                         cellServices.addItems(['WMS'])
-                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS':
+                    elif isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS':
                         cellServices.addItems(['WMS','WFS'])
-                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer not in layer.dataProvider().uri().uri():
+                    elif isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer not in layer.dataProvider().uri().uri():
                         cellServices.addItems(['WFS'])         
-                    if isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer in layer.dataProvider().uri().uri():
+                    elif isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer in layer.dataProvider().uri().uri():
                         cellServices.addItems(['WFS', 'WMS'])                                                        
 
             if (self.layman.instance.isLayerInComposition(self.utils.removeUnacceptableChars(item.text(0)))):
