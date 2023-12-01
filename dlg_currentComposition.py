@@ -981,10 +981,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_units.setText(composition['units'])
         self.lineEdit_scale.setText(str(composition['scale']))
         self.lineEdit_user.setText(composition['user']['name'])
-        self.lineEdit_xmin.setText(str(composition['extent'][0]))
-        self.lineEdit_xmax.setText(str(composition['extent'][2]))
-        self.lineEdit_ymin.setText(str(composition['extent'][1]))
-        self.lineEdit_ymax.setText(str(composition['extent'][3]))       
+        self.lineEdit_xmin.setText(str(composition['nativeExtent'][0]))
+        self.lineEdit_xmax.setText(str(composition['nativeExtent'][2]))
+        self.lineEdit_ymin.setText(str(composition['nativeExtent'][1]))
+        self.lineEdit_ymax.setText(str(composition['nativeExtent'][3]))       
         self.comboBox_epsg.addItems([value.split(":")[1] for value in self.layman.supportedEPSG])
         if 'projection' in composition:            
             self.comboBox_epsg.setCurrentText(composition['projection'].replace("epsg:",""))
@@ -1021,14 +1021,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         src = QgsProject.instance().crs()
         epsg = self.comboBox_epsg.currentText()
         dest = QgsCoordinateReferenceSystem(int(epsg))
-        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())        
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())  
+        print(src,dest)      
         #transformace extentu   
-        coords = self.tranformCoords(float(self.lineEdit_xmin.text().replace(",",".")), float(self.lineEdit_xmax.text().replace(",",".")), float(self.lineEdit_ymin.text().replace(",",".")), float(self.lineEdit_ymax.text().replace(",",".")))
+        coords = self.tranformCoords(float(self.lineEdit_xmin.text().replace(",",".")), float(self.lineEdit_xmax.text().replace(",",".")), float(self.lineEdit_ymin.text().replace(",",".")), float(self.lineEdit_ymax.text().replace(",",".")),dest)
+        nativeCoords = self.tranformCoords(float(self.lineEdit_xmin.text().replace(",",".")), float(self.lineEdit_xmax.text().replace(",",".")), float(self.lineEdit_ymin.text().replace(",",".")), float(self.lineEdit_ymax.text().replace(",",".")), 4326)
         composition['extent'][0] = float(coords[0])
         composition['extent'][2] = float(coords[1])
         composition['extent'][1] = float(coords[2])
         composition['extent'][3] = float(coords[3])
         composition["nativeExtent"] =  [float(self.lineEdit_xmin.text().replace(",",".")),float(self.lineEdit_ymin.text().replace(",",".")),float(self.lineEdit_xmax.text().replace(",",".")),float(self.lineEdit_ymax.text().replace(",","."))]
+        #composition["nativeExtent"] =  [float(nativeCoords[0]),float(nativeCoords[2]),float(nativeCoords[1]),float(nativeCoords[3])]
         center = tform.transform(QgsPointXY(self.layman.iface.mapCanvas().extent().center().x(), self.layman.iface.mapCanvas().extent().center().y()))
         composition['center'][0] = float(center.x())
         composition['center'][1] = float(center.y())
@@ -1036,6 +1039,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             QgsProject.instance().setCrs(QgsCoordinateReferenceSystem('EPSG:'+epsg))
             composition['projection'] = "epsg:" + epsg
         response = self.layman.patchMap2()
+        self.label_log.hide()
         if (response.status_code == 200):
             self.utils.showQgisBar([" Metadata byla úspěšně upravena."," Map metadata was saved successfully."], Qgis.Success)             
         else:
@@ -1115,12 +1119,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_xmax.setText(str(coords[1]))
         self.lineEdit_ymin.setText(str(coords[2]))
         self.lineEdit_ymax.setText(str(coords[3]))        
-    def tranformCoords(self, xmin, xmax, ymin, ymax):
+    def tranformCoords(self, xmin, xmax, ymin, ymax, dest = 4326):
         src = QgsProject.instance().crs()
-        dest = QgsCoordinateReferenceSystem(4326)
+        dest = QgsCoordinateReferenceSystem(dest)
         tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
         max = tform.transform(QgsPointXY(float(xmax),float(ymax)))
-        min = tform.transform(QgsPointXY(float(xmin),float(ymin)))
+        min = tform.transform(QgsPointXY(float(xmin),float(ymin)))        
         return [min.x(), max.x(), min.y(), max.y()]       
     def copyCompositionUrl(self, composition=None): 
         if not composition:
