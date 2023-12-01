@@ -3436,12 +3436,12 @@ class Layman(QObject):
         except:
             pass
     
-    def findParamForWfs(self, param, layer):
+    def findParamForWfs(self, param, layer, delimiter):
         string = layer.dataProvider().uri().uri()
-        start = layer.dataProvider().uri().uri().find(param) + len(param)
-        end = string.find("'", start)
+        start = layer.dataProvider().uri().uri().find(param) + len(param)  
+        end = string.find(delimiter, start)
         value = string[start:end]   
-        return value   
+        return value
     def parseUsernameFromUrl(self, url):     
         parsed_url = urlparse(url)     
         path = parsed_url.path  
@@ -3473,9 +3473,13 @@ class Layman(QObject):
                 path = ""
                 path = self.getGroupOfLayer(layer)
                 if path == 'root':
-                    path = ""
-                url = self.findParamForWfs("url='", layer)
-                title = self.findParamForWfs("typename='", layer)  
+                    path = ""                
+                if ("&" in layer.dataProvider().uri().uri()):
+                    url = self.findParamForWfs("url=", layer, "&")
+                    title = self.findParamForWfs("typename=", layer, "&")
+                else:    
+                    url = self.findParamForWfs("url='", layer, "'")
+                    title = self.findParamForWfs("typename='", layer, "'")                
                 layerTreeRoot = QgsProject.instance().layerTreeRoot()
                 layerTreeNode = layerTreeRoot.findLayer(layer.id())    
                 layerName = self.utils.removeUnacceptableChars(layer.name()).lower() 
