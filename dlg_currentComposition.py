@@ -1021,8 +1021,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         src = QgsProject.instance().crs()
         epsg = self.comboBox_epsg.currentText()
         dest = QgsCoordinateReferenceSystem(int(epsg))
-        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
-        composition['projection'] = "epsg:" + epsg
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())        
         #transformace extentu   
         coords = self.tranformCoords(float(self.lineEdit_xmin.text().replace(",",".")), float(self.lineEdit_xmax.text().replace(",",".")), float(self.lineEdit_ymin.text().replace(",",".")), float(self.lineEdit_ymax.text().replace(",",".")))
         composition['extent'][0] = float(coords[0])
@@ -1033,6 +1032,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         center = tform.transform(QgsPointXY(self.layman.iface.mapCanvas().extent().center().x(), self.layman.iface.mapCanvas().extent().center().y()))
         composition['center'][0] = float(center.x())
         composition['center'][1] = float(center.y())
+        if composition['projection'] != "epsg:" + epsg:
+            QgsProject.instance().setCrs(QgsCoordinateReferenceSystem('EPSG:'+epsg))
+            composition['projection'] = "epsg:" + epsg
         response = self.layman.patchMap2()
         if (response.status_code == 200):
             self.utils.showQgisBar([" Metadata byla úspěšně upravena."," Map metadata was saved successfully."], Qgis.Success)             
