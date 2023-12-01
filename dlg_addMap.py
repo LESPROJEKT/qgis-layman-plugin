@@ -426,16 +426,20 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 msgbox.setDefaultButton(QMessageBox.No)
                 reply = msgbox.exec()
                 if (reply == QMessageBox.Yes):
+                    self.layman.iface.newProjectCreated.disconnect()
                     self.layman.iface.newProject()
                     projection = data['projection'].replace("epsg:","").replace("EPSG:","")
                     crs=QgsCoordinateReferenceSystem(int(projection))
                     self.crsChangedConnect = False
                     QgsProject.instance().setCrs(crs)
                     self.crsChangedConnect = True
-                    QgsProject.instance().setTitle(data['title'])    
+                    QgsProject.instance().setTitle(data['title'])   
+                    self.layman.iface.newProjectCreated.connect(self.layman.removeCurrent)                     
             else: 
                 if self.utils.compare_json_layers(data, old_composition):
+                    self.layman.iface.newProjectCreated.disconnect()
                     self.layman.iface.newProject()
+                    self.layman.iface.newProjectCreated.connect(self.layman.removeCurrent) 
                 else:
                     project = QgsProject.instance()                       
                     for layer_id in project.mapLayers():
@@ -443,7 +447,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         provider = layer.dataProvider()
                         provider.reloadData()
                         self.progressDone.emit()    
-                    return  
+              
         self.loadLayer(data,service, name)        
     def loadLayer(self, data, service, groupName = ''):    
         if not 'layers' in data:       

@@ -1005,7 +1005,7 @@
        <string>EPSG:</string>
       </property>
      </widget>
-     <widget class="QLineEdit" name="lineEdit_epsg">
+     <widget class="QComboBox" name="comboBox_epsg">
       <property name="geometry">
        <rect>
         <x>100</x>
@@ -1013,9 +1013,6 @@
         <width>161</width>
         <height>20</height>
        </rect>
-      </property>
-      <property name="readOnly">
-       <bool>true</bool>
       </property>
      </widget>
     </widget>
@@ -1401,7 +1398,6 @@
   <tabstop>lineEdit_user</tabstop>
   <tabstop>lineEdit_title</tabstop>
   <tabstop>lineEdit_units</tabstop>
-  <tabstop>lineEdit_epsg</tabstop>
   <tabstop>pushButton_back_3</tabstop>
   <tabstop>pushButton_range_2</tabstop>
   <tabstop>pushButton_range</tabstop>

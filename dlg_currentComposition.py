@@ -149,6 +149,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_raster.hide()
         self.treeWidget_layers.header().resizeSection(0,230)      
         self.pushButton_qfield.clicked.connect(self.qfieldLogin)  
+        print(self.layman.current)
         if self.layman.current != None:
             self.layman.instance.refreshComposition()
             composition = self.layman.instance.getComposition()        
@@ -983,10 +984,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_xmin.setText(str(composition['extent'][0]))
         self.lineEdit_xmax.setText(str(composition['extent'][2]))
         self.lineEdit_ymin.setText(str(composition['extent'][1]))
-        self.lineEdit_ymax.setText(str(composition['extent'][3]))
-        self.lineEdit_epsg.setEnabled(False)
-        if 'projection' in composition:
-            self.lineEdit_epsg.setText(composition['projection'].replace("epsg:",""))
+        self.lineEdit_ymax.setText(str(composition['extent'][3]))       
+        self.comboBox_epsg.addItems([value.split(":")[1] for value in self.layman.supportedEPSG])
+        if 'projection' in composition:            
+            self.comboBox_epsg.setCurrentText(composition['projection'].replace("epsg:",""))
         self.lineEdit_xmin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.lineEdit_xmax.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
         self.lineEdit_ymin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
@@ -1018,8 +1019,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         composition['abstract'] = self.lineEdit_abstract.text()
         composition['title'] = self.lineEdit_title.text()
         src = QgsProject.instance().crs()
-        dest = QgsCoordinateReferenceSystem(4326)
+        epsg = self.comboBox_epsg.currentText()
+        dest = QgsCoordinateReferenceSystem(int(epsg))
         tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        composition['projection'] = "epsg:" + epsg
         #transformace extentu   
         coords = self.tranformCoords(float(self.lineEdit_xmin.text().replace(",",".")), float(self.lineEdit_xmax.text().replace(",",".")), float(self.lineEdit_ymin.text().replace(",",".")), float(self.lineEdit_ymax.text().replace(",",".")))
         composition['extent'][0] = float(coords[0])
@@ -1258,7 +1261,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             
     def createComposition(self,  title, abstract, setCurrent = False):         
         self.compositionDict = self.utils.fillCompositionDict()
-        if QgsProject.instance().crs().authid() not in self.layman.supportedEpsg:
+        if QgsProject.instance().crs().authid() not in self.layman.supportedEPSG:
             if self.layman.locale == "cs":
                 self.showInfoDialogOnTop("Není nastaveno podporované EPSG projektu.")
             else:

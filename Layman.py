@@ -162,10 +162,8 @@ class Layman(QObject):
         self.instance = None
         self.mickaRet = None
         self.crsOld = 'EPSG:4326'
-        self.mixedLayers = list()
-        self.supportedEpsg = ["EPSG:3857", "EPSG:4326",  "EPSG:5514",  "EPSG:32633",  "EPSG:32634",  "EPSG:3034",  "EPSG:3035",  "EPSG:3059"]
-        self.qLogged = False
-            
+        self.mixedLayers = list()        
+        self.qLogged = False            
         self.port = "7070"
         self.DPI = self.getDPI()
         self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']      
@@ -438,7 +436,9 @@ class Layman(QObject):
         if item.checkState() == 2:
             print("new layer")  
     def removeCurrent(self):
-        self.current = None                   
+        
+        self.current = None
+                         
     def projectReaded(self, afterLogged = False):      
         proj = QgsProject.instance()
         server, type_conversion_ok = proj.readEntry("Layman", "Server","")
@@ -2405,7 +2405,7 @@ class Layman(QObject):
                 except PermissionError as e:         
                     print(f"PermissionError exception: {e}")          
             epsg = layer.crs().authid()
-            if not epsg in self.supportedEpsg:
+            if not epsg in self.supportedEPSG:
                 epsg = QgsProject.instance().crs().authid()
             parameter = {'INPUT': layer, 'TARGET_CRS': epsg, 'OUTPUT': layer_filename}
             try:
