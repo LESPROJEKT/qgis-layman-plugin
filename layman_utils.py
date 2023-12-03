@@ -98,6 +98,13 @@ class LaymanUtils(QObject):
         else:
             self.fontSize = "10px"  
             
+    def tranformCoords(self, xmin, xmax, ymin, ymax, src, dest = 4326):        
+        dest = QgsCoordinateReferenceSystem(dest)
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        max = tform.transform(QgsPointXY(float(xmax),float(ymax)))
+        min = tform.transform(QgsPointXY(float(xmin),float(ymin)))        
+        return [min.x(), max.x(), min.y(), max.y()]      
+             
     def showMessageError(self, text, info, err, typ, url):     
         widget = QWidget()
         layout = QHBoxLayout() 

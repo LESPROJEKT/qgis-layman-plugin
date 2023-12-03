@@ -981,10 +981,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_units.setText(composition['units'])
         self.lineEdit_scale.setText(str(composition['scale']))
         self.lineEdit_user.setText(composition['user']['name'])
-        self.lineEdit_xmin.setText(str(composition['nativeExtent'][0]))
-        self.lineEdit_xmax.setText(str(composition['nativeExtent'][2]))
-        self.lineEdit_ymin.setText(str(composition['nativeExtent'][1]))
-        self.lineEdit_ymax.setText(str(composition['nativeExtent'][3]))       
+        self.lineEdit_xmin.setText(str(composition['extent'][0]))
+        self.lineEdit_xmax.setText(str(composition['extent'][2]))
+        self.lineEdit_ymin.setText(str(composition['extent'][1]))
+        self.lineEdit_ymax.setText(str(composition['extent'][3]))       
         self.comboBox_epsg.addItems([value.split(":")[1] for value in self.layman.supportedEPSG])
         if 'projection' in composition:            
             self.comboBox_epsg.setCurrentText(composition['projection'].replace("epsg:",""))
@@ -1013,30 +1013,34 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                           
     def modifyMeta(self):      
         self.progressStart.emit() 
+        self.layman.project.crsChanged.disconnect()
         composition = self.layman.instance.getComposition()    
         self.compositionDict = self.utils.fillCompositionDict()
         self.compositionDict[composition['name']] = self.lineEdit_title.text()    
         composition['abstract'] = self.lineEdit_abstract.text()
         composition['title'] = self.lineEdit_title.text()
-        src = QgsProject.instance().crs()
+        #src = QgsProject.instance().crs()
+        src = QgsCoordinateReferenceSystem(int(composition['projection'].split(":")[1])) 
         epsg = self.comboBox_epsg.currentText()
         dest = QgsCoordinateReferenceSystem(int(epsg))
         tform = QgsCoordinateTransform(src, dest, QgsProject.instance())  
         print(src,dest)      
         #transformace extentu   
-        coords = self.tranformCoords(float(self.lineEdit_xmin.text().replace(",",".")), float(self.lineEdit_xmax.text().replace(",",".")), float(self.lineEdit_ymin.text().replace(",",".")), float(self.lineEdit_ymax.text().replace(",",".")),dest)
-        nativeCoords = self.tranformCoords(float(self.lineEdit_xmin.text().replace(",",".")), float(self.lineEdit_xmax.text().replace(",",".")), float(self.lineEdit_ymin.text().replace(",",".")), float(self.lineEdit_ymax.text().replace(",",".")), 4326)
-        composition['extent'][0] = float(coords[0])
-        composition['extent'][2] = float(coords[1])
-        composition['extent'][1] = float(coords[2])
-        composition['extent'][3] = float(coords[3])
-        composition["nativeExtent"] =  [float(self.lineEdit_xmin.text().replace(",",".")),float(self.lineEdit_ymin.text().replace(",",".")),float(self.lineEdit_xmax.text().replace(",",".")),float(self.lineEdit_ymax.text().replace(",","."))]
+        coords = self.utils.tranformCoords(float(self.lineEdit_xmin.text().replace(",",".")), float(self.lineEdit_xmax.text().replace(",",".")), float(self.lineEdit_ymin.text().replace(",",".")), float(self.lineEdit_ymax.text().replace(",",".")),src,dest)
+        coords = self.utils.tranformCoords(composition['nativeExtent'][0], composition['nativeExtent'][2], composition['nativeExtent'][1], composition['nativeExtent'][3], src, dest) 
+                    
+        #nativeCoords = self.tranformCoords(float(self.lineEdit_xmin.text().replace(",",".")), float(self.lineEdit_xmax.text().replace(",",".")), float(self.lineEdit_ymin.text().replace(",",".")), float(self.lineEdit_ymax.text().replace(",",".")), 4326)
+        composition['nativeExtent'][0] = float(coords[0])
+        composition['nativeExtent'][2] = float(coords[1])
+        composition['nativeExtent'][1] = float(coords[2])
+        composition['nativeExtent'][3] = float(coords[3])
+        composition["extent"] =  [float(self.lineEdit_xmin.text().replace(",",".")),float(self.lineEdit_ymin.text().replace(",",".")),float(self.lineEdit_xmax.text().replace(",",".")),float(self.lineEdit_ymax.text().replace(",","."))]
         #composition["nativeExtent"] =  [float(nativeCoords[0]),float(nativeCoords[2]),float(nativeCoords[1]),float(nativeCoords[3])]
         center = tform.transform(QgsPointXY(self.layman.iface.mapCanvas().extent().center().x(), self.layman.iface.mapCanvas().extent().center().y()))
         composition['center'][0] = float(center.x())
         composition['center'][1] = float(center.y())
         if composition['projection'] != "epsg:" + epsg:
-            QgsProject.instance().setCrs(QgsCoordinateReferenceSystem('EPSG:'+epsg))
+            self.layman.project.setCrs(QgsCoordinateReferenceSystem('EPSG:'+epsg))
             composition['projection'] = "epsg:" + epsg
         response = self.layman.patchMap2()
         self.label_log.hide()
@@ -1055,6 +1059,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         except:
             pass                          
         self.progressDone.emit()
+        self.layman.project.crsChanged.connect(self.layman.crsChanged)
     def _onProgressDone(self):
         self.progressBar_loader.hide()    
     def _onProgressStart(self):

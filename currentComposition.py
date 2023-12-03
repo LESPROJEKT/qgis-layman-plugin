@@ -63,6 +63,8 @@ class CurrentComposition(object):
             return self.URI+'/rest/'+self.workspace+'/maps/'+self.name+'/file'
         else:
             return self.URI+'/client/rest/'+self.workspace+'/maps/'+self.name+'/file'
+    def getProjection(self):
+        return self.composition["projection"]    
     def setIds(self, layers):
         for layer in layers:
             self.layerIds.append(layer.id())

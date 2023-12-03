@@ -363,7 +363,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.showErr.emit([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, str(allInfo), Qgis.Warning, "")
     def readMapJson(self,name, service, workspace=""):       
       
-        QgsProject.instance().setTitle(name)
+        self.layman.project.setTitle(name)
         url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'       
         
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)
@@ -374,12 +374,12 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
             if self.layman.crsChangedConnect == False:
-                QgsProject.instance().setCrs(crs)
-                QgsProject.instance().crsChanged.connect(self.layman.crsChanged)
+                self.layman.project.setCrs(crs)
+                self.layman.project.crsChanged.connect(self.layman.crsChanged)
                 self.crsChangedConnect = True
             else:
                 self.crsChangedConnect = False
-                QgsProject.instance().setCrs(crs)
+                self.layman.project.setCrs(crs)
                 self.crsChangedConnect = True      
         self.pushButton_map.setEnabled(False) 
         self.loadComposition.emit(name, service, workspace)

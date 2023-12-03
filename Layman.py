@@ -287,6 +287,7 @@ class Layman(QObject):
         self.emitMessageBox.connect(self._onEmitMessageBox)      
         self.showExportInfo.connect(self.showExportedCompositionInfo)
         self.cleanTemp.connect(self._cleanTemp)
+        self.project.crsChanged.connect(self.crsChanged)
 
         
     def initGui(self):
@@ -906,46 +907,46 @@ class Layman(QObject):
         if self.current == None:
             return
         if self.strip_accents(self.current) == self.strip_accents(QgsProject.instance().title()):
-            if self.crsChangedConnect == True:
-                print("crs changed")              
-                crs = QgsProject.instance().crs()
-                if  self.crsOld != crs.authid() and self.current != None:
-                    self.crsOld = crs.authid()                   
-                    if self.locale == "cs":
-                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Souřadnicový systém byl změnen na: "+ str(crs.authid())+". Chcete tento souřadnicový systém zapsat do kompozice?")
-                    else:
-                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Coordinate system was changed to: "+ str(crs.authid())+". Do you want write it to composition?")
-                    msgbox.addButton(QMessageBox.Yes)
-                    msgbox.addButton(QMessageBox.No)
-                    msgbox.setDefaultButton(QMessageBox.No)
-                    reply = msgbox.exec()
-                    if (reply == QMessageBox.Yes):
-                        composition = self.instance.getComposition()
-                        xmin = float(composition['extent'][0])
-                        xmax = float(composition['extent'][2])
-                        ymin = float(composition['extent'][1])
-                        ymax = float(composition['extent'][3])
-                        xcenter = float(composition['center'][0])
-                        ycenter = float(composition['center'][1])
-                        if crs.authid() == 'EPSG:5514':
-                            composition['projection'] = str(crs.authid()).lower()
-          
-                        if crs.authid() == 'EPSG:4326':
-                            composition['projection'] = str(crs.authid()).lower()
+            composition = self.instance.getComposition()
+            print("crs changed")              
+            crs = QgsProject.instance().crs()
+            if  composition['projection'] != crs.authid().lower() and self.current != None:                                  
+                if self.locale == "cs":
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Souřadnicový systém byl změnen na: "+ str(crs.authid())+". Chcete tento souřadnicový systém zapsat do kompozice?")
+                else:
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Coordinate system was changed to: "+ str(crs.authid())+". Do you want write it to composition?")
+                msgbox.addButton(QMessageBox.Yes)
+                msgbox.addButton(QMessageBox.No)
+                msgbox.setDefaultButton(QMessageBox.No)
+                reply = msgbox.exec()
+                if (reply == QMessageBox.Yes):                          
+                    src = QgsCoordinateReferenceSystem(int(composition['projection'].split(":")[1]))       
+                    dest = QgsCoordinateReferenceSystem(int(QgsProject.instance().crs().authid().split(":")[1]))  
+                    tform = QgsCoordinateTransform(src, dest, QgsProject.instance())              
+                    coords = self.utils.tranformCoords(composition['nativeExtent'][0], composition['nativeExtent'][2], composition['nativeExtent'][1], composition['nativeExtent'][3], src, dest) 
+                    print(coords)
+                    print(src, dest)                                    
+                    composition['nativeExtent'][0] = float(coords[0])
+                    composition['nativeExtent'][2] = float(coords[1])
+                    composition['nativeExtent'][1] = float(coords[2])
+                    composition['nativeExtent'][3] = float(coords[3])
+                    center = tform.transform(QgsPointXY(float(composition['center'][0]), float(composition['center'][1])))
+                    composition['center'][0] = float(center.x())
+                    composition['center'][1] = float(center.y())  
+                    composition['projection'] = str(crs.authid()).lower()   
+                    self.patchMap2(True)
                
-                        self.patchMap2()
-                   
 
     def set_project_crs(self):
         # Set CRS to EPSG:4326
         QApplication.instance().processEvents()        
-        QgsProject.instance().setCrs(QgsCoordinateReferenceSystem(self.crsOld))
+        self.project.setCrs(QgsCoordinateReferenceSystem(self.crsOld))
     def change_map_canvas(self, crs):   
 
         crs = QgsCoordinateReferenceSystem(crs)        
         QApplication.instance().processEvents()
 
-        QgsProject.instance().setCrs(crs)
+        self.project.setCrs(crs)
     def duplicateLayers(self):
         layerList = set()
         duplicity = list()
@@ -2268,12 +2269,12 @@ class Layman(QObject):
             exmax = max.x()
             eymin = min.y()
             eymax = max.y()
+             
         else:
             exmin = xmin
             exmax = xmax
             eymin = ymin
-            eymax = ymax       
-        
+            eymax = ymax               
         center = QgsPointXY(iface.mapCanvas().extent().center().x(), iface.mapCanvas().extent().center().y()) 
         # self.schemaVersion = "2.0.0"        
         print (self.laymanVersion)
@@ -3569,8 +3570,9 @@ class Layman(QObject):
         composition = self.instance.getComposition()
         df=pd.DataFrame([composition])
         df.to_clipboard(index=False,header=False)
-    def patchMap2(self):
-        self.showExportInfo.emit("Ukládání kompozice" if self.locale == "cs" else "Saving composition")
+    def patchMap2(self, noInfo = False):
+        if not noInfo:
+            self.showExportInfo.emit("Ukládání kompozice" if self.locale == "cs" else "Saving composition")
         composition = self.instance.getComposition()       
        
         tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
