@@ -227,23 +227,6 @@
        <string>Name:</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="pushButton_timeSeries">
-      <property name="geometry">
-       <rect>
-        <x>116</x>
-        <y>127</y>
-        <width>180</width>
-        <height>27</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Export time series</string>
-      </property>
-      <property name="icon">
-       <iconset>
-        <normaloff>icons/export.png</normaloff>icons/export.png</iconset>
-      </property>
-     </widget>
      <widget class="QLineEdit" name="lineEdit_regex">
       <property name="geometry">
        <rect>
@@ -359,6 +342,23 @@
      </property>
     </widget>
    </widget>
+  </widget>
+  <widget class="QPushButton" name="pushButton_timeSeries">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>307</y>
+     <width>171</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Export layer</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/export.png</normaloff>icons/export.png</iconset>
+   </property>
   </widget>
  </widget>
  <tabstops>

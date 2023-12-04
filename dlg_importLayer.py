@@ -23,7 +23,6 @@
 """
 
 import os
-
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
@@ -72,9 +71,11 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.page_time.setVisible(False)
             self.page_postgis.setVisible(False)      
             self.pushButton.show()
+            self.pushButton_timeSeries.hide()   
             self.label.show()
             self.comboBox_resampling.show()
         if option == "postgis":       
+            self.pushButton_timeSeries.hide()   
             self.page_main.setVisible(False)
             self.page_time.setVisible(False)
             self.page_postgis.setVisible(True)                   
@@ -84,6 +85,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.connectEvents()
         self.utils.recalculateDPI()     
         self.label_progress.hide()
+        self.pushButton_timeSeries.hide()   
         self.pushButton.clicked.connect(lambda: self.callPostRequest(self.treeWidget.selectedItems()))       
         if self.locale == "cs":
             self.label_progress.setText("Úspěšně exportováno: 0 / 0")
@@ -312,7 +314,8 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 print("Pattern found in the string.")
                 self.lineEdit_regex.setText(pattern)   
         return False              
-    def showTSDialog(self):                
+    def showTSDialog(self):   
+        self.pushButton_timeSeries.show()             
         for item in self.treeWidget.selectedItems():
             self.comboBox_layers.addItem(item.text(0))
         self.pushButton_timeSeries.clicked.connect(lambda: self.prepareTSUpdate(self.treeWidget.selectedItems(), self.lineEdit_regex.text() , self.lineEdit_name.text()))    

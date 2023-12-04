@@ -644,8 +644,8 @@
     </message>
     <message>
         <location filename="../dlg_timeSeries.ui" line="73"/>
-        <source>Export time series</source>
-        <translation>Exportovat</translation>
+        <source>Export layer</source>
+        <translation>Exportovat vrstvu</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="71"/>
