@@ -67,11 +67,6 @@
         <source>Show only my layers</source>
         <translation>Zobrazit jenom mé vrstvy</translation>
     </message>
-    <message>
-        <location filename="../dlg_addMap.ui" line="264"/>
-        <source>Filter:</source>
-        <translation>Filtr</translation>
-    </message>
     <message encoding="UTF-8">
         <location filename="../dlg_addLayer.ui" line="202"/>
         <source>Nepřihlášený uživatel</source>
@@ -126,17 +121,7 @@
         <location filename="../dlg_addLayer.ui" line="471"/>
         <source>Remove</source>
         <translation>Odebrat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="135"/>
-        <source>Users:</source>
-        <translation>Uživatelé:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addLayer.ui" line="459"/>
-        <source>Back</source>
-        <translation>Zpět</translation>
-    </message>
+    </message>  
     <message>
         <location filename="../dlg_addLayer.ui" line="510"/>
         <source>CRS</source>
@@ -167,591 +152,7 @@
         <source>Available users:</source>
         <translation>Dostupní uživatelé</translation>
     </message>
-    <message>
-        <location filename="../dlg_addLayer.ui" line="64"/>
-        <source>Layers on Layman</source>
-        <translation>Vrstvy v Laymanu</translation>
-    </message>
-    <message>
-        <location filename="../dlg_userInfo.ui" line="29"/>
-        <source>Layman</source>
-        <translation>Layman</translation>
-    </message>
-    <message>
-        <location filename="../dlg_ConnectionManager.ui" line="47"/>
-        <source>Login</source>
-        <translation>Přihlásit se</translation>
-    </message>
-    <message>
-        <location filename="../dlg_ConnectionManager.ui" line="77"/>
-        <source>Continue</source>
-        <translation>Pokračovat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_ConnectionManager.ui" line="90"/>
-        <source>Login:</source>
-        <translation>Email:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_userInfo.ui" line="87"/>
-        <source>Server:</source>
-        <translation>Server:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_createComposite.ui" line="35"/>
-        <source>Layman - Create Composite</source>
-        <translation>Layman - Vytvořit mapovou kompozici</translation>
-    </message>
-    <message>
-        <location filename="../dlg_createComposite.ui" line="47"/>
-        <source>Create </source>
-        <translation>Vytvořit</translation>
-    </message>
-    <message>
-        <location filename="../dlg_createComposite.ui" line="60"/>
-        <source>Storno</source>
-        <translation>Zavřít</translation>
-    </message>
-    <message>
-        <location filename="../dlg_createComposite.ui" line="88"/>
-        <source>You can choose externt of composition from layer:</source>
-        <translation>Můžete zvolit prostorový rozsah z vrstvy:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_createComposite.ui" line="101"/>
-        <source>Composition name:</source>
-        <translation>Jméno kompozice:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="132"/>
-        <source>Title:</source>
-        <translation>Název:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_createComposite.ui" line="187"/>
-        <source>Extent of canvas:</source>
-        <translation>Prostorový rozsah dat:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="190"/>
-        <source>XMin:</source>
-        <translation>XMin:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="177"/>
-        <source>XMax:</source>
-        <translation>XMax:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="108"/>
-        <source>YMin:</source>
-        <translation>YMin:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="164"/>
-        <source>YMax:</source>
-        <translation>YMax:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="268"/>
-        <source>Description:</source>
-        <translation>Popis:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_createComposite.ui" line="275"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; color:#ff0000;&quot;&gt;Composition name already exists!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; color:#ff0000;&quot;&gt;Název kompozice již existuje!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
-    </message>
-    <message>
-        <location filename="../dlg_createComposite.ui" line="288"/>
-        <source>Canvas extent</source>
-        <translation>Rozsah dat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="35"/>
-        <source>Layman - Edit metadata</source>
-        <translation>Layman - editovat metadata</translation>
-    </message>
-    <message>
-        <location filename="../dlg_timeSeries.ui" line="106"/>
-        <source>Name:</source>
-        <translation>Jméno:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="317"/>
-        <source>Units:</source>
-        <translation>Jednotka:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="216"/>
-        <source>Scale:</source>
-        <translation>Měřítko:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="255"/>
-        <source>User:</source>
-        <translation>Uživatel:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importLayer.ui" line="35"/>
-        <source>Layman - Export Layer to server</source>
-        <translation>Layman - Export vrstvy na server</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importLayer.ui" line="57"/>
-        <source>Export layer</source>
-        <translation>Exportovat vrstvu</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="367"/>
-        <source>Type</source>
-        <translation>Typ</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="41"/>
-        <source>Layman -Manage Maps</source>
-        <translation>Layman - Správce mapových kompozic</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="66"/>
-        <source>Layers</source>
-        <translation>Vrstvy</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="78"/>
-        <source>Existing layers in map composition:</source>
-        <translation>Existující vrstvy v mapové kompozici:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="91"/>
-        <source> Delete Layer</source>
-        <translation>Smazat vrstvu</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="124"/>
-        <source>Layer preview:</source>
-        <translation>Náhled vrstvy:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_postgrePass.ui" line="47"/>
-        <source>Processing data:</source>
-        <translation>Probíhá nahrávání:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="305"/>
-        <source> Add Layer</source>
-        <translation>Přidat vrstvu</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="218"/>
-        <source>Loaded vector layer from canvas:</source>
-        <translation>Vektorové vrstvy v QGIS:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="239"/>
-        <source>Existing layers in Layman:</source>
-        <translation>Existující vrstvy na serveru:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="252"/>
-        <source>Up</source>
-        <translation>Nahoru</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="265"/>
-        <source>Down</source>
-        <translation>Dolů</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="278"/>
-        <source>Save order</source>
-        <translation>Uložit pořadí</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="382"/>
-        <source>Map compositions</source>
-        <translation>Mapové kompozice:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="407"/>
-        <source>Existing map compositions:</source>
-        <translation>Existující mapové kompozice:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="420"/>
-        <source> Delete Map</source>
-        <translation>Smazat mapu</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="437"/>
-        <source> Add Map</source>
-        <translation>Přidat Mapu</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="450"/>
-        <source>  Edit metada</source>
-        <translation>Upravit metadata</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="463"/>
-        <source>Load Map (WMS)</source>
-        <translation>Načíst kompozici (WMS)</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="486"/>
-        <source>Load Map (WFS)</source>
-        <translation>Načíst kompozici (WFS)</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMap.ui" line="35"/>
-        <source>Layman - Add Map</source>
-        <translation>Layman - Načíst kompozici</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMicka.ui" line="47"/>
-        <source>Load map (WMS)</source>
-        <translation>Načíst kompozici (WMS)</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMicka.ui" line="88"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; color:#ff0000;&quot;&gt;Unable to load already loaded composition!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; color:#ff0000;&quot;&gt;Nelze načíst již načtenou kompozici!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMicka.ui" line="101"/>
-        <source>Load map (WFS)</source>
-        <translation>Načíst kompozici (WFS)</translation>
-    </message>
-    <message>
-        <location filename="../dlg_userInfo.ui" line="94"/>
-        <source>Layman username:</source>
-        <translation>Layman uživatel:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_userInfo.ui" line="101"/>
-        <source>Wagtail username:</source>
-        <translation>Wagtail uživatel:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_ConnectionManager.ui" line="126"/>
-        <source>Logout</source>
-        <translation>Odhlásit se</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="222"/>
-        <source> Add to composite</source>
-        <translation>Přidat do kompozice</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="199"/>
-        <source>QGIS map list</source>
-        <translation>Mapové vrstvy v QGIS</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMicka.ui" line="146"/>
-        <source>Load composition</source>
-        <translation>Načíst kompozici</translation>
-    </message>
-    <message>
-        <location filename="../dlg_userInfo.ui" line="108"/>
-        <source>Plugin version:</source>
-        <translation>Verze pluginu</translation>
-    </message>
-    <message>
-        <location filename="../dlg_ConnectionManager.ui" line="170"/>
-        <source>Install dependencies</source>
-        <translation>Instalovat závislosti</translation>
-    </message>
-    <message>
-        <location filename="../dlg_userInfo.ui" line="41"/>
-        <source>Update</source>
-        <translation>Aktualizovat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_userInfo.ui" line="122"/>
-        <source>Available version:</source>
-        <translation>Dostupná verze:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="35"/>
-        <source>Layman - Set permissions</source>
-        <translation>Layman - Nastavení práv</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="328"/>
-        <source>Extent from layers</source>
-        <translation>Rozsah z vrstev</translation>
-    </message>
-    <message>
-        <location filename="../dlg_importMap.ui" line="499"/>
-        <source> Set permissions</source>
-        <translation>Nastavit práva</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMap.ui" line="79"/>
-        <source>Workspace</source>
-        <translation>Pracovní prostor</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMicka.ui" line="74"/>
-        <source>Compositions</source>
-        <translation>Kompozice</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMap.ui" line="203"/>
-        <source>Delete map</source>
-        <translation>Smazat kompozici</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMap.ui" line="251"/>
-        <source>Show only my compositions</source>
-        <translation>Zobrazit jenom mé kompozice</translation>
-    </message>
-    <message>
-        <location filename="../dlg_userInfo.ui" line="115"/>
-        <source>Layman version:</source>
-        <translation>Verze Laymana:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="29"/>
-        <source>Layman - Current composition</source>
-        <translation>Layman - Aktuální kompozice</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="41"/>
-        <source>Save layers</source>
-        <translation>Uložit a zavřít</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="64"/>
-        <source>Loaded composition:</source>
-        <translation>Načtená kompozice:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="77"/>
-        <source>New</source>
-        <translation>Nová kompozice</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="90"/>
-        <source>Composition is read only</source>
-        <translation>Kompozice je pouze ke čtení</translation>
-    </message>
-    <message>
-        <location filename="../dlg_ConnectionManager.ui" line="143"/>
-        <source>Continue without login</source>
-        <translation>Pokračovat bez přihlášení</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="73"/>
-        <source>Extent of composition</source>
-        <translation>Prostorový rozsah</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="85"/>
-        <source>From canvas</source>
-        <translation>Z plátna</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="151"/>
-        <source>From capatibilites</source>
-        <translation>Z vrstev</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="103"/>
-        <source>  Edit metadata</source>
-        <translation>Upravit metadata</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="54"/>
-        <source>Save changes</source>
-        <translation>Uložit změny</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMap.ui" line="272"/>
-        <source>Not logged</source>
-        <translation>Nepřihlášený uživatel</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="161"/>
-        <source>Delete</source>
-        <translation>Smazat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="210"/>
-        <source>Layers:</source>
-        <translation>Vrstvy:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="223"/>
-        <source>Type:</source>
-        <translation>Typ:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMap.ui" line="272"/>
-        <source>Not logged user</source>
-        <translation>Nepřihlášený uživatel</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="249"/>
-        <source>Check all layers</source>
-        <translation>Vybrat vše</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="268"/>
-        <source>Server type</source>
-        <translation>Služba</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="273"/>
-        <source>Action</source>
-        <translation>Akce</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMap.ui" line="272"/>
-        <source>Anonymous</source>
-        <translation>Nepřihlášený uživatel</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addLayer.ui" line="275"/>
-        <source>Get URL</source>
-        <translation>URL Vrstvy</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="292"/>
-        <source>Exporting raster</source>
-        <translation>Export rastru</translation>
-    </message>
-    <message>
-        <location filename="../dlg_editMap.ui" line="369"/>
-        <source>EPSG:</source>
-        <translation>EPSG:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="278"/>
-        <source>Atributes</source>
-        <translation>Atributy</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="305"/>
-        <source>Export to QField</source>
-        <translation>Exportovat do QField</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="331"/>
-        <source>Layer properties</source>
-        <translation>Vlastnosti vrstvy</translation>
-    </message>
-    <message>
-        <location filename="../dlg_timeSeries.ui" line="73"/>
-        <source>Export layer</source>
-        <translation>Exportovat vrstvu</translation>
-    </message>
-    <message>
-        <location filename="../dlg_userInfo.ui" line="71"/>
-        <source>Get older version &lt; 3.24</source>
-        <translation>Získat starší verzi &lt; 3.24</translation>
-    </message>
-    <message>
-        <location filename="../dlg_timeSeries.ui" line="35"/>
-        <source>Layman - Export time series</source>
-        <translation>Layman - Exportovat časovou řadu</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMicka.ui" line="35"/>
-        <source>Layman - Browse metadata cataloque</source>
-        <translation>Layman - Prohlížet metadatový katalog</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMicka.ui" line="159"/>
-        <source>Query:</source>
-        <translation>Dotaz:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMicka.ui" line="198"/>
-        <source>Search</source>
-        <translation>Hledat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="29"/>
-        <source>Layman - Layer properties</source>
-        <translation>Layman - Vlastnosti vrstvy</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="80"/>
-        <source>title</source>
-        <translation>Titulek</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="119"/>
-        <source>Opacity:</source>
-        <translation>Průhlednost:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="158"/>
-        <source>Max resolution:</source>
-        <translation>Maximální rozlišení:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="184"/>
-        <source>Min resolution:</source>
-        <translation>Minimální rozlišení:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="210"/>
-        <source>Visibility:</source>
-        <translation>Viditelnost:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="223"/>
-        <source>Group:</source>
-        <translation>Skupina:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="249"/>
-        <source>Single tile:</source>
-        <translation>Tiled/Dlaždicovat:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="262"/>
-        <source>Base layer:</source>
-        <translation>Podkladová vrstva</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="288"/>
-        <source>Grey scale:</source>
-        <translation>Odstíny šedi:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="158"/>
-        <source>Max scale:</source>
-        <translation>Maximální měřítko:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_layerProperties.ui" line="184"/>
-        <source>Min scale:</source>
-        <translation>Minimální měřítko</translation>
-    </message>
-    <message>
-        <location filename="../dlg_postgrePass.ui" line="35"/>
-        <source>Layman - Postgis layer</source>
-        <translation>Layman - Vrstva postgis</translation>
-    </message>
-    <message>
-        <location filename="../dlg_postgrePass.ui" line="73"/>
-        <source>Confirm</source>
-        <translation>Potvrdit</translation>
-    </message>
-    <message>
-        <location filename="../dlg_postgrePass.ui" line="109"/>
-        <source>Username:</source>
-        <translation>Uživatel:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_postgrePass.ui" line="122"/>
-        <source>Password:</source>
-        <translation>Heslo:</translation>
-    </message>
+    
 </context>
 <context>
     <name>AddMapDialog</name>
@@ -824,12 +225,7 @@
         <location filename="../dlg_addMap.ui" line="514"/>
         <source>Show only my compositions</source>
         <translation>Zobrazit jenom mé kompozice</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMap.ui" line="264"/>
-        <source>Filter:</source>
-        <translation>Filtr</translation>
-    </message>
+    </message>    
     <message>
         <location filename="../dlg_addMap.ui" line="217"/>
         <source>Copy URL</source>
@@ -844,12 +240,7 @@
         <location filename="../dlg_addMap.ui" line="342"/>
         <source>Add</source>
         <translation>Přidat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMap.ui" line="308"/>
-        <source>Back</source>
-        <translation>Zpět</translation>
-    </message>
+    </message>    
     <message>
         <location filename="../dlg_addMap.ui" line="409"/>
         <source>Remove</source>
@@ -859,12 +250,7 @@
         <location filename="../dlg_addMap.ui" line="427"/>
         <source>Save</source>
         <translation>Uložit</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMap.ui" line="386"/>
-        <source>Users:</source>
-        <translation>Uživatelé:</translation>
-    </message>
+    </message>    
     <message>
         <location filename="../dlg_addMap.ui" line="302"/>
         <source>Read:</source>
@@ -878,18 +264,13 @@
     <message>
         <location filename="../dlg_addMap.ui" line="462"/>
         <source>CRS</source>
-        <translation type="unfinished"></translation>
+        <translation>CRS</translation>
     </message>
     <message>
         <location filename="../dlg_addMap.ui" line="485"/>
         <source>Filter</source>
         <translation>Filtrovat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_addMap.ui" line="501"/>
-        <source>Not logged user</source>
-        <translation>Nepřihlášený uživatel</translation>
-    </message>
+    </message>    
     <message>
         <location filename="../dlg_addMap.ui" line="260"/>
         <source>Back to maps</source>
@@ -908,7 +289,7 @@
     <message encoding="UTF-8">
         <location filename="../dlg_addMap.ui" line="501"/>
         <source>Nepřihlášený uživatel</source>
-        <translation type="unfinished"></translation>
+        <translation>Not logged in user</translation>
     </message>
 </context>
 <context>
@@ -916,37 +297,37 @@
     <message>
         <location filename="../dlg_ConnectionManager.ui" line="35"/>
         <source>Layman</source>
-        <translation type="unfinished">Layman</translation>
+        <translation>Layman</translation>
     </message>
     <message>
         <location filename="../dlg_ConnectionManager.ui" line="47"/>
         <source>Login</source>
-        <translation type="unfinished">Přihlásit se</translation>
+        <translation>Přihlásit se</translation>
     </message>
     <message>
         <location filename="../dlg_ConnectionManager.ui" line="64"/>
         <source>Close</source>
-        <translation type="unfinished">Zavřít</translation>
+        <translation>Zavřít</translation>
     </message>
     <message>
         <location filename="../dlg_ConnectionManager.ui" line="77"/>
         <source>Continue</source>
-        <translation type="unfinished">Pokračovat</translation>
+        <translation>Pokračovat</translation>
     </message>
     <message>
         <location filename="../dlg_ConnectionManager.ui" line="90"/>
         <source>Server:</source>
-        <translation type="unfinished">Server:</translation>
+        <translation>Server:</translation>
     </message>
     <message>
         <location filename="../dlg_ConnectionManager.ui" line="126"/>
         <source>Logout</source>
-        <translation type="unfinished">Odhlásit se</translation>
+        <translation>Odhlásit se</translation>
     </message>
     <message encoding="UTF-8">
         <location filename="../dlg_ConnectionManager.ui" line="143"/>
-        <source>Pokračovat bez přihlášení</source>
-        <translation type="unfinished"></translation>
+        <source>Continue without login</source>
+        <translation>Pokračovat bez přihlášení</translation>
     </message>
 </context>
 <context>
@@ -955,12 +336,7 @@
         <location filename="../dlg_currentComposition.ui" line="29"/>
         <source>Layman - Current composition</source>
         <translation>Layman - Aktuální kompozice</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="41"/>
-        <source>Save layers</source>
-        <translation>Uložit a zavřít</translation>
-    </message>
+    </message>    
     <message>
         <location filename="../dlg_currentComposition.ui" line="41"/>
         <source>Close</source>
@@ -982,7 +358,7 @@
         <translation>Upravit metadata</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1313"/>
+        <location filename="../dlg_currentComposition.ui" line="1387"/>
         <source>Save changes</source>
         <translation>Uložit změny</translation>
     </message>
@@ -995,17 +371,7 @@
         <location filename="../dlg_currentComposition.ui" line="160"/>
         <source>WMS</source>
         <translation></translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="210"/>
-        <source>Layers:</source>
-        <translation>Vrstvy:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="223"/>
-        <source>Type:</source>
-        <translation>Typ:</translation>
-    </message>
+    </message>    
     <message>
         <location filename="../dlg_currentComposition.ui" line="173"/>
         <source>Set permissions</source>
@@ -1017,7 +383,7 @@
         <translation>Vybrat vše</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="616"/>
+        <location filename="../dlg_currentComposition.ui" line="537"/>
         <source>Layer</source>
         <translation>Vrstva</translation>
     </message>
@@ -1052,17 +418,12 @@
         <translation>Kopírovat URL</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="331"/>
-        <source>Layer properties</source>
-        <translation>Vlastnosti vrstvy</translation>
-    </message>
-    <message>
         <location filename="../dlg_currentComposition.ui" line="237"/>
         <source>Info</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Info</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="836"/>
+        <location filename="../dlg_currentComposition.ui" line="1054"/>
         <source>Save</source>
         <translation>Uložit</translation>
     </message>
@@ -1072,7 +433,7 @@
         <translation>Přidat</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1085"/>
+        <location filename="../dlg_currentComposition.ui" line="1108"/>
         <source>Back</source>
         <translation>Zpět</translation>
     </message>
@@ -1080,11 +441,6 @@
         <location filename="../dlg_currentComposition.ui" line="457"/>
         <source>Remove</source>
         <translation>Odebrat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_currentComposition.ui" line="414"/>
-        <source>Users:</source>
-        <translation>Uživatelé:</translation>
     </message>
     <message>
         <location filename="../dlg_currentComposition.ui" line="350"/>
@@ -1097,137 +453,137 @@
         <translation>Zápis:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="809"/>
+        <location filename="../dlg_currentComposition.ui" line="1027"/>
         <source>XMax:</source>
-        <translation type="unfinished">XMax:</translation>
+        <translation>XMax:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="753"/>
+        <location filename="../dlg_currentComposition.ui" line="971"/>
         <source>YMin:</source>
-        <translation type="unfinished">YMin:</translation>
+        <translation>YMin:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="520"/>
+        <location filename="../dlg_currentComposition.ui" line="603"/>
         <source>Canvas extent</source>
         <translation>Rozsah dat</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="550"/>
+        <location filename="../dlg_currentComposition.ui" line="590"/>
         <source>Extent of canvas:</source>
         <translation>Prostorový rozsah dat:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="796"/>
+        <location filename="../dlg_currentComposition.ui" line="1014"/>
         <source>YMax:</source>
-        <translation type="unfinished">YMax:</translation>
+        <translation>YMax:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1128"/>
+        <location filename="../dlg_currentComposition.ui" line="1241"/>
         <source>Title:</source>
         <translation>Název:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="589"/>
+        <location filename="../dlg_currentComposition.ui" line="715"/>
         <source>You can choose externt of composition from layer:</source>
         <translation>Můžete zvolit prostorový rozsah z vrstvy:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="917"/>
+        <location filename="../dlg_currentComposition.ui" line="837"/>
         <source>Description:</source>
         <translation>Popis:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="630"/>
+        <location filename="../dlg_currentComposition.ui" line="620"/>
         <source>Create </source>
         <translation>Vytvořit</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="822"/>
+        <location filename="../dlg_currentComposition.ui" line="1040"/>
         <source>XMin:</source>
-        <translation type="unfinished">XMin:</translation>
+        <translation>XMin:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="731"/>
+        <location filename="../dlg_currentComposition.ui" line="949"/>
         <source>Extent of composition</source>
         <translation>Prostorový rozsah</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="853"/>
+        <location filename="../dlg_currentComposition.ui" line="773"/>
         <source>Metadata</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Metadata</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="865"/>
+        <location filename="../dlg_currentComposition.ui" line="785"/>
         <source>Scale:</source>
         <translation>Měřítko:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="904"/>
+        <location filename="../dlg_currentComposition.ui" line="824"/>
         <source>User:</source>
         <translation>Uživatel:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="966"/>
+        <location filename="../dlg_currentComposition.ui" line="886"/>
         <source>Units:</source>
         <translation>Jednotka:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1005"/>
+        <location filename="../dlg_currentComposition.ui" line="925"/>
         <source>EPSG:</source>
         <translation>EPSG:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1049"/>
+        <location filename="../dlg_currentComposition.ui" line="1071"/>
         <source>From canvas</source>
         <translation>Z plátna</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1066"/>
+        <location filename="../dlg_currentComposition.ui" line="1088"/>
         <source>From capatibilites</source>
         <translation>Z vrstev</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1115"/>
+        <location filename="../dlg_currentComposition.ui" line="1176"/>
         <source>Max scale:</source>
         <translation>Maximální měřítko:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1196"/>
+        <location filename="../dlg_currentComposition.ui" line="1254"/>
         <source>Opacity:</source>
         <translation>Průhlednost:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1222"/>
+        <location filename="../dlg_currentComposition.ui" line="1163"/>
         <source>Grey scale:</source>
         <translation>Odstíny šedi:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1248"/>
+        <location filename="../dlg_currentComposition.ui" line="1345"/>
         <source>Visibility:</source>
         <translation>Viditelnost:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1261"/>
+        <location filename="../dlg_currentComposition.ui" line="1267"/>
         <source>Group:</source>
         <translation>Skupina:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1300"/>
+        <location filename="../dlg_currentComposition.ui" line="1280"/>
         <source>title</source>
         <translation>Titulek</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1330"/>
+        <location filename="../dlg_currentComposition.ui" line="1358"/>
         <source>Min scale:</source>
         <translation>Minimální měřítko</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1343"/>
+        <location filename="../dlg_currentComposition.ui" line="1332"/>
         <source>Single tile:</source>
         <translation>Tiled/Dlaždicovat:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1356"/>
+        <location filename="../dlg_currentComposition.ui" line="1202"/>
         <source>Base layer:</source>
         <translation>Podkladová vrstva</translation>
     </message>
@@ -1241,163 +597,178 @@
         <source>Available users:</source>
         <translation>Dostupní uživatelé</translation>
     </message>
+    <message>
+        <location filename="../dlg_currentComposition.ui" line="524"/>
+        <source>New composition</source>
+        <translation>Nová mapová kompozice</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.ui" line="761"/>
+        <source>Edit map composition</source>
+        <translation>Editovat mapovou kompozici</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.ui" line="1125"/>
+        <source>Layer properties</source>
+        <translation>Vlastnosti vrstvy</translation>
+    </message>
 </context>
 <context>
     <name>DialogBase</name>
     <message>
         <location filename="../dlg_editMap.ui" line="35"/>
         <source>Layman - Edit metadata</source>
-        <translation type="unfinished">Layman - editovat metadata</translation>
+        <translation>Layman - editovat metadata</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="47"/>
         <source>Save</source>
-        <translation type="unfinished">Uložit</translation>
+        <translation>Uložit</translation>
     </message>
     <message>
         <location filename="../dlg_addMicka.ui" line="60"/>
         <source>Close</source>
-        <translation type="unfinished">Zavřít</translation>
+        <translation>Zavřít</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="73"/>
         <source>Extent of composition</source>
-        <translation type="unfinished">Prostorový rozsah</translation>
+        <translation>Prostorový rozsah</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="85"/>
         <source>From canvas</source>
-        <translation type="unfinished">Z plátna</translation>
+        <translation>Z plátna</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="108"/>
         <source>YMin:</source>
-        <translation type="unfinished">YMin:</translation>
+        <translation>YMin:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="151"/>
         <source>From capatibilites</source>
-        <translation type="unfinished">Z vrstev</translation>
+        <translation>Z vrstev</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="164"/>
         <source>YMax:</source>
-        <translation type="unfinished">YMax:</translation>
+        <translation>YMax:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="177"/>
         <source>XMax:</source>
-        <translation type="unfinished">XMax:</translation>
+        <translation>XMax:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="190"/>
         <source>XMin:</source>
-        <translation type="unfinished">XMin:</translation>
+        <translation>XMin:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="204"/>
         <source>Metadata</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Metadata</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="216"/>
         <source>Scale:</source>
-        <translation type="unfinished">Měřítko:</translation>
+        <translation>Měřítko:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="255"/>
         <source>User:</source>
-        <translation type="unfinished">Uživatel:</translation>
+        <translation>Uživatel:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="268"/>
         <source>Description:</source>
-        <translation type="unfinished">Popis:</translation>
+        <translation>Popis:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="281"/>
         <source>Title:</source>
-        <translation type="unfinished">Název:</translation>
+        <translation>Název:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="317"/>
         <source>Units:</source>
-        <translation type="unfinished">Jednotka:</translation>
+        <translation>Jednotka:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="330"/>
         <source>Name:</source>
-        <translation type="unfinished">Jméno:</translation>
+        <translation>Jméno:</translation>
     </message>
     <message>
         <location filename="../dlg_editMap.ui" line="369"/>
         <source>EPSG:</source>
-        <translation type="unfinished">EPSG:</translation>
+        <translation>EPSG:</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="29"/>
         <source>Layman</source>
-        <translation type="unfinished">Layman</translation>
+        <translation>Layman</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="41"/>
         <source>Update</source>
-        <translation type="unfinished">Aktualizovat</translation>
+        <translation>Aktualizovat</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="71"/>
         <source>Get older version &lt; 3.24</source>
-        <translation type="unfinished">Získat starší verzi &lt; 3.24</translation>
+        <translation>Získat starší verzi &lt; 3.24</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="87"/>
         <source>Server:</source>
-        <translation type="unfinished">Server:</translation>
+        <translation>Server:</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="94"/>
         <source>Layman username:</source>
-        <translation type="unfinished">Layman uživatel:</translation>
+        <translation>Layman uživatel:</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="101"/>
         <source>Wagtail username:</source>
-        <translation type="unfinished">Wagtail uživatel:</translation>
+        <translation>Wagtail uživatel:</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="108"/>
         <source>Plugin version:</source>
-        <translation type="unfinished">Verze pluginu</translation>
+        <translation>Verze pluginu</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="115"/>
         <source>Layman version:</source>
-        <translation type="unfinished">Verze Laymana:</translation>
+        <translation>Verze Laymana:</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="122"/>
         <source>Available version:</source>
-        <translation type="unfinished">Dostupná verze:</translation>
+        <translation>Dostupná verze:</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="192"/>
         <source>Port:</source>
-        <translation type="unfinished"></translation>
+        <translation>Port</translation>
     </message>
     <message>
         <location filename="../dlg_addMicka.ui" line="35"/>
         <source>Layman - Browse metadata cataloque</source>
-        <translation type="unfinished">Layman - Prohlížet metadatový katalog</translation>
+        <translation>Layman - Prohlížet metadatový katalog</translation>
     </message>
     <message>
         <location filename="../dlg_addMicka.ui" line="47"/>
         <source>Load map (WMS)</source>
-        <translation type="unfinished">Načíst kompozici (WMS)</translation>
+        <translation>Načíst kompozici (WMS)</translation>
     </message>
     <message>
         <location filename="../dlg_addMicka.ui" line="74"/>
         <source>Compositions</source>
-        <translation type="unfinished">Kompozice</translation>
+        <translation>Kompozice</translation>
     </message>
     <message>
         <location filename="../dlg_addMicka.ui" line="88"/>
@@ -1407,22 +778,22 @@
     <message>
         <location filename="../dlg_addMicka.ui" line="101"/>
         <source>Load map (WFS)</source>
-        <translation type="unfinished">Načíst kompozici (WFS)</translation>
+        <translation>Načíst kompozici (WFS)</translation>
     </message>
     <message>
         <location filename="../dlg_addMicka.ui" line="114"/>
         <source>Loading data</source>
-        <translation type="unfinished">Načítání dat</translation>
+        <translation>Načítání dat</translation>
     </message>
     <message>
         <location filename="../dlg_addMicka.ui" line="146"/>
         <source>Load composition</source>
-        <translation type="unfinished">Načíst kompozici</translation>
+        <translation>Načíst kompozici</translation>
     </message>
     <message>
         <location filename="../dlg_addMicka.ui" line="159"/>
         <source>Query:</source>
-        <translation type="unfinished">Dotaz:</translation>
+        <translation>Dotaz:</translation>
     </message>
     <message>
         <location filename="../dlg_addMicka.ui" line="172"/>
@@ -1437,7 +808,7 @@
     <message>
         <location filename="../dlg_addMicka.ui" line="198"/>
         <source>Search</source>
-        <translation type="unfinished">Hledat</translation>
+        <translation>Hledat</translation>
     </message>
 </context>
 <context>
@@ -1448,7 +819,7 @@
         <translation>Layman - Export vrstvy na server</translation>
     </message>
     <message>
-        <location filename="../dlg_importLayer.ui" line="47"/>
+        <location filename="../dlg_importLayer.ui" line="356"/>
         <source>Export layer</source>
         <translation>Exportovat vrstvu</translation>
     </message>
@@ -1483,50 +854,50 @@
         <translation>Vzorkování rastru:</translation>
     </message>
     <message>
-        <location filename="../dlg_importLayer.ui" line="240"/>
+        <location filename="../dlg_importLayer.ui" line="215"/>
         <source>Export time series</source>
-        <translation type="unfinished">Exportovat</translation>
+        <translation>Exportovat</translation>
     </message>
     <message>
         <location filename="../dlg_importLayer.ui" line="227"/>
         <source>Name:</source>
-        <translation type="unfinished">Jméno:</translation>
+        <translation>Jméno:</translation>
     </message>
     <message>
-        <location filename="../dlg_importLayer.ui" line="257"/>
+        <location filename="../dlg_importLayer.ui" line="240"/>
         <source>Regex:</source>
-        <translation type="unfinished"></translation>
+        <translation>Regex:</translation>
     </message>
     <message>
-        <location filename="../dlg_importLayer.ui" line="358"/>
+        <location filename="../dlg_importLayer.ui" line="341"/>
         <source>Back</source>
         <translation>Zpět</translation>
     </message>
     <message>
-        <location filename="../dlg_importLayer.ui" line="299"/>
+        <location filename="../dlg_importLayer.ui" line="282"/>
         <source>Login to database</source>
-        <translation type="unfinished"></translation>
+        <translation>Přihlásit se do databáze</translation>
     </message>
     <message>
-        <location filename="../dlg_importLayer.ui" line="314"/>
+        <location filename="../dlg_importLayer.ui" line="297"/>
         <source>Password:</source>
-        <translation type="unfinished">Heslo:</translation>
+        <translation>Heslo:</translation>
     </message>
     <message>
-        <location filename="../dlg_importLayer.ui" line="327"/>
+        <location filename="../dlg_importLayer.ui" line="310"/>
         <source>Username:</source>
-        <translation type="unfinished">Uživatel:</translation>
+        <translation>Uživatel:</translation>
     </message>
     <message>
-        <location filename="../dlg_importLayer.ui" line="340"/>
+        <location filename="../dlg_importLayer.ui" line="323"/>
         <source>Confirm</source>
-        <translation type="unfinished">Potvrdit</translation>
+        <translation>Potvrdit</translation>
     </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="2206"/>
+        <location filename="../Layman.py" line="2211"/>
         <source>&amp;Layman</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1584,49 +955,6 @@
         <location filename="../Layman.py" line="364"/>
         <source>Browse the metadata catalog</source>
         <translation>Prohlížet metadatový katalog</translation>
-    </message>
-</context>
-<context>
-    <name>PermissionsDialog</name>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="35"/>
-        <source>Layman - Set permissions</source>
-        <translation>Layman - Nastavení práv</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="47"/>
-        <source>Save</source>
-        <translation>Uložit</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="60"/>
-        <source>Close</source>
-        <translation>Zavřít</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="86"/>
-        <source>Add</source>
-        <translation>Přidat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="112"/>
-        <source>Remove</source>
-        <translation>Odebrat</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="135"/>
-        <source>Users:</source>
-        <translation>Uživatelé:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="168"/>
-        <source>Read:</source>
-        <translation>Čtení:</translation>
-    </message>
-    <message>
-        <location filename="../dlg_setPermission.ui" line="181"/>
-        <source>Write:</source>
-        <translation>Zápis:</translation>
     </message>
 </context>
 </TS>

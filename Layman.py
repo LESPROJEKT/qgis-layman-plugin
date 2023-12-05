@@ -1874,6 +1874,7 @@ class Layman(QObject):
         
         if message == "resetProgressbar":
             try:
+                5/0
                 self.dlg.progressBar.hide()
                 self.dlg.progressBar.setValue(0)
             except:

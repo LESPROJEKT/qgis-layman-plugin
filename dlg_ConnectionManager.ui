@@ -140,7 +140,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Pokračovat bez přihlášení</string>
+    <string>Continue without login</string>
    </property>
    <property name="icon">
     <iconset>
