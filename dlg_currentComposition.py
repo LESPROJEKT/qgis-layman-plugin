@@ -607,7 +607,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     if (it[2] =='Overwrite geometry'  or it[2] == "Přepsat data") and it[0] == item.text(0):
                         layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
                         if layer.type() == QgsMapLayer.VectorLayer:
-                            self.postRequest(layer.name(), True)
+                            self.layman.postRequest(layer.name(), True)
             elif item.checkState(0) == 0 and item.text(0) not in layerCheckedList and self.treeWidget_layers.itemWidget(item,2).currentText() in ("Smazat", "Remove"):  ## může být zaškrnut i jinde, pak nemažem                                        
                 pom = 0
                 for i in range (0, len(composition['layers'])):
