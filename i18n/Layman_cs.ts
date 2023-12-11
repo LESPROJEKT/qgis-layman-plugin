@@ -484,8 +484,8 @@
     </message>
     <message>
         <location filename="../dlg_currentComposition.ui" line="715"/>
-        <source>You can choose externt of composition from layer:</source>
-        <translation>Můžete zvolit prostorový rozsah z vrstvy:</translation>
+        <source>Get extent of composition from layer</source>
+        <translation>Získat prostorový rozsah z vrstvy</translation>
     </message>
     <message>
         <location filename="../dlg_currentComposition.ui" line="837"/>

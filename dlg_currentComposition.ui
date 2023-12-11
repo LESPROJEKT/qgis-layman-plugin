@@ -534,7 +534,7 @@
       </property>
       <column>
        <property name="text">
-        <string>Layer</string>
+        <string>Get extent of composition from layer</string>
        </property>
       </column>
      </widget>
@@ -700,19 +700,6 @@
       </property>
       <property name="text">
        <string>XMin:</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_6">
-      <property name="geometry">
-       <rect>
-        <x>274</x>
-        <y>13</y>
-        <width>311</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>You can choose externt of composition from layer:</string>
       </property>
      </widget>
      <widget class="QLineEdit" name="lineEdit_6">
