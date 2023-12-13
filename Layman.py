@@ -1873,8 +1873,7 @@ class Layman(QObject):
                 pass        
         
         if message == "resetProgressbar":
-            try:
-                5/0
+            try:                
                 self.dlg.progressBar.hide()
                 self.dlg.progressBar.setValue(0)
             except:
@@ -4286,13 +4285,13 @@ class Layman(QObject):
                 self.utils.emitMessageBox.emit(["Oauth2 autorizace nebyla úspěšná!", "Oauth2 authorization was not successfull!"])          
                 self.textbox.setText("Layman")
                 return False
-        else:          
+        else:            
             try:
                 print("username is: " + res['username'])
                 self.laymanUsername =  res['username']  
                 self.utils.laymanUsername = self.laymanUsername   
                 url = self.server.replace('https:\\','')
-                self.textbox.setText('<a href="'+self.server+'">' + url + '</a>')                
+                self.setPluginLabel.emit('<a href="'+self.server+'">' + url + '</a>')                
             except Exception as ex:
                 print(ex) 
                 self.utils.emitMessageBox.emit(["Komunikaci se serverem nelze navázat!", "Communication with the server cannot be established!"])  
@@ -4300,6 +4299,7 @@ class Layman(QObject):
                 return False
         return True
     def onSetPluginLabel(self,string):
+        print(self.textbox)
         self.textbox.setOpenExternalLinks(True)
         self.textbox.setText(string)           
     
@@ -4344,7 +4344,7 @@ class Layman(QObject):
         authHeader = self.utils.getAuthHeader(self.authCfg)  
         print(authHeader)
         if (authHeader):
-            if self.registerUserIfNotExists(): 
+            if self.registerUserIfNotExists():                 
                 if not autoLog:
                     self.saveIni()
                 try:
@@ -4380,8 +4380,7 @@ class Layman(QObject):
                     self.instance = CurrentComposition(self.URI, load, self.laymanUsername, self.utils.getAuthHeader(self.authCfg),self.laymanUsername)
                     self.instance.setComposition(data)
                     self.current = load
-
-                self.projectReaded(True)            
+                #self.projectReaded(True)            
                 self.fillCompositionDict()
         else:
             if self.dlg.objectName() == "ConnectionManagerDialog":

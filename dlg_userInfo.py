@@ -86,7 +86,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
         self.comboBox_port.currentIndexChanged.connect(self.utils.setPortValue)                                                        
         if self.server != None and self.laymanUsername != "":
             userEndpoint = self.URI + "/rest/current-user"            
-            r = self.utils.requestWrapper("GET", userEndpoint, payload = None, files = None)
+            r = self.utils.requestWrapper("GET", userEndpoint, payload = None, files = None)          
             res = r.text
             res = self.utils.fromByteToJson(r.content)
             versionCheck = self.utils.checkVersion()
