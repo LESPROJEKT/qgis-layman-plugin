@@ -491,7 +491,8 @@ class Layman(QObject):
                                   
                                 self.server = server.replace("/client","")
                         self.openAuthLiferayUrl2("",True)     
-                        self.loggedThrowProject = True           
+                        self.loggedThrowProject = True    
+                        self.current = name       
         else:            
             self.current = None
     def compositionExists(self,name):     
@@ -4380,7 +4381,7 @@ class Layman(QObject):
                     self.instance = CurrentComposition(self.URI, load, self.laymanUsername, self.utils.getAuthHeader(self.authCfg),self.laymanUsername)
                     self.instance.setComposition(data)
                     self.current = load
-                #self.projectReaded(True)            
+                self.projectReaded(True)            
                 self.fillCompositionDict()
         else:
             if self.dlg.objectName() == "ConnectionManagerDialog":
