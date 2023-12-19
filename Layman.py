@@ -2428,7 +2428,25 @@ class Layman(QObject):
             self.insertBinaryToQml(layer, qml_filename)      
             ## QML fix for layman server            
             self.QmlCompatibility(qml_filename)     
+            self.insertSvgToQMLInLabel(qml_filename)
             return True
+    def insertSvgToQMLInLabel(self, qml_filename): 
+        with open(qml_filename, 'r') as file:
+            xml_data = file.read()      
+        root = ET.fromstring(xml_data)   
+        for option in root.findall("labeling/settings/text-style/background"):
+            name = option.attrib.get("shapeSVGFile")            
+            if not self.utils.isPathAbsolute(name):
+                name = self.utils.getSvgPath() + name
+            with open(name, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read())  
+            decoded =   encoded_string.decode("utf-8")  
+            # print("base64:"  + decoded)    
+            option.set("shapeSVGFile", "base64:"  + decoded)   
+        modified_xml_data = ET.tostring(root, encoding="utf-8").decode("utf-8")
+        with open(qml_filename, 'w') as file:
+            file.write(modified_xml_data)
+
     def QmlCompatibility(self, qml_filename):       
         tree = ET.parse(qml_filename)
         root = tree.getroot()       

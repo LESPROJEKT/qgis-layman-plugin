@@ -636,6 +636,10 @@ class LaymanUtils(QObject):
         tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
         point = tform.transform(QgsPointXY(x, y))
         return [point.x(), point.y()]
+    def isPathAbsolute(self, path):
+        return os.path.isabs(path)
+    def getSvgPath(self):
+        return QgsApplication.prefixPath() + '/svg/'
     def getSource(self, layer):
         uri = layer.dataProvider().uri().uri()
         if ".geojson" in uri:
