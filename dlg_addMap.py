@@ -387,19 +387,17 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def readMapJsonThread(self,name, service, workspace=""):    
         self.unloadedLayers = list()
         self.processingRequest = True   
-        old_loaded = self.layman.current 
+        old_loaded = self.layman.current         
         if self.layman.instance != None:
             old_composition = self.layman.instance.getComposition()       
         self.layman.current = name
-        if workspace != "":### nactemdef loadData(self,name):
-            # self.selectedWorkspace = workspace            
+        if workspace != "":                    
             url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file' 
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)
             data = r.json()
             self.layman.instance = CurrentComposition(self.URI, name, workspace, self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
             self.layman.instance.setComposition(data)   
-        else:
-            print("workspace nepredan")     
+        else:                 
             workspace = self.getCompositionWorkspace(name)
             try:
                 url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'
@@ -408,8 +406,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 return      
             r = self.utils.requestWrapper("GET", url, payload = None, files = None)
             data = r.json()
-        name = self.utils.removeUnacceptableChars(name)  
-        # self.selectedWorkspace = workspace
+        name = self.utils.removeUnacceptableChars(name)          
         layers = QgsProject.instance().mapLayers()
         if len(data["layers"]) == 0:
             self.progressDone.emit()           
@@ -447,6 +444,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         provider = layer.dataProvider()
                         provider.reloadData()
                         self.progressDone.emit()    
+                    return                        
               
         self.loadLayer(data,service, name)        
     def loadLayer(self, data, service, groupName = ''):    
