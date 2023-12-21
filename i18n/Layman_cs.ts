@@ -913,7 +913,7 @@
     </message>
     <message>
         <location filename="../Layman.py" line="332"/>
-        <source>Save as to JSON and QML</source>
+        <source>Save as JSON and QML</source>
         <translation>Uložit jako JSON a QML</translation>
     </message>
     <message>
@@ -948,8 +948,8 @@
     </message>
     <message>
         <location filename="../Layman.py" line="318"/>
-        <source>Save as to JSON and SLD</source>
-        <translation>Uloži jako JSON a SLD</translation>
+        <source>Save as JSON and QML</source>
+        <translation>Uloži jako JSON a QML</translation>
     </message>
     <message>
         <location filename="../Layman.py" line="364"/>

@@ -316,7 +316,7 @@ class Layman(QObject):
         icon_path = self.plugin_dir + os.sep + 'icons' + os.sep + 'save.png'
         self.menu_saveLocalFile = self.add_action(
             icon_path,
-            text=self.tr(u'Save as to JSON and SLD'),
+            text=self.tr(u'Save as JSON and QML'),
             callback=self.saveLocalFile,
             enabled_flag=False,
             parent=self.iface.mainWindow())
@@ -1728,8 +1728,7 @@ class Layman(QObject):
                     url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name                  
                     r = self.utils.requestWrapper("GET", url, payload = None, files = None)
                     data = r.json()
-                    url = data['wfs']['url'].replace("http", "https")
-
+                    url = data['wfs']['url']
                     layer['className'] = self.vectorService
                     layer['protocol'] = {
                         "FROMCRS": "EPSG:3857",
@@ -1739,7 +1738,6 @@ class Layman(QObject):
                         "url": url,
                         "style": styleUrl
                       }
-
                     del layer['params']
                     del layer['url']
                     return self.vectorService
@@ -1748,7 +1746,7 @@ class Layman(QObject):
                     url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layerName         
                     r = self.utils.requestWrapper("GET", url, payload = None, files = None)
                     data = r.json()
-                    url = data['wms']['url'].replace("http", "https")
+                    url = data['wms']['url']
                     layer['className'] = self.rasterService
                     layer['url'] = url
                     layer['params'] = {
@@ -2441,7 +2439,7 @@ class Layman(QObject):
             with open(name, "rb") as image_file:
                 encoded_string = base64.b64encode(image_file.read())  
             decoded =   encoded_string.decode("utf-8")  
-            # print("base64:"  + decoded)    
+           # print("base64:"  + decoded)    
             option.set("shapeSVGFile", "base64:"  + decoded)   
         modified_xml_data = ET.tostring(root, encoding="utf-8").decode("utf-8")
         with open(qml_filename, 'w') as file:
