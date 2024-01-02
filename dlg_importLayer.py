@@ -25,7 +25,7 @@
 import os
 from PyQt5 import uic
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QCoreApplication
 from qgis.core import *
 import tempfile
 from PyQt5.QtWidgets import (QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterator)
@@ -56,7 +56,8 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.postgis_login = None
         self.postgis_pass = None
         self.setUi()
-        
+    def tr(self, message):     
+        return QCoreApplication.translate('Layman', message)    
     def connectEvents(self):
         pass
     
@@ -86,11 +87,8 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.utils.recalculateDPI()     
         self.label_progress.hide()
         self.pushButton_timeSeries.hide()   
-        self.pushButton.clicked.connect(lambda: self.callPostRequest(self.treeWidget.selectedItems()))       
-        if self.locale == "cs":
-            self.label_progress.setText("Úspěšně exportováno: 0 / 0")
-        else:
-            self.label_progress.setText("Sucessfully exported: 0 / 0")
+        self.pushButton.clicked.connect(lambda: self.callPostRequest(self.treeWidget.selectedItems()))
+        self.label_progress.setText(self.tr("Sucessfully exported: ") + "0 / 0")
         self.progressBar.hide()      
         if self.layman.locale == "cs":
             resamplingMethods = ["Není vybrán", "Nejbližší", "Průměr", "rms", "Bilineární", "Gaussovská", "Kubická", "Kubický spline", "Průměr magnitudy a fáze", "Modus"]
@@ -184,7 +182,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.uploaded = 0
         self.layman.batchLength = len(layers)        
         if self.checkIfAllLayerAreRaster(layers):
-            if self.locale == "cs":
+            if self.layman.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Layman", "Je vybráno více rastrových vrstev. Chcete je exportovat jako časové? Symbologie bude přebrána z prvního rastru.")
             else:
                 msgbox = QMessageBox(QMessageBox.Question, "Layman", "Multiple raster layers are selected. Do you want to export them as time series? The symbology will be taken from the first raster.")
@@ -196,17 +194,14 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 
                 self.setStackWidget("time")
                 return
-        self.label_progress.show()        
-        if self.locale == "cs":
-            self.label_progress.setText("Úspěšně exportováno: 0 / " + str(len(layers)) )
-        else:
-            self.label_progress.setText("Sucessfully exported 0 / " + str(len(layers)) )        
+        self.label_progress.show()     
+        self.label_progress.setText(self.tr("Sucessfully exported: ")+"0 / " + str(len(layers)) )        
         self.layersToUpload = len(layers)
         bulk = False
         if self.layersToUpload > 1:
             for item in layers:
                 if (self.checkExistingLayer(item.text(0))):
-                    if self.locale == "cs":
+                    if self.layman.locale == "cs":
                         msgbox = QMessageBox(QMessageBox.Question, "Layman", "Je vybráno více vrstev a některé z nich již na serveru existují. Chcete je hromadně přepsat?")
                     else:
                         msgbox = QMessageBox(QMessageBox.Question, "Layman", "Multiple layers are selected and some of them already exist on the server. Do you want to overwrite them?")
@@ -330,11 +325,8 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             return       
         self.progressBar.setMaximum(0)
         self.progressBar.show()
-        self.label_progress.show()
-        if self.locale == "cs":
-            self.label_progress.setText("Úspěšně exportováno: 0 / 1")
-        else:
-            self.label_progress.setText("Sucessfully exported: 0 / 1")
+        self.label_progress.show()        
+        self.label_progress.setText(self.tr("Sucessfully exported: ") + "0 / 1")
         threading.Thread(target=lambda: self.layman.timeSeries(items, regex, title, resamplingMethod)).start()
                 
     def checkExistingLayer(self, layerName):

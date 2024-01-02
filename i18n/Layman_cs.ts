@@ -121,11 +121,11 @@
         <location filename="../dlg_addLayer.ui" line="471"/>
         <source>Remove</source>
         <translation>Odebrat</translation>
-    </message>  
+    </message>
     <message>
         <location filename="../dlg_addLayer.ui" line="510"/>
         <source>CRS</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">CRS</translation>
     </message>
     <message>
         <location filename="../dlg_addLayer.ui" line="538"/>
@@ -152,7 +152,6 @@
         <source>Available users:</source>
         <translation>Dostupní uživatelé</translation>
     </message>
-    
 </context>
 <context>
     <name>AddMapDialog</name>
@@ -225,7 +224,7 @@
         <location filename="../dlg_addMap.ui" line="514"/>
         <source>Show only my compositions</source>
         <translation>Zobrazit jenom mé kompozice</translation>
-    </message>    
+    </message>
     <message>
         <location filename="../dlg_addMap.ui" line="217"/>
         <source>Copy URL</source>
@@ -240,7 +239,7 @@
         <location filename="../dlg_addMap.ui" line="342"/>
         <source>Add</source>
         <translation>Přidat</translation>
-    </message>    
+    </message>
     <message>
         <location filename="../dlg_addMap.ui" line="409"/>
         <source>Remove</source>
@@ -250,7 +249,7 @@
         <location filename="../dlg_addMap.ui" line="427"/>
         <source>Save</source>
         <translation>Uložit</translation>
-    </message>    
+    </message>
     <message>
         <location filename="../dlg_addMap.ui" line="302"/>
         <source>Read:</source>
@@ -270,7 +269,7 @@
         <location filename="../dlg_addMap.ui" line="485"/>
         <source>Filter</source>
         <translation>Filtrovat</translation>
-    </message>    
+    </message>
     <message>
         <location filename="../dlg_addMap.ui" line="260"/>
         <source>Back to maps</source>
@@ -324,7 +323,7 @@
         <source>Logout</source>
         <translation>Odhlásit se</translation>
     </message>
-    <message encoding="UTF-8">
+    <message>
         <location filename="../dlg_ConnectionManager.ui" line="143"/>
         <source>Continue without login</source>
         <translation>Pokračovat bez přihlášení</translation>
@@ -336,7 +335,7 @@
         <location filename="../dlg_currentComposition.ui" line="29"/>
         <source>Layman - Current composition</source>
         <translation>Layman - Aktuální kompozice</translation>
-    </message>    
+    </message>
     <message>
         <location filename="../dlg_currentComposition.ui" line="41"/>
         <source>Close</source>
@@ -358,7 +357,7 @@
         <translation>Upravit metadata</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1387"/>
+        <location filename="../dlg_currentComposition.ui" line="1374"/>
         <source>Save changes</source>
         <translation>Uložit změny</translation>
     </message>
@@ -371,7 +370,7 @@
         <location filename="../dlg_currentComposition.ui" line="160"/>
         <source>WMS</source>
         <translation></translation>
-    </message>    
+    </message>
     <message>
         <location filename="../dlg_currentComposition.ui" line="173"/>
         <source>Set permissions</source>
@@ -383,7 +382,7 @@
         <translation>Vybrat vše</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="537"/>
+        <location filename="../dlg_currentComposition.ui" line="277"/>
         <source>Layer</source>
         <translation>Vrstva</translation>
     </message>
@@ -423,7 +422,7 @@
         <translation type="unfinished">Info</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1054"/>
+        <location filename="../dlg_currentComposition.ui" line="1041"/>
         <source>Save</source>
         <translation>Uložit</translation>
     </message>
@@ -433,7 +432,7 @@
         <translation>Přidat</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1108"/>
+        <location filename="../dlg_currentComposition.ui" line="1095"/>
         <source>Back</source>
         <translation>Zpět</translation>
     </message>
@@ -453,12 +452,12 @@
         <translation>Zápis:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1027"/>
+        <location filename="../dlg_currentComposition.ui" line="1014"/>
         <source>XMax:</source>
         <translation>XMax:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="971"/>
+        <location filename="../dlg_currentComposition.ui" line="958"/>
         <source>YMin:</source>
         <translation>YMin:</translation>
     </message>
@@ -473,22 +472,22 @@
         <translation>Prostorový rozsah dat:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1014"/>
+        <location filename="../dlg_currentComposition.ui" line="1001"/>
         <source>YMax:</source>
         <translation>YMax:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1241"/>
+        <location filename="../dlg_currentComposition.ui" line="1228"/>
         <source>Title:</source>
         <translation>Název:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="715"/>
+        <location filename="../dlg_currentComposition.ui" line="537"/>
         <source>Get extent of composition from layer</source>
         <translation>Získat prostorový rozsah z vrstvy</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="837"/>
+        <location filename="../dlg_currentComposition.ui" line="824"/>
         <source>Description:</source>
         <translation>Popis:</translation>
     </message>
@@ -498,92 +497,92 @@
         <translation>Vytvořit</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1040"/>
+        <location filename="../dlg_currentComposition.ui" line="1027"/>
         <source>XMin:</source>
         <translation>XMin:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="949"/>
+        <location filename="../dlg_currentComposition.ui" line="936"/>
         <source>Extent of composition</source>
         <translation>Prostorový rozsah</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="773"/>
+        <location filename="../dlg_currentComposition.ui" line="760"/>
         <source>Metadata</source>
         <translation type="unfinished">Metadata</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="785"/>
+        <location filename="../dlg_currentComposition.ui" line="772"/>
         <source>Scale:</source>
         <translation>Měřítko:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="824"/>
+        <location filename="../dlg_currentComposition.ui" line="811"/>
         <source>User:</source>
         <translation>Uživatel:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="886"/>
+        <location filename="../dlg_currentComposition.ui" line="873"/>
         <source>Units:</source>
         <translation>Jednotka:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="925"/>
+        <location filename="../dlg_currentComposition.ui" line="912"/>
         <source>EPSG:</source>
         <translation>EPSG:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1071"/>
+        <location filename="../dlg_currentComposition.ui" line="1058"/>
         <source>From canvas</source>
         <translation>Z plátna</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1088"/>
+        <location filename="../dlg_currentComposition.ui" line="1075"/>
         <source>From capatibilites</source>
         <translation>Z vrstev</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1176"/>
+        <location filename="../dlg_currentComposition.ui" line="1163"/>
         <source>Max scale:</source>
         <translation>Maximální měřítko:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1254"/>
+        <location filename="../dlg_currentComposition.ui" line="1241"/>
         <source>Opacity:</source>
         <translation>Průhlednost:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1163"/>
+        <location filename="../dlg_currentComposition.ui" line="1150"/>
         <source>Grey scale:</source>
         <translation>Odstíny šedi:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1345"/>
+        <location filename="../dlg_currentComposition.ui" line="1332"/>
         <source>Visibility:</source>
         <translation>Viditelnost:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1267"/>
+        <location filename="../dlg_currentComposition.ui" line="1254"/>
         <source>Group:</source>
         <translation>Skupina:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1280"/>
+        <location filename="../dlg_currentComposition.ui" line="1267"/>
         <source>title</source>
         <translation>Titulek</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1358"/>
+        <location filename="../dlg_currentComposition.ui" line="1345"/>
         <source>Min scale:</source>
         <translation>Minimální měřítko</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1332"/>
+        <location filename="../dlg_currentComposition.ui" line="1319"/>
         <source>Single tile:</source>
         <translation>Tiled/Dlaždicovat:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1202"/>
+        <location filename="../dlg_currentComposition.ui" line="1189"/>
         <source>Base layer:</source>
         <translation>Podkladová vrstva</translation>
     </message>
@@ -603,12 +602,12 @@
         <translation>Nová mapová kompozice</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="761"/>
+        <location filename="../dlg_currentComposition.ui" line="748"/>
         <source>Edit map composition</source>
         <translation>Editovat mapovou kompozici</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1125"/>
+        <location filename="../dlg_currentComposition.ui" line="1112"/>
         <source>Layer properties</source>
         <translation>Vlastnosti vrstvy</translation>
     </message>
@@ -893,11 +892,16 @@
         <source>Confirm</source>
         <translation>Potvrdit</translation>
     </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="329"/>
+        <source>Sucessfully exported: </source>
+        <translation>Úspěšně exportováno: </translation>
+    </message>
 </context>
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="2211"/>
+        <location filename="../Layman.py" line="2172"/>
         <source>&amp;Layman</source>
         <translation type="unfinished"></translation>
     </message>
@@ -912,9 +916,9 @@
         <translation>Přihlásit se</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="332"/>
+        <location filename="../Layman.py" line="318"/>
         <source>Save as JSON and QML</source>
-        <translation>Uložit jako JSON a QML</translation>
+        <translation>Uloži jako JSON a QML</translation>
     </message>
     <message>
         <location filename="../Layman.py" line="327"/>
@@ -947,14 +951,99 @@
         <translation>Informace o uživateli</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="318"/>
-        <source>Save as JSON and QML</source>
-        <translation>Uloži jako JSON a QML</translation>
-    </message>
-    <message>
         <location filename="../Layman.py" line="364"/>
         <source>Browse the metadata catalog</source>
         <translation>Prohlížet metadatový katalog</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="3560"/>
+        <source>Saving composition</source>
+        <translation>Ukládání kompozice</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="4407"/>
+        <source>Plugin update</source>
+        <translation>Aktualizace pluginu</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="4398"/>
+        <source>This version of the plugin is not included in the QGIS repository and may contain new untested functionalities. Do you really want to install this version?</source>
+        <translation>Tato verze pluginu není v QGIS repozitáři a může obsahovat nové netestované funkcionality. Chcete opravdu instalovat tuto verzi?</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="4407"/>
+        <source>Plugin requires QGIS version 3.26 and higher. Do you still want to continue?</source>
+        <translation>Plugin vyžaduje verzi QGIS 3.26 a vyšší. Chcete přesto pokračovat?</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="4453"/>
+        <source>Sucessfully exported:</source>
+        <translation type="unfinished">Úspěšně exportováno:</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="450"/>
+        <source>This project includes link to Layman server. Do you want set the project as current composition?</source>
+        <translation>Tento projekt obsahuje odkaz na Layman server. Chcete ho nastavit jako aktuální kompozici?</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="470"/>
+        <source>This project includes link to Layman server. Do you want login?</source>
+        <translation>Tento projekt obsahuje odkaz na Layman server. Chcete se k tomuto serveru přihlásit?</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="504"/>
+        <source>Layer loaded from a local geojson file.</source>
+        <translation>Vrstva načtená z lokálního souboru geojson.</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="506"/>
+        <source>Layer loaded from a local SHP file.</source>
+        <translation>Vrstva načtená z lokálního souboru SHP.</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="508"/>
+        <source>Layer stored in QGIS memory. It will be deleted after QGIS is turned off.</source>
+        <translation>Layer stored in QGIS memory. It will be deleted after QGIS is turned off.</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="510"/>
+        <source>A layer loaded over a WMS service that provides data in a raster format. It is possible to change this service to a WFS vector service using the button.</source>
+        <translation>Vrstva načtená přes službu WMS poskytující data v rasterovém formátu. Je možné tuto službu zaměnit za vektorovou službu WFS pomocí tlačítka.</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="512"/>
+        <source>A layer loaded over a WFS service that provides data in a vector format. It is possible to change this service to a WMS raster service using the button. Changes in this layer are saved to the server.</source>
+        <translation>Vrstva načtená přes službu WFS poskytující data ve vektorovém formátu. Je možné tuto službu zaměnit za rasterovou službu WMS pomocí tlačítka. Změny v této vrstvě jsou ukládány na server.</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="514"/>
+        <source>Vector layer loaded from a local file.</source>
+        <translation>Vector layer loaded from a local file.</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="888"/>
+        <source>Coordinate system was changed to: </source>
+        <translation>Souřadnicový systém byl změnen na: </translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="888"/>
+        <source>. Do you want write it to composition?</source>
+        <translation>. Chcete tento souřadnicový systém zapsat do kompozice?</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="1502"/>
+        <source>Update layer order</source>
+        <translation>Aktualizace pořadí vrstev</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="1557"/>
+        <source>Update layer visibility</source>
+        <translation>Aktualizace viditelnost vrstev</translation>
+    </message>
+    <message>
+        <location filename="../Layman.py" line="2971"/>
+        <source>Sucessfully exported: </source>
+        <translation>Úspěšně exportováno: </translation>
     </message>
 </context>
 </TS>

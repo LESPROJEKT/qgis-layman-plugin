@@ -445,11 +445,8 @@ class Layman(QObject):
         server, type_conversion_ok = proj.readEntry("Layman", "Server","")
         name, type_conversion_ok = proj.readEntry("Layman", "Name","")    
         if server != "" and name != "":
-            if server == self.URI and not afterLogged and self.laymanUsername !="":                    
-                if self.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Tento projekt obsahuje odkaz na Layman server. Chcete ho nastavit jako aktuální kompozici?")
-                else:
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "This project includes link to Layman server. Do you want set the project as current composition?")
+            if server == self.URI and not afterLogged and self.laymanUsername !="": 
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("This project includes link to Layman server. Do you want set the project as current composition?"))
                 msgbox.addButton(QMessageBox.Yes)
                 msgbox.addButton(QMessageBox.No)
                 msgbox.setDefaultButton(QMessageBox.No)
@@ -468,12 +465,8 @@ class Layman(QObject):
                 else:
                     self.current = None
             else:
-                if afterLogged == False:
-                    if self.locale == "cs":
-                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Tento projekt obsahuje odkaz na Layman server. Chcete se k tomuto serveru přihlásit?")
-                    else:
-                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "This project includes link to Layman server. Do you want login?")
-                               
+                if afterLogged == False:                    
+                    msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("This project includes link to Layman server. Do you want login?"))                               
                     msgbox.addButton(QMessageBox.Yes)
                     msgbox.addButton(QMessageBox.No)
                     msgbox.setDefaultButton(QMessageBox.No)
@@ -506,39 +499,18 @@ class Layman(QObject):
         else:
             return False 
     def setGuiForItem(self, item):
-        if item.text(1) == "GEOJSON":
-            if self.locale == "cs":
-                item.setToolTip(1,"Vrstva načtená z lokálního souboru geojson.")
-            else:
-                item.setToolTip(1,"Layer loaded from a local geojson file.")
-
-        if item.text(1) == "SHP":
-            if self.locale == "cs":
-                item.setToolTip(1,"Vrstva načtená z lokálního souboru SHP.")
-            else:
-                item.setToolTip(1,"Layer loaded from a local SHP file.")
-
-        if item.text(1) == "MEMORY":
-            if self.locale == "cs":
-                item.setToolTip(1,"Vrstva uložená v paměti QGIS. Po vypnutí QGIS bude smazána.")
-            else:
-                item.setToolTip(1,"Layer stored in QGIS memory. It will be deleted after QGIS is turned off.")
-
-        if item.text(1) == "WMS":
-            if self.locale == "cs":
-                item.setToolTip(1,"Vrstva načtená přes službu WMS poskytující data v rasterovém formátu. Je možné tuto službu zaměnit za vektorovou službu WFS pomocí tlačítka.")
-            else:
-                item.setToolTip(1,"A layer loaded over a WMS service that provides data in a raster format. It is possible to change this service to a WFS vector service using the button.")
-        if item.text(1) == "WFS":
-            if self.locale == "cs":
-                item.setToolTip(1,"Vrstva načtená přes službu WFS poskytující data ve vektorovém formátu. Je možné tuto službu zaměnit za rasterovou službu WMS pomocí tlačítka. Změny v této vrstvě jsou ukládány na server.")
-            else:
-                item.setToolTip(1,"A layer loaded over a WFS service that provides data in a vector format. It is possible to change this service to a WMS raster service using the button. Changes in this layer are saved to the server.")
-        if item.text(1) == "OGR":
-            if self.locale == "cs":
-                item.setToolTip(1,"Vektorová vrstva načtená z lokálního souboru.")
-            else:
-                item.setToolTip(1,"Vector layer loaded from a local file.")
+        if item.text(1) == "GEOJSON":            
+            item.setToolTip(1, self.tr("Layer loaded from a local geojson file."))
+        if item.text(1) == "SHP":            
+            item.setToolTip(1, self.tr("Layer loaded from a local SHP file."))
+        if item.text(1) == "MEMORY":            
+            item.setToolTip(1, self.tr("Layer stored in QGIS memory. It will be deleted after QGIS is turned off."))
+        if item.text(1) == "WMS":            
+            item.setToolTip(1,self.tr("A layer loaded over a WMS service that provides data in a raster format. It is possible to change this service to a WFS vector service using the button."))
+        if item.text(1) == "WFS":            
+            item.setToolTip(1,self.tr("A layer loaded over a WFS service that provides data in a vector format. It is possible to change this service to a WMS raster service using the button. Changes in this layer are saved to the server."))
+        if item.text(1) == "OGR":            
+            item.setToolTip(1,self.tr("Vector layer loaded from a local file."))
 
     def getSource(self, layer):
         uri = layer.dataProvider().uri().uri()
@@ -911,11 +883,8 @@ class Layman(QObject):
             composition = self.instance.getComposition()
             print("crs changed")              
             crs = QgsProject.instance().crs()
-            if  composition['projection'] != crs.authid().lower() and self.current != None:                                  
-                if self.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Souřadnicový systém byl změnen na: "+ str(crs.authid())+". Chcete tento souřadnicový systém zapsat do kompozice?")
-                else:
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Coordinate system was changed to: "+ str(crs.authid())+". Do you want write it to composition?")
+            if  composition['projection'] != crs.authid().lower() and self.current != None:   
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("Coordinate system was changed to: ")+ str(crs.authid())+self.tr(". Do you want write it to composition?"))
                 msgbox.addButton(QMessageBox.Yes)
                 msgbox.addButton(QMessageBox.No)
                 msgbox.setDefaultButton(QMessageBox.No)
@@ -1528,7 +1497,7 @@ class Layman(QObject):
 
    
     def syncOrder2(self, layers):
-        self.showExportInfo.emit("Aktualizace pořadí vrstev" if self.locale == "cs" else "Update layer order")
+        self.showExportInfo.emit(self.tr("Update layer order"))
         serverOrder = self.instance.getLayerNamesList()
         composition = self.instance.getComposition()   
     
@@ -1583,7 +1552,7 @@ class Layman(QObject):
         self.dlg.progressBar_loader.show()
         self.dlg.pushButton_save.setEnabled(False)
     def updateLayerPropsInComposition(self):
-        self.showExportInfo.emit("Aktualizace viditelnost vrstev" if self.locale == "cs" else "Update layer visibility")
+        self.showExportInfo.emit(self.tr("Update layer visibility"))
         composition = self.instance.getComposition()
         root = QgsProject.instance().layerTreeRoot()
         sublayers = root.children()     
@@ -1936,11 +1905,8 @@ class Layman(QObject):
                     self.processingList[i][2] = 2
                    
                     done = done + 1
-            try:
-                if self.locale == "cs":
-                    self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
-                else:
-                    self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+            try:                
+                self.dlg.label_progress.setText(self.tr("Sucessfully exported: ") +  str(self.uploaded) + " / " + str(self.batchLength) )
             except:
                 pass
             try:
@@ -2053,11 +2019,8 @@ class Layman(QObject):
                 self.processingList[i][2] = 2
                
                 done = done + 1
-        try:
-            if self.locale == "cs":
-                self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(self.uploaded) + " / " + str(self.batchLength) )
-            else:
-                self.dlg.label_progress.setText("Sucessfully exported: " +  str(self.uploaded) + " / " + str(self.batchLength) )
+        try:            
+            self.dlg.label_progress.setText(self.tr("Sucessfully exported: ") +  str(self.uploaded) + " / " + str(self.batchLength) )
         except:
             pass
         try:
@@ -2965,11 +2928,8 @@ class Layman(QObject):
             except:
                 print("uuid")
         if self.dlg.layersToUpload == 1:
-            QgsMessageLog.logMessage("resetProgressbar")
-            if self.locale == "cs":
-                self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(1) + " / " + str(1) )
-            else:
-                self.dlg.label_progress.setText("Sucessfully exported: " +  str(1) + " / " + str(1) )
+            QgsMessageLog.logMessage("resetProgressbar")            
+            self.dlg.label_progress.setText(self.tr("Sucessfully exported: ") +  str(1) + " / " + str(1) )
 
         QgsMessageLog.logMessage("export")
         QgsMessageLog.logMessage("disableProgress")
@@ -3002,11 +2962,8 @@ class Layman(QObject):
                     failedRequest = failedRequest + 1
                     if failedRequest == 3:
                         QgsMessageLog.logMessage("errorConnection")
-                        QgsMessageLog.logMessage("resetProgressbar")
-                        if self.locale == "cs":
-                            self.dlg.label_progress.setText("Úspěšně exportováno: " +  str(0) + " / " + str(1) )
-                        else:
-                            self.dlg.label_progress.setText("Sucessfully exported: " +  str(0) + " / " + str(1) )
+                        QgsMessageLog.logMessage("resetProgressbar")                        
+                        self.dlg.label_progress.setText(self.tr("Sucessfully exported: ") +  str(0) + " / " + str(1) )
                         return
 
             try:
@@ -3480,7 +3437,8 @@ class Layman(QObject):
             return url_param  
         else:
             return self.laymanUsername                           
-    def addLayerToComposition(self,composition, layersList, currentSet): 
+    def addLayerToComposition(self,composition, layersList, currentSet):        
+        uri = self.URI.replace("/client","")
         for layer in layersList:
             self.showExportInfo.emit("Nahrávání vrstvy: " + layer.name() if self.locale == "cs" else "Uploading layer: " + layer.name())
             if (isinstance(layer,QgsRasterLayer)) and layer.dataProvider().uri().uri() != "":
@@ -3529,15 +3487,15 @@ class Layman(QObject):
                             if self.isXYZ(layers[i].name()):
                                 self.saveXYZ(layers[i])
                             else:
-                                wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'_wms/ows'
+                                wmsUrl = uri+'/geoserver/'+self.laymanUsername+'_wms/ows'
                                 composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":self.rasterService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5, "visibility": True,"dimensions":{}})
                                                
-                    elif service == 'wfs':
-                        wmsUrl = self.URI.replace("/client","")+'/geoserver/'+self.laymanUsername+'/wfs'
-                        styleUrl = self.URI+'/rest/'+self.laymanUsername+'/layers/'+ str(layerName) + "/style"
+                    elif service == 'wfs':                        
+                        wmsUrl = (uri+'/geoserver/'+self.laymanUsername+'/wfs')                       
+                        styleUrl = uri+'/rest/'+self.laymanUsername+'/layers/'+ str(layerName) + "/style"
                         composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":self.vectorService,"style": styleUrl,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"name": str(layerName),"protocol":{"format": self.vectorProtocol,"url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
                     else:
-                        wmsUrl = self.URI.replace("/client", "") +'/geoserver/'+self.laymanUsername+'_wms/ows'
+                        wmsUrl = uri +'/geoserver/'+self.laymanUsername+'_wms/ows'
                         composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":self.rasterService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
                     successful = successful + 1
                 print("saving layer records to composition")              
@@ -3588,8 +3546,8 @@ class Layman(QObject):
         df=pd.DataFrame([composition])
         df.to_clipboard(index=False,header=False)
     def patchMap2(self, noInfo = False):
-        if not noInfo:
-            self.showExportInfo.emit("Ukládání kompozice" if self.locale == "cs" else "Saving composition")
+        if not noInfo:            
+            self.showExportInfo.emit(self.tr("Saving composition"))
         composition = self.instance.getComposition()       
        
         tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
@@ -4423,11 +4381,8 @@ class Layman(QObject):
             else:
                 shutil.copy2(s, d)
     def updatePlugin(self, version):
-        if (len(version.split(".")) > 2):
-            if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Aktualizace pluginu", "Tato verze pluginu není v QGIS repozitáři a může obsahovat nové netestované funkcionality. Chcete opravdu instalovat tuto verzi?")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Plugin update", "This version of the plugin is not included in the QGIS repository and may contain new untested functionalities. Do you really want to install this version?")
+        if (len(version.split(".")) > 2):            
+            msgbox = QMessageBox(QMessageBox.Question, self.tr("Plugin update"), self.tr("This version of the plugin is not included in the QGIS repository and may contain new untested functionalities. Do you really want to install this version?"))
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
@@ -4435,11 +4390,8 @@ class Layman(QObject):
             if (reply == QMessageBox.No):
                 return
         url = "https://gitlab.com/plan4all/layman-qgis-plugin/-/archive/master/layman-qgis-plugin-master.zip"
-        if not self.checkQgisVersion():        
-            if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Aktualizace pluginu", "Plugin vyžaduje verzi QGIS 3.26 a vyšší. Chcete přesto pokračovat?")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Plugin update", "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?")
+        if not self.checkQgisVersion():    
+            msgbox = QMessageBox(QMessageBox.Question, self.tr("Plugin update"), self.tr("Plugin requires QGIS version 3.26 and higher. Do you still want to continue?"))
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
@@ -4484,11 +4436,8 @@ class Layman(QObject):
         else:
             return False
     def _onSuccessTs(self):
-        self.utils.showQgisBar(["Časová wms úspěšně exportována.","Time series WMS successfully exported."], Qgis.Success)     
-        if self.locale == "cs":
-            self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")
-        else:
-            self.dlg.label_progress.setText("Sucessfully exported: 1 / 1")            
+        self.utils.showQgisBar(["Časová wms úspěšně exportována.","Time series WMS successfully exported."], Qgis.Success)  
+        self.dlg.label_progress.setText(self.tr("Sucessfully exported:") + " 1 / 1")            
         self.dlg.progressBar.hide()        
     def layerChanged(self):
         if (iface.activeLayer() != None and isinstance(iface.activeLayer(), QgsVectorLayer)):
