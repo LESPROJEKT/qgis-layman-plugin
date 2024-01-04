@@ -277,8 +277,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         value = False
         for item in self.treeWidget.selectedItems():
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
-            if isinstance(layer, QgsRasterLayer):
-                print(self.utils.isBinaryRaster(layer))
+            if isinstance(layer, QgsRasterLayer):                
                 if self.utils.isBinaryRaster(layer):
                     text = "Nejbližší" if self.layman.locale == "cs" else "nearest"
                 else: 
@@ -299,12 +298,9 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 return False
         return True 
     def getRegex(self,string):       
-        string = self.comboBox_layers.currentText()
-        print(string)
-        print(string)
+        string = self.comboBox_layers.currentText()      
         patterns =  [r'[0-9]{8}', r'[0-9]{8}T[0-9]{6}Z', r'([0-9]{8}T[0-9]{6})000(Z)', r'([0-9]{4}).([0-9]{2}).([0-9]{2})']
-        for pattern in patterns:
-            print(pattern)
+        for pattern in patterns:            
             if re.search(pattern, string):
                 print("Pattern found in the string.")
                 self.lineEdit_regex.setText(pattern)   

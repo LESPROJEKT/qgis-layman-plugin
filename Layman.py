@@ -226,12 +226,7 @@ class Layman(QObject):
             os.mkdir(tempDir)
             print("Directory " , tempDir ,  " Created ")
         except FileExistsError:
-            print("Directory " , tempDir ,  " already exists")
-            
-        # self.timer = QTimer()
-        # self.timer.timeout.connect(self.refreshWfsLayers)
-        # self.timer.start(60000)             
-
+            print("Directory " , tempDir ,  " already exists")      
     
     def tr(self, message):     
         return QCoreApplication.translate('Layman', message)
@@ -550,7 +545,7 @@ class Layman(QObject):
             layer_parent = tree_layer.parent()
 
             if layer_parent:                
-                group_parent = layer_parent.parent() # If you want to go up another level
+                group_parent = layer_parent.parent() 
                 test = layer_parent.name() or 'root'
                 if test == 'root':
                     return False
@@ -573,9 +568,7 @@ class Layman(QObject):
     def differentThanBefore(self):
         for index in range(0, self.dlg.listWidget_layers.count()):
             item = self.dlg.listWidget_layers.item(index)
-            if (item.foreground().color().green() == 18 and item.checkState() == 2):
-                print("ids")
-                print(self.layerIds[index])
+            if (item.foreground().color().green() == 18 and item.checkState() == 2):                
                 if self.instance.isLayerId(self.layerIds[index][1]):
                     pass 
                 else: 
@@ -584,16 +577,10 @@ class Layman(QObject):
                         if layer.id() == self.layerIds[index][1]:
                             data = { 'name' :  self.utils.removeUnacceptableChars(layer.name()), 'title' : str(layer.name())}
                             self.patchThread2(layer.name(), data, layer.id())
-                            self.instance.changeLayerId(layer)
-                           
-
-
+                            self.instance.changeLayerId(layer)     
             if (item.foreground().color().green() == 18 and item.checkState() == 0):
-                item = self.dlg.listWidget_layers.item(index)
-                
-
+                item = self.dlg.listWidget_layers.item(index)    
                 if self.instance.isLayerId(self.layerIds[index][1]):
-
                     del item
                     self.dlg.listWidget_layers.repaint()
 
@@ -655,8 +642,7 @@ class Layman(QObject):
         else:
             self.settings.setValue("laymanRememberQfield", "")
         if response.status_code == 200:
-            self.qLogged = True
-            print(res['token'])
+            self.qLogged = True            
             self.Qtoken = res['token']            
             self.dlg2 = ShowQProjectDialog()
             self.dlg2.show()
@@ -803,8 +789,7 @@ class Layman(QObject):
           'Content-Type': 'application/json'
         }  
         r = self.utils.requestWrapper("POST", url, payload, files = None)
-
-        print(response.text)
+    
 ### qfield plugin uploader
     def _prepare_uri(self, uri: Union[str, List[str], QUrl]) -> QUrl:
         if isinstance(uri, QUrl):
@@ -836,15 +821,11 @@ class Layman(QObject):
             request = QNetworkRequest(url)
             request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
             print(b"Authorization", "Token {}".format(self.Qtoken).encode("utf-8"))
-
             if self.Qtoken:
                 request.setRawHeader(
                     b"Authorization", "Token {}".format(self.Qtoken).encode("utf-8")
                 )
-
-            multi_part = QHttpMultiPart(QHttpMultiPart.FormDataType)
-         
-
+            multi_part = QHttpMultiPart(QHttpMultiPart.FormDataType)   
             # most of the time there is no other payload
             if payload is not None:
                 json_part = QHttpPart()
@@ -868,10 +849,7 @@ class Layman(QObject):
                         'form-data; name="file"; filename="{}"'.format(filename),
                     )
 
-                    multi_part.append(file_part)
-         
-           # with disable_nam_timeout(self._nam):
-            print(multi_part)
+                    multi_part.append(file_part)    
             xx = QgsNetworkAccessManager.instance()
             threading.Thread(target=lambda: xx.post(request, multi_part)).start()
 
@@ -893,9 +871,7 @@ class Layman(QObject):
                     src = QgsCoordinateReferenceSystem(int(composition['projection'].split(":")[1]))       
                     dest = QgsCoordinateReferenceSystem(int(QgsProject.instance().crs().authid().split(":")[1]))  
                     tform = QgsCoordinateTransform(src, dest, QgsProject.instance())              
-                    coords = self.utils.tranformCoords(composition['nativeExtent'][0], composition['nativeExtent'][2], composition['nativeExtent'][1], composition['nativeExtent'][3], src, dest) 
-                    print(coords)
-                    print(src, dest)                                    
+                    coords = self.utils.tranformCoords(composition['nativeExtent'][0], composition['nativeExtent'][2], composition['nativeExtent'][1], composition['nativeExtent'][3], src, dest)                                                  
                     composition['nativeExtent'][0] = float(coords[0])
                     composition['nativeExtent'][2] = float(coords[1])
                     composition['nativeExtent'][1] = float(coords[2])
@@ -948,14 +924,12 @@ class Layman(QObject):
         else:
             username = self.parseUsernameFromUrl(self.findUrlParam(layer))
         name = self.utils.removeUnacceptableChars(title)       
-        self.existLayer = False
-        print(username) 
+        self.existLayer = False     
         if (type == "wms"):
-            wmsUrl = (self.URI+'/geoserver/'+username+'/ows').replace("/client","")
-            print(wmsUrl)
+            wmsUrl = (self.URI+'/geoserver/'+username+'/ows').replace("/client","")            
             composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":self.rasterService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
         if (type == "wfs"):
-            wfsUrl = (self.URI+'/geoserver/'+username+'/wfs').replace("/client","")
+            wfsUrl = (self.URI+'/rest/geoserver/'+username+'/wfs').replace("/client","")                    
             composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":self.vectorService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": self.vectorProtocol,"url": wfsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
        
     def checkIfLayersExists(self):
@@ -1698,6 +1672,7 @@ class Layman(QObject):
                     r = self.utils.requestWrapper("GET", url, payload = None, files = None)
                     data = r.json()
                     url = data['wfs']['url']
+                    print(url)
                     layer['className'] = self.vectorService
                     layer['protocol'] = {
                         "FROMCRS": "EPSG:3857",
@@ -2074,15 +2049,12 @@ class Layman(QObject):
                     layer.setOpacity(composition['layers'][i]['opacity'])      
         QgsMessageLog.logMessage("layersLoaded")
     def changeVisibility(self, layerTreeNode):        
-        if layerTreeNode.nodeType() == 0:
-            print ("Group " + layerTreeNode.name())         
+        if layerTreeNode.nodeType() == 0:                   
             sublayers = layerTreeNode.children()
-            for lay in sublayers:
-                print ("sub " + lay.name())
+            for lay in sublayers:             
                 self.modifyVisibilityOfLayer(lay.name(), lay.isVisible())
         else:
-            if layerTreeNode.nodeType() == 1:
-                print ("Layer " + layerTreeNode.name())
+            if layerTreeNode.nodeType() == 1:             
                 self.modifyVisibilityOfLayer(layerTreeNode.name(), layerTreeNode.isVisible())
             else:
                 print ("Error")
@@ -2118,8 +2090,7 @@ class Layman(QObject):
         for i in range (0, len(composition['layers'])):  
             if (self.utils.removeUnacceptableChars(composition['layers'][i]['title']) == self.utils.removeUnacceptableChars(layer.name())):            
                 composition['layers'][i]['opacity'] = layer.opacity()                
-    def removeSignals(self):
-        print("removing signals")
+    def removeSignals(self):      
         layers = QgsProject.instance().mapLayers().values()
         for layer in layers:
             try:
@@ -2195,12 +2166,10 @@ class Layman(QObject):
 
         sldExists = os.path.isfile(sldPath)
         qmlExists = os.path.isfile(qmlPath)
-        if (qmlExists):
-            print("qml loaded")
+        if (qmlExists):    
             vlayer.loadNamedStyle(qmlPath)
         elif (sldExists):
-            vlayer.loadSldStyle(os.path.splitext(fileName)[0]+ ".sld")
-            print("sld loaded")
+            vlayer.loadSldStyle(os.path.splitext(fileName)[0]+ ".sld")        
         QgsProject.instance().addMapLayer(vlayer)
         vlayer.triggerRepaint()
     
@@ -2244,8 +2213,6 @@ class Layman(QObject):
             comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"describedBy": self.schemaURl,"schema_version": self.schemaVersion,"nativeExtent": [xmin,ymin,xmax,ymax],"extent":[exmin,eymin,exmax,eymax],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}
         else:
             comp = {"abstract":abstract,"center":[center.x(),center.y()],"current_base_layer":{"title":"Composite_base_layer"},"extent":[str(exmin),str(eymin),str(exmax),str(eymax)],"groups":{"guest":"w"},"layers":[],"name":compositeName,"projection":compositeEPSG,"scale":1,"title":compositeTitle,"units":"m","user":{"email":"","name":self.laymanUsername}}        
-
-        print(comp)
         return comp
     def loadLocalFile(self):
         options = QFileDialog.Options()
@@ -2311,20 +2278,17 @@ class Layman(QObject):
 
             if(result2[0] == 2): ## testujeme zda není soubor otevřený v jiném procesu / návratový kod 2
 
-                tempFile = self.getTempPath(os.path.basename(layer_name.replace(".geojson", "") ))
-                print(tempFile)              
+                tempFile = self.getTempPath(os.path.basename(layer_name.replace(".geojson", "")))                         
                 sld_temp_filename = tempFile.replace("geojson", "sld")
                 qml_temp_filename = tempFile.replace("geojson", "qml")
                 layer.saveSldStyle(sld_temp_filename)
                 layer.saveNamedStyle(qml_temp_filename)
-                result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(layer, tempFile, "utf-8", crs, ogr_driver_name)
-                print(result2)
+                result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(layer, tempFile, "utf-8", crs, ogr_driver_name)              
                 if(result2[0] == 2):
                     self.utils.emitMessageBox.emit(["Soubor není možné přepsat. Je již otevřený jiným procesem.", "It is not possible overwrite this file. File is already open in other process."])                    
                     return
                 if os.path.basename(layer_name.replace(".geojson", "")) != '':
-                    QgsProject.instance().removeMapLayer(layer.id())
-                    print(tempFile, layer_name)
+                    QgsProject.instance().removeMapLayer(layer.id())                  
                     shutil.copy(tempFile, layer_name)
                     shutil.copy(sld_temp_filename, layer_name.replace(".geojson", ".sld"))
                     shutil.copy(qml_temp_filename, layer_name.replace(".geojson", ".qml"))
@@ -2401,8 +2365,7 @@ class Layman(QObject):
                 name = self.utils.getSvgPath() + name
             with open(name, "rb") as image_file:
                 encoded_string = base64.b64encode(image_file.read())  
-            decoded =   encoded_string.decode("utf-8")  
-           # print("base64:"  + decoded)    
+            decoded =   encoded_string.decode("utf-8")           
             option.set("shapeSVGFile", "base64:"  + decoded)   
         modified_xml_data = ET.tostring(root, encoding="utf-8").decode("utf-8")
         with open(qml_filename, 'w') as file:
@@ -2454,11 +2417,9 @@ class Layman(QObject):
         return layer_filename
     def _cleanTemp(self, basename):     
         temp_dir = tempfile.gettempdir()     
-        files = [f for f in os.listdir(temp_dir) if f.startswith(basename)]       
-        print(files) 
+        files = [f for f in os.listdir(temp_dir) if f.startswith(basename)]   
         for file in files:
-            try:
-                print(temp_dir + os.sep + file)
+            try:               
                 os.remove(temp_dir + os.sep + file)
             except OSError as e:
                 pass       
@@ -2516,9 +2477,7 @@ class Layman(QObject):
                             path2 = i.symbol().symbolLayer(0).path()
                             pathRelative = path2.split("svg/")[1] if len(path2.split("svg/"))>1 else ""
                             decoded =   encoded_string.decode("utf-8")
-                            path3 = ("base64:"  + decoded) 
-
-                            print(path3)
+                            path3 = ("base64:"  + decoded)                          
                             with open(stylePath, 'r') as file :
                                 filedata = file.read() 
                             if pathRelative != "":
@@ -2770,8 +2729,7 @@ class Layman(QObject):
         pathWithoutExt = path.replace(ext,"")
         ext = ext.lower()
         if ext == ".tif" or ".tiff":
-            if os.path.exists(pathWithoutExt + ".tfw") or os.path.exists(pathWithoutExt + ".TFW"):
-                print("external file detected")
+            if os.path.exists(pathWithoutExt + ".tfw") or os.path.exists(pathWithoutExt + ".TFW"):               
                 if not onlyExt:
                     return pathWithoutExt + ".tfw"
                 else:
@@ -2825,10 +2783,8 @@ class Layman(QObject):
             with open(stylePath, 'w') as file:
                 file.write(updated_sld_style)
     
-    def postRasterThread(self, layers,data, q,progress, patch, resamplingMethod = "Není vybrán"):
-        print(self.resamplingMethods)
-        resamplingMethod = self.resamplingMethods[resamplingMethod]
-        print(resamplingMethod)
+    def postRasterThread(self, layers,data, q,progress, patch, resamplingMethod = "Není vybrán"):        
+        resamplingMethod = self.resamplingMethods[resamplingMethod]        
         for lay in layers:
             if lay.dataProvider().name() != 'wms':
                 layer = lay
@@ -2902,8 +2858,7 @@ class Layman(QObject):
                 arr.append(piece) 
             resumableFilename = layer_name+ ext
             layman_original_parameter = "file"
-            resumableTotalChunks = len(arr)       
-            print(resumableTotalChunks)
+            resumableTotalChunks = len(arr)  
             self.processChunks(arr, resumableFilename, layman_original_parameter,resumableTotalChunks, layer_name,filePath,ext)    
         else:        
             if patch:
@@ -2917,8 +2872,7 @@ class Layman(QObject):
                 zipObj.close()
                 files = {'file': (zipPath, open(zipPath, 'rb')),'style': open(stylePath, 'rb')}
             data['crs'] = 'EPSG:4326'
-            response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)
-            print(response.content)
+            response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)         
             res = self.utils.fromByteToJson(response.content)            
             try:
                 if res['code'] == 4:
@@ -2998,13 +2952,8 @@ class Layman(QObject):
                 files = [('file', open(geoPath, 'rb')), ('style', open(stylePath, 'rb'))]
             else:
                 files = {'file': (geoPath, open(geoPath, 'rb')),}
-
-
-            response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)
-            
-            status = response.status_code
-            print(status)
-       
+            response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)            
+            status = response.status_code    
         if progress:      
             
             if (os.path.getsize(geoPath) > self.CHUNK_SIZE): 
@@ -3272,16 +3221,14 @@ class Layman(QObject):
         return [val, ret]
 
     def addExistingWMSLayerToCompositeThread2(self, title,nameInList):
-        composition = self.instance.getComposition()
-        print("nameInList"+ nameInList)
+        composition = self.instance.getComposition()      
         name = self.utils.removeUnacceptableChars(title).lower() 
         dimension = ""
         layer = QgsProject.instance().mapLayersByName(nameInList)[0]
         legend = list()
         try:
             legend = self.getLegendUrlFromCapatibilites(layer)
-        except:
-            print("legend failed")
+        except:           
             legend.append("0")
         greyScale = self.getGreyScaleMode(layer)
         arc = False
@@ -3332,9 +3279,7 @@ class Layman(QObject):
                 if(param[0] == "url"):
                     url = param[1]
             crs = layer.crs().authid()
-            composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"XYZ","singleTile":False,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})
-        print("legend set to:")
-        print(legend[0])
+            composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(nameInList).replace("'", ""),"className":"XYZ","singleTile":False,"greyscale": greyScale, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"url": url ,"params":{"LAYERS": "","INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"","VERSION":"1.3.0"},"ratio":1.5,"dimensions":{}})       
         if legend[0] in ["1", "0"]:            
             if len(legend) == 1:
                 composition["legends"] = []
@@ -3361,17 +3306,14 @@ class Layman(QObject):
             response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.utils.removeUnacceptableChars(layer_name)+ '/style', headers = self.utils.getAuthHeader(self.authCfg))      
         res = response.content
         res = res.decode("utf-8")
-        if (res[0:5] == "<qgis" and response.status_code == 200):
-            print("got qml")
+        if (res[0:5] == "<qgis" and response.status_code == 200):           
             suffix = ".qml"
 
-        if (res[0:5] == "<?xml" and response.status_code == 200):
-            print("got sld")
+        if (res[0:5] == "<?xml" and response.status_code == 200):            
             suffix = ".sld"
         try:
             tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layer_name) + suffix
-        except:
-            print("symbologie nenalezena")
+        except:           
             return (400,"")
         
         with open(tempf, 'wb') as f:
@@ -3432,8 +3374,7 @@ class Layman(QObject):
             if "url=" in param:
                 url_param = param
                 break
-        if url_param:
-            print(url_param)        
+        if url_param:                 
             return url_param  
         else:
             return self.laymanUsername                           
@@ -3441,11 +3382,9 @@ class Layman(QObject):
         uri = self.URI.replace("/client","")
         for layer in layersList:
             self.showExportInfo.emit("Nahrávání vrstvy: " + layer.name() if self.locale == "cs" else "Uploading layer: " + layer.name())
-            if (isinstance(layer,QgsRasterLayer)) and layer.dataProvider().uri().uri() != "":
-                print("External WMS detected")                
+            if (isinstance(layer,QgsRasterLayer)) and layer.dataProvider().uri().uri() != "":                                
                 self.addExternalWMSToComposite(layer.name())
-            if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
-                print("External WFS detected")
+            if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':                
                 path = ""
                 path = self.getGroupOfLayer(layer)
                 if path == 'root':
@@ -3490,7 +3429,7 @@ class Layman(QObject):
                                 wmsUrl = uri+'/geoserver/'+self.laymanUsername+'_wms/ows'
                                 composition['layers'].append({"metadata":{},'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":self.rasterService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"url": wmsUrl ,"params":{"LAYERS": str(layerName),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5, "visibility": True,"dimensions":{}})
                                                
-                    elif service == 'wfs':                        
+                    elif service == 'wfs':       
                         wmsUrl = (uri+'/geoserver/'+self.laymanUsername+'/wfs')                       
                         styleUrl = uri+'/rest/'+self.laymanUsername+'/layers/'+ str(layerName) + "/style"
                         composition['layers'].append({"metadata":{}, 'path': path, "visibility":True,"workspace":self.laymanUsername,"opacity":layer.opacity(),"title":str(layers[i].name()),"className":self.vectorService,"style": styleUrl,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":minScale,"minResolution":(self.utils.scaleToResolution(layers[i].maximumScale())),"name": str(layerName),"protocol":{"format": self.vectorProtocol,"url": wmsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
@@ -3563,15 +3502,13 @@ class Layman(QObject):
         read = self.instance.getAllPermissions()['read']
         write = self.instance.getAllPermissions()['write']
         data['access_rights.read'] =  self.listToString(read)
-        data['access_rights.write'] = self.listToString(write)
-        print("export map")      
+        data['access_rights.write'] = self.listToString(write)            
         workspace = self.instance.getWorkspace()       
         r = self.utils.requestWrapper("DELETE", self.URI+'/rest/'+workspace+'/maps/'+composition['name'], payload = None, files = None)      
         time.sleep(0.5)        
         response = self.utils.requestWrapper("POST", self.URI+'/rest/'+workspace+'/maps', data, files)   
         self.processingRequest = False        
-        res = self.utils.fromByteToJson(response.content)    
-        # print(response.content)
+        res = self.utils.fromByteToJson(response.content) 
         return response   
 
     def deleteLayer(self, layerName):
@@ -3720,8 +3657,7 @@ class Layman(QObject):
         else:
             return layerString
     def loadArcGisRest(self, url, layerName,  groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False):       
-        url = self.utils.decode_url(url + "?f=json")
-        print(url) 
+        url = self.utils.decode_url(url + "?f=json")      
         r = requests.get(url)        
         res = json.loads(r.content)
         id = 0   
@@ -3733,12 +3669,8 @@ class Layman(QObject):
             for layer in res['layers']:
                 print(layer, res['layers'])
                 if layer['name'] == layerName:
-                    id = layer['id']  
-       
-        
-                          
-        rlayer = QgsRasterLayer("url="+url+" layer='"+str(id)+"'", layerName, "arcgismapserver")          
-        print(rlayer.isValid())
+                    id = layer['id']        
+        rlayer = QgsRasterLayer("url="+url+" layer='"+str(id)+"'", layerName, "arcgismapserver")   
         if (rlayer.isValid()):
             if minRes != None and maxRes != None:
                 rlayer.setMinimumScale(self.utils.resolutionToScale(maxRes))
@@ -4183,10 +4115,8 @@ class Layman(QObject):
         resumableFilename = layer_name+'.geojson'
         layman_original_parameter = "file"
         resumableTotalChunks = len(arr)     
-        for i in range (1, len(arr)+1):  ##chunky jsou počítané od 1 proto +1
-                
-            file = arr[i-1] # rozsekaná část souboru
-            resumableChunkNumber = i  # cislo casti
+        for i in range (1, len(arr)+1):  ##chunky jsou počítané od 1 proto +1                
+            file = arr[i-1] # rozsekaná část souboru            
             payload = {
             'file' : "chunk"+str(i)+".geojson",
             'resumableFilename': resumableFilename,
@@ -4199,7 +4129,7 @@ class Layman(QObject):
             f.write(bytearray(arr[i-1]))
             f.close()
             files = {'file': (layer_name.lower().replace(" ", "_")+".geojson", open(filePath +os.sep+ "chunk"+str(i)+".geojson", 'rb')),}   
-            response = self.utils.requestWrapper("POST", url, payload, files)              
+            self.utils.requestWrapper("POST", url, payload, files)              
 
 
     def authOptained(self):
@@ -4247,8 +4177,7 @@ class Layman(QObject):
             self.logout()
             return               
         if 'code' in res:          
-           if res['code'] == 34: # res['code'] == 34, code 35 je pokud již jiný uživatel má účet, který chceme registrovat (code 35 pravděpodobně nemůže nastat)
-                print("user exists")
+           if res['code'] == 34:            
                 self.laymanUsername = res['detail']['username']          
                 print("username is: " + self.laymanUsername)
                 self.utils.laymanUsername = self.laymanUsername
@@ -4326,8 +4255,7 @@ class Layman(QObject):
                     self.name = self.utils.getUserName()             
                 except:
                     self.utils.emitMessageBox.emit(["Autorizace nebyla úspěšná!", "Autorization was not sucessfull!"])                
-                url = self.URI+ "/rest/about/version"
-                print(url)              
+                url = self.URI+ "/rest/about/version"                            
                 r = self.utils.requestWrapper("GET", url, payload = None, files = None)                
                 try:
                     res = self.utils.fromByteToJson(r.content)
@@ -4550,8 +4478,7 @@ class Layman(QObject):
         
         if not layer.isValid():
             self.utils.showQgisBar(["Vrstva nebyla úspěšně načtena.","Layer was not successfully loaded."], Qgis.Warning)
-            print("Layer failed to load!")  
-        ## load style 
+            print("Layer failed to load!")         
         if (style[0] == 200):
             if (style[1] == "sld"):
                 tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layerName)+ ".sld"
@@ -4585,8 +4512,7 @@ class Layman(QObject):
         if not self.pluginIsActive:
             self.pluginIsActive = True
             if self.dockwidget == None:               
-                self.dockwidget = AtlasDockWidget()
-            # connect to provide cleanup on closing of dockwidget
+                self.dockwidget = AtlasDockWidget()           
             self.dockwidget.closingPlugin.connect(self.onClosePlugin)
             self.dockwidget.pushButton.clicked.connect(self.sendLayer)
             self.dockwidget.pushButton_2.clicked.connect(self.loadLocalFile)
