@@ -929,8 +929,9 @@ class Layman(QObject):
             wmsUrl = (self.URI+'/geoserver/'+username+'/ows').replace("/client","")            
             composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":self.rasterService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"opacity":1,"url": wmsUrl ,"params":{"LAYERS": str(name),"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
         if (type == "wfs"):
+            styleUrl = self.URI.replace("/client","") +'/rest/'+self.laymanUsername+'/layers/'+ name + "/style"
             wfsUrl = (self.URI+'/rest/geoserver/'+username+'/wfs').replace("/client","")                    
-            composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":self.vectorService,"singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": self.vectorProtocol,"url": wfsUrl,"INFO_FORMAT":"application/vnd.ogc.gml","FORMAT":"image/png","VERSION":"1.3.0"},"ratio":1.5,"visibility": True,"dimensions":{}})
+            composition['layers'].append({"metadata":{},"visibility":True,"opacity":1,"title":str(title),"className":self.vectorService,"style":styleUrl, "singleTile":False, "base": False,"wmsMaxScale":0,"maxResolution":None,"minResolution":0,"name": str(name),"opacity":1 ,"protocol":{"format": self.vectorProtocol,"url": wfsUrl},"ratio":1.5,"visibility": True,"dimensions":{}})
        
     def checkIfLayersExists(self):
         layerListServer = list()
