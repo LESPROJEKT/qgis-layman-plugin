@@ -125,7 +125,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
             reply = msgbox.exec()
             if (reply == QMessageBox.No):
                 return
-        url = "https://gitlab.com/plan4all/layman-qgis-plugin/-/archive/master/layman-qgis-plugin-master.zip"
+        url = "https://github.com/LESPROJEKT/qgis-layman-plugin/archive/master.zip"
         if not self.checkQgisVersion():        
             if self.layman.locale == "cs":
                 msgbox = QMessageBox(QMessageBox.Question, "Aktualizace pluginu", "Plugin vyžaduje verzi QGIS 3.26 a vyšší. Chcete přesto pokračovat?")
@@ -144,7 +144,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
 
         with ZipFile(save_path, 'r') as zipObj:
            zipObj.extractall(tempfile.gettempdir())
-        src = tempfile.gettempdir() + os.sep + "layman-qgis-plugin-master"
+        src = tempfile.gettempdir() + os.sep + "qgis-layman-plugin-master"
 
         self.copytree(src, self.layman.plugin_dir)
         self.close()

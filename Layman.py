@@ -4296,37 +4296,7 @@ class Layman(QObject):
                 shutil.copytree(s, d, symlinks, ignore)
             else:
                 shutil.copy2(s, d)
-    def updatePlugin(self, version):
-        if (len(version.split(".")) > 2):            
-            msgbox = QMessageBox(QMessageBox.Question, self.tr("Plugin update"), self.tr("This version of the plugin is not included in the QGIS repository and may contain new untested functionalities. Do you really want to install this version?"))
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            reply = msgbox.exec()
-            if (reply == QMessageBox.No):
-                return
-        url = "https://github.com/LESPROJEKT/qgis-layman-plugin/archive/master.zip"
-        if not self.checkQgisVersion():    
-            msgbox = QMessageBox(QMessageBox.Question, self.tr("Plugin update"), self.tr("Plugin requires QGIS version 3.26 and higher. Do you still want to continue?"))
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            reply = msgbox.exec()
-            if (reply == QMessageBox.No):
-                return
-        self.installPlugin(url)
-    def installPlugin(self, url):
-        save_path = tempfile.gettempdir() + os.sep + "layman.zip"
-        self.download_url(url, save_path)
-
-        with ZipFile(save_path, 'r') as zipObj:
-           zipObj.extractall(tempfile.gettempdir())
-        src = tempfile.gettempdir() + os.sep + "qgis-layman-plugin-master"
-
-        self.copytree(src, self.plugin_dir)
-        self.dlg.close()
-        self.disableEnvironment()
-        QMessageBox.information(None, "Layman", "Layman plugin was updated. Please restart QGIS.")   
+       
 
   
     def saveIni(self):
