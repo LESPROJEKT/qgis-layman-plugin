@@ -58,19 +58,6 @@
     <string>Close</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_older">
-   <property name="geometry">
-    <rect>
-     <x>60</x>
-     <y>340</y>
-     <width>151</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Get older version &lt; 3.24</string>
-   </property>
-  </widget>
   <widget class="QWidget" name="verticalLayoutWidget">
    <property name="geometry">
     <rect>

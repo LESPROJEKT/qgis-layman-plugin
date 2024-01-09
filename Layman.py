@@ -1058,16 +1058,7 @@ class Layman(QObject):
         if os.path.exists(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt") == False:
             open(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt", "w").close
         if os.path.exists(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt") == False:
-            open(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt", "w").close
-   
-    
-    def getOldVersion(self):
-        response = QMessageBox.question(None, "Downgrade", "Chcete nainstalovat starší verzi pro QGIS 3.24 a nižší?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if response == QMessageBox.Yes:
-            url = "https://gitlab.com/plan4all/layman-qgis-plugin/-/archive/old/layman-qgis-plugin-old.zip"
-            self.installPlugin(url)        
-        else:
-            print("No install")
+            open(tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt", "w").close  
 
     def timeSeries(self, items, regex, title, resamplingMethod="Není vybrán"):    
         if self.locale == "cs":
@@ -1675,13 +1666,9 @@ class Layman(QObject):
                     url = data['wfs']['url']
                     print(url)
                     layer['className'] = self.vectorService
-                    layer['protocol'] = {
-                        "FROMCRS": "EPSG:3857",
-                        "INFO_FORMAT": "application/vnd.ogc.gml",
-                        "LAYERS": name,
+                    layer['protocol'] = {                          
                         "format": self.vectorProtocol,
-                        "url": url,
-                        "style": styleUrl
+                        "url": url                     
                       }
                     del layer['params']
                     del layer['url']
@@ -4318,7 +4305,7 @@ class Layman(QObject):
             reply = msgbox.exec()
             if (reply == QMessageBox.No):
                 return
-        url = "https://gitlab.com/plan4all/layman-qgis-plugin/-/archive/master/layman-qgis-plugin-master.zip"
+        url = "https://github.com/LESPROJEKT/qgis-layman-plugin/archive/master.zip"
         if not self.checkQgisVersion():    
             msgbox = QMessageBox(QMessageBox.Question, self.tr("Plugin update"), self.tr("Plugin requires QGIS version 3.26 and higher. Do you still want to continue?"))
             msgbox.addButton(QMessageBox.Yes)
@@ -4334,7 +4321,7 @@ class Layman(QObject):
 
         with ZipFile(save_path, 'r') as zipObj:
            zipObj.extractall(tempfile.gettempdir())
-        src = tempfile.gettempdir() + os.sep + "layman-qgis-plugin-master"
+        src = tempfile.gettempdir() + os.sep + "qgis-layman-plugin-master"
 
         self.copytree(src, self.plugin_dir)
         self.dlg.close()

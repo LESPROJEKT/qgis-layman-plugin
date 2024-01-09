@@ -10,15 +10,15 @@
 name=Layman
 qgisMinimumVersion=3.26
 description=Layman
-version=2.4.4
+version=2.4.6
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
 about=
 	This plugin is client for Layman server, that provides WFS, WMS services. There is possible create map compositions, store metadata, sigle layers and load back by WMS or WFS. Plugin support OAuth2 autorization and read/write permissions for every layer/composition.
 
-tracker=https://gitlab.com/Vrobel/layman_qgis/-/issues
-repository=https://gitlab.com/Vrobel/layman_qgis/-/blob/master/README.md
+tracker=https://github.com/LESPROJEKT/qgis-layman-plugin/issues
+repository=https://github.com/LESPROJEKT/qgis-layman-plugin/tree/master
 # End of mandatory metadata
 
 # Recommended items:

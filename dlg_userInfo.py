@@ -63,9 +63,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
     
     def setUi(self):
         self.utils.recalculateDPI()
-        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.label_older.setCursor(QCursor(Qt.PointingHandCursor))
-        self.label_older.mousePressEvent = lambda event: self.getOldVersion()  
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")        
         self.comboBox_port.addItem("7070")
         self.comboBox_port.addItem("7071")
         self.comboBox_port.addItem("7072")
