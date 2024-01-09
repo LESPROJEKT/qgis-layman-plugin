@@ -161,7 +161,7 @@ class LaymanUtils(QObject):
         version = config.get('general', 'version')
         return(version)        
     def checkVersion(self):        
-        r = requests.get("https://gitlab.com/plan4all/layman-qgis-plugin/-/raw/master/metadata.txt?inline=false")
+        r = requests.get("https://raw.githubusercontent.com/LESPROJEKT/qgis-layman-plugin/master/metadata.txt")
         buf = io.StringIO(r.text)
         config = configparser.ConfigParser()
         config.read_file(buf)
