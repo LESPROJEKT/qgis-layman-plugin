@@ -42,10 +42,7 @@ from builtins import range, str
 from distutils.version import LooseVersion
 from os import walk
 from typing import Any, Dict, List, Union
-from urllib.request import urlopen
 from zipfile import ZipFile
-
-import pandas as pd
 import processing
 import qgis.core
 import qgis.gui
@@ -3468,10 +3465,8 @@ class Layman(QObject):
         iface.mainWindow().statusBar().addWidget(bar)   
     
     def compositionToClipboard(self):
-
-        composition = self.instance.getComposition()
-        df=pd.DataFrame([composition])
-        df.to_clipboard(index=False,header=False)
+        composition = self.instance.getComposition()        
+        self.utils.copyToClipboard(composition)
     def patchMap2(self, noInfo = False):
         if not noInfo:            
             self.showExportInfo.emit(self.tr("Saving composition"))

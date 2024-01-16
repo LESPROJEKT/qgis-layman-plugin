@@ -34,7 +34,6 @@ import threading
 import requests
 import xml.etree.ElementTree as ET
 import traceback
-import pandas as pd
 from .currentComposition import CurrentComposition
 from .layman_utils import ProxyStyle
 
@@ -1139,9 +1138,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 url = self.URI+'/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'
             else:  
                 url = self.URI+'/client/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'            
-        try:     
-            df=pd.DataFrame([url])
-            df.to_clipboard(index=False,header=False)     
+        try: 
+            self.utils.copyToClipboard(url)
             self.utils.showQgisBar([" URL uloženo do schránky."," URL saved to clipboard."], Qgis.Success)       
         except Exception as e:
             info = str(e)

@@ -30,7 +30,6 @@ from PyQt5.QtGui import QPixmap
 from qgis.core import *
 import threading
 import requests
-import pandas as pd
 from PyQt5.QtWidgets import QPushButton
 from PyQt5 import uic
 import tempfile
@@ -286,8 +285,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if res == None:
             return
         try:
-            df=pd.DataFrame([res[service]['url']])
-            df.to_clipboard(index=False,header=False)
+            self.utils.copyToClipboard(url)
             self.utils.showMessageBar([" URL uloženo do schránky."," URL saved to clipboard."],Qgis.Success)
         except:
             self.utils.showMessageBar([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],Qgis.Warning)

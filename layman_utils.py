@@ -9,6 +9,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, QUrl, QByteArray, Qt
 import io
 from PyQt5.QtNetwork import  QNetworkRequest
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QMessageBox, QApplication
+from qgis.PyQt.QtGui import QGuiApplication
 from .dlg_errMsg import ErrMsgDialog
 import tempfile
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -249,7 +250,9 @@ class LaymanUtils(QObject):
             self.iface.messageBar().pushWidget(self.iface.messageBar().createMessage("Layman:", msg[0]), state, duration=3)
         else:               
             self.iface.messageBar().pushWidget(self.iface.messageBar().createMessage("Layman:", msg[1]), state, duration=3)
-            
+    def copyToClipboard(self, data):      
+        clipboard = QGuiApplication.clipboard()       
+        clipboard.setText(data)        
     def loadWms(self, url, layerName,layerNameTitle, format, epsg, workspace, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False, legend="0"):               
         layerName = self.parseWMSlayers(layerName) 
         epsg = QgsProject.instance().crs().authid()
