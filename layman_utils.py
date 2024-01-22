@@ -780,16 +780,27 @@ QPushButton::indicator {
         css = f"QPushButton {{ background-image: url(''); background-size: 5px 5px; }}"   
         for widget in container.findChildren(QPushButton):
             widget.setStyleSheet(css)
+    def checkIfNotLocalLayer(self):
+        project = QgsProject.instance()
+        layers = project.mapLayers().values()
+        accepted_data_providers = ['wms', 'WFS']
+        layer_found = any(layer.dataProvider().name() not in accepted_data_providers for layer in layers)
+        if layer_found:
+            return False
+        else:
+            return True     
     def compare_json_layers(self, schema1, schema2):
         layers1 = schema1["layers"]
         layers2 = schema2["layers"]      
         layer_names1 = set(layer["title"] for layer in layers1)
         layer_names2 = set(layer["title"] for layer in layers2)
+        layer_canvas = set([layer.name() for layer in QgsProject.instance().mapLayers().values()])
         print(layer_names1, layer_names2)
         # Rozdíl mezi názvy vrstev
         extra_layers1 = layer_names1 - layer_names2
         extra_layers2 = layer_names2 - layer_names1
-
+        canvas_state = layer_canvas - layer_names2
+        canvas_state2 =  layer_names2 - layer_canvas
         if extra_layers1:
             print(f"Ve schématu jedna ubyly tyto vrstvy oproti schématu dva: {', '.join(extra_layers1)}")
             return True
@@ -797,8 +808,11 @@ QPushButton::indicator {
             print(f"Ve schématu jedna přibyly tyto vrstvy oproti schématu dva: {', '.join(extra_layers2)}")
             return True
         if not extra_layers1 and not extra_layers2:
-            print("Všechny vrstvy jsou shodné mezi oběma schématy.")
-            return False
+            if len(canvas_state) != len(canvas_state2):          
+                return True           
+            else:
+                print("Všechny vrstvy jsou shodné mezi oběma schématy.")
+                return False
         return [extra_layers1, extra_layers2]
     def decode_url(self, encoded_url):
         decoded_url = urllib.parse.unquote(encoded_url)
