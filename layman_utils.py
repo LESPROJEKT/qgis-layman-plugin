@@ -831,7 +831,7 @@ class ProxyStyle(QtWidgets.QProxyStyle):
                 pixmapWidth = pixmap.width() / pixmap.devicePixelRatio()
                 pixmapHeight = pixmap.height() / pixmap.devicePixelRatio()
                 iconRect = QtCore.QRect(
-                    QtCore.QPoint(), QtCore.QSize(pixmapWidth, pixmapHeight)
+                    QtCore.QPoint(), QtCore.QSize(int(pixmapWidth), int(pixmapHeight))
                 )
                 iconRect.moveCenter(option.rect.center())
                 iconRect.moveLeft(option.rect.left() + iconSpacing)
