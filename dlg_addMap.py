@@ -167,9 +167,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         for i in range (0, lenRead):
             current_item = QtWidgets.QListWidgetItem(usersDictReversed[res['access_rights']['read'][i]]) 
             self.listWidget_read.addItem(current_item)
-            hidden_text = res['access_rights']['read'][i]
-            print("hidden_text")
-            print(hidden_text)
+            hidden_text = res['access_rights']['read'][i]        
+           
             self.setHiddenItem(current_item, hidden_text)
         for i in range (0, lenWrite):
             current_item = QtWidgets.QListWidgetItem(usersDictReversed[res['access_rights']['write'][i]])
@@ -409,11 +408,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.showQgisBar(["Mapová kompozice je načtena, ale neobsahuje žádné vrstvy.","Map composition is loaded but not contains layers."], Qgis.Success)  
             return
         if len(layers) > 0:
-            if name != old_loaded:            
-                if self.layman.locale == "cs":
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.")
-                else:
-                    msgbox = QMessageBox(QMessageBox.Question, "Layman", "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content.")
+            if name != old_loaded:  
+                msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem."))                
                 msgbox.addButton(QMessageBox.Yes)
                 msgbox.addButton(QMessageBox.No)
                 msgbox.setDefaultButton(QMessageBox.No)
@@ -434,13 +430,27 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.layman.iface.newProject()
                     self.layman.iface.newProjectCreated.connect(self.layman.removeCurrent) 
                 else:
-                    project = QgsProject.instance()                       
-                    for layer_id in project.mapLayers():
-                        layer = project.mapLayer(layer_id)
-                        provider = layer.dataProvider()
-                        provider.reloadData()
-                        self.progressDone.emit()    
-                    return                        
+                    if self.utils.checkIfNotLocalLayer():                  
+                        msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("Načítáte stejnou kompozici. Chcete ponechat původní lokální vrstvy?"))                        
+                        msgbox.addButton(QMessageBox.Yes)
+                        msgbox.addButton(QMessageBox.No)
+                        msgbox.setDefaultButton(QMessageBox.No)
+                        reply = msgbox.exec()
+                        if (reply == QMessageBox.Yes):  
+                            self.utils.removeWmsWfsLayers()                            
+                        if (reply == QMessageBox.No):    
+                            self.layman.iface.newProjectCreated.disconnect()
+                            self.layman.iface.newProject()
+                            self.layman.iface.newProjectCreated.connect(self.layman.removeCurrent)  
+                
+                    else:    
+                        project = QgsProject.instance()                       
+                        for layer_id in project.mapLayers():
+                            layer = project.mapLayer(layer_id)
+                            provider = layer.dataProvider()
+                            provider.reloadData()
+                            self.progressDone.emit()    
+                        return                        
               
         self.loadLayer(data,service, name)        
     def loadLayer(self, data, service, groupName = ''):    
@@ -533,14 +543,12 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         groups.append([layerNameTitle, len(data['layers']) - i]) 
                     legends = "0"                        
                     if "legends" in data['layers'][x]:
-                        legends = "1"   
-                    #threads.append(threading.Thread(target=lambda: self.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)).start())                   
+                        legends = "1"                       
                     self.layman.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)                  
                 if className == 'ArcGISRest':
                    
                     url = data['layers'][x]['url']
-                    layerNameTitle = data['layers'][x]['title']
-                    #threads.append(threading.Thread(target=lambda: self.loadArcGisRest(url, layerNameTitle)).start())
+                    layerNameTitle = data['layers'][x]['title']                  
                     self.layman.loadArcGisRest(url, layerNameTitle)
                     
                 if className == 'XYZ':                   
@@ -561,8 +569,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         groupsSet.add(groupName)
                         groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
                     else:
-                        groups.append([layerNameTitle, len(data['layers']) - i])
-                    #threads.append(threading.Thread(target=lambda: self.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)).start())
+                        groups.append([layerNameTitle, len(data['layers']) - i])                    
                     self.layman.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)
                   
 
@@ -590,28 +597,18 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                        
                         if 'type' in data['layers'][x]['protocol']: ## old
                             if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
-                                if 'workspace' in data:                                    
-                                    #repairUrl = repairUrl.replace("hsl-layman", "geoserver") + data['workspace'] + "wfs"
-                                    repairUrl = repairUrl.replace("hsl-layman", "") + data['workspace'] + "wfs"
-
-
-                                #threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
-                                self.layman.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)
-                                
+                                if 'workspace' in data:    
+                                    repairUrl = repairUrl.replace("hsl-layman", "") + data['workspace'] + "wfs"                                
+                                self.layman.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)                                
                         if "format" in data['layers'][x]['protocol']:    
-                            if (data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"):                            
-                                #threads.append(threading.Thread(target=lambda: self.loadWfsExternal(data['layers'][x],epsg, groupName)).start())
+                            if (data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"): 
                                 self.layman.loadWfsExternal(data['layers'][x],epsg, groupName)
                             if (data['layers'][x]['protocol']['format'] == "hs.format.WFS" or data['layers'][x]['protocol']['format'] == "WFS"):
                                 if 'workspace' in data['layers'][x]:                                    
-                                    repairUrl = repairUrl.replace("hsl-layman", "")
-
-
-                                #threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())
+                                    repairUrl = repairUrl.replace("hsl-layman", "")                                
                                 self.layman.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)
                    
-                    except:                        
-                        #threads.append(threading.Thread(target=lambda: self.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)).start())                        
+                    except:   
                         self.layman.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)                      
 
                 
@@ -759,27 +756,20 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 print("there is not possible set permissions for layer")
           
-    def updatePermissions(self,layerName, userDict, type, check=False):   
-        # itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(1, self.listWidget_read.count())]
-        
+    def updatePermissions(self,layerName, userDict, type, check=False):           
         itemsTextListRead = [] 
         for i in range(self.listWidget_read.count()):
             current_item = self.listWidget_read.item(i) 
             hidden_item = current_item.data(Qt.UserRole) 
             if hidden_item is not None:
-                itemsTextListRead.append(hidden_item.text())
-        print(itemsTextListRead)
-         
-        # itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(1, self.listWidget_write.count())]
+                itemsTextListRead.append(hidden_item.text())   
         itemsTextListWrite = []
         for i in range(self.listWidget_write.count()):
             current_item = self.listWidget_write.item(i)
             hidden_item = current_item.data(Qt.UserRole)  
             if hidden_item is not None:
                 itemsTextListWrite.append(hidden_item.text())
-        userNamesRead = list()
-        # userNamesRead.append(self.laymanUsername)
-        print(itemsTextListWrite)       
+        userNamesRead = list()    
         for pom in itemsTextListRead:         
             if pom == "VŠICHNI":            
                 userNamesRead.append("EVERYONE")          
@@ -790,7 +780,6 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 print(userDict)                                               
                 userNamesRead.append(pom)
         userNamesWrite = list()     
-        # userNamesWrite.append(self.laymanUsername) 
         for pom in itemsTextListWrite:
             if pom == "VŠICHNI":
                 userNamesWrite.append("EVERYONE")

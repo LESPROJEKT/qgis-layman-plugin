@@ -8,6 +8,7 @@ FORMS = ../dlg_addLayer.ui \
 ../dlg_addMicka.ui \ 
 
 SOURCES = ../Layman.py \
-../dlg_importLayer.py 
+../dlg_importLayer.py \
+../dlg_addMap.py
 
 TRANSLATIONS = Layman_cs.ts 

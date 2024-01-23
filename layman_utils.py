@@ -786,9 +786,17 @@ QPushButton::indicator {
         accepted_data_providers = ['wms', 'WFS']
         layer_found = any(layer.dataProvider().name() not in accepted_data_providers for layer in layers)
         if layer_found:
-            return False
+            return True
         else:
-            return True     
+            return False     
+    def removeWmsWfsLayers(self):        
+        projekt = QgsProject.instance()      
+        seznam_vrstev = projekt.mapLayers().values()  
+        for vrstva in seznam_vrstev:
+            if isinstance(vrstva, (QgsVectorLayer, QgsRasterLayer)):            
+                provider = vrstva.dataProvider().name()            
+                if 'wms' in provider or 'WFS' in provider:               
+                    projekt.removeMapLayer(vrstva)        
     def compare_json_layers(self, schema1, schema2):
         layers1 = schema1["layers"]
         layers2 = schema2["layers"]      

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS><TS version="2.0" language="cs_CZ" sourcelanguage="en">
+<!DOCTYPE TS>
+<TS version="2.1" language="cs_CZ" sourcelanguage="en">
 <context>
     <name>AddLayerDialog</name>
     <message>
@@ -67,7 +68,7 @@
         <source>Show only my layers</source>
         <translation>Zobrazit jenom mé vrstvy</translation>
     </message>
-    <message encoding="UTF-8">
+    <message>
         <location filename="../dlg_addLayer.ui" line="202"/>
         <source>Nepřihlášený uživatel</source>
         <translation></translation>
@@ -285,10 +286,20 @@
         <source>Available users:</source>
         <translation>Dostupní uživatelé</translation>
     </message>
-    <message encoding="UTF-8">
+    <message>
         <location filename="../dlg_addMap.ui" line="501"/>
         <source>Nepřihlášený uživatel</source>
         <translation>Not logged in user</translation>
+    </message>
+    <message>
+        <location filename="../dlg_addMap.py" line="435"/>
+        <source>Načítáte stejnou kompozici. Chcete ponechat původní lokální vrstvy?</source>
+        <translation>You are loading the same composition. Do you want to keep the original local layers?</translation>
+    </message>
+    <message>
+        <location filename="../dlg_addMap.py" line="413"/>
+        <source>Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.</source>
+        <translation>Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content.</translation>
     </message>
 </context>
 <context>
@@ -717,40 +728,40 @@
     <message>
         <location filename="../dlg_userInfo.ui" line="71"/>
         <source>Get older version &lt; 3.24</source>
-        <translation>Získat starší verzi &lt; 3.24</translation>
+        <translation type="obsolete">Získat starší verzi &lt; 3.24</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="87"/>
+        <location filename="../dlg_userInfo.ui" line="74"/>
         <source>Server:</source>
         <translation>Server:</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="94"/>
+        <location filename="../dlg_userInfo.ui" line="81"/>
         <source>Layman username:</source>
         <translation>Layman uživatel:</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="101"/>
+        <location filename="../dlg_userInfo.ui" line="88"/>
         <source>Wagtail username:</source>
         <translation>Wagtail uživatel:</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="108"/>
+        <location filename="../dlg_userInfo.ui" line="95"/>
         <source>Plugin version:</source>
         <translation>Verze pluginu</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="115"/>
+        <location filename="../dlg_userInfo.ui" line="102"/>
         <source>Layman version:</source>
         <translation>Verze Laymana:</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="122"/>
+        <location filename="../dlg_userInfo.ui" line="109"/>
         <source>Available version:</source>
         <translation>Dostupná verze:</translation>
     </message>
     <message>
-        <location filename="../dlg_userInfo.ui" line="192"/>
+        <location filename="../dlg_userInfo.ui" line="179"/>
         <source>Port:</source>
         <translation>Port</translation>
     </message>
@@ -893,7 +904,7 @@
         <translation>Potvrdit</translation>
     </message>
     <message>
-        <location filename="../dlg_importLayer.py" line="329"/>
+        <location filename="../dlg_importLayer.py" line="325"/>
         <source>Sucessfully exported: </source>
         <translation>Úspěšně exportováno: </translation>
     </message>
@@ -901,147 +912,147 @@
 <context>
     <name>Layman</name>
     <message>
-        <location filename="../Layman.py" line="2172"/>
+        <location filename="../Layman.py" line="2125"/>
         <source>&amp;Layman</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="304"/>
+        <location filename="../Layman.py" line="294"/>
         <source>Current Row Number</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="309"/>
+        <location filename="../Layman.py" line="299"/>
         <source>Login</source>
         <translation>Přihlásit se</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="318"/>
+        <location filename="../Layman.py" line="308"/>
         <source>Save as JSON and QML</source>
         <translation>Uloži jako JSON a QML</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="327"/>
+        <location filename="../Layman.py" line="317"/>
         <source>Load from JSON</source>
         <translation>Načíst z JSON</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="336"/>
+        <location filename="../Layman.py" line="326"/>
         <source>Export layer to server</source>
         <translation>Exportovat vrstvu na server</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="343"/>
+        <location filename="../Layman.py" line="333"/>
         <source>Layers cataloque</source>
         <translation>Katalog vrstev</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="350"/>
+        <location filename="../Layman.py" line="340"/>
         <source>Map compositions cataloque</source>
         <translation>Katalog mapových kompozic</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="357"/>
+        <location filename="../Layman.py" line="347"/>
         <source>Current composition</source>
         <translation>Aktuální kompozice</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="371"/>
+        <location filename="../Layman.py" line="361"/>
         <source>User info</source>
         <translation>Informace o uživateli</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="364"/>
+        <location filename="../Layman.py" line="354"/>
         <source>Browse the metadata catalog</source>
         <translation>Prohlížet metadatový katalog</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="3560"/>
+        <location filename="../Layman.py" line="3471"/>
         <source>Saving composition</source>
         <translation>Ukládání kompozice</translation>
     </message>
     <message>
         <location filename="../Layman.py" line="4407"/>
         <source>Plugin update</source>
-        <translation>Aktualizace pluginu</translation>
+        <translation type="obsolete">Aktualizace pluginu</translation>
     </message>
     <message>
         <location filename="../Layman.py" line="4398"/>
         <source>This version of the plugin is not included in the QGIS repository and may contain new untested functionalities. Do you really want to install this version?</source>
-        <translation>Tato verze pluginu není v QGIS repozitáři a může obsahovat nové netestované funkcionality. Chcete opravdu instalovat tuto verzi?</translation>
+        <translation type="obsolete">Tato verze pluginu není v QGIS repozitáři a může obsahovat nové netestované funkcionality. Chcete opravdu instalovat tuto verzi?</translation>
     </message>
     <message>
         <location filename="../Layman.py" line="4407"/>
         <source>Plugin requires QGIS version 3.26 and higher. Do you still want to continue?</source>
-        <translation>Plugin vyžaduje verzi QGIS 3.26 a vyšší. Chcete přesto pokračovat?</translation>
+        <translation type="obsolete">Plugin vyžaduje verzi QGIS 3.26 a vyšší. Chcete přesto pokračovat?</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="4453"/>
+        <location filename="../Layman.py" line="4320"/>
         <source>Sucessfully exported:</source>
         <translation type="unfinished">Úspěšně exportováno:</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="450"/>
+        <location filename="../Layman.py" line="440"/>
         <source>This project includes link to Layman server. Do you want set the project as current composition?</source>
         <translation>Tento projekt obsahuje odkaz na Layman server. Chcete ho nastavit jako aktuální kompozici?</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="470"/>
+        <location filename="../Layman.py" line="460"/>
         <source>This project includes link to Layman server. Do you want login?</source>
         <translation>Tento projekt obsahuje odkaz na Layman server. Chcete se k tomuto serveru přihlásit?</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="504"/>
+        <location filename="../Layman.py" line="494"/>
         <source>Layer loaded from a local geojson file.</source>
         <translation>Vrstva načtená z lokálního souboru geojson.</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="506"/>
+        <location filename="../Layman.py" line="496"/>
         <source>Layer loaded from a local SHP file.</source>
         <translation>Vrstva načtená z lokálního souboru SHP.</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="508"/>
+        <location filename="../Layman.py" line="498"/>
         <source>Layer stored in QGIS memory. It will be deleted after QGIS is turned off.</source>
         <translation>Layer stored in QGIS memory. It will be deleted after QGIS is turned off.</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="510"/>
+        <location filename="../Layman.py" line="500"/>
         <source>A layer loaded over a WMS service that provides data in a raster format. It is possible to change this service to a WFS vector service using the button.</source>
         <translation>Vrstva načtená přes službu WMS poskytující data v rasterovém formátu. Je možné tuto službu zaměnit za vektorovou službu WFS pomocí tlačítka.</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="512"/>
+        <location filename="../Layman.py" line="502"/>
         <source>A layer loaded over a WFS service that provides data in a vector format. It is possible to change this service to a WMS raster service using the button. Changes in this layer are saved to the server.</source>
         <translation>Vrstva načtená přes službu WFS poskytující data ve vektorovém formátu. Je možné tuto službu zaměnit za rasterovou službu WMS pomocí tlačítka. Změny v této vrstvě jsou ukládány na server.</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="514"/>
+        <location filename="../Layman.py" line="504"/>
         <source>Vector layer loaded from a local file.</source>
         <translation>Vector layer loaded from a local file.</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="888"/>
+        <location filename="../Layman.py" line="861"/>
         <source>Coordinate system was changed to: </source>
         <translation>Souřadnicový systém byl změnen na: </translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="888"/>
+        <location filename="../Layman.py" line="861"/>
         <source>. Do you want write it to composition?</source>
         <translation>. Chcete tento souřadnicový systém zapsat do kompozice?</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="1502"/>
+        <location filename="../Layman.py" line="1462"/>
         <source>Update layer order</source>
         <translation>Aktualizace pořadí vrstev</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="1557"/>
+        <location filename="../Layman.py" line="1517"/>
         <source>Update layer visibility</source>
         <translation>Aktualizace viditelnost vrstev</translation>
     </message>
     <message>
-        <location filename="../Layman.py" line="2971"/>
+        <location filename="../Layman.py" line="2904"/>
         <source>Sucessfully exported: </source>
         <translation>Úspěšně exportováno: </translation>
     </message>
