@@ -49,7 +49,7 @@
         <translation>Načíst WFS</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="136"/>
+        <location filename="../dlg_addLayer.py" line="251"/>
         <source>Delete layer</source>
         <translation>Smazat vrstvu</translation>
     </message>
@@ -153,6 +153,16 @@
         <source>Available users:</source>
         <translation>Dostupní uživatelé</translation>
     </message>
+    <message>
+        <location filename="../dlg_addLayer.py" line="238"/>
+        <source>Do you want delete selected layers?</source>
+        <translation>Chcete opravdu smazat vybrané vrstvy?</translation>
+    </message>
+    <message>
+        <location filename="../dlg_addLayer.py" line="251"/>
+        <source>Do you want delete layer </source>
+        <translation>Chcete opravdu smazat vrstvu </translation>
+    </message>
 </context>
 <context>
     <name>AddMapDialog</name>
@@ -212,7 +222,7 @@
         <translation>Načíst kompozici</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="183"/>
+        <location filename="../dlg_addMap.py" line="302"/>
         <source>Delete map</source>
         <translation>Smazat kompozici</translation>
     </message>
@@ -292,14 +302,29 @@
         <translation>Not logged in user</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.py" line="435"/>
+        <location filename="../dlg_addMap.py" line="431"/>
         <source>Načítáte stejnou kompozici. Chcete ponechat původní lokální vrstvy?</source>
         <translation>You are loading the same composition. Do you want to keep the original local layers?</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.py" line="413"/>
+        <location filename="../dlg_addMap.py" line="409"/>
         <source>Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.</source>
         <translation>Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_addMap.py" line="695"/>
+        <source>Update permissions</source>
+        <translation>Nastavení práv</translation>
+    </message>
+    <message>
+        <location filename="../dlg_addMap.py" line="695"/>
+        <source>Do you want set these permissions to layers included in map composition?</source>
+        <translation>Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?</translation>
+    </message>
+    <message>
+        <location filename="../dlg_addMap.py" line="302"/>
+        <source>Do you want really delete composition </source>
+        <translation>Chcete opravdu smazat kompozici </translation>
     </message>
 </context>
 <context>
@@ -621,6 +646,141 @@
         <location filename="../dlg_currentComposition.ui" line="1112"/>
         <source>Layer properties</source>
         <translation>Vlastnosti vrstvy</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="160"/>
+        <source>Composition: </source>
+        <translation>Kompozice: </translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="288"/>
+        <source>This layer is displayed and is part of the loaded composition.</source>
+        <translation>Tato vrstva je zobrazena a je součástí načtené kompozice.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="291"/>
+        <source>This layer is not part of the composition.</source>
+        <translation>Tato vrstva není součástí kompozice.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="327"/>
+        <source>This layer does not appear in the QGIS map window, but is included in the composition.</source>
+        <translation>Tato vrstva se nevyskytuje v mapovém okně QGIS, ale je obsažena v kompozici.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="449"/>
+        <source>Duplicity in layer names!</source>
+        <translation>Duplicita v názvech vrstev!</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="494"/>
+        <source>Layer </source>
+        <translation>Vrstva </translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="494"/>
+        <source> is nested in two groups. Only parent group will be saved.</source>
+        <translation> je vnořena do dvou skupin. Bude uložena pouze nadřazená skupina.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="735"/>
+        <source>This user already exists in the list!</source>
+        <translation>Tento uživatel se již v seznamu vyskytuje!</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="932"/>
+        <source>Permissions was saved successfully.</source>
+        <translation>Práva byla úspěšně uložena.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="934"/>
+        <source>Permissions was not saved for layer: </source>
+        <translation>Práva nebyla uložena pro vrstvu: </translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="966"/>
+        <source>Gets spatial range information from wms capatibilies.</source>
+        <translation>Získá informaci o rozsahu z wms capatibilies.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="967"/>
+        <source>Gets spatial range information from QGIS canvas.</source>
+        <translation>Získá informaci o rozsahu z okna QGI.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1073"/>
+        <source>A record of the layers spatial extent for the selected composition was not found!</source>
+        <translation>Záznam prostorového rozsahu vrstev vybrané kompozice nebyl nalezen!</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1133"/>
+        <source>Number in first character of title is not allowed! Title can not be prefilled.</source>
+        <translation>Není povoleno číslo v prvník znaku titulku! Není možné předvyplnit název.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1177"/>
+        <source>Extent of layer: </source>
+        <translation>Rozsah vrstvy: </translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1203"/>
+        <source>Composition name already exists!</source>
+        <translation>Kompozice s tímto jménem již existuje!</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1215"/>
+        <source>Unsupported char.</source>
+        <translation>Nepodporovaný znak.&quot;</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1223"/>
+        <source>Project EPSG is not supported.</source>
+        <translation>Není nastaveno podporované EPSG projektu.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1226"/>
+        <source>Name is not filled!</source>
+        <translation>Není vyplněn název!</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1266"/>
+        <source>Layer loaded from a local geojson file.</source>
+        <translation>Vrstva načtená z lokálního souboru geojson.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1268"/>
+        <source>Layer loaded from a local SHP file.</source>
+        <translation>Vrstva načtená z lokálního souboru SHP.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1270"/>
+        <source>Layer stored in QGIS memory. It will be deleted after QGIS is turned off.</source>
+        <translation>Layer stored in QGIS memory. It will be deleted after QGIS is turned off.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1272"/>
+        <source>A layer loaded over a WMS service that provides data in a raster format. It is possible to change this service to a WFS vector service using the button.</source>
+        <translation>Vrstva načtená přes službu WMS poskytující data v rasterovém formátu. Je možné tuto službu zaměnit za vektorovou službu WFS pomocí tlačítka.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1274"/>
+        <source>A layer loaded over a WFS service that provides data in a vector format. It is possible to change this service to a WMS raster service using the button. Changes in this layer are saved to the server.</source>
+        <translation>Vrstva načtená přes službu WFS poskytující data ve vektorovém formátu. Je možné tuto službu zaměnit za rasterovou službu WMS pomocí tlačítka. Změny v této vrstvě jsou ukládány na server.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1276"/>
+        <source>Vector layer loaded from a local file.</source>
+        <translation>Vector layer loaded from a local file.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1343"/>
+        <source>Delete map</source>
+        <translation>Smazat kompozici</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.py" line="1343"/>
+        <source>Do you want really delete this composition?</source>
+        <translation>Chcete opravdu smazat tuto kompozici?</translation>
     </message>
 </context>
 <context>

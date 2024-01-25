@@ -298,11 +298,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.appendIniItem("mapCheckbox", "1")
         if value == 0:
             self.utils.appendIniItem("mapCheckbox", "0")  
-    def deleteMap(self,name):   
-        if self.layman.locale == "cs":
-            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Chcete opravdu smazat kompozici "+name+"?")
-        else:
-            msgbox = QMessageBox(QMessageBox.Question, "Delete map", "Do you want really delete composition "+name+"?")
+    def deleteMap(self,name):          
+        msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete map"), self.tr("Do you want really delete composition ")+name+"?")
         msgbox.addButton(QMessageBox.Yes)
         msgbox.addButton(QMessageBox.No)
         msgbox.setDefaultButton(QMessageBox.No)
@@ -694,11 +691,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.statusHelper = True
       
         
-        if self.utils.hasLaymanLayer(layerName[0], self.treeWidget.selectedItems()[0].text(1)):
-            if self.layman.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Do you want set these permissions to layers included in map composition?")
+        if self.utils.hasLaymanLayer(layerName[0], self.treeWidget.selectedItems()[0].text(1)):           
+            msgbox = QMessageBox(QMessageBox.Question, self.tr("Update permissions"), self.tr("Do you want set these permissions to layers included in map composition?"))
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)

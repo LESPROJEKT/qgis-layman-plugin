@@ -9,6 +9,8 @@ FORMS = ../dlg_addLayer.ui \
 
 SOURCES = ../Layman.py \
 ../dlg_importLayer.py \
-../dlg_addMap.py
+../dlg_addMap.py \
+../dlg_addLayer.py \
+../dlg_currentComposition.py  
 
 TRANSLATIONS = Layman_cs.ts 

@@ -234,11 +234,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         for i in range (0, len(layers)):
             items.append(layers[i].text(0))
         question = True
-        if len(items) > 1:
-            if self.layman.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Chcete opravdu smazat vybrané vrstvy?")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Do you want delete selected layers?")
+        if len(items) > 1:          
+            msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete layer"), self.tr("Do you want delete selected layers?"))
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
@@ -250,11 +247,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def layerDelete(self, name,layerNames, question = True):
         title = name
         name = layerNames[title]
-        if question:
-            if self.layman.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Chcete opravdu smazat vrstvu "+str(name)+"?")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Delete layer", "Do you want delete layer "+str(name)+"?")
+        if question:            
+            msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete layer"), self.tr("Do you want delete layer ")+str(name)+"?")
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)

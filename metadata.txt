@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.26
 description=Layman
-version=2.4.9
+version=2.5.0
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -50,6 +50,7 @@ changelog=
 	1.97 - raster time series export
 	2.0 - form rebuild
 	2.4 - support svg for labeling
+	2.5 - repository update
 # Tags are comma separated with spaces allowed
 tags=python
 
