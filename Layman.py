@@ -597,6 +597,7 @@ class Layman(QObject):
         self.dlg2.show()             
         self.dlg2.pushButton_close.clicked.connect(lambda: self.dlg.close())
         self.dlg2.pushButton_Connect.clicked.connect(self.loginQfield)
+        self.dlg2.pushButton_close.clicked.connect(self.closeQFieldDlg)
         if self.settings.value("laymanRememberQfield"):
             self.dlg2.checkBox_remember.setCheckState(2)
             if self.settings.value("laymenQfieldAuthCfg", type=bool):
@@ -632,7 +633,7 @@ class Layman(QObject):
         }     
         response = self.utils.requestWrapper("POST", url, payload, files = None)
         res = self.utils.fromByteToJson(response.content)
-        remember = self.dlg2.checkBox_remember.isChecked()
+        remember = self.dlg2.checkBox_remember.isChecked()        
         if remember:
             self.settings.setValue("laymanRememberQfield", remember)
             self.setQAuth(username=login, password=passwd)
@@ -651,15 +652,18 @@ class Layman(QObject):
                 self.dlg2.lineEdit_desciption.setText(composition['abstract'])
             except:
                 print("kompozice není k dispozici")
-            for project in ret:               
+            for project in ret:              
+                print(project) 
                 item = QTreeWidgetItem([project['name'],project['owner'],str(project['is_public']), project['id']])
                 self.dlg2.treeWidget.addTopLevelItem(item)
-            self.dlg2.pushButton_close.clicked.connect(lambda: self.dlg2.close())
+            self.dlg2.pushButton_close.clicked.connect(self.closeQFieldDlg)
             self.dlg2.pushButton_export.clicked.connect(lambda:self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),""))
             self.dlg2.pushButton_exportCreate.clicked.connect(lambda: self.createQProject(self.dlg2.lineEdit_name.text(),self.dlg2.lineEdit_desciption.text(),self.dlg2.checkBox_private.checkState()))
             return
         else:
             self.utils.showErr.emit(["Přihlášení nebylo úspěšné!", "Login was not successful!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)  
+    def closeQFieldDlg(self): 
+        self.dlg2.close()           
     def setQAuth(self, **kwargs: str) -> None:
 
         authcfg = self.settings.value("laymenQfieldAuthCfg")
@@ -704,9 +708,10 @@ class Layman(QObject):
         headers = {
           'Authorization': 'token ' + self.Qtoken,
           'Content-Type': 'application/json'
-        }        
-        response = self.utils.requestWrapper("POST", url, payload, files = None)
-        res = self.utils.fromByteToJson(response.content)        
+        }       
+        response = requests.post(url, data=payload, headers=headers, files=None)
+        res = self.utils.fromByteToJson(response.content)   
+        print(res)     
         if response.status_code == 201:            
             self.uploadQFiles(res['id'],"")
         else:
@@ -754,17 +759,15 @@ class Layman(QObject):
         for i in range (0,len(filepaths)):
 
             files=[
-              ('file',(f[i],open(filepaths[i],'rb'),'application/octet-stream'))
-
-
-              
-            ]
-            
+              ('file',(f[i],open(filepaths[i],'rb'),'application/octet-stream'))              
+            ]            
             headers = {
                       'Authorization': 'token ' + self.Qtoken}
-            url = "https://app.qfield.cloud/api/v1/files/" + projekct_Id+ "/" +f[i] + "/"           
-                 
-            response = self.utils.requestWrapper("POST", url, payload, files)      
+            url = "https://app.qfield.cloud/api/v1/files/" + projekct_Id+ "/" +f[i] + "/"          
+            print(url)
+            print(headers)                  
+            response = requests.post(url, data=payload, headers=headers, files=files)
+
          
         QgsMessageLog.logMessage("qfieldExport")        
         self.utils.showQgisBar(["Export proběhl úspěšně.","Export was successfull"], Qgis.Success) 
@@ -774,8 +777,9 @@ class Layman(QObject):
           'Authorization': 'token ' + self.Qtoken,
           'Content-Type': 'application/json'
         }    
-        response = self.utils.requestWrapper("GET", url, payload = None, files = None)
-
+        response = requests.get(url, headers = headers)
+        print(response.status_code)
+        print(response.content)
         return (self.utils.fromByteToJson(response.content))
     def postProjectQfield(self):
         url = "https://app.qfield.cloud/api/v1/projects/"
@@ -791,17 +795,13 @@ class Layman(QObject):
     def _prepare_uri(self, uri: Union[str, List[str], QUrl]) -> QUrl:
         if isinstance(uri, QUrl):
             return uri
-
         if isinstance(uri, str):
             encoded_uri = uri
         else:
             encoded_parts = []
-
             for part in uri:
                 encoded_parts.append(urllib.parse.quote(part))
-
             encoded_uri = "/".join(encoded_parts)
-
         if encoded_uri[-1] != "/":
             encoded_uri += "/"
         self.server_url = "https://app.qfield.cloud/"
@@ -814,7 +814,6 @@ class Layman(QObject):
             self, uri: Union[str, List[str]], filenames: List[str], payload: Dict = None
         ) -> QNetworkReply:
             url = self._prepare_uri(uri)     
-
             request = QNetworkRequest(url)
             request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
             print(b"Authorization", "Token {}".format(self.Qtoken).encode("utf-8"))
@@ -826,18 +825,13 @@ class Layman(QObject):
             # most of the time there is no other payload
             if payload is not None:
                 json_part = QHttpPart()
-
                 json_part.setHeader(QNetworkRequest.ContentTypeHeader, "application/json")
                 json_part.setHeader(
                     QNetworkRequest.ContentDispositionHeader, 'form-data; name="json"'
                 )
                 json_part.setBody(json.dumps(payload).encode("utf-8"))
-
-                multi_part.append(json_part)
-
-            # now attach each file
-            for filename in filenames:
-                # this might be optimized by usung QFile and QHttpPart.setBodyDevice, but didn't work on the first
+                multi_part.append(json_part)           
+            for filename in filenames:               
                 with open(filename, "rb") as file:
                     file_part = QHttpPart()
                     file_part.setBody(file.read())
@@ -845,10 +839,9 @@ class Layman(QObject):
                         QNetworkRequest.ContentDispositionHeader,
                         'form-data; name="file"; filename="{}"'.format(filename),
                     )
-
                     multi_part.append(file_part)    
-            xx = QgsNetworkAccessManager.instance()
-            threading.Thread(target=lambda: xx.post(request, multi_part)).start()
+            request = QgsNetworkAccessManager.instance()
+            threading.Thread(target=lambda: request.post(request, multi_part)).start()
 
 
     def crsChanged(self):       
