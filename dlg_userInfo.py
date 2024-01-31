@@ -94,7 +94,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.label_agrihub.setText(res['claims']['email'])
             else:
                 self.label_layman.setText("Anonymous")
-            self.label_server.setText(self.URI)
+            self.label_server.setText(self.server)
 
             self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
             self.label_version.setText(self.utils.getVersion())
