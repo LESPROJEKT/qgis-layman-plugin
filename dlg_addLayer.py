@@ -36,6 +36,8 @@ import tempfile
 import asyncio
 
 
+from PyQt5.QtWidgets import QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup
+
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'dlg_addLayer.ui'))
@@ -149,24 +151,142 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.show()
         result = self.exec_()
 
+    def collect_permissions(self, tab_widget):
+        read_access = []
+        write_access = []     
+        if self.radioButton.isChecked():           
+            read_access.append('EVERYONE')
+        if self.radioButton_4.isChecked():
+            write_access.append('EVERYONE') 
+        table_widget = None
+        for i in range(tab_widget.count()):
+            if tab_widget.tabText(i) == "Permissions by user": 
+                table_widget = tab_widget.widget(i)
+                break
+
+        if table_widget is not None and isinstance(table_widget, QTableWidget):
+            for row in range(table_widget.rowCount()):
+                username = table_widget.item(row, 3).text() 
+                read_checkbox = table_widget.cellWidget(row, 1)
+                write_checkbox = table_widget.cellWidget(row, 2)
+                if read_checkbox.isChecked():
+                    read_access.append(username)
+                if write_checkbox.isChecked():
+                    write_access.append(username)
+        print(read_access, write_access)
+        return read_access, write_access
+    def getRoles(self):
+        uri = self.URI + "/rest/roles"
+        r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
+        res = self.utils.fromByteToJson(r.content)
+        return res
+    def generate_user_permissions(self, tab_widget, user_dict, read_access, write_access):
+        
+        self.set_global_permissions_radiobuttons(True if "everyone" in [name.lower() for name in read_access] else False,True if "everyone" in [name.lower() for name in write_access] else False)
+        
+        user_widget = QTableWidget()
+        self.utils.setTableWidgetNotBorder(user_widget)
+    #     user_widget.setStyleSheet("""
+    # QTableWidget {
+    #     border: none;
+    #     gridline-color: transparent;
+    # }
+    # QTableWidget::item {
+    #     border: none;
+    # }
+    # QTableWidget::item:focus {
+    #     border: none;
+    #     outline: none;
+    # }
+    # """)
+    ### add users
+        num_columns = 4  
+        user_widget.setRowCount(len(user_dict))
+        user_widget.setColumnCount(num_columns)  
+        user_widget.setHorizontalHeaderLabels(['User', 'Read', 'Write', 'Nick'])
+
+        for row, (username, full_name) in enumerate(user_dict.items()):    
+            user_widget.setItem(row, 0, QTableWidgetItem(full_name))   
+            read_checkbox = QCheckBox()
+            write_checkbox = QCheckBox()           
+            write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(state > 0))
+            user_widget.setCellWidget(row, 1, read_checkbox)
+            user_widget.setCellWidget(row, 2, write_checkbox)
+            
+           
+            if username in write_access:
+                write_checkbox.setChecked(True)
+                read_checkbox.setChecked(True)
+            else:
+                read_checkbox.setChecked(username in read_access)
+
+            user_widget.setItem(row, 3, QTableWidgetItem(username))
+            user_widget.setColumnHidden(3, True)
+
+        tab_widget.addTab(user_widget, "Permissions by user")
+    ### add roles
+        num_columns = 4  
+        role_widget = QTableWidget()
+        self.utils.setTableWidgetNotBorder(role_widget)
+        role_widget.setRowCount(len(user_dict))
+        role_widget.setColumnCount(num_columns)  
+        role_widget.setHorizontalHeaderLabels(['Role', 'Read', 'Write', 'Nick'])
+        roles = self.getRoles()
+        row = 0
+        for rolename in (roles):    
+            role_widget.setItem(row, 0, QTableWidgetItem(rolename))   
+            read_checkbox = QCheckBox()
+            write_checkbox = QCheckBox()           
+            write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(state > 0))
+            role_widget.setCellWidget(row, 1, read_checkbox)
+            role_widget.setCellWidget(row, 2, write_checkbox)
+            
+           
+            if username in write_access:
+                write_checkbox.setChecked(True)
+                read_checkbox.setChecked(True)
+            else:
+                read_checkbox.setChecked(rolename in read_access)
+
+            role_widget.setItem(row, 3, QTableWidgetItem(rolename))
+            role_widget.setColumnHidden(3, True)
+            row = row + 1
+
+        tab_widget.addTab(role_widget, "Permissions by role")
+    def onRadioButton3Toggled(self, checked):
+        if checked:
+            self.radioButton.setChecked(True)
+    def set_global_permissions_radiobuttons(self, public_read, public_write): 
+        print(public_read, public_write)     
+        self.radioButton.setChecked(public_read)
+        self.radioButton_2.setChecked(not public_read)        
+        self.radioButton_4.setChecked(public_write)
+        self.radioButton_3.setChecked(not public_write)  
+          
 
 
     def setPermissionsUI(self, layerName): 
-        self.listWidget_read.clear()
-        self.listWidget_write.clear()
-        self.comboBox_users.clear()
+        # self.listWidget_read.clear()
+        # self.listWidget_write.clear()
+        # self.comboBox_users.clear()
         
-        
+        group1 = QButtonGroup(self)
+        group2 = QButtonGroup(self)
+        group1.addButton(self.radioButton)
+        group1.addButton(self.radioButton_2)
+        group2.addButton(self.radioButton_3)
+        group2.addButton(self.radioButton_4)
+        self.radioButton_4.toggled.connect(self.onRadioButton3Toggled)
         self.info = 0
         self.pushButton_close.clicked.connect(lambda: self.close())       
-        self.listWidget_read.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
-        self.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
-        self.pushButton_removeRead.setEnabled(False)
-        self.pushButton_removeWrite.setEnabled(False)
-        ## combobox full text part
-        self.comboBox_users.setEditable(True)
-        self.comboBox_users.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
-        self.comboBox_users.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+        # self.listWidget_read.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
+        # self.listWidget_write.itemSelectionChanged.connect(lambda: self.checkPermissionButtons())
+        # self.pushButton_removeRead.setEnabled(False)
+        # self.pushButton_removeWrite.setEnabled(False)
+        # ## combobox full text part
+        # self.comboBox_users.setEditable(True)
+        # self.comboBox_users.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+        # self.comboBox_users.completer().setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
             ##
 
         uri = self.URI + "/rest/users"
@@ -196,36 +316,44 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             if (res[i]['name'] != self.laymanUsername):                
                 self.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username'])
                 usernameList.append(res[i]['username'])
+        print(usernameList)
+        print(usersDictReversed)
+        
         if (len(layerName) == 1):
+
             layerName[0] = self.layerNamesDict[layerName[0]]
             uri = self.URI + "/rest/"+self.laymanUsername+"/layers/"+layerName[0]
             r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
             res = self.utils.fromByteToJson(r.content)
             lenRead = len(res['access_rights']['read'])
             lenWrite = len(res['access_rights']['write'])
-            for i in range (0, lenRead):
-                current_item = QtWidgets.QListWidgetItem(usersDictReversed[res['access_rights']['read'][i]]) 
-                self.listWidget_read.addItem(current_item)
-                hidden_text = res['access_rights']['read'][i]
-                print("hidden_text")
-                print(hidden_text)
-                self.setHiddenItem(current_item, hidden_text)
-            for i in range (0, lenWrite):
-                current_item = QtWidgets.QListWidgetItem(usersDictReversed[res['access_rights']['write'][i]])
-                self.listWidget_write.addItem(current_item)
-                hidden_text = res['access_rights']['read'][i]
-                self.setHiddenItem(current_item, hidden_text)
+            self.generate_user_permissions(self.tabWidget, usersDictReversed, res['access_rights']['read'], res['access_rights']['write'])           
+            # print(res)
+
+            # for i in range (0, lenRead):
+            #     current_item = QtWidgets.QListWidgetItem(usersDictReversed[res['access_rights']['read'][i]]) 
+            #     self.listWidget_read.addItem(current_item)
+            #     hidden_text = res['access_rights']['read'][i]
+            #     print("hidden_text")
+            #     print(hidden_text)
+            #     self.setHiddenItem(current_item, hidden_text)
+            # for i in range (0, lenWrite):
+            #     current_item = QtWidgets.QListWidgetItem(usersDictReversed[res['access_rights']['write'][i]])
+            #     self.listWidget_write.addItem(current_item)
+            #     hidden_text = res['access_rights']['read'][i]
+            #     self.setHiddenItem(current_item, hidden_text)
         else:
             name = self.utils.getUserFullName()
             self.listWidget_read.addItem(name)
             self.listWidget_write.addItem(name)          
         if not self.permissionsConnected:            
-            self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())
-            self.pushButton_save.clicked.connect(lambda: self.askForMapPermissionChanges(layerName, usersDict, "layers"))          
-            self.pushButton_addRead.clicked.connect(lambda:  self.checkAddedItemDuplicity("read", usernameList))
-            self.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList(usernameList))
-            self.pushButton_removeRead.clicked.connect(lambda: self.removeReadPermissionList(usersDictReversed))
-            self.pushButton_removeWrite.clicked.connect(lambda: self.removeWritePermissionList(usersDictReversed))
+            #self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())
+            #self.pushButton_save.clicked.connect(lambda: self.askForMapPermissionChanges(layerName, usersDict, "layers"))          
+            self.pushButton_save.clicked.connect(lambda: self.collect_permissions(self.tabWidget))   
+            # self.pushButton_addRead.clicked.connect(lambda:  self.checkAddedItemDuplicity("read", usernameList))
+            # self.pushButton_addWrite.clicked.connect(lambda: self.setWritePermissionList(usernameList))
+            # self.pushButton_removeRead.clicked.connect(lambda: self.removeReadPermissionList(usersDictReversed))
+            # self.pushButton_removeWrite.clicked.connect(lambda: self.removeWritePermissionList(usersDictReversed))
             self.permissionsConnected = True      
   
 
@@ -588,8 +716,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def setWritePermissionList(self, usernameList):
         allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]    
         if self.comboBox_users.currentText() in allItems:
-            if self.checkAddedItemDuplicity("write", usernameList):
-                # itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
+            if self.checkAddedItemDuplicity("write", usernameList):             
                 itemsTextListRead = [] 
                 for i in range(self.listWidget_read.count()):
                     current_item = self.listWidget_read.item(i) 
@@ -600,8 +727,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())  
                     self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)   
-                    print("1")
+                    self.setHiddenItem(current_item, hidden_text)        
                 else:  
                     current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())
                     self.listWidget_read.addItem(current_item)                    
@@ -611,8 +737,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())             
                     self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text) 
-                    print("2")   
+                    self.setHiddenItem(current_item, hidden_text)             
     def setHiddenItem(self,item, hidden_text):     
         hidden_item = QtWidgets.QListWidgetItem(hidden_text)
         hidden_item.setHidden(True)
@@ -684,7 +809,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.showErr.emit(["Práva nebyla uložena! - " + name,"Permissions was not saved' - "+ name], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
             else:
                 print("there is not possible set permissions for layer")
-          
+       
     def updatePermissions(self,layerName, userDict, type, check=False):   
         if len(layerName) == 0:
             if not self.utils.checkPublicationStatus(layerName[0]):

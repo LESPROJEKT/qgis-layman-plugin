@@ -147,7 +147,20 @@ class LaymanUtils(QObject):
                 
     def saveToIni(self, key, value):
         self.appendIniItem(key, value)  
-          
+    def setTableWidgetNotBorder(self, widget):
+        widget.setStyleSheet("""
+    QTableWidget {
+        border: none;
+        gridline-color: transparent;
+    }
+    QTableWidget::item {
+        border: none;
+    }
+    QTableWidget::item:focus {
+        border: none;
+        outline: none;
+    }
+    """)          
     def appendIniItem(self, key, item):
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'
         config = configparser.RawConfigParser()
@@ -175,11 +188,9 @@ class LaymanUtils(QObject):
     def setAuthCfg(self,authCfg):
         self.authCfg = authCfg        
     def getAuthHeader(self, authCfg): 
-        if self.isAuthorized:
-            config = QgsAuthMethodConfig()            
+        if self.isAuthorized:                  
             url = QUrl(self.URI+ "/rest/current-user")
-            req = QNetworkRequest(url)   
-            i = 0
+            req = QNetworkRequest(url)    
             success = QgsApplication.authManager().updateNetworkRequest(req, authCfg)                 
             if success[0] == True:
                 header = (req.rawHeader(QByteArray(b"Authorization")))  
@@ -203,9 +214,9 @@ class LaymanUtils(QObject):
             pom = json.loads(pom)
         except:
             if self.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Došlo k chybě při komunikaci se serverem.")
+                QMessageBox(QMessageBox.Question, "Layman", "Došlo k chybě při komunikaci se serverem.")
             else:
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "An error occurred while communicating with the server.")
+                QMessageBox(QMessageBox.Question, "Layman", "An error occurred while communicating with the server.")
             return
 
         return pom        
