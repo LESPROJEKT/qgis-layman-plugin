@@ -412,58 +412,24 @@
         <cstring>radioButton_4</cstring>
        </property>
       </widget>
-      <widget class="QPushButton" name="pushButton_save">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>390</y>
-         <width>151</width>
-         <height>27</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Save</string>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../../../../../../../../../../../../../../../../.designer/backup/icons/save_ico.png</normaloff>../../../../../../../../../../../../../../../../.designer/backup/icons/save_ico.png</iconset>
-       </property>
-      </widget>
      </widget>
-     <widget class="QWidget" name="tab_2">
-      <attribute name="title">
-       <string>Tab 2</string>
-      </attribute>
-      <widget class="QLabel" name="label">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>34</y>
-         <width>161</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Available users:</string>
-       </property>
-       <property name="buddy">
-        <cstring>comboBox_users</cstring>
-       </property>
-      </widget>
-      <widget class="QComboBox" name="comboBox_users">
-       <property name="geometry">
-        <rect>
-         <x>160</x>
-         <y>30</y>
-         <width>401</width>
-         <height>22</height>
-        </rect>
-       </property>
-       <property name="insertPolicy">
-        <enum>QComboBox::InsertAfterCurrent</enum>
-       </property>
-      </widget>
-     </widget>
+    </widget>
+    <widget class="QPushButton" name="pushButton_save">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>540</y>
+       <width>151</width>
+       <height>27</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Save</string>
+     </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>../../../../../../../../../../../../../../../../.designer/backup/icons/save_ico.png</normaloff>../../../../../../../../../../../../../../../../.designer/backup/icons/save_ico.png</iconset>
+     </property>
     </widget>
    </widget>
    <widget class="QWidget" name="page2">
