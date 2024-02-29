@@ -316,9 +316,9 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>50</y>
+       <y>60</y>
        <width>611</width>
-       <height>471</height>
+       <height>461</height>
       </rect>
      </property>
      <property name="currentIndex">
@@ -331,7 +331,7 @@
       <widget class="QRadioButton" name="radioButton">
        <property name="geometry">
         <rect>
-         <x>240</x>
+         <x>280</x>
          <y>50</y>
          <width>111</width>
          <height>23</height>
@@ -344,8 +344,8 @@
       <widget class="QRadioButton" name="radioButton_2">
        <property name="geometry">
         <rect>
-         <x>370</x>
-         <y>54</y>
+         <x>390</x>
+         <y>51</y>
          <width>111</width>
          <height>23</height>
         </rect>
@@ -357,7 +357,7 @@
       <widget class="QRadioButton" name="radioButton_3">
        <property name="geometry">
         <rect>
-         <x>370</x>
+         <x>390</x>
          <y>80</y>
          <width>111</width>
          <height>23</height>
@@ -370,7 +370,7 @@
       <widget class="QRadioButton" name="radioButton_4">
        <property name="geometry">
         <rect>
-         <x>240</x>
+         <x>280</x>
          <y>80</y>
          <width>111</width>
          <height>23</height>
@@ -383,8 +383,8 @@
       <widget class="QLabel" name="label_5">
        <property name="geometry">
         <rect>
-         <x>80</x>
-         <y>53</y>
+         <x>100</x>
+         <y>52</y>
          <width>141</width>
          <height>17</height>
         </rect>
@@ -399,7 +399,7 @@
       <widget class="QLabel" name="label_6">
        <property name="geometry">
         <rect>
-         <x>80</x>
+         <x>100</x>
          <y>83</y>
          <width>141</width>
          <height>17</height>
@@ -418,7 +418,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>540</y>
+       <y>545</y>
        <width>151</width>
        <height>27</height>
       </rect>
@@ -428,7 +428,7 @@
      </property>
      <property name="icon">
       <iconset>
-       <normaloff>../../../../../../../../../../../../../../../../.designer/backup/icons/save_ico.png</normaloff>../../../../../../../../../../../../../../../../.designer/backup/icons/save_ico.png</iconset>
+       <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
      </property>
     </widget>
    </widget>

@@ -24,8 +24,7 @@ import os
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QObject, pyqtSignal, Qt
-from PyQt5.QtWidgets import QPushButton, QMessageBox
-from PyQt5.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator
+from PyQt5.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup, QPushButton, QMessageBox
 from PyQt5.QtGui import QPixmap
 from qgis.core import *
 import threading
@@ -35,8 +34,6 @@ from PyQt5 import uic
 import tempfile
 import asyncio
 
-
-from PyQt5.QtWidgets import QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -161,37 +158,36 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             read_access.append('EVERYONE')
         if self.radioButton_4.isChecked():
             write_access.append('EVERYONE')       
-        table_widget = self.get_table_widget_by_tab_name(tab_widget, "Permissions by user")
+        table_widget = self.getTableWidgetByTabName(tab_widget, "Permissions by user")
         if table_widget:
-            self.collect_access_from_table(table_widget, read_access, write_access)        
-        role_table_widget = self.get_table_widget_by_tab_name(tab_widget, "Permissions by role")
+            self.collectAccessFromTable(table_widget, read_access, write_access)        
+        role_table_widget = self.getTableWidgetByTabName(tab_widget, "Permissions by role")
         if role_table_widget:            
-            self.collect_access_from_table(role_table_widget, role_access['read'], role_access['write']) 
+            self.collectAccessFromTable(role_table_widget, role_access['read'], role_access['write']) 
         data = {
             'access_rights.read': self.utils.listToString(read_access + role_access['read']),
             'access_rights.write': self.utils.listToString(write_access + role_access['write'])
         }                
+      
         for layer in layerNames:
-            print(data)
-            for layer in layerNames:
-                layer = self.utils.removeUnacceptableChars(layer)      
-                url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer
-                response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))             
-                if (response.status_code != 200):
-                    self.failed.append(layer)                                     
-                print(response.content)
+            layer = self.utils.removeUnacceptableChars(layer)      
+            url = self.URI+'/rest/'+self.layman.laymanUsername+'/layers/'+layer
+            response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))             
+            if (response.status_code != 200):
+                self.failed.append(layer)                                     
+            print(response.content)
         if len(self.failed) == 0:       
             self.permissionInfo.emit(True, self.failed, 0)                
         else:
             self.permissionInfo.emit(False, self.failed, 0)         
-    def get_table_widget_by_tab_name(self, tab_widget, tab_name):
+    def getTableWidgetByTabName(self, tab_widget, tab_name):
       
         for i in range(tab_widget.count()):
             if tab_widget.tabText(i) == tab_name:
                 return tab_widget.widget(i)
         return None
 
-    def collect_access_from_table(self, table_widget, read_access_list, write_access_list):
+    def collectAccessFromTable(self, table_widget, read_access_list, write_access_list):
         for row in range(table_widget.rowCount()):
             item = table_widget.item(row, 3)  
             if item is not None:  
@@ -209,7 +205,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
         res = self.utils.fromByteToJson(r.content)
         return res
-    def remove_tab_by_title(self, tab_widget, title):
+    def removeTabByTitle(self, tab_widget, title):
         index = 0
         while index < tab_widget.count():
             if tab_widget.tabText(index) == title:
@@ -218,24 +214,26 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 index += 1  
     def populatePermissionsWidget(self, tab_widget, user_dict, read_access, write_access):
         print(user_dict)
-        self.remove_tab_by_title(tab_widget, "Permissions by user")
-        self.remove_tab_by_title(tab_widget, "Permissions by role")
-        del user_dict["EVERYONE"]
+        self.removeTabByTitle(tab_widget, "Permissions by user")
+        self.removeTabByTitle(tab_widget, "Permissions by role")
+        if "EVERYONE" in user_dict:
+            del user_dict["EVERYONE"]
         self.setEveryonePermissionsRadiobuutons(True if "everyone" in [name.lower() for name in read_access] else False,True if "everyone" in [name.lower() for name in write_access] else False)        
         user_widget = QTableWidget()
+        user_widget.verticalHeader().setVisible(False)
         self.utils.setTableWidgetNotBorder(user_widget)
     ### add users
         num_columns = 4  
         user_widget.setRowCount(len(user_dict))
         user_widget.setColumnCount(num_columns)  
-        user_widget.setHorizontalHeaderLabels(['User', 'Read', 'Write', 'Nick'])
+        user_widget.setHorizontalHeaderLabels([self.tr('User'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
 
         for row, (username, full_name) in enumerate(user_dict.items()):
-            user_widget.setItem(row, 0, QTableWidgetItem(full_name))            
+            user_widget.setItem(row, 0, QTableWidgetItem(full_name + " ("+username+")"))            
             read_checkbox = QCheckBox()
             write_checkbox = QCheckBox()          
-            write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(state > 0))
-            read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)     
+            write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(True) if state else rc.isChecked())
+            read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)               
             if username == self.layman.laymanUsername:
                 read_checkbox.setDisabled(True)
                 write_checkbox.setDisabled(True)
@@ -248,14 +246,16 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 read_checkbox.setChecked(username in read_access)
             user_widget.setItem(row, 3, QTableWidgetItem(username))
             user_widget.setColumnHidden(3, True)
-        tab_widget.addTab(user_widget, "Permissions by user")
+            user_widget.resizeColumnToContents(0)
+        tab_widget.addTab(user_widget, self.tr("Permissions by user"))
     ### add roles
         num_columns = 4  
         role_widget = QTableWidget()
+        role_widget.verticalHeader().setVisible(False)
         self.utils.setTableWidgetNotBorder(role_widget)
         role_widget.setRowCount(len(user_dict))
         role_widget.setColumnCount(num_columns)  
-        role_widget.setHorizontalHeaderLabels(['Role', 'Read', 'Write', 'Nick'])
+        role_widget.setHorizontalHeaderLabels([self.tr('Role'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
         roles = self.getRoles()
         row = 0
         for rolename in (roles):    
@@ -275,13 +275,13 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 read_checkbox.setChecked(rolename in read_access)  
             role_widget.setItem(row, 3, QTableWidgetItem(rolename))         
             role_widget.setColumnHidden(3, True)
+            role_widget.resizeColumnToContents(0)
             row = row + 1
-        tab_widget.addTab(role_widget, "Permissions by role")
+        tab_widget.addTab(role_widget, self.tr("Permissions by role"))
     def onRadioButton3Toggled(self, checked):
         if checked:
             self.radioButton.setChecked(True)
-    def setEveryonePermissionsRadiobuutons(self, public_read, public_write): 
-        print(public_read, public_write)     
+    def setEveryonePermissionsRadiobuutons(self, public_read, public_write):            
         self.radioButton.setChecked(public_read)
         self.radioButton_2.setChecked(not public_read)        
         self.radioButton_4.setChecked(public_write)
@@ -324,17 +324,14 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             layerName[0] = self.layerNamesDict[layerName[0]]
             uri = self.URI + "/rest/"+self.laymanUsername+"/layers/"+layerName[0]
             r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
-            res = self.utils.fromByteToJson(r.content)
-            lenRead = len(res['access_rights']['read'])
-            lenWrite = len(res['access_rights']['write'])
+            res = self.utils.fromByteToJson(r.content)           
             self.populatePermissionsWidget(self.tabWidget, usersDictReversed, res['access_rights']['read'], res['access_rights']['write'])   
         else:
-            name = self.utils.getUserFullName()
-            self.listWidget_read.addItem(name)
-            self.listWidget_write.addItem(name)          
+            name = self.utils.getUserFullName()                 
+            self.populatePermissionsWidget(self.tabWidget, usersDictReversed, [self.layman.laymanUsername], [self.layman.laymanUsername])   
         if not self.permissionsConnected:            
-            self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())  
-            self.pushButton_save.clicked.connect(lambda: self.collectPermissionsAndSave(self.tabWidget, layerName))   
+            self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())      
+            self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, layerName)).start())
             self.permissionsConnected = True        
 
     def callDeleteLayer(self, layers, layerNames):
@@ -721,135 +718,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def setHiddenItem(self,item, hidden_text):     
         hidden_item = QtWidgets.QListWidgetItem(hidden_text)
         hidden_item.setHidden(True)
-        item.setData(Qt.UserRole, hidden_item)              
-    def checkPermissionButtons(self):
-        name = self.utils.getUserName()
-        try:
-            if self.listWidget_read.currentItem().text() == name:
-                self.pushButton_removeRead.setEnabled(False)
-            else:
-                self.pushButton_removeRead.setEnabled(True)
-        except:
-            self.pushButton_removeRead.setEnabled(False)
-            print("neni vybrana polozka")
-        try:
-            if self.listWidget_write.currentItem().text() == name:
-                self.pushButton_removeWrite.setEnabled(False)
-            else:
-                self.pushButton_removeWrite.setEnabled(True)
-        except:
-            self.pushButton_removeWrite.setEnabled(False)
-            print("neni vybrana polozka")                    
+        item.setData(Qt.UserRole, hidden_item)     
             
-            
-    def askForMapPermissionChanges(self,layerName, userDict, type):
-        self.failed = list()
-        self.statusHelper = True            
-        threading.Thread(target=lambda: self.updatePermissions(layerName, userDict, type)).start()
-      
-            
-    def updateAllLayersPermission(self, userDict, layerName, loaded = False):      
-        if loaded:
-            composition = self.instance.getComposition()
-        else:
-            url = self.URI + "/rest/"+self.laymanUsername+"/maps/"+layerName[0]+"/file"
-            r = self.requestWrapper("GET", url, payload = None, files = None)
-            composition = r.json()
-        itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(self.listWidget_read.count())]
-        itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(self.listWidget_write.count())]
-        userNamesRead = list()
-        for pom in itemsTextListRead:         
-            if pom == "VŠICHNI":
-                userNamesRead.append("EVERYONE")          
-            else:
-                userNamesRead.append(userDict[pom])
-        userNamesWrite = list()    
-        for pom in itemsTextListWrite:
-            if pom == "VŠICHNI":
-                userNamesWrite.append("EVERYONE")
-            else:
-                print(userDict[pom])
-                userNamesWrite.append(userDict[pom])
-        data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}       
-        for layer in composition['layers']:
-            name = None
-            if (layer['className'] == 'OpenLayers.Layer.Vector' or layer['className'] == 'Vector'):
-                name = layer['protocol']['LAYERS']
-            if (layer['className'] == 'HSLayers.Layer.WMS' or layer['className'] == 'WMS'):
-                name = layer['params']['LAYERS']
-            if name is not None:
-                response = requests.patch(self.URI+'/rest/'+self.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.authCfg))                 
-                if (response.status_code != 200):        
-                    try:
-                        if self.utils.fromByteToJson(response.content)["code"] == 15:
-                            print("layer not present")
-                            return
-                    except:
-                        pass                                      
-                    self.showErr.emit(["Práva nebyla uložena! - " + name,"Permissions was not saved' - "+ name], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
-            else:
-                print("there is not possible set permissions for layer")
-       
-    def updatePermissions(self,layerName, userDict, type, check=False):   
-        if len(layerName) == 0:
-            if not self.utils.checkPublicationStatus(layerName[0]):
-               self.utils.showQgisBar(["Tato vrstva je stále v publikaci. V tuto chvíli není možné aktualizovat práva","This layer is still in publication. It is not possible to update permissions at this time."], Qgis.Warning)   
-               self.progressDone.emit()
-               return
-        # itemsTextListRead =  [str(self.listWidget_read.item(i).text()) for i in range(1, self.listWidget_read.count())]
-        
-        itemsTextListRead = [] 
-        for i in range(self.listWidget_read.count()):
-            current_item = self.listWidget_read.item(i) 
-            hidden_item = current_item.data(Qt.UserRole) 
-            if hidden_item is not None:
-                itemsTextListRead.append(hidden_item.text())
-        print(itemsTextListRead)
-         
-        # itemsTextListWrite =  [str(self.listWidget_write.item(i).text()) for i in range(1, self.listWidget_write.count())]
-        itemsTextListWrite = []
-        for i in range(self.listWidget_write.count()):
-            current_item = self.listWidget_write.item(i)
-            hidden_item = current_item.data(Qt.UserRole)  
-            if hidden_item is not None:
-                itemsTextListWrite.append(hidden_item.text())
-        userNamesRead = list()
-        # userNamesRead.append(self.laymanUsername)
-        print(itemsTextListWrite)       
-        for pom in itemsTextListRead:         
-            if pom == "VŠICHNI":            
-                userNamesRead.append("EVERYONE")          
-            else:
-                print(pom)
-                if "," in pom:
-                    pom = pom.split(", ")[1]     
-                print(userDict)                                               
-                userNamesRead.append(pom)
-        userNamesWrite = list()     
-        # userNamesWrite.append(self.laymanUsername) 
-        for pom in itemsTextListWrite:
-            if pom == "VŠICHNI":
-                userNamesWrite.append("EVERYONE")
-            else:
-                if "," in pom:
-                    pom = pom.split(", ")[1]
-                userNamesWrite.append(pom)
-        data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}    
-        for layer in layerName:
-            layer = self.utils.removeUnacceptableChars(layer)      
-            url = self.URI+'/rest/'+self.laymanUsername+'/'+type+'/'+layer
-            response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))             
-            if (response.status_code != 200):
-                self.failed.append(layer)         
-                self.utils.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
-                (list,str,str,Qgis.MessageLevel, str)  
-                self.statusHelper = False 
-         
-        if (self.statusHelper and self.info == 0):
-            print(self.failed)
-            self.permissionInfo.emit(True, self.failed, 0)                
-        else:
-            self.permissionInfo.emit(False, self.failed, 0)                
                 
     def afterPermissionDone(self, success, failed, info):
         if self.objectName() == "AddLayerDialog":
