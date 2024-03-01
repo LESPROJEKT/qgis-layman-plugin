@@ -27,7 +27,7 @@ from PyQt5 import uic
 from PyQt5 import QtWidgets, QtCore
 from qgis.core import *
 from PyQt5.QtGui import  QRegExpValidator,QBrush, QColor, QPixmap
-from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton,  QDesktopWidget,  QCheckBox, QTableWidgetItem, QTableWidget
+from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton,  QDesktopWidget,  QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRegExp
 from qgis.PyQt.QtCore import QPoint
 import threading
@@ -760,7 +760,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             role_widget.resizeColumnToContents(0)
             row = row + 1
         tab_widget.addTab(role_widget, self.tr("Permissions by role"))
-    def onRadioButton3Toggled(self, checked):
+    def onRadioButtonWritePrivateToggled(self, checked):
         if checked:
             self.radioButton.setChecked(True)
     def setEveryonePermissionsRadiobuutons(self, public_read, public_write):    
@@ -769,6 +769,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.radioButton_4.setChecked(public_write)
         self.radioButton_3.setChecked(not public_write)     
     def setPermissionsUI(self, mapName): 
+        group1 = QButtonGroup(self)
+        group2 = QButtonGroup(self)
+        group1.addButton(self.radioButton)
+        group1.addButton(self.radioButton_2)
+        group2.addButton(self.radioButton_3)
+        group2.addButton(self.radioButton_4)
+        self.radioButton_4.toggled.connect(self.onRadioButtonWritePrivateToggled)
         uri = self.URI + "/rest/users"
         usersDict = dict()
         if self.layman.locale == "cs":
