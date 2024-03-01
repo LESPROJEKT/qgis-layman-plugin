@@ -158,10 +158,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             read_access.append('EVERYONE')
         if self.radioButton_4.isChecked():
             write_access.append('EVERYONE')       
-        table_widget = self.getTableWidgetByTabName(tab_widget, "Permissions by user")
+        table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by user"))
         if table_widget:
             self.collectAccessFromTable(table_widget, read_access, write_access)        
-        role_table_widget = self.getTableWidgetByTabName(tab_widget, "Permissions by role")
+        role_table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by role"))
         if role_table_widget:            
             self.collectAccessFromTable(role_table_widget, role_access['read'], role_access['write']) 
         data = {
@@ -214,8 +214,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 index += 1  
     def populatePermissionsWidget(self, tab_widget, user_dict, read_access, write_access):
         print(user_dict)
-        self.removeTabByTitle(tab_widget, "Permissions by user")
-        self.removeTabByTitle(tab_widget, "Permissions by role")
+        self.removeTabByTitle(tab_widget, self.tr("Permissions by user"))
+        self.removeTabByTitle(tab_widget, self.tr("Permissions by role"))
         if "EVERYONE" in user_dict:
             del user_dict["EVERYONE"]
         self.setEveryonePermissionsRadiobuutons(True if "everyone" in [name.lower() for name in read_access] else False,True if "everyone" in [name.lower() for name in write_access] else False)        
@@ -450,8 +450,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layerNamesDict = dict()
         self.treeWidget.clear()
         if self.laymanUsername and self.isAuthorized:
-            url = self.URI+'/rest/'+self.laymanUsername+'/layers'
-            #r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+            url = self.URI+'/rest/'+self.laymanUsername+'/layers'        
             r = await (self.utils.asyncRequestWrapper("GET", url))
             data = self.utils.fromByteToJson(r) 
             if onlyOwn:
@@ -467,8 +466,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
                 QgsMessageLog.logMessage("layersLoaded")
             else:
-                url = self.URI+'/rest/layers'
-                #r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+                url = self.URI+'/rest/layers'              
                 r = await (self.utils.asyncRequestWrapper("GET", url))
                 dataAll = self.utils.fromByteToJson(r)
                 permissions = ""
@@ -492,8 +490,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
                 QgsMessageLog.logMessage("layersLoaded")
         else:
-            url = self.URI+'/rest/layers'
-            #r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+            url = self.URI+'/rest/layers'    
             r = await (self.utils.asyncRequestWrapper("GET", url))
             data = self.utils.fromByteToJson(r)
             for row in range(0, len(data)):

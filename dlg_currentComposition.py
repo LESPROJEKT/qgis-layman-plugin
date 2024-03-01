@@ -641,10 +641,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             read_access.append('EVERYONE')
         if self.radioButton_4.isChecked():
             write_access.append('EVERYONE')       
-        table_widget = self.getTableWidgetByTabName(tab_widget, "Permissions by user")
+        table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by user"))
         if table_widget:
             self.collectAccessFromTable(table_widget, read_access, write_access)        
-        role_table_widget = self.getTableWidgetByTabName(tab_widget, "Permissions by role")
+        role_table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by role"))
         if role_table_widget:            
             self.collectAccessFromTable(role_table_widget, role_access['read'], role_access['write']) 
         data = {
@@ -696,8 +696,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 index += 1  
     def populatePermissionsWidget(self, tab_widget, user_dict, read_access, write_access):
         print(user_dict)
-        self.removeTabByTitle(tab_widget, "Permissions by user")
-        self.removeTabByTitle(tab_widget, "Permissions by role")
+        self.removeTabByTitle(tab_widget, self.tr("Permissions by user"))
+        self.removeTabByTitle(tab_widget, self.tr("Permissions by role"))
         if "EVERYONE" in user_dict:
             del user_dict["EVERYONE"]
         self.setEveryonePermissionsRadiobuutons(True if "everyone" in [name.lower() for name in read_access] else False,True if "everyone" in [name.lower() for name in write_access] else False)        
@@ -890,171 +890,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.pushButton_removeWrite.setEnabled(True)
         except:
             self.pushButton_removeWrite.setEnabled(False)
-            print("neni vybrana polozka")                 
-   
-    def askForLayerPermissionChanges(self,layerName, userDict, type):
-      
-        self.failed = list()
-        self.statusHelper = True
-        # if self.utils.hasLaymanLayer(layerName[0], self.layman.current):
-        if self.utils.hasLaymanLayer(layerName[0], self.layman.instance.getWorkspace()):
-            if self.layman.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Nastavení práv", "Chcete tato práva nastavit i pro jednotlivé vrstvy, které mapová kompozice obsahuje?")
-            else:
-                msgbox = QMessageBox(QMessageBox.Question, "Update permissions", "Do you want set these permissions to layers included in map composition?")
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
-            reply = msgbox.exec()
-            if (reply == QMessageBox.Yes):  
-                threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
-                threading.Thread(target=lambda: self.updateAllLayersPermission(userDict, layerName, False)).start()
-            else:
-                threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()
-        else:            
-            threading.Thread(target=lambda: self.updatePermissions(layerName,userDict,type, False)).start()                                      
-    def updateAllLayersPermission(self, userDict, layerName, loaded = False):      
-        if loaded:
-            composition = self.layman.instance.getComposition()
-        else:
-            url = self.URI + "/rest/"+self.layman.laymanUsername+"/maps/"+layerName[0]+"/file"
-            r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-            composition = r.json()
-        itemsTextListRead = [] 
-        for i in range(self.listWidget_read.count()):
-            current_item = self.listWidget_read.item(i) 
-            hidden_item = current_item.data(Qt.UserRole) 
-            if hidden_item is not None:
-                itemsTextListRead.append(hidden_item.text()) 
-        itemsTextListWrite = []
-        for i in range(self.listWidget_write.count()):
-            current_item = self.listWidget_write.item(i)
-            hidden_item = current_item.data(Qt.UserRole)  
-            if hidden_item is not None:
-                itemsTextListWrite.append(hidden_item.text())
-        userNamesRead = list()
-        userNamesRead.append(self.layman.laymanUsername)
-        for pom in itemsTextListRead:         
-            if pom == "VŠICHNI":
-                if "," in pom:
-                    pom = pom.split(", ")[1]
-                userNamesRead.append("EVERYONE")          
-            else:
-                if "," in pom:
-                    pom = pom.split(", ")[1]
-                userNamesRead.append(pom)
-                # userNamesRead.append(userDict[pom])
-        userNamesWrite = list()   
-        userNamesWrite.append(self.layman.laymanUsername) 
-        for pom in itemsTextListWrite:
-            if pom == "VŠICHNI":
-                userNamesWrite.append("EVERYONE")
-            else:            
-                # userNamesWrite.append(userDict[pom])
-                userNamesRead.append(pom)
-        data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}       
-        for layer in composition['layers']:
-            name = None
-            if (layer['className'] == 'OpenLayers.Layer.Vector' or layer['className'] == 'Vector'):
-                name = layer['name']
-            if (layer['className'] == 'HSLayers.Layer.WMS' or layer['className'] == 'WMS'):
-                name = layer['params']['LAYERS']
-            if name is not None:
-                response = requests.patch(self.URI+'/rest/'+self.layman.laymanUsername+'/layers/'+name, data = data,  headers = self.utils.getAuthHeader(self.layman.authCfg))         
-                if (response.status_code != 200):        
-                    try:
-                        if self.utils.fromByteToJson(response.content)["code"] == 15:
-                            print("layer not present")
-                            return
-                    except:
-                        pass                                      
-                    self.utils.showErr.emit(["Práva nebyla uložena! - " + name,"Permissions was not saved' - "+ name], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
-            else:
-                print("there is not possible set permissions for layer")
-          
-    def updatePermissions(self,layerName, userDict, type, check=False):  
-        itemsTextListRead = [] 
-        for i in range(self.listWidget_read.count()):
-            current_item = self.listWidget_read.item(i) 
-            hidden_item = current_item.data(Qt.UserRole) 
-            if hidden_item is not None:
-                itemsTextListRead.append(hidden_item.text())    
-        itemsTextListWrite = []
-        for i in range(self.listWidget_write.count()):
-            current_item = self.listWidget_write.item(i)
-            hidden_item = current_item.data(Qt.UserRole)  
-            if hidden_item is not None:
-                itemsTextListWrite.append(hidden_item.text())
-        userNamesRead = list()   
-        print(itemsTextListWrite)       
-        for pom in itemsTextListRead:         
-            if pom == "VŠICHNI":            
-                userNamesRead.append("EVERYONE")          
-            else:
-                print(pom)
-                if "," in pom:
-                    pom = pom.split(", ")[1]     
-                print(userDict)                                               
-                userNamesRead.append(pom)
-        userNamesWrite = list()      
-        for pom in itemsTextListWrite:
-            if pom == "VŠICHNI":
-                userNamesWrite.append("EVERYONE")
-            else:
-                if "," in pom:
-                    pom = pom.split(", ")[1]
-                userNamesWrite.append(pom)
-        data = {'access_rights.read': self.utils.listToString(userNamesRead),   'access_rights.write': self.utils.listToString(userNamesWrite)}          
-        for layer in layerName:
-            layer = self.utils.removeUnacceptableChars(layer)      
-            url = self.URI+'/rest/'+self.layman.laymanUsername+'/'+type+'/'+layer
-            response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))  
-  
-            if (response.status_code != 200):
-                self.failed.append(layer)         
-                self.utils.showErr.emit(["Práva nebyla uložena! - " + layer,"Permissions was not saved' - "+ layer], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
-                (list,str,str,Qgis.MessageLevel, str)  
-                self.statusHelper = False
-                   
-        ## rekurzivni zmeny        
-        if (type == "maps" and check):
-            if self.statusHelper:
-                layerList = list()              
-                for i in range (0,len(self.compositeList)):
-                    if self.compositeList[i]['name'] == self.utils.removeUnacceptableChars(layerName[0]):
-                        for j in range (0,len(self.compositeList[i]['layers'])):
-                            if self.compositeList[i]['layers'][j]['className'] == "HSLayers.Layer.WMS" or self.compositeList[i]['layers'][j]['className'] == "WMS":
-                                layerList.append(self.compositeList[i]['layers'][j]['params']['LAYERS'])
-                            if self.compositeList[i]['layers'][j]['className'] == "OpenLayers.Layer.Vector" or self.compositeList[i]['layers'][j]['className'] == "Vector":                            
-                                layerList.append(self.utils.removeUnacceptableChars(self.compositeList[i]['layers'][j]['title']))
-                print("updating permissions for layers:" + str(layerList))                
-                threading.Thread(target=self.updatePermissions(layerList,userDict, "layers")).start()
-                return
-            else:
-                self.permissionInfo.emit(False, self.failed, 0)              
-
-        elif (type == "layers" and check):
-            for name in layerName:
-                compositionList = self.getCompositionsByLayer(name)
-                for comp in compositionList: 
-                    self.updatePermissions([comp],userDict, "maps", False)
-                    return      
-        else:      
-            if (self.statusHelper and self.info == 0):               
-                self.permissionInfo.emit(True, self.failed, 0)                
-            else:
-                self.permissionInfo.emit(False, self.failed, 0)               
+            print("neni vybrana polozka")     
+    
+                
     def afterPermissionDone(self, success, failed, info):
         self.progressBar_loader.hide()             
         if success:            
             self.showInfoDialogOnTop(self.tr("Permissions was saved successfully."))                
         else:            
-            self.showInfoDialogOnTop(self.tr("Permissions was not saved for layer: ") + str(failed).replace("[","").replace("]",""))                
-                    
-                    
-                    
-                    
+            self.showInfoDialogOnTop(self.tr("Permissions was not saved for layer: ") + str(failed).replace("[","").replace("]",""))   
                     
     def setMetadataUI(self):       
         composition = self.layman.instance.getComposition()

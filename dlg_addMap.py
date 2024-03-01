@@ -79,7 +79,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.utils.recalculateDPI()
         self.label_info.hide()     
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnailMap(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), self.treeWidget.selectedItems()[0].text(1)  ) ).start())
-        self.treeWidget.itemClicked.connect(self.enableLoadMapButtons) ## zkontrolovat
+        self.treeWidget.itemClicked.connect(self.enableLoadMapButtons) 
         self.treeWidget.itemClicked.connect(self.setPermissionsButton)
         self.treeWidget.setColumnWidth(0, 300)
         self.treeWidget.setColumnWidth(2, 80)
@@ -128,10 +128,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             read_access.append('EVERYONE')
         if self.radioButton_4.isChecked():
             write_access.append('EVERYONE')       
-        table_widget = self.getTableWidgetByTabName(tab_widget, "Permissions by user")
+        table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by user"))
         if table_widget:
             self.collectAccessFromTable(table_widget, read_access, write_access)        
-        role_table_widget = self.getTableWidgetByTabName(tab_widget, "Permissions by role")
+        role_table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by role"))
         if role_table_widget:            
             self.collectAccessFromTable(role_table_widget, role_access['read'], role_access['write']) 
         data = {
@@ -183,8 +183,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 index += 1  
     def populatePermissionsWidget(self, tab_widget, user_dict, read_access, write_access):
         print(user_dict)
-        self.removeTabByTitle(tab_widget, "Permissions by user")
-        self.removeTabByTitle(tab_widget, "Permissions by role")
+        self.removeTabByTitle(tab_widget, self.tr("Permissions by user"))
+        self.removeTabByTitle(tab_widget, self.tr("Permissions by role"))
         if "EVERYONE" in user_dict:
             del user_dict["EVERYONE"]
         self.setEveryonePermissionsRadiobuutons(True if "everyone" in [name.lower() for name in read_access] else False,True if "everyone" in [name.lower() for name in write_access] else False)        
@@ -389,9 +389,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read"])
                 self.treeWidget.addTopLevelItem(item)
         else:
-            url = self.URI+'/rest/maps?order_by=title'
-            
-            #r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+            url = self.URI+'/rest/maps?order_by=title'     
             r =  await (self.utils.asyncRequestWrapper("GET", url))
             try:  
                 dataAll = self.utils.fromByteToJson(r) 

@@ -348,8 +348,8 @@
       <widget class="QRadioButton" name="radioButton">
        <property name="geometry">
         <rect>
-         <x>280</x>
-         <y>50</y>
+         <x>210</x>
+         <y>20</y>
          <width>111</width>
          <height>23</height>
         </rect>
@@ -361,8 +361,8 @@
       <widget class="QRadioButton" name="radioButton_2">
        <property name="geometry">
         <rect>
-         <x>390</x>
-         <y>51</y>
+         <x>320</x>
+         <y>21</y>
          <width>111</width>
          <height>23</height>
         </rect>
@@ -374,8 +374,8 @@
       <widget class="QRadioButton" name="radioButton_3">
        <property name="geometry">
         <rect>
-         <x>390</x>
-         <y>80</y>
+         <x>320</x>
+         <y>50</y>
          <width>111</width>
          <height>23</height>
         </rect>
@@ -387,8 +387,8 @@
       <widget class="QRadioButton" name="radioButton_4">
        <property name="geometry">
         <rect>
-         <x>280</x>
-         <y>80</y>
+         <x>210</x>
+         <y>50</y>
          <width>111</width>
          <height>23</height>
         </rect>
@@ -400,10 +400,10 @@
       <widget class="QLabel" name="label_6">
        <property name="geometry">
         <rect>
-         <x>100</x>
-         <y>52</y>
+         <x>30</x>
+         <y>22</y>
          <width>141</width>
-         <height>17</height>
+         <height>16</height>
         </rect>
        </property>
        <property name="text">
@@ -416,8 +416,8 @@
       <widget class="QLabel" name="label_29">
        <property name="geometry">
         <rect>
-         <x>100</x>
-         <y>83</y>
+         <x>30</x>
+         <y>53</y>
          <width>141</width>
          <height>17</height>
         </rect>
