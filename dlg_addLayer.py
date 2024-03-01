@@ -278,7 +278,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             role_widget.resizeColumnToContents(0)
             row = row + 1
         tab_widget.addTab(role_widget, self.tr("Permissions by role"))
-    def onRadioButton3Toggled(self, checked):
+    def onRadioButtonWritePrivateToggled(self, checked):
         if checked:
             self.radioButton.setChecked(True)
     def setEveryonePermissionsRadiobuutons(self, public_read, public_write):            
@@ -286,9 +286,20 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.radioButton_2.setChecked(not public_read)        
         self.radioButton_4.setChecked(public_write)
         self.radioButton_3.setChecked(not public_write)  
-          
+           
 
-
+    def getUserWidget(self):
+        user_widget_index = 1  
+        user_widget = self.tabWidget.widget(user_widget_index)
+        return user_widget
+    def filterRecords(self):
+        filter_text = self.userFilterLineEdit.text().lower()
+        user_widget = self.getUserWidget()  
+        if isinstance(user_widget, QTableWidget):
+            for row in range(user_widget.rowCount()):
+                item = user_widget.item(row, 0) 
+                if item:  
+                    user_widget.setRowHidden(row, filter_text not in item.text().lower())
     def setPermissionsUI(self, layerName):         
         group1 = QButtonGroup(self)
         group2 = QButtonGroup(self)
@@ -296,7 +307,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         group1.addButton(self.radioButton_2)
         group2.addButton(self.radioButton_3)
         group2.addButton(self.radioButton_4)
-        self.radioButton_4.toggled.connect(self.onRadioButton3Toggled)
+        self.radioButton_4.toggled.connect(self.onRadioButtonWritePrivateToggled)     
         self.info = 0
         self.pushButton_close.clicked.connect(lambda: self.close())   
         uri = self.URI + "/rest/users"
@@ -328,8 +339,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.populatePermissionsWidget(self.tabWidget, usersDictReversed, res['access_rights']['read'], res['access_rights']['write'])   
         else:
             name = self.utils.getUserFullName()                 
-            self.populatePermissionsWidget(self.tabWidget, usersDictReversed, [self.layman.laymanUsername], [self.layman.laymanUsername])   
+            self.populatePermissionsWidget(self.tabWidget, usersDictReversed, [self.layman.laymanUsername], [self.layman.laymanUsername])  
         if not self.permissionsConnected:            
+            self.userFilterLineEdit.textChanged.connect(self.filterRecords) 
             self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())      
             self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, layerName)).start())
             self.permissionsConnected = True        

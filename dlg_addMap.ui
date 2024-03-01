@@ -285,9 +285,9 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>70</y>
+       <y>100</y>
        <width>611</width>
-       <height>341</height>
+       <height>311</height>
       </rect>
      </property>
      <property name="currentIndex">
@@ -382,6 +382,22 @@
        </property>
       </widget>
      </widget>
+    </widget>
+    <widget class="QLineEdit" name="userFilterLineEdit">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>60</y>
+       <width>611</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="placeholderText">
+      <string>Filter</string>
+     </property>
     </widget>
    </widget>
    <widget class="QWidget" name="page1">

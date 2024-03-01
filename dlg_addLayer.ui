@@ -316,9 +316,9 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>60</y>
+       <y>90</y>
        <width>611</width>
-       <height>461</height>
+       <height>431</height>
       </rect>
      </property>
      <property name="currentIndex">
@@ -429,6 +429,22 @@
      <property name="icon">
       <iconset>
        <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="userFilterLineEdit">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>50</y>
+       <width>611</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="placeholderText">
+      <string>Filter</string>
      </property>
     </widget>
    </widget>

@@ -254,7 +254,19 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.radioButton.setChecked(public_read)
         self.radioButton_2.setChecked(not public_read)        
         self.radioButton_4.setChecked(public_write)
-        self.radioButton_3.setChecked(not public_write)      
+        self.radioButton_3.setChecked(not public_write)  
+    def getUserWidget(self):
+        user_widget_index = 1  
+        user_widget = self.tabWidget.widget(user_widget_index)
+        return user_widget
+    def filterRecords(self):
+        filter_text = self.userFilterLineEdit.text().lower()
+        user_widget = self.getUserWidget()  
+        if isinstance(user_widget, QTableWidget):
+            for row in range(user_widget.rowCount()):
+                item = user_widget.item(row, 0) 
+                if item:  
+                    user_widget.setRowHidden(row, filter_text not in item.text().lower())            
     def setPermissionsUI(self, mapName): 
         group1 = QButtonGroup(self)
         group2 = QButtonGroup(self)
@@ -292,7 +304,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if not self.permissionsConnected: 
             self.pushButton_close.clicked.connect(lambda: self.close())                    
             self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())      
-            self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, mapName)).start())            
+            self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, mapName)).start())  
+            self.userFilterLineEdit.textChanged.connect(self.filterRecords)           
             self.permissionsConnected = True
     def showThumbnailMap(self, it, workspace):        
         map = it ##pro QTreeWidget
