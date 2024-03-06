@@ -316,103 +316,14 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>90</y>
+       <y>190</y>
        <width>611</width>
-       <height>431</height>
+       <height>331</height>
       </rect>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>-1</number>
      </property>
-     <widget class="QWidget" name="tab">
-      <attribute name="title">
-       <string>Everyone</string>
-      </attribute>
-      <widget class="QRadioButton" name="radioButton">
-       <property name="geometry">
-        <rect>
-         <x>210</x>
-         <y>20</y>
-         <width>111</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Public</string>
-       </property>
-      </widget>
-      <widget class="QRadioButton" name="radioButton_2">
-       <property name="geometry">
-        <rect>
-         <x>320</x>
-         <y>21</y>
-         <width>111</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Private</string>
-       </property>
-      </widget>
-      <widget class="QRadioButton" name="radioButton_3">
-       <property name="geometry">
-        <rect>
-         <x>320</x>
-         <y>50</y>
-         <width>111</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Private</string>
-       </property>
-      </widget>
-      <widget class="QRadioButton" name="radioButton_4">
-       <property name="geometry">
-        <rect>
-         <x>210</x>
-         <y>50</y>
-         <width>111</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Public</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_5">
-       <property name="geometry">
-        <rect>
-         <x>30</x>
-         <y>22</y>
-         <width>141</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Read access rights:</string>
-       </property>
-       <property name="buddy">
-        <cstring>radioButton</cstring>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_6">
-       <property name="geometry">
-        <rect>
-         <x>30</x>
-         <y>53</y>
-         <width>141</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Write access rights:</string>
-       </property>
-       <property name="buddy">
-        <cstring>radioButton_4</cstring>
-       </property>
-      </widget>
-     </widget>
     </widget>
     <widget class="QPushButton" name="pushButton_save">
      <property name="geometry">
@@ -445,6 +356,90 @@
      </property>
      <property name="placeholderText">
       <string>Filter</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_writePublic">
+     <property name="geometry">
+      <rect>
+       <x>200</x>
+       <y>140</y>
+       <width>111</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Public</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_6">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>143</y>
+       <width>141</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Write access rights:</string>
+     </property>
+     <property name="buddy">
+      <cstring>radioButton_writePublic</cstring>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_5">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>112</y>
+       <width>141</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Read access rights:</string>
+     </property>
+     <property name="buddy">
+      <cstring>radioButton_readPublic</cstring>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_readPrivate">
+     <property name="geometry">
+      <rect>
+       <x>310</x>
+       <y>111</y>
+       <width>111</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Private</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_readPublic">
+     <property name="geometry">
+      <rect>
+       <x>200</x>
+       <y>110</y>
+       <width>111</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Public</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_writePrivate">
+     <property name="geometry">
+      <rect>
+       <x>310</x>
+       <y>140</y>
+       <width>111</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Private</string>
      </property>
     </widget>
    </widget>

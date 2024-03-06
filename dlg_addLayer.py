@@ -154,9 +154,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         read_access = []
         write_access = []        
         role_access = {'read': [], 'write': []}       
-        if self.radioButton.isChecked():
+        if self.radioButton_readPublic.isChecked():
             read_access.append('EVERYONE')
-        if self.radioButton_4.isChecked():
+        if self.radioButton_writePublic.isChecked():
             write_access.append('EVERYONE')       
         table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by user"))
         if table_widget:
@@ -280,18 +280,22 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         tab_widget.addTab(role_widget, self.tr("Permissions by role"))
     def onRadioButtonWritePrivateToggled(self, checked):
         if checked:
-            self.radioButton.setChecked(True)
+            self.radioButton_readPublic.setChecked(True)
     def setEveryonePermissionsRadiobuutons(self, public_read, public_write):            
-        self.radioButton.setChecked(public_read)
-        self.radioButton_2.setChecked(not public_read)        
-        self.radioButton_4.setChecked(public_write)
-        self.radioButton_3.setChecked(not public_write)  
+        self.radioButton_readPublic.setChecked(public_read)
+        self.radioButton_readPrivate.setChecked(not public_read)        
+        self.radioButton_writePublic.setChecked(public_write)
+        self.radioButton_writePrivate.setChecked(not public_write)  
            
 
     def getUserWidget(self):
-        user_widget_index = 1  
+        user_widget_index = 0
         user_widget = self.tabWidget.widget(user_widget_index)
         return user_widget
+    def getRoleWidget(self):
+        role_widget_index = 1
+        role_widget = self.tabWidget.widget(role_widget_index)
+        return role_widget    
     def filterRecords(self):
         filter_text = self.userFilterLineEdit.text().lower()
         user_widget = self.getUserWidget()  
@@ -300,14 +304,46 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 item = user_widget.item(row, 0) 
                 if item:  
                     user_widget.setRowHidden(row, filter_text not in item.text().lower())
+    def updatePermissions(self, permissionType, isPublic):     
+        user_widget = self.tabWidget.widget(0)  
+        role_widget = self.tabWidget.widget(1)  
+        print(role_widget)         
+        self.updateWidgetPermissions(user_widget, permissionType, isPublic)    
+        self.updateWidgetPermissions(role_widget, permissionType, isPublic)
+        if permissionType == 'write' and isPublic:
+            self.radioButton_readPublic.setChecked(True)
+            self.updateWidgetPermissions(user_widget, 'read', True)
+            self.updateWidgetPermissions(role_widget, 'read', True)
+        if permissionType == 'read' and not isPublic:
+            self.radioButton_writePrivate.setChecked(True)
+            self.updateWidgetPermissions(user_widget, 'write', False)
+            self.updateWidgetPermissions(role_widget, 'write', False)            
+    def updateWidgetPermissions(self, widget, permissionType, isPublic):
+        rowCount = widget.rowCount()
+        for row in range(rowCount):
+            read_checkbox = widget.cellWidget(row, 1)
+            write_checkbox = widget.cellWidget(row, 2)                
+            if permissionType == 'write':
+                if write_checkbox is not None:
+                    write_checkbox.setChecked(isPublic)
+                    if read_checkbox is not None:                 
+                        read_checkbox.setChecked(isPublic)
+            elif permissionType == 'read':
+                if read_checkbox is not None:
+                    read_checkbox.setChecked(isPublic)
+
+   
+
+    
+                               
     def setPermissionsUI(self, layerName):         
         group1 = QButtonGroup(self)
         group2 = QButtonGroup(self)
-        group1.addButton(self.radioButton)
-        group1.addButton(self.radioButton_2)
-        group2.addButton(self.radioButton_3)
-        group2.addButton(self.radioButton_4)
-        self.radioButton_4.toggled.connect(self.onRadioButtonWritePrivateToggled)     
+        group1.addButton(self.radioButton_readPublic)
+        group1.addButton(self.radioButton_readPrivate)
+        group2.addButton(self.radioButton_writePrivate)
+        group2.addButton(self.radioButton_writePublic)
+           
         self.info = 0
         self.pushButton_close.clicked.connect(lambda: self.close())   
         uri = self.URI + "/rest/users"
@@ -339,7 +375,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.populatePermissionsWidget(self.tabWidget, usersDictReversed, res['access_rights']['read'], res['access_rights']['write'])   
         else:
             name = self.utils.getUserFullName()                 
-            self.populatePermissionsWidget(self.tabWidget, usersDictReversed, [self.layman.laymanUsername], [self.layman.laymanUsername])  
+            self.populatePermissionsWidget(self.tabWidget, usersDictReversed, [self.layman.laymanUsername], [self.layman.laymanUsername]) 
+        self.radioButton_readPublic.toggled.connect(lambda: self.updatePermissions('read', self.radioButton_readPublic.isChecked()))
+        self.radioButton_writePublic.toggled.connect(lambda: self.updatePermissions('write', self.radioButton_writePublic.isChecked()))               
         if not self.permissionsConnected:            
             self.userFilterLineEdit.textChanged.connect(self.filterRecords) 
             self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())      
