@@ -364,13 +364,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                          
     def alignCheckboxesInTable(self, table_widget, count):
         for row in range(count):
-            for col in [1, 2]:  # Předpokládáme, že sloupce 1 a 2 obsahují checkboxy pro čtení/zápis        
+            for col in [1, 2]:       
                 checkbox = QCheckBox()
                 checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")  # Zarovnání na střed pomocí stylu 
                 checkbox_item = QTableWidgetItem()
                 checkbox_item.setFlags(Qt.ItemIsEnabled)  # Položka je povolená, ale neměnná
-                checkbox_item.setTextAlignment(Qt.AlignCenter)  # Nastavení zarovnání textu na střed                
-                # Vložení QCheckBox do QTableWidget
+                checkbox_item.setTextAlignment(Qt.AlignCenter)  # Nastavení zarovnání textu na střed  
                 table_widget.setCellWidget(row, col, checkbox)
                 table_widget.setItem(row, col, checkbox_item)
     def updateWidgetPermissions(self, widget, permissionType, isPublic):
@@ -378,8 +377,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             return
         rowCount = widget.rowCount()
         for row in range(rowCount):
-            read_checkbox = widget.cellWidget(row, 1)  # předpokládáme, že sloupec 1 je pro čtení
-            write_checkbox = widget.cellWidget(row, 2) # předpokládáme, že sloupec 2 je pro zápis           
+            read_checkbox = widget.cellWidget(row, 1)  
+            write_checkbox = widget.cellWidget(row, 2)        
             # Pokud se aktualizují oprávnění pro zápis a je to nastaveno na veřejné
             print(isPublic, permissionType)
             if permissionType == 'write' and isPublic:
@@ -398,7 +397,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 if permissionType == 'write' and write_checkbox is not None:
                     write_checkbox.setChecked(False)  
                 if permissionType == 'read' and read_checkbox is not None:
-                    read_checkbox.setChecked(False) # odškrtneme checkbox pro čtení                             
+                    read_checkbox.setChecked(False)                            
   
 
     def globalUpdateFromPermissions(self, widget, permissionType, permissionsDict):
