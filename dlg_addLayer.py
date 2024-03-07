@@ -60,7 +60,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.URI = URI
         self.layman = layman
         self.setupUi(self)
+        self.globalRead = {}
+        self.globalWrite = {}
         self.setUi()
+        
 
 
 
@@ -212,8 +215,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 tab_widget.removeTab(index)
             else:
                 index += 1  
-    def populatePermissionsWidget(self, tab_widget, user_dict, read_access, write_access):
-        print(user_dict)
+    def populatePermissionsWidget(self, tab_widget, user_dict, read_access, write_access):     
         self.removeTabByTitle(tab_widget, self.tr("Permissions by user"))
         self.removeTabByTitle(tab_widget, self.tr("Permissions by role"))
         if "EVERYONE" in user_dict:
@@ -222,7 +224,13 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         user_widget = QTableWidget()
         user_widget.verticalHeader().setVisible(False)
         self.utils.setTableWidgetNotBorder(user_widget)
+        self.globalRead.clear()
+        self.globalWrite.clear()       
+        for username in user_dict.keys():  
+            self.globalRead[username] = username in read_access
+            self.globalWrite[username] = username in write_access
     ### add users
+       
         num_columns = 4  
         user_widget.setRowCount(len(user_dict))
         user_widget.setColumnCount(num_columns)  
@@ -231,7 +239,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         for row, (username, full_name) in enumerate(user_dict.items()):
             user_widget.setItem(row, 0, QTableWidgetItem(full_name + " ("+username+")"))            
             read_checkbox = QCheckBox()
-            write_checkbox = QCheckBox()          
+            write_checkbox = QCheckBox() 
+            write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
+            read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")                 
             write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(True) if state else rc.isChecked())
             read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)               
             if username == self.layman.laymanUsername:
@@ -257,13 +267,16 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         role_widget.setColumnCount(num_columns)  
         role_widget.setHorizontalHeaderLabels([self.tr('Role'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
         roles = self.getRoles()
+        self.roles = roles
         row = 0
         for rolename in (roles):    
             if rolename == "EVERYONE":
                 continue
             role_widget.setItem(row, 0, QTableWidgetItem(rolename))   
             read_checkbox = QCheckBox()
-            write_checkbox = QCheckBox()           
+            write_checkbox = QCheckBox()  
+            write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
+            read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")         
             write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(state > 0))
             read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)
             role_widget.setCellWidget(row, 1, read_checkbox)
@@ -271,13 +284,18 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             if rolename in write_access:
                 write_checkbox.setChecked(True)
                 read_checkbox.setChecked(True)
+                self.globalWrite[rolename] = True
             else:
-                read_checkbox.setChecked(rolename in read_access)  
+                if rolename in read_access:
+                    self.globalRead[rolename] = True
+                read_checkbox.setChecked(rolename in read_access)               
             role_widget.setItem(row, 3, QTableWidgetItem(rolename))         
             role_widget.setColumnHidden(3, True)
             role_widget.resizeColumnToContents(0)
             row = row + 1
         tab_widget.addTab(role_widget, self.tr("Permissions by role"))
+        # self.alignCheckboxesInTable(role_widget, len(self.roles)-1)
+        # self.alignCheckboxesInTable(user_widget, user_widget.rowCount())
     def onRadioButtonWritePrivateToggled(self, checked):
         if checked:
             self.radioButton_readPublic.setChecked(True)
@@ -296,6 +314,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         role_widget_index = 1
         role_widget = self.tabWidget.widget(role_widget_index)
         return role_widget    
+    def getWidgetByTabName(self, tab_widget, tab_name):
+        for i in range(tab_widget.count()):
+            if tab_widget.tabText(i) == tab_name:
+                return tab_widget.widget(i)
+        return None
     def filterRecords(self):
         filter_text = self.userFilterLineEdit.text().lower()
         user_widget = self.getUserWidget()  
@@ -304,35 +327,100 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 item = user_widget.item(row, 0) 
                 if item:  
                     user_widget.setRowHidden(row, filter_text not in item.text().lower())
-    def updatePermissions(self, permissionType, isPublic):     
-        user_widget = self.tabWidget.widget(0)  
-        role_widget = self.tabWidget.widget(1)  
-        print(role_widget)         
-        self.updateWidgetPermissions(user_widget, permissionType, isPublic)    
-        self.updateWidgetPermissions(role_widget, permissionType, isPublic)
-        if permissionType == 'write' and isPublic:
-            self.radioButton_readPublic.setChecked(True)
+         
+    def updatePermissions(self, permissionType, isPublic):
+        user_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by user"))
+        role_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by role"))       
+        if permissionType == 'read':
+            if isPublic:
+                # Veřejné čtení bylo vybráno, nastavíme všechny checkboxy pro čtení na zaškrtnuté
+                self.updateWidgetPermissions(user_widget, 'read', True)
+                self.updateWidgetPermissions(role_widget, 'read', True)
+            else:
+                # Soukromé čtení bylo vybráno, načteme původní stavy z globálních proměnných
+                self.globalUpdateFromPermissions(user_widget, 'read', self.globalRead)
+                self.globalUpdateFromPermissions(role_widget, 'read', self.globalRead)
+                # Zajistíme, že pokud je zápis nastaven na veřejný, přepneme ho na soukromý
+                if self.radioButton_writePublic.isChecked():
+                    self.radioButton_writePrivate.setChecked(True)
+
+        elif permissionType == 'write':        
+            if isPublic:
+                # Veřejný zápis byl vybrán, automaticky zaškrtneme i veřejné čtení
+                self.radioButton_readPublic.setChecked(True)
+                self.updateWidgetPermissions(user_widget, 'write', True)
+                self.updateWidgetPermissions(role_widget, 'write', True)
+                # self.globalUpdateFromPermissions(user_widget, 'write', self.globalWrite)
+                # self.globalUpdateFromPermissions(role_widget, 'write', self.globalWrite)
+            else:
+                # Soukromý zápis byl vybrán, načteme původní stavy z globálních proměnných
+                self.globalUpdateFromPermissions(user_widget, 'write', self.globalWrite)
+                self.globalUpdateFromPermissions(role_widget, 'write', self.globalWrite)
+
+        # Pokud je veřejné čtení a zároveň je vybráno soukromé zápisové oprávnění, aktualizujeme čtení na veřejné
+        if self.radioButton_writePrivate.isChecked() and self.radioButton_readPublic.isChecked():
             self.updateWidgetPermissions(user_widget, 'read', True)
-            self.updateWidgetPermissions(role_widget, 'read', True)
-        if permissionType == 'read' and not isPublic:
-            self.radioButton_writePrivate.setChecked(True)
-            self.updateWidgetPermissions(user_widget, 'write', False)
-            self.updateWidgetPermissions(role_widget, 'write', False)            
+            self.updateWidgetPermissions(role_widget, 'read', True)             
+                         
+    def alignCheckboxesInTable(self, table_widget, count):
+        for row in range(count):
+            for col in [1, 2]:  # Předpokládáme, že sloupce 1 a 2 obsahují checkboxy pro čtení/zápis        
+                checkbox = QCheckBox()
+                checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")  # Zarovnání na střed pomocí stylu 
+                checkbox_item = QTableWidgetItem()
+                checkbox_item.setFlags(Qt.ItemIsEnabled)  # Položka je povolená, ale neměnná
+                checkbox_item.setTextAlignment(Qt.AlignCenter)  # Nastavení zarovnání textu na střed                
+                # Vložení QCheckBox do QTableWidget
+                table_widget.setCellWidget(row, col, checkbox)
+                table_widget.setItem(row, col, checkbox_item)
     def updateWidgetPermissions(self, widget, permissionType, isPublic):
+        if widget is None:
+            return
         rowCount = widget.rowCount()
         for row in range(rowCount):
-            read_checkbox = widget.cellWidget(row, 1)
-            write_checkbox = widget.cellWidget(row, 2)                
-            if permissionType == 'write':
-                if write_checkbox is not None:
-                    write_checkbox.setChecked(isPublic)
-                    if read_checkbox is not None:                 
-                        read_checkbox.setChecked(isPublic)
-            elif permissionType == 'read':
+            read_checkbox = widget.cellWidget(row, 1)  # předpokládáme, že sloupec 1 je pro čtení
+            write_checkbox = widget.cellWidget(row, 2) # předpokládáme, že sloupec 2 je pro zápis           
+            # Pokud se aktualizují oprávnění pro zápis a je to nastaveno na veřejné
+            print(isPublic, permissionType)
+            if permissionType == 'write' and isPublic:
+                if write_checkbox is not None:                   
+                    write_checkbox.setChecked(True)  # zaškrtneme checkbox pro zápis
                 if read_checkbox is not None:
-                    read_checkbox.setChecked(isPublic)
+                    read_checkbox.setChecked(True)  # zaškrtneme také checkbox pro čtení, protože veřejný zápis obvykle zahrnuje i veřejné čtení
 
-   
+            # Pokud se aktualizují oprávnění pro čtení a je to nastaveno na veřejné
+            elif permissionType == 'read' and isPublic:
+                if read_checkbox is not None:
+                    read_checkbox.setChecked(True)  # zaškrtneme checkbox pro čtení
+
+            # Pokud se jedná o soukromá oprávnění
+            else:
+                if permissionType == 'write' and write_checkbox is not None:
+                    write_checkbox.setChecked(False)  
+                if permissionType == 'read' and read_checkbox is not None:
+                    read_checkbox.setChecked(False) # odškrtneme checkbox pro čtení                             
+  
+
+    def globalUpdateFromPermissions(self, widget, permissionType, permissionsDict):
+        if widget is None:
+            return
+        rowCount = widget.rowCount()  
+        for row in range(rowCount):   
+            try:
+                user_or_role = widget.item(row, 3).text() 
+            except:
+                return          
+            checkbox = widget.cellWidget(row, 1 if permissionType == 'read' else 2)       
+            if checkbox is not None and user_or_role in permissionsDict:          
+                if user_or_role == self.layman.laymanUsername:
+                    checkbox.setChecked(True)
+                    checkbox.setEnabled(False)
+                else:     
+                    checkbox.setChecked(permissionsDict[user_or_role])
+                    checkbox.setEnabled(True) 
+            elif checkbox is not None and user_or_role in self.roles:                    
+                checkbox.setChecked(False)
+                checkbox.setEnabled(True)
 
     
                                
@@ -343,7 +431,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         group1.addButton(self.radioButton_readPrivate)
         group2.addButton(self.radioButton_writePrivate)
         group2.addButton(self.radioButton_writePublic)
-           
         self.info = 0
         self.pushButton_close.clicked.connect(lambda: self.close())   
         uri = self.URI + "/rest/users"
@@ -377,7 +464,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             name = self.utils.getUserFullName()                 
             self.populatePermissionsWidget(self.tabWidget, usersDictReversed, [self.layman.laymanUsername], [self.layman.laymanUsername]) 
         self.radioButton_readPublic.toggled.connect(lambda: self.updatePermissions('read', self.radioButton_readPublic.isChecked()))
-        self.radioButton_writePublic.toggled.connect(lambda: self.updatePermissions('write', self.radioButton_writePublic.isChecked()))               
+        self.radioButton_writePublic.toggled.connect(lambda: self.updatePermissions('write', self.radioButton_writePublic.isChecked()))  
+                     
         if not self.permissionsConnected:            
             self.userFilterLineEdit.textChanged.connect(self.filterRecords) 
             self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())      
