@@ -99,6 +99,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadMapsThread(state)))
         self.checkBox_own.stateChanged.connect(self.disableButtonsAddMap)
         self.checkBox_own.stateChanged.connect(self.rememberValueMap)
+        self.checkBox_own.stateChanged.connect(lambda: self.filterResults(self.filter.text()))      
         self.mapDeletedSuccessfully.emit()
         self.show()
         self.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl(True))
@@ -346,7 +347,6 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_delete.setEnabled(False)            
              
     def filterResults(self, value):
-
         iterator = QTreeWidgetItemIterator(self.treeWidget, QTreeWidgetItemIterator.All)
         while iterator.value():
             item = iterator.value()

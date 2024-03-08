@@ -316,9 +316,9 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>190</y>
+       <y>150</y>
        <width>611</width>
-       <height>331</height>
+       <height>371</height>
       </rect>
      </property>
      <property name="currentIndex">
@@ -361,8 +361,8 @@
     <widget class="QRadioButton" name="radioButton_writePublic">
      <property name="geometry">
       <rect>
-       <x>200</x>
-       <y>140</y>
+       <x>190</x>
+       <y>117</y>
        <width>111</width>
        <height>23</height>
       </rect>
@@ -374,8 +374,8 @@
     <widget class="QLabel" name="label_6">
      <property name="geometry">
       <rect>
-       <x>20</x>
-       <y>143</y>
+       <x>10</x>
+       <y>120</y>
        <width>141</width>
        <height>17</height>
       </rect>
@@ -390,8 +390,8 @@
     <widget class="QLabel" name="label_5">
      <property name="geometry">
       <rect>
-       <x>20</x>
-       <y>112</y>
+       <x>10</x>
+       <y>89</y>
        <width>141</width>
        <height>17</height>
       </rect>
@@ -406,21 +406,21 @@
     <widget class="QRadioButton" name="radioButton_readPrivate">
      <property name="geometry">
       <rect>
-       <x>310</x>
-       <y>111</y>
+       <x>300</x>
+       <y>88</y>
        <width>111</width>
        <height>23</height>
       </rect>
      </property>
      <property name="text">
-      <string>Private</string>
+      <string>Restricted</string>
      </property>
     </widget>
     <widget class="QRadioButton" name="radioButton_readPublic">
      <property name="geometry">
       <rect>
-       <x>200</x>
-       <y>110</y>
+       <x>190</x>
+       <y>87</y>
        <width>111</width>
        <height>23</height>
       </rect>
@@ -432,14 +432,14 @@
     <widget class="QRadioButton" name="radioButton_writePrivate">
      <property name="geometry">
       <rect>
-       <x>310</x>
-       <y>140</y>
+       <x>300</x>
+       <y>117</y>
        <width>111</width>
        <height>23</height>
       </rect>
      </property>
      <property name="text">
-      <string>Private</string>
+      <string>Restricted</string>
      </property>
     </widget>
    </widget>

@@ -141,7 +141,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")       
         self.progressBar_loader.show()
         asyncio.run(self.loadLayersThread(checked))
-        self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadLayersThread(state)))        
+        self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadLayersThread(state)))  
+        self.checkBox_own.stateChanged.connect(lambda: self.filterResults(self.filter.text()))        
         if self.isAuthorized:
             self.checkBox_own.setEnabled(True)
         else:

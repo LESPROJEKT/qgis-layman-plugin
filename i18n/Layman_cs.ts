@@ -14,17 +14,17 @@
         <translation>Načíst WMS</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="450"/>
+        <location filename="../dlg_addLayer.ui" line="461"/>
         <source>Layer</source>
         <translation>Vrstva</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="455"/>
+        <location filename="../dlg_addLayer.ui" line="466"/>
         <source>Owner</source>
         <translation>Vlastník</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="460"/>
+        <location filename="../dlg_addLayer.ui" line="471"/>
         <source>Permissions</source>
         <translation>Práva</translation>
     </message>
@@ -49,7 +49,7 @@
         <translation>Načíst WFS</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.py" line="356"/>
+        <location filename="../dlg_addLayer.py" line="493"/>
         <source>Delete layer</source>
         <translation>Smazat vrstvu</translation>
     </message>
@@ -64,7 +64,7 @@
         <translation>Nastavit práva</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="509"/>
+        <location filename="../dlg_addLayer.ui" line="520"/>
         <source>Show only my layers</source>
         <translation>Zobrazit jenom mé vrstvy</translation>
     </message>
@@ -99,7 +99,7 @@
         <translation>Načíst Postgis</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="427"/>
+        <location filename="../dlg_addLayer.ui" line="338"/>
         <source>Save</source>
         <translation>Uložit</translation>
     </message>
@@ -124,17 +124,17 @@
         <translation type="obsolete">Odebrat</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="465"/>
+        <location filename="../dlg_addLayer.ui" line="476"/>
         <source>CRS</source>
         <translation type="unfinished">CRS</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="493"/>
+        <location filename="../dlg_addLayer.ui" line="504"/>
         <source>Filter</source>
         <translation>Filtrovat</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="470"/>
+        <location filename="../dlg_addLayer.ui" line="481"/>
         <source>Status</source>
         <translation>Status</translation>
     </message>
@@ -154,74 +154,79 @@
         <translation type="obsolete">Dostupní uživatelé</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.py" line="343"/>
+        <location filename="../dlg_addLayer.py" line="480"/>
         <source>Do you want delete selected layers?</source>
         <translation>Chcete opravdu smazat vybrané vrstvy?</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.py" line="356"/>
+        <location filename="../dlg_addLayer.py" line="493"/>
         <source>Do you want delete layer </source>
         <translation>Chcete opravdu smazat vrstvu </translation>
     </message>
     <message>
         <location filename="../dlg_addLayer.ui" line="329"/>
         <source>Everyone</source>
-        <translation>Všichni</translation>
+        <translation type="obsolete">Všichni</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="380"/>
+        <location filename="../dlg_addLayer.ui" line="429"/>
         <source>Public</source>
         <translation>Veřejný</translation>
     </message>
     <message>
         <location filename="../dlg_addLayer.ui" line="367"/>
         <source>Private</source>
-        <translation>Soukromý</translation>
+        <translation type="obsolete">Soukromý</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="393"/>
+        <location filename="../dlg_addLayer.ui" line="400"/>
         <source>Read access rights:</source>
         <translation>Práva ke čtení</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.ui" line="409"/>
+        <location filename="../dlg_addLayer.ui" line="384"/>
         <source>Write access rights:</source>
         <translation>Práva k zápisu</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.py" line="229"/>
+        <location filename="../dlg_addLayer.py" line="237"/>
         <source>User</source>
         <translation>Uživatel</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.py" line="258"/>
+        <location filename="../dlg_addLayer.py" line="268"/>
         <source>Read</source>
         <translation>Čtení</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.py" line="258"/>
+        <location filename="../dlg_addLayer.py" line="268"/>
         <source>Write</source>
         <translation>Zápis</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.py" line="258"/>
+        <location filename="../dlg_addLayer.py" line="268"/>
         <source>Nick</source>
         <translation>Nick</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.py" line="250"/>
+        <location filename="../dlg_addLayer.py" line="332"/>
         <source>Permissions by user</source>
         <translation>Práva dle uživatele</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.py" line="258"/>
+        <location filename="../dlg_addLayer.py" line="268"/>
         <source>Role</source>
         <translation>Role</translation>
     </message>
     <message>
-        <location filename="../dlg_addLayer.py" line="280"/>
+        <location filename="../dlg_addLayer.py" line="333"/>
         <source>Permissions by role</source>
         <translation>Práva dle role</translation>
+    </message>
+    <message>
+        <location filename="../dlg_addLayer.ui" line="442"/>
+        <source>Restricted</source>
+        <translation>Omezené</translation>
     </message>
 </context>
 <context>
@@ -242,17 +247,17 @@
         <translation>Zavřít</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="399"/>
+        <location filename="../dlg_addMap.ui" line="415"/>
         <source>Compositions</source>
         <translation>Kompozice</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="404"/>
+        <location filename="../dlg_addMap.ui" line="420"/>
         <source>Owner</source>
         <translation>Vlastník</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="409"/>
+        <location filename="../dlg_addMap.ui" line="425"/>
         <source>Permissions</source>
         <translation>Práva</translation>
     </message>
@@ -282,7 +287,7 @@
         <translation>Načíst kompozici</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.py" line="402"/>
+        <location filename="../dlg_addMap.py" line="420"/>
         <source>Delete map</source>
         <translation>Smazat kompozici</translation>
     </message>
@@ -292,7 +297,7 @@
         <translation>Nastavit práva</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="466"/>
+        <location filename="../dlg_addMap.ui" line="482"/>
         <source>Show only my compositions</source>
         <translation>Zobrazit jenom mé kompozice</translation>
     </message>
@@ -332,12 +337,12 @@
         <translation type="obsolete">Zápis:</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="414"/>
+        <location filename="../dlg_addMap.ui" line="430"/>
         <source>CRS</source>
         <translation>CRS</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="437"/>
+        <location filename="../dlg_addMap.ui" line="453"/>
         <source>Filter</source>
         <translation>Filtrovat</translation>
     </message>
@@ -357,17 +362,17 @@
         <translation type="obsolete">Dostupní uživatelé</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="453"/>
+        <location filename="../dlg_addMap.ui" line="469"/>
         <source>Nepřihlášený uživatel</source>
         <translation>Not logged in user</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.py" line="531"/>
+        <location filename="../dlg_addMap.py" line="549"/>
         <source>Načítáte stejnou kompozici. Chcete ponechat původní lokální vrstvy?</source>
         <translation>You are loading the same composition. Do you want to keep the original local layers?</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.py" line="509"/>
+        <location filename="../dlg_addMap.py" line="527"/>
         <source>Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem.</source>
         <translation>Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content.</translation>
     </message>
@@ -382,7 +387,7 @@
         <translation type="obsolete">Chcete tato práva nastavit i na jednotlivé vrstvy, které mapová kompozice obsahuje?</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.py" line="402"/>
+        <location filename="../dlg_addMap.py" line="420"/>
         <source>Do you want really delete composition </source>
         <translation>Chcete opravdu smazat kompozici </translation>
     </message>
@@ -513,7 +518,7 @@
         <translation>Upravit metadata</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1326"/>
+        <location filename="../dlg_currentComposition.ui" line="1342"/>
         <source>Save changes</source>
         <translation>Uložit změny</translation>
     </message>
@@ -578,7 +583,7 @@
         <translation type="unfinished">Info</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="993"/>
+        <location filename="../dlg_currentComposition.ui" line="1009"/>
         <source>Save</source>
         <translation>Uložit</translation>
     </message>
@@ -588,7 +593,7 @@
         <translation type="obsolete">Přidat</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1047"/>
+        <location filename="../dlg_currentComposition.ui" line="1063"/>
         <source>Back</source>
         <translation>Zpět</translation>
     </message>
@@ -608,137 +613,137 @@
         <translation type="obsolete">Zápis:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="966"/>
+        <location filename="../dlg_currentComposition.ui" line="982"/>
         <source>XMax:</source>
         <translation>XMax:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="910"/>
+        <location filename="../dlg_currentComposition.ui" line="926"/>
         <source>YMin:</source>
         <translation>YMin:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="555"/>
+        <location filename="../dlg_currentComposition.ui" line="571"/>
         <source>Canvas extent</source>
         <translation>Rozsah dat</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="542"/>
+        <location filename="../dlg_currentComposition.ui" line="558"/>
         <source>Extent of canvas:</source>
         <translation>Prostorový rozsah dat:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="953"/>
+        <location filename="../dlg_currentComposition.ui" line="969"/>
         <source>YMax:</source>
         <translation>YMax:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1180"/>
+        <location filename="../dlg_currentComposition.ui" line="1196"/>
         <source>Title:</source>
         <translation>Název:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="489"/>
+        <location filename="../dlg_currentComposition.ui" line="505"/>
         <source>Get extent of composition from layer</source>
         <translation>Získat prostorový rozsah z vrstvy</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="776"/>
+        <location filename="../dlg_currentComposition.ui" line="792"/>
         <source>Description:</source>
         <translation>Popis:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="572"/>
+        <location filename="../dlg_currentComposition.ui" line="588"/>
         <source>Create </source>
         <translation>Vytvořit</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="979"/>
+        <location filename="../dlg_currentComposition.ui" line="995"/>
         <source>XMin:</source>
         <translation>XMin:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="888"/>
+        <location filename="../dlg_currentComposition.ui" line="904"/>
         <source>Extent of composition</source>
         <translation>Prostorový rozsah</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="712"/>
+        <location filename="../dlg_currentComposition.ui" line="728"/>
         <source>Metadata</source>
         <translation type="unfinished">Metadata</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="724"/>
+        <location filename="../dlg_currentComposition.ui" line="740"/>
         <source>Scale:</source>
         <translation>Měřítko:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="763"/>
+        <location filename="../dlg_currentComposition.ui" line="779"/>
         <source>User:</source>
         <translation>Uživatel:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="825"/>
+        <location filename="../dlg_currentComposition.ui" line="841"/>
         <source>Units:</source>
         <translation>Jednotka:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="864"/>
+        <location filename="../dlg_currentComposition.ui" line="880"/>
         <source>EPSG:</source>
         <translation>EPSG:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1010"/>
+        <location filename="../dlg_currentComposition.ui" line="1026"/>
         <source>From canvas</source>
         <translation>Z plátna</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1027"/>
+        <location filename="../dlg_currentComposition.ui" line="1043"/>
         <source>From capatibilites</source>
         <translation>Z vrstev</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1115"/>
+        <location filename="../dlg_currentComposition.ui" line="1131"/>
         <source>Max scale:</source>
         <translation>Maximální měřítko:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1193"/>
+        <location filename="../dlg_currentComposition.ui" line="1209"/>
         <source>Opacity:</source>
         <translation>Průhlednost:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1102"/>
+        <location filename="../dlg_currentComposition.ui" line="1118"/>
         <source>Grey scale:</source>
         <translation>Odstíny šedi:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1284"/>
+        <location filename="../dlg_currentComposition.ui" line="1300"/>
         <source>Visibility:</source>
         <translation>Viditelnost:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1206"/>
+        <location filename="../dlg_currentComposition.ui" line="1222"/>
         <source>Group:</source>
         <translation>Skupina:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1219"/>
+        <location filename="../dlg_currentComposition.ui" line="1235"/>
         <source>title</source>
         <translation>Titulek</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1297"/>
+        <location filename="../dlg_currentComposition.ui" line="1313"/>
         <source>Min scale:</source>
         <translation>Minimální měřítko</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1271"/>
+        <location filename="../dlg_currentComposition.ui" line="1287"/>
         <source>Single tile:</source>
         <translation>Tiled/Dlaždicovat:</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1141"/>
+        <location filename="../dlg_currentComposition.ui" line="1157"/>
         <source>Base layer:</source>
         <translation>Podkladová vrstva</translation>
     </message>
@@ -753,17 +758,17 @@
         <translation type="obsolete">Dostupní uživatelé</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="476"/>
+        <location filename="../dlg_currentComposition.ui" line="492"/>
         <source>New composition</source>
         <translation>Nová mapová kompozice</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="700"/>
+        <location filename="../dlg_currentComposition.ui" line="716"/>
         <source>Edit map composition</source>
         <translation>Editovat mapovou kompozici</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.ui" line="1064"/>
+        <location filename="../dlg_currentComposition.ui" line="1080"/>
         <source>Layer properties</source>
         <translation>Vlastnosti vrstvy</translation>
     </message>
@@ -803,102 +808,102 @@
         <translation> je vnořena do dvou skupin. Bude uložena pouze nadřazená skupina.</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="834"/>
+        <location filename="../dlg_currentComposition.py" line="854"/>
         <source>This user already exists in the list!</source>
         <translation>Tento uživatel se již v seznamu vyskytuje!</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1031"/>
+        <location filename="../dlg_currentComposition.py" line="899"/>
         <source>Permissions was saved successfully.</source>
         <translation>Práva byla úspěšně uložena.</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1033"/>
+        <location filename="../dlg_currentComposition.py" line="901"/>
         <source>Permissions was not saved for layer: </source>
         <translation>Práva nebyla uložena pro vrstvu: </translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1066"/>
+        <location filename="../dlg_currentComposition.py" line="930"/>
         <source>Gets spatial range information from wms capatibilies.</source>
         <translation>Získá informaci o rozsahu z wms capatibilies.</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1067"/>
+        <location filename="../dlg_currentComposition.py" line="931"/>
         <source>Gets spatial range information from QGIS canvas.</source>
         <translation>Získá informaci o rozsahu z okna QGI.</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1173"/>
+        <location filename="../dlg_currentComposition.py" line="1037"/>
         <source>A record of the layers spatial extent for the selected composition was not found!</source>
         <translation>Záznam prostorového rozsahu vrstev vybrané kompozice nebyl nalezen!</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1233"/>
+        <location filename="../dlg_currentComposition.py" line="1097"/>
         <source>Number in first character of title is not allowed! Title can not be prefilled.</source>
         <translation>Není povoleno číslo v prvník znaku titulku! Není možné předvyplnit název.</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1277"/>
+        <location filename="../dlg_currentComposition.py" line="1141"/>
         <source>Extent of layer: </source>
         <translation>Rozsah vrstvy: </translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1303"/>
+        <location filename="../dlg_currentComposition.py" line="1167"/>
         <source>Composition name already exists!</source>
         <translation>Kompozice s tímto jménem již existuje!</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1315"/>
+        <location filename="../dlg_currentComposition.py" line="1179"/>
         <source>Unsupported char.</source>
         <translation>Nepodporovaný znak.&quot;</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1323"/>
+        <location filename="../dlg_currentComposition.py" line="1187"/>
         <source>Project EPSG is not supported.</source>
         <translation>Není nastaveno podporované EPSG projektu.</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1326"/>
+        <location filename="../dlg_currentComposition.py" line="1190"/>
         <source>Name is not filled!</source>
         <translation>Není vyplněn název!</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1366"/>
+        <location filename="../dlg_currentComposition.py" line="1230"/>
         <source>Layer loaded from a local geojson file.</source>
         <translation>Vrstva načtená z lokálního souboru geojson.</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1368"/>
+        <location filename="../dlg_currentComposition.py" line="1232"/>
         <source>Layer loaded from a local SHP file.</source>
         <translation>Vrstva načtená z lokálního souboru SHP.</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1370"/>
+        <location filename="../dlg_currentComposition.py" line="1234"/>
         <source>Layer stored in QGIS memory. It will be deleted after QGIS is turned off.</source>
         <translation>Layer stored in QGIS memory. It will be deleted after QGIS is turned off.</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1372"/>
+        <location filename="../dlg_currentComposition.py" line="1236"/>
         <source>A layer loaded over a WMS service that provides data in a raster format. It is possible to change this service to a WFS vector service using the button.</source>
         <translation>Vrstva načtená přes službu WMS poskytující data v rasterovém formátu. Je možné tuto službu zaměnit za vektorovou službu WFS pomocí tlačítka.</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1374"/>
+        <location filename="../dlg_currentComposition.py" line="1238"/>
         <source>A layer loaded over a WFS service that provides data in a vector format. It is possible to change this service to a WMS raster service using the button. Changes in this layer are saved to the server.</source>
         <translation>Vrstva načtená přes službu WFS poskytující data ve vektorovém formátu. Je možné tuto službu zaměnit za rasterovou službu WMS pomocí tlačítka. Změny v této vrstvě jsou ukládány na server.</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1376"/>
+        <location filename="../dlg_currentComposition.py" line="1240"/>
         <source>Vector layer loaded from a local file.</source>
         <translation>Vector layer loaded from a local file.</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1440"/>
+        <location filename="../dlg_currentComposition.py" line="1304"/>
         <source>Delete map</source>
         <translation>Smazat kompozici</translation>
     </message>
     <message>
-        <location filename="../dlg_currentComposition.py" line="1440"/>
+        <location filename="../dlg_currentComposition.py" line="1304"/>
         <source>Do you want really delete this composition?</source>
         <translation>Chcete opravdu smazat tuto kompozici?</translation>
     </message>
@@ -961,6 +966,11 @@
         <location filename="../dlg_currentComposition.py" line="762"/>
         <source>Permissions by role</source>
         <translation type="unfinished">Práva dle role</translation>
+    </message>
+    <message>
+        <location filename="../dlg_currentComposition.ui" line="447"/>
+        <source>Filter</source>
+        <translation type="unfinished">Filtrovat</translation>
     </message>
 </context>
 <context>
