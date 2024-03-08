@@ -153,55 +153,77 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         result = self.exec_()
 
    
+   
     def collectPermissionsAndSave(self, tab_widget, layerNames):
         self.failed = []
-        read_access = []
-        write_access = []        
-        role_access = {'read': [], 'write': []}       
-        if self.radioButton_readPublic.isChecked():
-            read_access.append('EVERYONE')
-        if self.radioButton_writePublic.isChecked():
-            write_access.append('EVERYONE')       
-        table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by user"))
-        if table_widget:
-            self.collectAccessFromTable(table_widget, read_access, write_access)        
-        role_table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by role"))
-        if role_table_widget:            
-            self.collectAccessFromTable(role_table_widget, role_access['read'], role_access['write']) 
-        data = {
-            'access_rights.read': self.utils.listToString(read_access + role_access['read']),
-            'access_rights.write': self.utils.listToString(write_access + role_access['write'])
-        }                
-      
-        for layer in layerNames:
-            layer = self.utils.removeUnacceptableChars(layer)      
-            url = self.URI+'/rest/'+self.layman.laymanUsername+'/layers/'+layer
-            response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))             
-            if (response.status_code != 200):
-                self.failed.append(layer)                                     
-            print(response.content)
-        if len(self.failed) == 0:       
-            self.permissionInfo.emit(True, self.failed, 0)                
+        read_access = []  
+        write_access = []  
+        
+        if self.radioButton_readPublic.isChecked():         
+            read_access = ['EVERYONE']
+        else:        
+            table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by user"))
+            if table_widget:
+                self.collectAccessFromTable(table_widget, read_access, "read")
+            role_table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+            if role_table_widget:
+                self.collectAccessFromTable(role_table_widget, read_access, "write")               
+
+        if self.radioButton_writePublic.isChecked():           
+            write_access = ['EVERYONE']
         else:
-            self.permissionInfo.emit(False, self.failed, 0)         
+            table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by user"))
+            if table_widget:
+                self.collectAccessFromTable(table_widget, write_access, "write")   
+            role_table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+            if role_table_widget:
+                self.collectAccessFromTable(role_table_widget, write_access, "write")
+
+        if not self.layman.laymanUsername in write_access:
+            write_access.append(self.layman.laymanUsername)
+        if not self.layman.laymanUsername in read_access:
+            write_access.append(self.layman.laymanUsername)   
+
+        data = {
+            'access_rights.read': self.utils.listToString(read_access),
+            'access_rights.write': self.utils.listToString(write_access)
+        }
+        
+ 
+        for layer in layerNames:
+            layer = self.utils.removeUnacceptableChars(layer)
+            url = self.URI+'/rest/'+self.layman.laymanUsername+'/layers/'+layer
+            response = requests.patch(url, data=data, headers=self.utils.getAuthHeader(self.utils.authCfg))
+            
+            if response.status_code != 200:
+                self.failed.append(layer)      
+        if len(self.failed) == 0:
+            self.permissionInfo.emit(True, self.failed, 0)
+        else:
+            self.permissionInfo.emit(False, self.failed, 0)          
     def getTableWidgetByTabName(self, tab_widget, tab_name):
       
         for i in range(tab_widget.count()):
             if tab_widget.tabText(i) == tab_name:
                 return tab_widget.widget(i)
         return None
-
-    def collectAccessFromTable(self, table_widget, read_access_list, write_access_list):
+                    
+    def collectAccessFromTable(self, table_widget, access_list, type):
         for row in range(table_widget.rowCount()):
             item = table_widget.item(row, 3)  
             if item is not None:  
                 username = item.text()
-                read_checkbox = table_widget.cellWidget(row, 1)
-                write_checkbox = table_widget.cellWidget(row, 2)
-                if read_checkbox.isChecked():
-                    read_access_list.append(username)
-                if write_checkbox.isChecked():
-                    write_access_list.append(username)                     
+                if type == "read":
+                    read_checkbox = table_widget.cellWidget(row, 1)
+                    if read_checkbox.isChecked():
+                        access_list.append(username)
+
+                if type == "write":                    
+                    write_checkbox = table_widget.cellWidget(row, 2)
+                    if write_checkbox.isChecked():
+                        access_list.append(username)
+
+
                        
                                                  
     def getRoles(self):
@@ -278,7 +300,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             write_checkbox = QCheckBox()  
             write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
             read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")         
-            write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(state > 0))
+            # write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(state > 0))
+            write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(True) if state else None)
             read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)
             role_widget.setCellWidget(row, 1, read_checkbox)
             role_widget.setCellWidget(row, 2, write_checkbox) 
@@ -294,9 +317,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             role_widget.setColumnHidden(3, True)
             role_widget.resizeColumnToContents(0)
             row = row + 1
-        tab_widget.addTab(role_widget, self.tr("Permissions by role"))
-        # self.alignCheckboxesInTable(role_widget, len(self.roles)-1)
-        # self.alignCheckboxesInTable(user_widget, user_widget.rowCount())
+        tab_widget.addTab(role_widget, self.tr("Permissions by role"))   
     def onRadioButtonWritePrivateToggled(self, checked):
         if checked:
             self.radioButton_readPublic.setChecked(True)
@@ -333,32 +354,25 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         user_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by user"))
         role_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by role"))       
         if permissionType == 'read':
-            if isPublic:
-                # Veřejné čtení bylo vybráno, nastavíme všechny checkboxy pro čtení na zaškrtnuté
+            if isPublic:               
                 self.updateWidgetPermissions(user_widget, 'read', True)
                 self.updateWidgetPermissions(role_widget, 'read', True)
-            else:
-                # Soukromé čtení bylo vybráno, načteme původní stavy z globálních proměnných
+            else:     
                 self.globalUpdateFromPermissions(user_widget, 'read', self.globalRead)
-                self.globalUpdateFromPermissions(role_widget, 'read', self.globalRead)
-                # Zajistíme, že pokud je zápis nastaven na veřejný, přepneme ho na soukromý
+                self.globalUpdateFromPermissions(role_widget, 'read', self.globalRead)          
                 if self.radioButton_writePublic.isChecked():
                     self.radioButton_writePrivate.setChecked(True)
 
         elif permissionType == 'write':        
-            if isPublic:
-                # Veřejný zápis byl vybrán, automaticky zaškrtneme i veřejné čtení
+            if isPublic:              
                 self.radioButton_readPublic.setChecked(True)
                 self.updateWidgetPermissions(user_widget, 'write', True)
-                self.updateWidgetPermissions(role_widget, 'write', True)
-                # self.globalUpdateFromPermissions(user_widget, 'write', self.globalWrite)
-                # self.globalUpdateFromPermissions(role_widget, 'write', self.globalWrite)
-            else:
-                # Soukromý zápis byl vybrán, načteme původní stavy z globálních proměnných
+                self.updateWidgetPermissions(role_widget, 'write', True)               
+            else:              
                 self.globalUpdateFromPermissions(user_widget, 'write', self.globalWrite)
                 self.globalUpdateFromPermissions(role_widget, 'write', self.globalWrite)
 
-        # Pokud je veřejné čtení a zároveň je vybráno soukromé zápisové oprávnění, aktualizujeme čtení na veřejné
+     
         if self.radioButton_writePrivate.isChecked() and self.radioButton_readPublic.isChecked():
             self.updateWidgetPermissions(user_widget, 'read', True)
             self.updateWidgetPermissions(role_widget, 'read', True)             
@@ -367,10 +381,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         for row in range(count):
             for col in [1, 2]:       
                 checkbox = QCheckBox()
-                checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")  # Zarovnání na střed pomocí stylu 
+                checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")  
                 checkbox_item = QTableWidgetItem()
-                checkbox_item.setFlags(Qt.ItemIsEnabled)  # Položka je povolená, ale neměnná
-                checkbox_item.setTextAlignment(Qt.AlignCenter)  # Nastavení zarovnání textu na střed  
+                checkbox_item.setFlags(Qt.ItemIsEnabled)  
+                checkbox_item.setTextAlignment(Qt.AlignCenter) 
                 table_widget.setCellWidget(row, col, checkbox)
                 table_widget.setItem(row, col, checkbox_item)
     def updateWidgetPermissions(self, widget, permissionType, isPublic):
@@ -379,21 +393,20 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         rowCount = widget.rowCount()
         for row in range(rowCount):
             read_checkbox = widget.cellWidget(row, 1)  
-            write_checkbox = widget.cellWidget(row, 2)        
-            # Pokud se aktualizují oprávnění pro zápis a je to nastaveno na veřejné
+            write_checkbox = widget.cellWidget(row, 2)                  
             print(isPublic, permissionType)
             if permissionType == 'write' and isPublic:
                 if write_checkbox is not None:                   
-                    write_checkbox.setChecked(True)  # zaškrtneme checkbox pro zápis
+                    write_checkbox.setChecked(True) 
                 if read_checkbox is not None:
-                    read_checkbox.setChecked(True)  # zaškrtneme také checkbox pro čtení, protože veřejný zápis obvykle zahrnuje i veřejné čtení
+                    read_checkbox.setChecked(True)  
 
-            # Pokud se aktualizují oprávnění pro čtení a je to nastaveno na veřejné
+         
             elif permissionType == 'read' and isPublic:
                 if read_checkbox is not None:
-                    read_checkbox.setChecked(True)  # zaškrtneme checkbox pro čtení
+                    read_checkbox.setChecked(True)
 
-            # Pokud se jedná o soukromá oprávnění
+        
             else:
                 if permissionType == 'write' and write_checkbox is not None:
                     write_checkbox.setChecked(False)  
