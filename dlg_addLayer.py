@@ -157,17 +157,16 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def collectPermissionsAndSave(self, tab_widget, layerNames):
         self.failed = []
         read_access = []  
-        write_access = []  
-        
+        write_access = [] 
         if self.radioButton_readPublic.isChecked():         
-            read_access = ['EVERYONE']
+            read_access = ['EVERYONE']           
         else:        
             table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by user"))
             if table_widget:
                 self.collectAccessFromTable(table_widget, read_access, "read")
             role_table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by role"))
-            if role_table_widget:
-                self.collectAccessFromTable(role_table_widget, read_access, "write")               
+            if role_table_widget:               
+                self.collectAccessFromTable(role_table_widget, read_access, "read")               
 
         if self.radioButton_writePublic.isChecked():           
             write_access = ['EVERYONE']
@@ -178,7 +177,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             role_table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by role"))
             if role_table_widget:
                 self.collectAccessFromTable(role_table_widget, write_access, "write")
-
         if not self.layman.laymanUsername in write_access:
             write_access.append(self.layman.laymanUsername)
         if not self.layman.laymanUsername in read_access:
@@ -258,7 +256,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         user_widget.setRowCount(len(user_dict))
         user_widget.setColumnCount(num_columns)  
         user_widget.setHorizontalHeaderLabels([self.tr('User'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
-
+        everyone_read_checked = "everyone" in [name.lower() for name in read_access]
+        everyone_write_checked = "everyone" in [name.lower() for name in write_access]
         for row, (username, full_name) in enumerate(user_dict.items()):
             user_widget.setItem(row, 0, QTableWidgetItem(full_name + " ("+username+")"))            
             read_checkbox = QCheckBox()
@@ -277,6 +276,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 read_checkbox.setChecked(True)
             else:
                 read_checkbox.setChecked(username in read_access)
+            if everyone_read_checked:                  
+                read_checkbox.setChecked(True)    
+            if everyone_write_checked:                  
+                write_checkbox.setChecked(True)                            
             user_widget.setItem(row, 3, QTableWidgetItem(username))
             user_widget.setColumnHidden(3, True)
             user_widget.resizeColumnToContents(0)
@@ -299,8 +302,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             read_checkbox = QCheckBox()
             write_checkbox = QCheckBox()  
             write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
-            read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")         
-            # write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(state > 0))
+            read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")   
             write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(True) if state else None)
             read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)
             role_widget.setCellWidget(row, 1, read_checkbox)
@@ -312,7 +314,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 if rolename in read_access:
                     self.globalRead[rolename] = True
-                read_checkbox.setChecked(rolename in read_access)               
+                read_checkbox.setChecked(rolename in read_access)      
+            if everyone_read_checked:                  
+                read_checkbox.setChecked(True)    
+            if everyone_write_checked:                  
+                write_checkbox.setChecked(True)                           
             role_widget.setItem(row, 3, QTableWidgetItem(rolename))         
             role_widget.setColumnHidden(3, True)
             role_widget.resizeColumnToContents(0)
@@ -393,8 +399,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         rowCount = widget.rowCount()
         for row in range(rowCount):
             read_checkbox = widget.cellWidget(row, 1)  
-            write_checkbox = widget.cellWidget(row, 2)                  
-            print(isPublic, permissionType)
+            write_checkbox = widget.cellWidget(row, 2)  
             if permissionType == 'write' and isPublic:
                 if write_checkbox is not None:                   
                     write_checkbox.setChecked(True) 
