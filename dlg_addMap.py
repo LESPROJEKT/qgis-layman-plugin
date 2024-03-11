@@ -267,6 +267,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         for rolename in (roles):    
             if rolename == "EVERYONE":
                 continue
+            self.globalRead[rolename] = rolename in read_access
+            self.globalWrite[rolename] = rolename in write_access
             role_widget.setItem(row, 0, QTableWidgetItem(rolename))   
             read_checkbox = QCheckBox()
             write_checkbox = QCheckBox()  

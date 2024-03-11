@@ -779,6 +779,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         for rolename in (roles):    
             if rolename == "EVERYONE":
                 continue
+            self.globalRead[rolename] = rolename in read_access
+            self.globalWrite[rolename] = rolename in write_access
             role_widget.setItem(row, 0, QTableWidgetItem(rolename))   
             read_checkbox = QCheckBox()
             write_checkbox = QCheckBox()  
@@ -903,7 +905,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     read_checkbox.setChecked(False)                              
   
 
-    def globalUpdateFromPermissions(self, widget, permissionType, permissionsDict):
+    def globalUpdateFromPermissions(self, widget, permissionType, permissionsDict):            
         if widget is None:
             return
         rowCount = widget.rowCount()  
