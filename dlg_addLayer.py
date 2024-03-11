@@ -403,13 +403,16 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             if permissionType == 'write' and isPublic:
                 if write_checkbox is not None:                   
                     write_checkbox.setChecked(True) 
+                    write_checkbox.setEnabled(False)
                 if read_checkbox is not None:
                     read_checkbox.setChecked(True)  
+                    read_checkbox.setEnabled(False)
 
          
             elif permissionType == 'read' and isPublic:
                 if read_checkbox is not None:
                     read_checkbox.setChecked(True)
+                    read_checkbox.setEnabled(False)
 
         
             else:

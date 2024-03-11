@@ -368,24 +368,27 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         rowCount = widget.rowCount()
         for row in range(rowCount):
             read_checkbox = widget.cellWidget(row, 1)  
-            write_checkbox = widget.cellWidget(row, 2)     
+            write_checkbox = widget.cellWidget(row, 2)  
             if permissionType == 'write' and isPublic:
                 if write_checkbox is not None:                   
                     write_checkbox.setChecked(True) 
+                    write_checkbox.setEnabled(False)
                 if read_checkbox is not None:
                     read_checkbox.setChecked(True)  
+                    read_checkbox.setEnabled(False)
 
          
             elif permissionType == 'read' and isPublic:
                 if read_checkbox is not None:
                     read_checkbox.setChecked(True)
+                    read_checkbox.setEnabled(False)
 
         
             else:
                 if permissionType == 'write' and write_checkbox is not None:
                     write_checkbox.setChecked(False)  
                 if permissionType == 'read' and read_checkbox is not None:
-                    read_checkbox.setChecked(False)                            
+                    read_checkbox.setChecked(False)                        
   
 
     def globalUpdateFromPermissions(self, widget, permissionType, permissionsDict):
