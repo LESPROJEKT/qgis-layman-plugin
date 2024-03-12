@@ -321,11 +321,17 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def filterRecords(self):
         filter_text = self.userFilterLineEdit.text().lower()
         user_widget = self.getUserWidget()  
+        role_widget = self.getRoleWidget()  
         if isinstance(user_widget, QTableWidget):
             for row in range(user_widget.rowCount()):
                 item = user_widget.item(row, 0) 
                 if item:  
                     user_widget.setRowHidden(row, filter_text not in item.text().lower())
+        if isinstance(role_widget, QTableWidget):
+            for row in range(role_widget.rowCount()):
+                item = role_widget.item(row, 0) 
+                if item:  
+                    role_widget.setRowHidden(row, filter_text not in item.text().lower())
          
     def updatePermissions(self, permissionType, isPublic):
         user_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by user"))
