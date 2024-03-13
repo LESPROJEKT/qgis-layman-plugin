@@ -27,7 +27,7 @@ from PyQt5 import uic
 from PyQt5 import QtWidgets, QtCore
 from qgis.core import *
 from PyQt5.QtGui import  QRegExpValidator,QBrush, QColor, QPixmap
-from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton,  QDesktopWidget,  QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup
+from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton,  QDesktopWidget,  QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup, QLineEdit, QWidget, QVBoxLayout
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRegExp
 from qgis.PyQt.QtCore import QPoint
 import threading
@@ -636,33 +636,33 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.modified = True  
     def collectPermissionsAndSave(self, tab_widget, map):
         self.failed = []
-        read_access = []  
-        write_access = []  
-        
-        if self.radioButton_readPublic.isChecked():         
+        read_access = []
+        write_access = []
+
+        if self.radioButton_readPublic.isChecked():
             read_access = ['EVERYONE']
-        else:        
-            table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by user"))
+        else:
+            table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
             if table_widget:
                 self.collectAccessFromTable(table_widget, read_access, "read")
-            role_table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+            role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
             if role_table_widget:
-                self.collectAccessFromTable(role_table_widget, read_access, "read")               
+                self.collectAccessFromTable(role_table_widget, read_access, "read")
 
-        if self.radioButton_writePublic.isChecked():           
+        if self.radioButton_writePublic.isChecked():
             write_access = ['EVERYONE']
         else:
-            table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by user"))
+            table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
             if table_widget:
-                self.collectAccessFromTable(table_widget, write_access, "write")   
-            role_table_widget = self.getTableWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+                self.collectAccessFromTable(table_widget, write_access, "write")
+            role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
             if role_table_widget:
                 self.collectAccessFromTable(role_table_widget, write_access, "write")
 
-        if not self.layman.laymanUsername in write_access:
+        if self.layman.laymanUsername not in write_access:
             write_access.append(self.layman.laymanUsername)
-        if not self.layman.laymanUsername in read_access:
-            write_access.append(self.layman.laymanUsername)   
+        if self.layman.laymanUsername not in read_access:
+            read_access.append(self.layman.laymanUsername)
 
         data = {
             'access_rights.read': self.utils.listToString(read_access),
@@ -679,7 +679,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if len(self.failed) == 0:       
             self.permissionInfo.emit(True, self.failed, 0)                
         else:
-            self.permissionInfo.emit(False, self.failed, 0)           
+            self.permissionInfo.emit(False, self.failed, 0)          
     def getTableWidgetByTabName(self, tab_widget, tab_name):
       
         for i in range(tab_widget.count()):
@@ -759,12 +759,22 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 read_checkbox.setChecked(username in read_access)
             if everyone_read_checked:                  
                 read_checkbox.setChecked(True)    
+                read_checkbox.setEnabled(False)  
             if everyone_write_checked:                  
-                write_checkbox.setChecked(True)                            
+                write_checkbox.setChecked(True) 
+                write_checkbox.setEnabled(False)                             
             user_widget.setItem(row, 3, QTableWidgetItem(username))
             user_widget.setColumnHidden(3, True)
             user_widget.resizeColumnToContents(0)
-        tab_widget.addTab(user_widget, self.tr("Permissions by user"))
+        self.userFilterLineEdit = QLineEdit()
+        self.userFilterLineEdit.setPlaceholderText("Filter users...")
+        self.userFilterLineEdit.textChanged.connect(self.filterRecords)     
+        userTab = QWidget()
+        userLayout = QVBoxLayout()
+        userLayout.addWidget(self.userFilterLineEdit)  
+        userLayout.addWidget(user_widget)  
+        userTab.setLayout(userLayout)    
+        tab_widget.addTab(userTab, self.tr("Permissions by user"))
     ### add roles
         num_columns = 4  
         role_widget = QTableWidget()
@@ -799,17 +809,25 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.globalRead[rolename] = True
                 read_checkbox.setChecked(rolename in read_access)      
             if everyone_read_checked:                  
-                read_checkbox.setChecked(True)    
+                read_checkbox.setChecked(True)   
+                read_checkbox.setEnabled(False)  
             if everyone_write_checked:                  
-                write_checkbox.setChecked(True)                           
+                write_checkbox.setChecked(True)    
+                write_checkbox.setEnabled(False)                        
             role_widget.setItem(row, 3, QTableWidgetItem(rolename))         
             role_widget.setColumnHidden(3, True)
             role_widget.resizeColumnToContents(0)
             row = row + 1
-        tab_widget.addTab(role_widget, self.tr("Permissions by role"))   
-    def onRadioButtonWritePrivateToggled(self, checked):
-        if checked:
-            self.radioButton_readPublic.setChecked(True)
+        roleTab = QWidget()
+        roleLayout = QVBoxLayout()
+        self.roleFilterLineEdit = QLineEdit()
+        self.roleFilterLineEdit.setPlaceholderText("Filter roles...")
+        self.roleFilterLineEdit.textChanged.connect(self.filterRecords)  
+        roleLayout.addWidget(self.roleFilterLineEdit)  
+        roleLayout.addWidget(role_widget)  
+        roleTab.setLayout(roleLayout)      
+        tab_widget.addTab(roleTab, self.tr("Permissions by role"))  
+
     def setEveryonePermissionsRadiobuutons(self, public_read, public_write):            
         self.radioButton_readPublic.setChecked(public_read)
         self.radioButton_readPrivate.setChecked(not public_read)        
@@ -818,32 +836,51 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
            
 
     def getUserWidget(self):
-        user_widget_index = 0
-        user_widget = self.tabWidget.widget(user_widget_index)
-        return user_widget
+        user_tab_index = 0 
+        user_tab = self.tabWidget.widget(user_tab_index)  
+        if user_tab is not None and hasattr(user_tab, 'layout') and user_tab.layout() is not None:          
+            for i in range(user_tab.layout().count()):
+                widget = user_tab.layout().itemAt(i).widget()              
+                if isinstance(widget, QTableWidget):
+                    return widget
+        return None
     def getRoleWidget(self):
-        role_widget_index = 1
-        role_widget = self.tabWidget.widget(role_widget_index)
-        return role_widget    
+        user_tab_index = 1  
+        user_tab = self.tabWidget.widget(user_tab_index)  
+        if user_tab is not None and hasattr(user_tab, 'layout') and user_tab.layout() is not None:          
+            for i in range(user_tab.layout().count()):
+                widget = user_tab.layout().itemAt(i).widget()       
+                if isinstance(widget, QTableWidget):
+                    return widget
+        return None
     def getWidgetByTabName(self, tab_widget, tab_name):
         for i in range(tab_widget.count()):
-            if tab_widget.tabText(i) == tab_name:
-                return tab_widget.widget(i)
+            if tab_widget.tabText(i) == tab_name:               
+                container_widget = tab_widget.widget(i)               
+                if container_widget.layout() and container_widget.layout().count() > 0:             
+                    for j in range(container_widget.layout().count()):                  
+                        widget = container_widget.layout().itemAt(j).widget()                     
+                        if isinstance(widget, QTableWidget):                           
+                            return widget
         return None
     def filterRecords(self):
-        filter_text = self.userFilterLineEdit.text().lower()
-        user_widget = self.getUserWidget()  
-        role_widget = self.getRoleWidget()  
+        user_filter_text = self.userFilterLineEdit.text().lower()
+        role_filter_text = self.roleFilterLineEdit.text().lower()
+
+        user_widget = self.getUserWidget()
+        role_widget = self.getRoleWidget()
+       
         if isinstance(user_widget, QTableWidget):
             for row in range(user_widget.rowCount()):
-                item = user_widget.item(row, 0) 
-                if item:  
-                    user_widget.setRowHidden(row, filter_text not in item.text().lower())
+                item = user_widget.item(row, 0)
+                if item:
+                    user_widget.setRowHidden(row, user_filter_text not in item.text().lower())
+      
         if isinstance(role_widget, QTableWidget):
             for row in range(role_widget.rowCount()):
-                item = role_widget.item(row, 0) 
-                if item:  
-                    role_widget.setRowHidden(row, filter_text not in item.text().lower())
+                item = role_widget.item(row, 0)
+                if item:
+                    role_widget.setRowHidden(row, role_filter_text not in item.text().lower())
          
     def updatePermissions(self, permissionType, isPublic):
         user_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by user"))
@@ -965,8 +1002,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.populatePermissionsWidget(self.tabWidget, usersDictReversed, res['access_rights']['read'], res['access_rights']['write']) 
         self.radioButton_readPublic.toggled.connect(lambda: self.updatePermissions('read', self.radioButton_readPublic.isChecked()))
         self.radioButton_writePublic.toggled.connect(lambda: self.updatePermissions('write', self.radioButton_writePublic.isChecked()))  
-        if not self.permissionsConnected:  
-            self.userFilterLineEdit.textChanged.connect(self.filterRecords) 
+        if not self.permissionsConnected:           
             self.pushButton_save_permissions.clicked.connect(lambda:  self.progressBar_loader.show())      
             self.pushButton_save_permissions.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, mapName)).start()) 
             self.permissionsConnected = True    

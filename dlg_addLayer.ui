@@ -316,9 +316,9 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>150</y>
+       <y>120</y>
        <width>611</width>
-       <height>371</height>
+       <height>411</height>
       </rect>
      </property>
      <property name="currentIndex">
@@ -342,27 +342,11 @@
        <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
      </property>
     </widget>
-    <widget class="QLineEdit" name="userFilterLineEdit">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>50</y>
-       <width>611</width>
-       <height>25</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="placeholderText">
-      <string>Filter</string>
-     </property>
-    </widget>
     <widget class="QRadioButton" name="radioButton_writePublic">
      <property name="geometry">
       <rect>
        <x>190</x>
-       <y>117</y>
+       <y>87</y>
        <width>111</width>
        <height>23</height>
       </rect>
@@ -375,7 +359,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>120</y>
+       <y>90</y>
        <width>141</width>
        <height>17</height>
       </rect>
@@ -391,7 +375,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>89</y>
+       <y>59</y>
        <width>141</width>
        <height>17</height>
       </rect>
@@ -407,7 +391,7 @@
      <property name="geometry">
       <rect>
        <x>300</x>
-       <y>88</y>
+       <y>58</y>
        <width>111</width>
        <height>23</height>
       </rect>
@@ -420,7 +404,7 @@
      <property name="geometry">
       <rect>
        <x>190</x>
-       <y>87</y>
+       <y>57</y>
        <width>111</width>
        <height>23</height>
       </rect>
@@ -433,7 +417,7 @@
      <property name="geometry">
       <rect>
        <x>300</x>
-       <y>117</y>
+       <y>87</y>
        <width>111</width>
        <height>23</height>
       </rect>

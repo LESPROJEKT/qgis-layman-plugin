@@ -333,36 +333,20 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>160</y>
+       <y>130</y>
        <width>571</width>
-       <height>221</height>
+       <height>251</height>
       </rect>
      </property>
      <property name="currentIndex">
       <number>-1</number>
      </property>
     </widget>
-    <widget class="QLineEdit" name="userFilterLineEdit">
-     <property name="geometry">
-      <rect>
-       <x>20</x>
-       <y>60</y>
-       <width>571</width>
-       <height>25</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="placeholderText">
-      <string>Filter</string>
-     </property>
-    </widget>
     <widget class="QRadioButton" name="radioButton_writePrivate">
      <property name="geometry">
       <rect>
        <x>310</x>
-       <y>126</y>
+       <y>90</y>
        <width>111</width>
        <height>23</height>
       </rect>
@@ -375,7 +359,7 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>98</y>
+       <y>62</y>
        <width>141</width>
        <height>17</height>
       </rect>
@@ -391,7 +375,7 @@
      <property name="geometry">
       <rect>
        <x>310</x>
-       <y>97</y>
+       <y>61</y>
        <width>111</width>
        <height>23</height>
       </rect>
@@ -404,7 +388,7 @@
      <property name="geometry">
       <rect>
        <x>200</x>
-       <y>96</y>
+       <y>60</y>
        <width>111</width>
        <height>23</height>
       </rect>
@@ -417,7 +401,7 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>129</y>
+       <y>93</y>
        <width>141</width>
        <height>17</height>
       </rect>
@@ -433,7 +417,7 @@
      <property name="geometry">
       <rect>
        <x>200</x>
-       <y>126</y>
+       <y>90</y>
        <width>111</width>
        <height>23</height>
       </rect>
