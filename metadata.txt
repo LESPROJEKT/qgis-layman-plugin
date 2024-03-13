@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.26
 description=Layman
-version=2.5.1
+version=2.6.0
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -51,6 +51,7 @@ changelog=
 	2.0 - form rebuild
 	2.4 - support svg for labeling
 	2.5 - repository update
+	2.6 - roles support
 # Tags are comma separated with spaces allowed
 tags=python
 

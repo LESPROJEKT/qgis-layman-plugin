@@ -264,160 +264,10 @@
        <normaloff>icons/back.png</normaloff>icons/back.png</iconset>
      </property>
     </widget>
-    <widget class="QGroupBox" name="groupBox_2">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>60</y>
-       <width>611</width>
-       <height>341</height>
-      </rect>
-     </property>
-     <property name="title">
-      <string>Map permissions</string>
-     </property>
-     <widget class="QLabel" name="label">
-      <property name="geometry">
-       <rect>
-        <x>20</x>
-        <y>264</y>
-        <width>121</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Available users:</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_4">
-      <property name="geometry">
-       <rect>
-        <x>20</x>
-        <y>30</y>
-        <width>55</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Read:</string>
-      </property>
-     </widget>
-     <widget class="QListWidget" name="listWidget_write">
-      <property name="geometry">
-       <rect>
-        <x>320</x>
-        <y>50</y>
-        <width>271</width>
-        <height>191</height>
-       </rect>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="pushButton_addRead">
-      <property name="geometry">
-       <rect>
-        <x>20</x>
-        <y>300</y>
-        <width>101</width>
-        <height>27</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Add</string>
-      </property>
-      <property name="icon">
-       <iconset>
-        <normaloff>icons/add.png</normaloff>icons/add.png</iconset>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="pushButton_addWrite">
-      <property name="geometry">
-       <rect>
-        <x>320</x>
-        <y>300</y>
-        <width>101</width>
-        <height>27</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Add</string>
-      </property>
-      <property name="icon">
-       <iconset>
-        <normaloff>icons/add.png</normaloff>icons/add.png</iconset>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="pushButton_removeWrite">
-      <property name="geometry">
-       <rect>
-        <x>490</x>
-        <y>300</y>
-        <width>101</width>
-        <height>27</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Remove</string>
-      </property>
-      <property name="icon">
-       <iconset>
-        <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
-      </property>
-     </widget>
-     <widget class="QListWidget" name="listWidget_read">
-      <property name="geometry">
-       <rect>
-        <x>20</x>
-        <y>50</y>
-        <width>271</width>
-        <height>191</height>
-       </rect>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_3">
-      <property name="geometry">
-       <rect>
-        <x>320</x>
-        <y>30</y>
-        <width>55</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Write:</string>
-      </property>
-     </widget>
-     <widget class="QComboBox" name="comboBox_users">
-      <property name="geometry">
-       <rect>
-        <x>140</x>
-        <y>260</y>
-        <width>451</width>
-        <height>22</height>
-       </rect>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="pushButton_removeRead">
-      <property name="geometry">
-       <rect>
-        <x>190</x>
-        <y>300</y>
-        <width>101</width>
-        <height>27</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Remove</string>
-      </property>
-      <property name="icon">
-       <iconset>
-        <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
-      </property>
-     </widget>
-    </widget>
     <widget class="QPushButton" name="pushButton_save">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>9</x>
        <y>434</y>
        <width>151</width>
        <height>27</height>
@@ -429,6 +279,103 @@
      <property name="icon">
       <iconset>
        <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
+     </property>
+    </widget>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>130</y>
+       <width>611</width>
+       <height>291</height>
+      </rect>
+     </property>
+     <property name="currentIndex">
+      <number>-1</number>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_writePrivate">
+     <property name="geometry">
+      <rect>
+       <x>300</x>
+       <y>90</y>
+       <width>111</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Restricted</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_7">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>62</y>
+       <width>141</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Read access rights:</string>
+     </property>
+     <property name="buddy">
+      <cstring>radioButton_readPublic</cstring>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_readPrivate">
+     <property name="geometry">
+      <rect>
+       <x>300</x>
+       <y>61</y>
+       <width>111</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Restricted</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_readPublic">
+     <property name="geometry">
+      <rect>
+       <x>190</x>
+       <y>60</y>
+       <width>111</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Public</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_8">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>93</y>
+       <width>141</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Write access rights:</string>
+     </property>
+     <property name="buddy">
+      <cstring>radioButton_writePublic</cstring>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_writePublic">
+     <property name="geometry">
+      <rect>
+       <x>190</x>
+       <y>90</y>
+       <width>111</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Public</string>
      </property>
     </widget>
    </widget>
