@@ -36,6 +36,8 @@ import xml.etree.ElementTree as ET
 import traceback
 from .currentComposition import CurrentComposition
 from .layman_utils import ProxyStyle
+from .dlg_showQProject import ShowQProjectDialog     
+
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -130,7 +132,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.page3.setVisible(False)
             self.page4.setVisible(False)
             self.page5.setVisible(True)
-            self.setLayerPropertiesUI()                                  
+            self.setLayerPropertiesUI()     
+        if option == "qfield": 
+            self.page1.setVisible(False)
+            self.page2.setVisible(False)
+            self.page3.setVisible(False)
+            self.page4.setVisible(False)
+            self.page5.setVisible(False)
+            self.page.setVisible(True)
+            self.setQfieldUI()                                          
             
     def setUi(self):    
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)  
@@ -149,7 +159,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_log.hide()        
         self.label_raster.hide()
         self.treeWidget_layers.header().resizeSection(0,230)      
-        self.pushButton_qfield.clicked.connect(self.qfieldLogin)  
+        self.pushButton_qfield.clicked.connect(lambda: self.setStackWidget("qfield"))  
         print(self.layman.current)
         if self.layman.current != None:
             self.layman.instance.refreshComposition()
@@ -185,6 +195,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressBar_loader.hide()  
         self.show()
         result = self.exec_()  
+
+        ########## qfield
+    def setQfieldUI(self):
+        pass
+        # ShowQProjectDialog(self.utils)         
+        ##################
     def setVisibilityForCurrent(self, visible):
         if self.layman.instance is None:
             self.pushButton_editMeta.setEnabled(False)   

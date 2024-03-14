@@ -26,6 +26,7 @@ import os
 
 from PyQt5 import uic
 from PyQt5 import QtWidgets
+import requests, json
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -33,7 +34,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class ShowQProjectDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
+    def __init__(self, utils, parent=None):
         """Constructor."""
         super(ShowQProjectDialog, self).__init__(parent)
         # Set up the user interface from Designer through FORM_CLASS.
@@ -41,4 +42,116 @@ class ShowQProjectDialog(QtWidgets.QDialog, FORM_CLASS):
         # self.<objectname>, and you can use autoconnect slots - see
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
+        self.utils = utils
+        self.qfield_api = QfieldAPI(self.utils)
         self.setupUi(self)
+        self.setUi()
+    def setUi(self):
+        pass
+        # if response.status_code == 200:
+        #     self.qLogged = True            
+        #     self.Qtoken = res['token']            
+        #     self.dlg2 = ShowQProjectDialog()
+        #     self.dlg2.show()
+        #     self.dlg2.progressBar.hide()
+        #     ret = self.getProjectsQfield()
+        #     try:
+        #         composition = self.instance.getComposition()
+        #         self.dlg2.lineEdit_name.setText(composition['name'])
+        #         self.dlg2.lineEdit_desciption.setText(composition['abstract'])
+        #     except:
+        #         print("kompozice není k dispozici")
+        #     for project in ret:              
+        #         print(project) 
+        #         item = QTreeWidgetItem([project['name'],project['owner'],str(project['is_public']), project['id']])
+        #         self.dlg2.treeWidget.addTopLevelItem(item)
+        #     self.dlg2.pushButton_close.clicked.connect(self.closeQFieldDlg)
+        #     self.dlg2.pushButton_export.clicked.connect(lambda:self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),""))
+        #     self.dlg2.pushButton_exportCreate.clicked.connect(lambda: self.createQProject(self.dlg2.lineEdit_name.text(),self.dlg2.lineEdit_desciption.text(),self.dlg2.checkBox_private.checkState()))
+        #     return
+        # else:
+        #     self.utils.showErr.emit(["Přihlášení nebylo úspěšné!", "Login was not successful!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)                      
+
+class QfieldAPI:
+    def __init__(self, utils):
+        self.utils = utils
+        self.base_url = "https://qfield.lesprojekt.cz/api/v1/"
+
+    def getProjects(self):
+        url = self.base_url + "projects/"   
+        response = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        print(response.status_code)
+        print(response.content)
+
+        if response.status_code == 200:      
+            return json.loads(response.content)
+        else:
+            print("Chyba při získávání projektů: ", response.status_code)
+            return None
+        
+import threading        
+import tempfile
+from Layman.qfield.cloud_converter import CloudConverter
+class QUtils:
+    def __init__(self, Qtoken, dlg2, utils):
+        self.Qtoken = Qtoken
+        self.dlg2 = dlg2  # Dialog nebo jiný UI prvek s progressBar atd.
+        self.utils = utils  # Objekt pro pomocné funkce, jako je logování, konverze JSONů atd.
+
+    def createQProject(self, name, description, private):
+        url = "https://app.qfield.cloud/api/v1/projects/"
+        private_value = "false" if private == 2 else "true"
+        payload = {
+            "name": name,
+            "description": description,
+            "private": private_value,
+            "is_public": private_value
+        }
+        headers = {
+            'Authorization': 'token ' + self.Qtoken,
+            'Content-Type': 'application/json'
+        }
+        response = requests.post(url, json=payload, headers=headers)
+        res = response.json()
+        print(res)
+        if response.status_code == 201:
+            self.uploadQFiles(res['id'], "")
+        else:
+            self.utils.emitMessageBox(["Taková kompozice již existuje. Vyberte prosím jiný název.", "This composition already exists. Please choose another name."])
+
+    def convertQProject(self): 
+        path = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
+        cloud_convertor = CloudConverter(QgsProject.instance(), path)
+        cloud_convertor.convert()
+        return path
+
+    def uploadQFiles(self, project_id, path):
+        layers = QgsProject.instance().mapLayers().values()
+        if len(layers) == 0:
+            self.utils.emitMessageBox(["Nejsou vrstvy k exportu!", "No layers to export!"])
+            return
+        mypath = self.convertQProject()
+        self.dlg2.progressBar.show()  # Zobrazí progress bar
+        threading.Thread(target=lambda: self.postQData(project_id, mypath)).start()
+
+    def postQData(self, project_id, mypath):
+        for root, _, filenames in os.walk(mypath):
+            for filename in filenames:
+                file_path = os.path.join(root, filename)
+                with open(file_path, 'rb') as file:
+                    files = {
+                        'file': (filename, file, 'application/octet-stream')
+                    }
+                    headers = {
+                        'Authorization': 'token ' + self.Qtoken
+                    }
+                    url = f"https://app.qfield.cloud/api/v1/projects/{project_id}/files/{filename}/"
+                    response = requests.post(url, headers=headers, files=files)
+                    if response.status_code == 200:
+                        print("Soubor byl úspěšně nahrán")
+                    else:
+                        print("Chyba při nahrávání souboru:", response.text)
+                        break  # Přeruší cyklus v případě chyby
+
+        # QgsMessageLog.logMessage("Export do QField byl úspěšný.", "qfieldExport", Qgis.Info)
+        # self.utils.showQgisBar(["Export proběhl úspěšně.", "Export was successful."], Qgis.Success)        

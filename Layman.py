@@ -619,6 +619,49 @@ class Layman(QObject):
         self.settings.setValue("laymanLastServer", server)
     def qfieldLogin(self):
         self.run_QfieldLoginDialog()
+    # def loginQfield(self):
+    #     url = "https://app.qfield.cloud/api/v1/auth/token/"    
+    #     login = self.dlg2.lineEdit_userName.text()
+    #     passwd = self.dlg2.lineEdit_password.text()
+    #     if login == "" or passwd == "":
+    #         self.utils.emitMessageBox.emit(["Nejsou vyplněny přihlašovací údaje!", "Please fill login credentials!"])
+    #         return
+    #     payload =  {
+    #       "username": login,
+    #       "email": "",
+    #       "password": passwd
+    #     }     
+    #     response = self.utils.requestWrapper("POST", url, payload, files = None)
+    #     res = self.utils.fromByteToJson(response.content)
+    #     remember = self.dlg2.checkBox_remember.isChecked()        
+    #     if remember:
+    #         self.settings.setValue("laymanRememberQfield", remember)
+    #         self.setQAuth(username=login, password=passwd)
+    #     else:
+    #         self.settings.setValue("laymanRememberQfield", "")
+    #     if response.status_code == 200:
+    #         self.qLogged = True            
+    #         self.Qtoken = res['token']            
+    #         self.dlg2 = ShowQProjectDialog()
+    #         self.dlg2.show()
+    #         self.dlg2.progressBar.hide()
+    #         ret = self.getProjectsQfield()
+    #         try:
+    #             composition = self.instance.getComposition()
+    #             self.dlg2.lineEdit_name.setText(composition['name'])
+    #             self.dlg2.lineEdit_desciption.setText(composition['abstract'])
+    #         except:
+    #             print("kompozice není k dispozici")
+    #         for project in ret:              
+    #             print(project) 
+    #             item = QTreeWidgetItem([project['name'],project['owner'],str(project['is_public']), project['id']])
+    #             self.dlg2.treeWidget.addTopLevelItem(item)
+    #         self.dlg2.pushButton_close.clicked.connect(self.closeQFieldDlg)
+    #         self.dlg2.pushButton_export.clicked.connect(lambda:self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),""))
+    #         self.dlg2.pushButton_exportCreate.clicked.connect(lambda: self.createQProject(self.dlg2.lineEdit_name.text(),self.dlg2.lineEdit_desciption.text(),self.dlg2.checkBox_private.checkState()))
+    #         return
+    #     else:
+    #         self.utils.showErr.emit(["Přihlášení nebylo úspěšné!", "Login was not successful!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)  
     def loginQfield(self):
         url = "https://app.qfield.cloud/api/v1/auth/token/"    
         login = self.dlg2.lineEdit_userName.text()
@@ -661,7 +704,7 @@ class Layman(QObject):
             self.dlg2.pushButton_exportCreate.clicked.connect(lambda: self.createQProject(self.dlg2.lineEdit_name.text(),self.dlg2.lineEdit_desciption.text(),self.dlg2.checkBox_private.checkState()))
             return
         else:
-            self.utils.showErr.emit(["Přihlášení nebylo úspěšné!", "Login was not successful!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)  
+            self.utils.showErr.emit(["Přihlášení nebylo úspěšné!", "Login was not successful!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)      
     def closeQFieldDlg(self): 
         self.dlg2.close()           
     def setQAuth(self, **kwargs: str) -> None:
