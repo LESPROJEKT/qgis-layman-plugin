@@ -41,8 +41,10 @@ class CurrentComposition(object):
                 print(layerName , layer['className'])
                 print(layer['className'] == "HSLayers.Layer.WMS")
                 return layer['className']
-            
-            
+    def getDescription(self):
+        return self.composition["abstract"]  
+    def getName(self):            
+        return self.composition["name"]            
     def isLayerId(self, id):
         if id in self.layerIds:
             return True

@@ -62,7 +62,7 @@ class LaymanUtils(QObject):
             self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
             return       
         if emitErr:
-            if response.status_code != 200: 
+            if response.status_code not in (200, 201): 
                 print(url)              
                 self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)    
         return response        
@@ -84,8 +84,7 @@ class LaymanUtils(QObject):
             
         response = await asyncio.to_thread(conn.getresponse)
         response_content = response.read()
-        if emitErr and response.status != 200:
-            # Zpracování chybového stavu a emitování chybové zprávy
+        if emitErr and response.status != 200:        
             content = response_content.decode('utf-8')
             self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successful"], f"code: {response.status}", content, Qgis.Warning, url)
         conn.close()  
@@ -109,8 +108,7 @@ class LaymanUtils(QObject):
     def showMessageError(self, text, info, err, typ, url):     
         widget = QWidget()
         layout = QHBoxLayout() 
-        layout.setAlignment(Qt.AlignCenter)       
-        #layout.addWidget(QLabel("Layman - "+ text[0] if self.locale == "cs" else text[1]))
+        layout.setAlignment(Qt.AlignCenter)   
         button = QPushButton("Více informací" if self.locale == "cs" else "More info")
         label2 = self.iface.messageBar().createMessage("Layman:", text[0] if self.locale == "cs" else text[1])
         layout.addWidget(label2)
