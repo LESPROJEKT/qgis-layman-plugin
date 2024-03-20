@@ -2338,7 +2338,9 @@ class Layman(QObject):
             xml_data = file.read()      
         root = ET.fromstring(xml_data)   
         for option in root.findall("labeling/settings/text-style/background"):
-            name = option.attrib.get("shapeSVGFile")            
+            name = option.attrib.get("shapeSVGFile")   
+            if name == "":
+                return         
             if not self.utils.isPathAbsolute(name):
                 name = self.utils.getSvgPath() + name
             with open(name, "rb") as image_file:
