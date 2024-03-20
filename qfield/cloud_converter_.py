@@ -21,15 +21,17 @@
 
 from pathlib import Path
 
-from libqfieldsync.layer import LayerSource
-from libqfieldsync.utils.file_utils import copy_attachments
-from libqfieldsync.utils.qgis import get_qgis_files_within_dir, make_temp_qgis_file
-from qgis.core import QgsMapLayer, QgsProject, QgsVirtualLayerDefinition
-from qgis.PyQt.QtCore import QCoreApplication, QObject, QUrl, pyqtSignal
+from qgis.core import QgsMapLayer, QgsProject
+from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal
 from qgis.utils import iface
 
-from qfieldsync.core.preferences import Preferences
-from qfieldsync.utils.qgis_utils import open_project
+from Layman.qfield.layer import LayerSource
+from Layman.qfield.file_utils import copy_images
+from Layman.qfield.qgis import (
+    get_qgis_files_within_dir,
+    make_temp_qgis_file,
+)
+from Layman.qfield.qgis_utils import open_project
 
 
 class CloudConverter(QObject):
@@ -95,39 +97,15 @@ class CloudConverter(QObject):
                         continue
 
                 if layer.type() == QgsMapLayer.VectorLayer:
-                    if (
-                        layer.dataProvider()
-                        and layer.dataProvider().name() == "virtual"
-                    ):
-                        url = QUrl.fromEncoded(layer.source().encode("ascii"))
-                        valid = url.isValid()
-                        if valid:
-                            definition = QgsVirtualLayerDefinition.fromUrl(url)
-                            for source in definition.sourceLayers():
-                                if not source.isReferenced():
-                                    valid = False
-                                    break
-                        if not valid:
-                            # virtual layers with non-referenced sources are not supported
-                            self.warning.emit(
-                                self.tr("Cloud Converter"),
-                                self.tr(
-                                    "The virtual layer '{}' is not valid or contains non-referenced source(s) and could not be converted and was therefore removed from the cloud project."
-                                ).format(layer.name()),
-                            )
-                            self.project.removeMapLayer(layer)
-                            continue
-                    else:
-                        if not layer_source.convert_to_gpkg(self.export_dirname):
-                            # something went wrong, remove layer and inform the user that layer will be missing
-                            self.warning.emit(
-                                self.tr("Cloud Converter"),
-                                self.tr(
-                                    "The layer '{}' could not be converted and was therefore removed from the cloud project."
-                                ).format(layer.name()),
-                            )
-                            self.project.removeMapLayer(layer)
-                            continue
+                    if not layer_source.convert_to_gpkg(self.export_dirname):
+                        # something went wrong, remove layer and inform the user that layer will be missing
+                        self.warning.emit(
+                            self.tr("Cloud Converter"),
+                            self.tr(
+                                "The layer '{}' could not be converted and was therefore removed from the cloud project."
+                            ).format(layer.name()),
+                        )
+                        self.project.removeMapLayer(layer)
                 else:
                     layer_source.copy(self.export_dirname, list())
                 layer.setCustomProperty(
@@ -141,12 +119,10 @@ class CloudConverter(QObject):
                 )
 
             # export the DCIM folder
-            for attachment_dir in Preferences().value("attachmentDirs"):
-                copy_attachments(
-                    Path(original_project_path).parent,
-                    project_path.parent,
-                    attachment_dir,
-                )
+            copy_images(
+                str(Path(original_project_path).parent.joinpath("DCIM")),
+                str(project_path.parent.joinpath("DCIM")),
+            )
 
             title = self.project.title()
             title_suffix = self.tr("(QFieldCloud)")

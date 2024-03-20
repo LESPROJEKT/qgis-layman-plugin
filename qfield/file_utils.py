@@ -18,176 +18,46 @@
  *                                                                         *
  ***************************************************************************/
 """
-
-import hashlib
-import os
-import platform
-import re
-import shutil
-import subprocess
-import unicodedata
+from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, TypedDict, Union
 
-from qgis.PyQt.QtCore import QCoreApplication
-
-from .exceptions import NoProjectFoundError, QFieldSyncError
+PathLike = Union[Path, str]
 
 
-def fileparts(filename: str, extension_dot: bool = True) -> Tuple[str, str, str]:
-    path = os.path.dirname(filename)
-    basename = os.path.basename(filename)
-    name, ext = os.path.splitext(basename)
-    if extension_dot and not ext.startswith(".") and ext:
-        ext = "." + ext
-    elif not extension_dot and ext.startswith("."):
-        ext = ext[1:]
-    return (path, name, ext)
+class DirectoryTreeType(str, Enum):
+    FILE = "file"
+    DIRECTORY = "directory"
 
 
-def get_children_with_extension(
-    parent: str, specified_ext: str, count: int = 1
-) -> List[str]:
-    if not os.path.isdir(parent):
-        raise QFieldSyncError(
-            QCoreApplication.translate(
-                "QFieldFileUtils", "The directory {} could not be found"
-            ).format(parent)
-        )
-
-    res = []
-    extension_dot = specified_ext.startswith(".")
-    for filename in os.listdir(parent):
-        _, _, ext = fileparts(filename, extension_dot=extension_dot)
-        if ext == specified_ext:
-            res.append(os.path.join(parent, filename))
-    if len(res) != count:
-        raise QFieldSyncError(
-            QCoreApplication.translate(
-                "QFieldFileUtils",
-                "Expected {expected_count} children with extension {file_extension} under {parent}, got {real_count}",
-            ).format(
-                expected_count=count,
-                file_extension=specified_ext,
-                parent=parent,
-                real_count=len(res),
-            )
-        )
-
-    return res
+class DirectoryTreeDict(TypedDict):
+    type: DirectoryTreeType
+    path: Path
+    content: List["DirectoryTreeDict"]
 
 
-def get_full_parent_path(filename: str) -> str:
-    return os.path.dirname(os.path.normpath(filename))
-
-
-def get_project_in_folder(path: str) -> str:
-    try:
-        return get_children_with_extension(path, "qgs", count=1)[0]
-    except QFieldSyncError:
-        message = "No .qgs file found in folder {}".format(path)
-        raise NoProjectFoundError(message)
-
-
-def open_folder(path: Union[Path, str]) -> None:
-    """
-    Opens the provided path in a file browser.
-    On Windows and Mac, this will open the parent directory
-    and pre-select the actual folder.
-    """
+def path_to_dict(path: PathLike, dirs_only: bool = False) -> DirectoryTreeDict:
     path = Path(path)
-    if platform.system() == "Windows":
-        subprocess.Popen(r'explorer /select,"{}"'.format(path))
-    elif platform.system() == "Darwin":
-        subprocess.Popen(["open", "-R", path])
-    else:
-        subprocess.Popen(["xdg-open", path])
+    node: DirectoryTreeDict = {
+        "path": path,
+        "content": [],
+    }
 
+    if path.is_dir():
+        node["type"] = DirectoryTreeType.DIRECTORY
 
-def import_file_checksum(path: str) -> Optional[str]:
-    md5sum = None
-    path = os.path.join(path, "data.gpkg")
-    if not os.path.exists(path):
-        path = os.path.join(path, "data.sqlite")
-    if os.path.exists(path):
-        with open(path, "rb") as f:
-            file_data = f.read()
-            md5sum = hashlib.md5(file_data).hexdigest()
+        glob_pattern = "*/" if dirs_only else "*"
+        for subpath in path.glob(glob_pattern):
+            if dirs_only and not subpath.is_dir():
+                continue
 
-    return md5sum
+            if ".qfieldsync" in str(subpath):
+                continue
 
+            node["content"].append(path_to_dict(subpath, dirs_only=dirs_only))
+    elif not dirs_only:
+        node["type"] = DirectoryTreeType.FILE
 
-def slugify(text: str) -> str:
-    # https://stackoverflow.com/q/5574042/1548052
-    slug = unicodedata.normalize("NFKD", text)
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", slug).strip("-")
-    slug = re.sub(r"[-]+", "-", slug)
-    slug = slug.lower()
-    return slug
+    node["content"].sort(key=lambda node: node["path"].name)
 
-
-def copy_images(source_path: str, destination_path: str) -> None:
-    if os.path.isdir(source_path):
-        if not os.path.isdir(destination_path):
-            os.mkdir(destination_path)
-    for root, dirs, files in os.walk(source_path):
-        for name in dirs:
-            dir_path = os.path.join(root, name)
-            destination_dir_path = os.path.join(
-                destination_path, os.path.relpath(dir_path, source_path)
-            )
-            # create the folder if it does not exists
-            if not os.path.isdir(destination_dir_path):
-                os.mkdir(destination_dir_path)
-        for name in files:
-            file_path = os.path.join(root, name)
-            destination_file_path = os.path.join(
-                destination_path, os.path.relpath(file_path, source_path)
-            )
-            # copy the file no matter if it exists or not
-            shutil.copyfile(os.path.join(root, name), destination_file_path)
-
-
-def copy_multifile(
-    source_filename: Union[str, Path], dest_filename: Union[str, Path]
-) -> None:
-    """Copies a file from source to destination. If the file is GPKG, also copies the "-wal" and "-shm" files"""
-    source = str(source_filename)
-    dest = str(dest_filename)
-
-    if source.endswith(".gpkg"):
-        for suffix in ("-shm", "-wal"):
-            source_path = source + suffix
-            dest_path = dest + suffix
-
-            if Path(source_path).exists():
-                shutil.copyfile(source_path, dest_path)
-
-    shutil.copyfile(source, str(dest_filename))
-
-
-def get_unique_empty_dirname(dirname: Union[str, Path]) -> Path:
-    dirname = Path(dirname)
-
-    if not dirname.exists() or len(list(dirname.iterdir())) == 0:
-        return dirname
-
-    i = 1
-    while True:
-        new_dirname = Path(f"{dirname}_{i}")
-
-        if not new_dirname.exists() or len(list(new_dirname.iterdir())) == 0:
-            return new_dirname
-
-        i += 1
-
-
-def isascii(filename: str) -> bool:
-    try:
-        return filename.isascii()
-    except Exception:
-        try:
-            filename.encode("ascii")
-            return True
-        except UnicodeEncodeError:
-            return False
+    return node

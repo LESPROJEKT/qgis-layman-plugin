@@ -46,7 +46,6 @@ from qgis.PyQt.QtNetwork import (
 
 from qfieldsync.core.cloud_project import CloudProject
 from qfieldsync.core.preferences import Preferences
-from qfieldsync.utils.qt_utils import strip_html
 
 
 class CloudException(Exception):
@@ -81,10 +80,7 @@ def from_reply(reply: QNetworkReply) -> Optional[CloudException]:
 
     message = ""
     try:
-        payload = reply.readAll().data()
-        # workaround to https://github.com/qgis/QGIS/issues/49687
-        content_length = reply.header(QNetworkRequest.ContentLengthHeader)
-        payload = payload[:content_length].decode()
+        payload = reply.readAll().data().decode()
 
         try:
             resp = json.loads(payload)
@@ -102,14 +98,11 @@ def from_reply(reply: QNetworkReply) -> Optional[CloudException]:
         pass
 
     if not message:
-        status_str = ""
-
-        http_status = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
-        if http_status is not None:
-            status_str += f"HTTP-{http_status}/"
-
-        status_str += f"QT-{reply.error()}"
-        message = f"[{status_str}] {reply.errorString()}"
+        message = "[HTTP-{}/QT-{}] {}".format(
+            reply.attribute(QNetworkRequest.HttpStatusCodeAttribute),
+            reply.error(),
+            reply.errorString(),
+        )
 
     return CloudException(reply, Exception(message))
 
@@ -245,10 +238,8 @@ class CloudNetworkAccessManager(QObject):
         server_url = cfg.uri() or self.url
         username = cfg.config("username")
         password = cfg.config("password")
-
-        if username and password:
-            self.set_url(server_url)
-            self.login(username, password)
+        self.set_url(server_url)
+        self.login(username, password)
 
     def login(self, username: str, password: str) -> Optional[QNetworkReply]:
         """Login to QFieldCloud"""
@@ -281,15 +272,16 @@ class CloudNetworkAccessManager(QObject):
 
         return reply
 
-    def get_projects(self, should_include_public: bool = False) -> QNetworkReply:
+    def get_projects(self, should_include_public: bool = True) -> QNetworkReply:
         """Get QFieldCloud projects"""
-        params = {"include-public": "1"} if should_include_public else {}
-        return self.cloud_get("projects", params)
+        return self.cloud_get(
+            "projects", {"include-public": "true" if should_include_public else "false"}
+        )
 
     def get_projects_not_async(self, should_include_public: bool = False) -> List[Dict]:
         """Get QFieldCloud projects synchronously"""
         headers = {"Authorization": "token {}".format(self._token)}
-        params = {"include-public": "1"} if should_include_public else {}
+        params = {"include-public": should_include_public}
 
         response = requests.get(
             self._prepare_uri("projects").toString(),
@@ -339,12 +331,12 @@ class CloudNetworkAccessManager(QObject):
         return self.cloud_get(["users", username, "organizations"])
 
     def get_files(self, project_id: str, client: str = "qgis") -> QNetworkReply:
-        """Get project files and their versions"""
+        """"Get project files and their versions"""
 
         return self.cloud_get(["files", project_id], {"client": client})
 
     def get_file(self, url: QUrl, local_filename: str) -> QNetworkReply:
-        """Download file from external URL"""
+        """"Download file from external URL"""
 
         return self.cloud_get(url, local_filename=local_filename)
 
@@ -401,9 +393,7 @@ class CloudNetworkAccessManager(QObject):
                 b"Authorization", "Token {}".format(self._token).encode("utf-8")
             )
 
-        with disable_nam_timeout(self._nam):
-            reply = self._nam.get(request)
-
+        reply = self._nam.get(request)
         reply.sslErrors.connect(lambda sslErrors: reply.ignoreSslErrors(sslErrors))
         reply.setParent(self)
 
@@ -423,9 +413,7 @@ class CloudNetworkAccessManager(QObject):
             QNetworkRequest.UserVerifiedRedirectPolicy,
         )
 
-        with disable_nam_timeout(self._nam):
-            reply = self._nam.get(request)
-
+        reply = self._nam.get(request)
         reply.sslErrors.connect(lambda sslErrors: reply.ignoreSslErrors(sslErrors))
         reply.setParent(self)
 
@@ -468,10 +456,7 @@ class CloudNetworkAccessManager(QObject):
             )
 
         payload_bytes = b"" if payload is None else json.dumps(payload).encode("utf-8")
-
-        with disable_nam_timeout(self._nam):
-            reply = self._nam.post(request, payload_bytes)
-
+        reply = self._nam.post(request, payload_bytes)
         reply.sslErrors.connect(lambda sslErrors: reply.ignoreSslErrors(sslErrors))
         reply.setParent(self)
 
@@ -494,10 +479,7 @@ class CloudNetworkAccessManager(QObject):
             )
 
         payload_bytes = b"" if payload is None else json.dumps(payload).encode("utf-8")
-
-        with disable_nam_timeout(self._nam):
-            reply = self._nam.put(request, payload_bytes)
-
+        reply = self._nam.put(request, payload_bytes)
         reply.sslErrors.connect(lambda sslErrors: reply.ignoreSslErrors(sslErrors))
         reply.setParent(self)
 
@@ -521,9 +503,7 @@ class CloudNetworkAccessManager(QObject):
 
         payload_bytes = b"" if payload is None else json.dumps(payload).encode("utf-8")
 
-        with disable_nam_timeout(self._nam):
-            reply = self._nam.sendCustomRequest(request, b"PATCH", payload_bytes)
-
+        reply = self._nam.sendCustomRequest(request, b"PATCH", payload_bytes)
         reply.sslErrors.connect(lambda sslErrors: reply.ignoreSslErrors(sslErrors))
         reply.setParent(self)
 
@@ -543,9 +523,7 @@ class CloudNetworkAccessManager(QObject):
                 b"Authorization", "Token {}".format(self._token).encode("utf-8")
             )
 
-        with disable_nam_timeout(self._nam):
-            reply = self._nam.deleteResource(request)
-
+        reply = self._nam.deleteResource(request)
         reply.sslErrors.connect(lambda sslErrors: reply.ignoreSslErrors(sslErrors))
         reply.setParent(self)
 
@@ -568,9 +546,6 @@ class CloudNetworkAccessManager(QObject):
 
         multi_part = QHttpMultiPart(QHttpMultiPart.FormDataType)
         multi_part.setParent(self)
-        multi_part.setBoundary(
-            b"boundary_.oOo.QFieldRoxAndYouKnowItDXMtCoIPQV84CAX3rDyv83393"
-        )
 
         # most of the time there is no other payload
         if payload is not None:
@@ -629,10 +604,6 @@ class CloudNetworkAccessManager(QObject):
         try:
             self.json_object(reply)
             self.set_token("", True)
-            authcfg = self.preferences.value("qfieldCloudAuthcfg")
-            auth_manager = QgsApplication.authManager()
-            auth_manager.clearCachedConfig(authcfg)
-            auth_manager.removeAuthenticationConfig(authcfg)
             self.logout_success.emit()
         except CloudException as err:
             self.logout_failed.emit(str(err))
@@ -646,7 +617,6 @@ class CloudNetworkAccessManager(QObject):
         except CloudException as err:
             self._login_error = err
             self.login_finished.emit()
-            self.preferences.set_value("qfieldCloudRememberMe", False)
             return
 
         self.user_details = {
@@ -680,24 +650,12 @@ class CloudNetworkAccessManager(QObject):
         if self.has_token():
             return ""
 
-        error_str = ""
-        if self._login_error:
-            http_code = self._login_error.httpCode
-            if http_code and http_code >= 500:
-                error_str = self.tr("Server error {}").format(http_code)
-            elif http_code is None or (http_code >= 400 and http_code < 500):
-                error_str = str(self._login_error)
-
-        error_str = strip_html(error_str).strip()
-
-        if not error_str:
-            error_str = self.tr("Sign in failed.")
-
-        html = '<a href="https://app.qfield.cloud/accounts/password/reset/">{}?</a>'.format(
-            self.tr("Forgot password")
-        )
-
-        return self.tr("{}. {}").format(error_str, html)
+        error = self.user_details.get("error")
+        html = '<a href="https://app.qfield.cloud/accounts/password/reset/">Forgot password?</a>'
+        if error:
+            return self.tr("Sign in failed: {}. {}").format(str(error), html)
+        else:
+            return self.tr("Sign in failed. {}").format(html)
 
     def _clear_cloud_cookies(self, url: QUrl) -> None:
         """When the CSRF_TOKEN cookie is present and the plugin is reloaded, the token has expired"""
