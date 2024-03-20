@@ -2331,7 +2331,7 @@ class Layman(QObject):
             self.insertBinaryToQml(layer, qml_filename)      
             ## QML fix for layman server            
             self.QmlCompatibility(qml_filename)     
-            self.insertSvgToQMLInLabel(qml_filename)
+            self.insertSvgToQMLInLabel(qml_filename)            
             return True
     def insertSvgToQMLInLabel(self, qml_filename): 
         with open(qml_filename, 'r') as file:
@@ -2339,7 +2339,7 @@ class Layman(QObject):
         root = ET.fromstring(xml_data)   
         for option in root.findall("labeling/settings/text-style/background"):
             name = option.attrib.get("shapeSVGFile")   
-            if name == "":
+            if name == "":               
                 return         
             if not self.utils.isPathAbsolute(name):
                 name = self.utils.getSvgPath() + name
@@ -2931,8 +2931,8 @@ class Layman(QObject):
             if(os.path.isfile(stylePath)): ## existuje style?    
                 files = [('file', open(geoPath, 'rb')), ('style', open(stylePath, 'rb'))]
             else:
-                files = {'file': (geoPath, open(geoPath, 'rb')),}
-            response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)            
+                files = {'file': (geoPath, open(geoPath, 'rb')),}            
+            response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)                   
             status = response.status_code    
         if progress:      
             

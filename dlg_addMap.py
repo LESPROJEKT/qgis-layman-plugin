@@ -33,6 +33,7 @@ from .currentComposition import CurrentComposition
 import traceback
 from .layman_utils import ProxyStyle
 import asyncio
+from distutils.version import LooseVersion
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'dlg_addMap.ui'))
 
@@ -133,9 +134,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
             if table_widget:
                 self.collectAccessFromTable(table_widget, read_access, "read")
-            role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
-            if role_table_widget:
-                self.collectAccessFromTable(role_table_widget, read_access, "read")
+            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):    
+                role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+                if role_table_widget:
+                    self.collectAccessFromTable(role_table_widget, read_access, "read")
 
         if self.radioButton_writePublic.isChecked():
             write_access = ['EVERYONE']
@@ -143,9 +145,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
             if table_widget:
                 self.collectAccessFromTable(table_widget, write_access, "write")
-            role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
-            if role_table_widget:
-                self.collectAccessFromTable(role_table_widget, write_access, "write")
+            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):    
+                role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+                if role_table_widget:
+                    self.collectAccessFromTable(role_table_widget, write_access, "write")
 
         if self.layman.laymanUsername not in write_access:
             write_access.append(self.layman.laymanUsername)
@@ -207,7 +210,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 index += 1  
     def populatePermissionsWidget(self, tab_widget, user_dict, read_access, write_access):     
         self.removeTabByTitle(tab_widget, self.tr("Permissions by user"))
-        self.removeTabByTitle(tab_widget, self.tr("Permissions by role"))
+        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+            self.removeTabByTitle(tab_widget, self.tr("Permissions by role"))
         if "EVERYONE" in user_dict:
             del user_dict["EVERYONE"]
         self.setEveryonePermissionsRadiobuutons(True if "everyone" in [name.lower() for name in read_access] else False,True if "everyone" in [name.lower() for name in write_access] else False)        
@@ -264,57 +268,58 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         userTab.setLayout(userLayout)    
         tab_widget.addTab(userTab, self.tr("Permissions by user"))
     ### add roles
-        num_columns = 4  
-        role_widget = QTableWidget()
-        role_widget.verticalHeader().setVisible(False)
-        self.utils.setTableWidgetNotBorder(role_widget)
-        role_widget.setRowCount(len(user_dict))
-        role_widget.setColumnCount(num_columns)  
-        role_widget.setHorizontalHeaderLabels([self.tr('Role'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
-        roles = self.getRoles()
-        self.roles = roles
-        row = 0
-        for rolename in (roles):    
-            if rolename == "EVERYONE":
-                continue
-            self.globalRead[rolename] = rolename in read_access
-            self.globalWrite[rolename] = rolename in write_access
-            role_widget.setItem(row, 0, QTableWidgetItem(rolename))   
-            read_checkbox = QCheckBox()
-            write_checkbox = QCheckBox()  
-            write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
-            read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")   
-            write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(True) if state else None)
-            read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)
-            role_widget.setCellWidget(row, 1, read_checkbox)
-            role_widget.setCellWidget(row, 2, write_checkbox) 
-            if rolename in write_access:
-                write_checkbox.setChecked(True)
-                read_checkbox.setChecked(True)
-                self.globalWrite[rolename] = True
-            else:
-                if rolename in read_access:
-                    self.globalRead[rolename] = True
-                read_checkbox.setChecked(rolename in read_access)      
-            if everyone_read_checked:                  
-                read_checkbox.setChecked(True)   
-                read_checkbox.setEnabled(False)  
-            if everyone_write_checked:                  
-                write_checkbox.setChecked(True)    
-                write_checkbox.setEnabled(False)                        
-            role_widget.setItem(row, 3, QTableWidgetItem(rolename))         
-            role_widget.setColumnHidden(3, True)
-            role_widget.resizeColumnToContents(0)
-            row = row + 1
-        roleTab = QWidget()
-        roleLayout = QVBoxLayout()
-        self.roleFilterLineEdit = QLineEdit()
-        self.roleFilterLineEdit.setPlaceholderText(self.tr("Filter roles..."))
-        self.roleFilterLineEdit.textChanged.connect(self.filterRecords)  
-        roleLayout.addWidget(self.roleFilterLineEdit)  
-        roleLayout.addWidget(role_widget)  
-        roleTab.setLayout(roleLayout)      
-        tab_widget.addTab(roleTab, self.tr("Permissions by role"))  
+        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+            num_columns = 4  
+            role_widget = QTableWidget()
+            role_widget.verticalHeader().setVisible(False)
+            self.utils.setTableWidgetNotBorder(role_widget)
+            role_widget.setRowCount(len(user_dict))
+            role_widget.setColumnCount(num_columns)  
+            role_widget.setHorizontalHeaderLabels([self.tr('Role'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
+            roles = self.getRoles()
+            self.roles = roles
+            row = 0
+            for rolename in (roles):    
+                if rolename == "EVERYONE":
+                    continue
+                self.globalRead[rolename] = rolename in read_access
+                self.globalWrite[rolename] = rolename in write_access
+                role_widget.setItem(row, 0, QTableWidgetItem(rolename))   
+                read_checkbox = QCheckBox()
+                write_checkbox = QCheckBox()  
+                write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
+                read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")   
+                write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(True) if state else None)
+                read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)
+                role_widget.setCellWidget(row, 1, read_checkbox)
+                role_widget.setCellWidget(row, 2, write_checkbox) 
+                if rolename in write_access:
+                    write_checkbox.setChecked(True)
+                    read_checkbox.setChecked(True)
+                    self.globalWrite[rolename] = True
+                else:
+                    if rolename in read_access:
+                        self.globalRead[rolename] = True
+                    read_checkbox.setChecked(rolename in read_access)      
+                if everyone_read_checked:                  
+                    read_checkbox.setChecked(True)   
+                    read_checkbox.setEnabled(False)  
+                if everyone_write_checked:                  
+                    write_checkbox.setChecked(True)    
+                    write_checkbox.setEnabled(False)                        
+                role_widget.setItem(row, 3, QTableWidgetItem(rolename))         
+                role_widget.setColumnHidden(3, True)
+                role_widget.resizeColumnToContents(0)
+                row = row + 1
+            roleTab = QWidget()
+            roleLayout = QVBoxLayout()
+            self.roleFilterLineEdit = QLineEdit()
+            self.roleFilterLineEdit.setPlaceholderText(self.tr("Filter roles..."))
+            self.roleFilterLineEdit.textChanged.connect(self.filterRecords)  
+            roleLayout.addWidget(self.roleFilterLineEdit)  
+            roleLayout.addWidget(role_widget)  
+            roleTab.setLayout(roleLayout)      
+            tab_widget.addTab(roleTab, self.tr("Permissions by role"))  
   
     def setEveryonePermissionsRadiobuutons(self, public_read, public_write):            
         self.radioButton_readPublic.setChecked(public_read)
@@ -353,33 +358,38 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         return None
     def filterRecords(self):
         user_filter_text = self.userFilterLineEdit.text().lower()
-        role_filter_text = self.roleFilterLineEdit.text().lower()
+        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+            role_filter_text = self.roleFilterLineEdit.text().lower()
 
         user_widget = self.getUserWidget()
-        role_widget = self.getRoleWidget()
+        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+            role_widget = self.getRoleWidget()
        
         if isinstance(user_widget, QTableWidget):
             for row in range(user_widget.rowCount()):
                 item = user_widget.item(row, 0)
                 if item:
                     user_widget.setRowHidden(row, user_filter_text not in item.text().lower())
-      
-        if isinstance(role_widget, QTableWidget):
-            for row in range(role_widget.rowCount()):
-                item = role_widget.item(row, 0)
-                if item:
-                    role_widget.setRowHidden(row, role_filter_text not in item.text().lower())
+        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+            if isinstance(role_widget, QTableWidget):
+                for row in range(role_widget.rowCount()):
+                    item = role_widget.item(row, 0)
+                    if item:
+                        role_widget.setRowHidden(row, role_filter_text not in item.text().lower())
      
     def updatePermissions(self, permissionType, isPublic):
         user_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by user"))
-        role_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by role"))       
+        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+            role_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by role"))       
         if permissionType == 'read':
             if isPublic:               
                 self.updateWidgetPermissions(user_widget, 'read', True)
-                self.updateWidgetPermissions(role_widget, 'read', True)
+                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                    self.updateWidgetPermissions(role_widget, 'read', True)
             else:     
                 self.globalUpdateFromPermissions(user_widget, 'read', self.globalRead)
-                self.globalUpdateFromPermissions(role_widget, 'read', self.globalRead)          
+                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                    self.globalUpdateFromPermissions(role_widget, 'read', self.globalRead)          
                 if self.radioButton_writePublic.isChecked():
                     self.radioButton_writePrivate.setChecked(True)
 
@@ -387,15 +397,18 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             if isPublic:              
                 self.radioButton_readPublic.setChecked(True)
                 self.updateWidgetPermissions(user_widget, 'write', True)
-                self.updateWidgetPermissions(role_widget, 'write', True)               
+                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                    self.updateWidgetPermissions(role_widget, 'write', True)               
             else:              
                 self.globalUpdateFromPermissions(user_widget, 'write', self.globalWrite)
-                self.globalUpdateFromPermissions(role_widget, 'write', self.globalWrite)
+                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                    self.globalUpdateFromPermissions(role_widget, 'write', self.globalWrite)
 
      
         if self.radioButton_writePrivate.isChecked() and self.radioButton_readPublic.isChecked():
             self.updateWidgetPermissions(user_widget, 'read', True)
-            self.updateWidgetPermissions(role_widget, 'read', True)               
+            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                self.updateWidgetPermissions(role_widget, 'read', True)               
                          
     def alignCheckboxesInTable(self, table_widget, count):
         for row in range(count):
