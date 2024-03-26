@@ -24,13 +24,16 @@ from pathlib import Path
 from libqfieldsync.layer import LayerSource
 from libqfieldsync.utils.file_utils import copy_attachments
 from libqfieldsync.utils.qgis import get_qgis_files_within_dir, make_temp_qgis_file
-from qgis.core import QgsMapLayer, QgsProject, QgsVirtualLayerDefinition
+from qgis.core import QgsMapLayer, QgsProject, QgsVirtualLayerDefinition, QgsVectorLayer
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QUrl, pyqtSignal
 from qgis.utils import iface
 
 from qfieldsync.core.preferences import Preferences
 from qfieldsync.utils.qgis_utils import open_project
 
+
+from qgis.core import QgsVectorFileWriter, QgsProject
+import os
 
 class CloudConverter(QObject):
     progressStopped = pyqtSignal()
@@ -85,9 +88,9 @@ class CloudConverter(QObject):
                 )
 
                 layer_source = LayerSource(layer)
-                if not layer_source.is_supported:
-                    self.project.removeMapLayer(layer)
-                    continue
+                # if not layer_source.is_supported:
+                #     self.project.removeMapLayer(layer)
+                #     continue
 
                 if layer.dataProvider() is not None:
                     # layer stored in localized data path, skip
@@ -115,10 +118,11 @@ class CloudConverter(QObject):
                                     "The virtual layer '{}' is not valid or contains non-referenced source(s) and could not be converted and was therefore removed from the cloud project."
                                 ).format(layer.name()),
                             )
-                            self.project.removeMapLayer(layer)
+                            # self.project.removeMapLayer(layer)
                             continue
-                    else:
-                        if not layer_source.convert_to_gpkg(self.export_dirname):
+                    else:                                            
+                        #if not layer_source.convert_to_gpkg(self.export_dirname):
+                        if not self.convert_to_gpkg(layer, self.export_dirname):    
                             # something went wrong, remove layer and inform the user that layer will be missing
                             self.warning.emit(
                                 self.tr("Cloud Converter"),
@@ -126,7 +130,7 @@ class CloudConverter(QObject):
                                     "The layer '{}' could not be converted and was therefore removed from the cloud project."
                                 ).format(layer.name()),
                             )
-                            self.project.removeMapLayer(layer)
+                            # self.project.removeMapLayer(layer)
                             continue
                 else:
                     layer_source.copy(self.export_dirname, list())
@@ -158,13 +162,33 @@ class CloudConverter(QObject):
         finally:
             # We need to let the app handle events before loading the next project or QGIS will crash with rasters
             QCoreApplication.processEvents()
-            self.project.clear()
+            # self.project.clear()
             QCoreApplication.processEvents()
 
             # TODO whatcha gonna do if QgsProject::read()/write() fails
             if is_converted:
-                iface.addProject(str(project_path))
+                pass
+                # iface.addProject(str(project_path))
             else:
                 open_project(original_project_path, backup_project_path)
 
         self.total_progress_updated.emit(100, 100, self.tr("Finished"))
+    def convert_to_gpkg(self, layer, export_dirname): 
+        layer_name = layer.name()
+        gpkg_path = os.path.join(export_dirname, f"{layer_name}.gpkg")
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = "GPKG"
+        options.layerName = layer_name
+
+        # Provádění exportu
+        result, _ = QgsVectorFileWriter.writeAsVectorFormatV2(layer,
+                                                            gpkg_path,
+                                                            QgsProject.instance().transformContext(),
+                                                            options)
+
+        if result == QgsVectorFileWriter.NoError:
+            print(f"Vrstva '{layer_name}' byla úspěšně konvertována a uložena do {gpkg_path}")
+            return gpkg_path
+        else:
+            print(f"Konverze vrstvy '{layer_name}' selhala.")
+            return None
