@@ -180,50 +180,7 @@ class CloudConverter(QObject):
             open_project(original_project_path, backup_project_path)
 
         self.total_progress_updated.emit(100, 100, self.tr("Finished"))
-    # from qgis.core import QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsProject
-
-
-    # def convert_to_gpkg(self, layer, export_dirname):
-    #     """
-    #     Konvertuje QGIS vrstvu do formátu GeoPackage (GPKG) a uloží ji do specifikovaného adresáře.
-    #     Původní vrstva zůstane v projektu nezměněna.
-
-    #     :param layer: Vrstva pro konverzi (QgsMapLayer).
-    #     :param export_dirname: Cesta k adresáři, kam bude GPKG uložen.
-    #     :return: Cesta k vytvořenému GPKG souboru nebo None při selhání.
-    #     """
-    #     # Zkontrolujte, zda adresář existuje, pokud ne, pokusí se vytvořit
-    #     if not os.path.exists(export_dirname):
-    #         os.makedirs(export_dirname, exist_ok=True)
-
-    #     # Sestavení cesty k výstupnímu GPKG souboru
-    #     gpkg_file_path = os.path.join(export_dirname, f"{layer.name()}.gpkg")
-
-    #     # Nastavení možností pro export
-    #     options = QgsVectorFileWriter.SaveVectorOptions()
-    #     options.driverName = "GPKG"
-    #     options.layerName = layer.name()
-    #     options.fileEncoding = "UTF-8"
-
-    #     # Nastavení CRS vrstvy na výstup (pokud je potřeba přizpůsobit, nastavte explicitně)
-    #     options.destinationCrs = layer.crs()
-
-    #     # Konverze a export vrstvy do GPKG
-    #     error = QgsVectorFileWriter.writeAsVectorFormatV2(
-    #                 layer=layer,
-    #                 fileName=gpkg_file_path,
-    #                 transformContext=QgsProject.instance().transformContext(),
-    #                 options=options
-    #             )
-
-    #     # Kontrola, zda konverze proběhla úspěšně
-    #     if error[0] == QgsVectorFileWriter.NoError:
-    #         print(f"Konverze vrstvy '{layer.name()}' do GPKG byla úspěšná: {gpkg_file_path}")
-    #         return gpkg_file_path
-    #     else:
-    #         print(f"Konverze vrstvy '{layer.name()}' selhala s chybou: {error}")
-    #         return None
-
+ 
     def convert_to_gpkg(self, layer, export_dirname):
         layer_name = layer.name().replace(" ", "")
         gpkg_path = os.path.join(export_dirname, f"{layer_name}.gpkg")
@@ -246,61 +203,7 @@ class CloudConverter(QObject):
             return None
 
 class CustomLayerSource(LayerSource):
-    # def convert_to_gpkg(self, target_path):
-    #     if not self.layer.type() == QgsMapLayer.VectorLayer or not self.layer.isValid():
-    #         return
-
-    #     file_path = self.filename
-    #     suffix = ""
-    #     uri_parts = self.layer.source().split("|", 1)
-    #     if len(uri_parts) > 1:
-    #         suffix = uri_parts[1]
-
-    #     dest_file = ""
-    #     new_source = ""
-    #     if os.path.isfile(file_path) and self.layer.dataProvider().storageType() == "GPKG":
-    #         source_path, file_name = os.path.split(file_path)
-    #         dest_file = os.path.join(target_path, file_name)
-    #         if not os.path.isfile(dest_file):
-    #             shutil.copy(file_path, dest_file)
-
-    #     else:
-    #         # Pro ostatní typy zdrojů vrstev, jako je WFS, konverze do GPKG
-    #         pattern = re.compile(r"[\W_]+")  # Regulární výraz pro vyčištění názvu vrstvy
-    #         cleaned_name = pattern.sub("", self.layer.name())
-    #         dest_file = os.path.join(target_path, f"{cleaned_name}.gpkg")
-    #         suffix = 0
-    #         while os.path.isfile(dest_file):
-    #             suffix += 1
-    #             dest_file = os.path.join(target_path, f"{cleaned_name}_{suffix}.gpkg")
-
-    #         # Klonování vrstvy a odstranění filtrů, spojení a virtuálních polí
-    #         source_layer = self.layer.clone()
-    #         source_layer.setSubsetString("")
-    #         source_layer_joins = source_layer.vectorJoins()
-    #         for join in source_layer_joins:
-    #             source_layer.removeJoin(join.joinLayerId())
-    #         fields = source_layer.fields()
-    #         virtual_field_count = 0
-    #         for i in range(len(fields)):
-    #             if fields.fieldOrigin(i) == QgsFields.OriginExpression:
-    #                 source_layer.removeExpressionField(i - virtual_field_count)
-    #                 virtual_field_count += 1
-
-    #         # Konverze do GPKG
-    #         options = QgsVectorFileWriter.SaveVectorOptions()
-    #         options.fileEncoding = "UTF-8"
-    #         options.driverName = "GPKG"
-    #         error, _ = QgsVectorFileWriter.writeAsVectorFormatV2(
-    #             source_layer, dest_file, QgsCoordinateTransformContext(), options
-    #         )
-    #         if error != QgsVectorFileWriter.NoError:
-    #             print("Chyba při konverzi vrstvy.")
-    #             return
-
-    #     # Zde končíme bez změny datového zdroje původní vrstvy
-    #     print(f"Vrstva byla úspěšně konvertována a uložena do: {dest_file}")
-    #     return dest_file
+   
     def convert_to_gpkg(self, target_path):
         """
         Convert a layer to geopackage in the target path and adjust its datasource. If
