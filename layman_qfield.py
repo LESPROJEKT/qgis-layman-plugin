@@ -23,7 +23,7 @@ class Qfield:
         print(res)
         if response.status_code == 201:
             self.uploadQFiles(res['id'], "")
-        return res
+        return response
         
         # else:
         #     self.utils.emitMessageBox(["Taková kompozice již existuje. Vyberte prosím jiný název.", "This composition already exists. Please choose another name."])
@@ -42,27 +42,27 @@ class Qfield:
         mypath = self.convertQProject()        
         threading.Thread(target=lambda: self.post_multiple_files(project_id, mypath)).start()
  
-    def postQData(self, project_id, mypath):        
-        payload={}     
-        filepaths = []
-        f = []
-        for (dirpath, dirnames, filenames) in os.walk(mypath):
-            f.extend(filenames)
-            break
-        for files in f:
-            filepaths.append(mypath + os.sep+files)
+    # def postQData(self, project_id, mypath):        
+    #     payload={}     
+    #     filepaths = []
+    #     f = []
+    #     for (dirpath, dirnames, filenames) in os.walk(mypath):
+    #         f.extend(filenames)
+    #         break
+    #     for files in f:
+    #         filepaths.append(mypath + os.sep+files)
         
-        for i in range (0,len(filepaths)):
+    #     for i in range (0,len(filepaths)):
 
-            files=[
-              ('file',(f[i],open(filepaths[i],'rb'),'application/octet-stream'))              
-            ]           
+    #         files=[
+    #           ('file',(f[i],open(filepaths[i],'rb'),'application/octet-stream'))              
+    #         ]           
            
-            url = self.URI +"/api/v1/files/" + project_id+ "/" +f[i] + "/"          
-            print(url)
+    #         url = self.URI +"/api/v1/files/" + project_id+ "/" +f[i] + "/"          
+    #         print(url)
                        
-            response = self.utils.requestWrapper("POST", url, payload=None,  files=files)      
-            print(response.content)              
+    #         response = self.utils.requestWrapper("POST", url, payload=None,  files=files)      
+    #         print(response.content)              
    
 
     def post_multiple_files(self, project_id, directory_path):
@@ -71,7 +71,7 @@ class Qfield:
         multipart_files = {}  
         for file_path in files_to_upload:
             file_name = os.path.basename(file_path)
-            multipart_files['file'] = (file_name, open(file_path, 'rb'), 'application/octet-stream')     
+            multipart_files['file'] = (file_name, open(file_path, 'rb'), 'application/octet-stream')                
             response = self.utils.requestWrapper("POST", url + file_name + "/", payload=None, files=multipart_files, emitErr=True)
             if response.ok:
                 print(f"Soubor {file_name} byl úspěšně nahrán")

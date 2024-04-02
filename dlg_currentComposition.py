@@ -202,10 +202,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     #     self.qfield = Qfield(self.utils)
     def exportToQfield(self):        
         self.qfield = Qfield(self.utils)
-        ## get info about project
         permissions = self.layman.instance.getAllPermissions()
         permission = "true" if 'EVERYONE' in permissions['read'] else "false"   
-        self.qfield.createQProject(self.layman.instance.getName(), self.layman.instance.getDescription(), permission)
+        response = self.qfield.createQProject(self.layman.instance.getName(), self.layman.instance.getDescription(), permission)
+        res = response.json()
+        if response.status_code == 201:
+            self.utils.showQgisBar([" Projekt by úspěšně vytvořen."," Project was successfully created."], Qgis.Success)    
+        elif 'code' in res and res['code'] == 'project_already_exists':
+            self.utils.showErr.emit(["Tento projekt již existuje.", " This project already exists"], str(response), Qgis.Warning, "")       
+
+        ## current composition was unset. Need additional code                 
         ##################
     def setVisibilityForCurrent(self, visible):
         if self.layman.instance is None:
