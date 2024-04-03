@@ -18,7 +18,7 @@ class Qfield:
             "private": private,
             "is_public": private
         }   
-        response = self.utils.requestWrapper("POST", url, payload = payload)
+        response = self.utils.requestWrapper("POST", url, payload = payload, files = None, emitErr = False)
         res = response.json()        
         if response.status_code == 201:
             self.uploadQFiles(res['id'], "")

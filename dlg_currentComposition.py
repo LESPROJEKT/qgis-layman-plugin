@@ -213,7 +213,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if response.status_code == 201:
             self.utils.showQgisBar([" Projekt by úspěšně vytvořen."," Project was successfully created."], Qgis.Success)    
         elif 'code' in res and res['code'] == 'project_already_exists':
-            self.utils.showErr.emit(["Tento projekt již existuje.", " This project already exists"], str(response), Qgis.Warning, "")       
+            self.utils.showQgisBar([" Tento projekt již existuje."," This project already exists."], Qgis.Warning)  
+            # self.utils.showErr.emit(["Tento projekt již existuje.", " This project already exists"], str(response), Qgis.Warning, "")       
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)             

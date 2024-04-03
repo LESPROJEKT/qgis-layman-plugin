@@ -65,7 +65,7 @@ from qgis.PyQt.QtNetwork import (QHttpMultiPart, QHttpPart, QNetworkReply,
 from qgis.utils import iface
 from urllib.parse import urlparse
 from .resources import *
-from Layman.qfield.cloud_converter import CloudConverter
+# from Layman.qfield.cloud_converter import CloudConverter
 
 ## forms
 from .currentComposition import CurrentComposition
@@ -735,156 +735,156 @@ class Layman(QObject):
     def exportJunction(self, create):
         if not create:
             threading.Thread(target=lambda: self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),"")).start()
-    def createQProject(self,name, description, private):
-        url = "https://app.qfield.cloud/api/v1/projects/"
+    # def createQProject(self,name, description, private):
+    #     url = "https://app.qfield.cloud/api/v1/projects/"
         
-        if private == 2:
-            private = "false"
-        if private == 0:
-            private = "true"        
-        payload="""{
-                  "name": \""""+name+"""\",
-                  "description":\""""+description+"""\",
-                  "private":\""""+ str(private)+"""\",
-                  "is_public": \""""+str(private)+"""\"
-                }"""
-        headers = {
-          'Authorization': 'token ' + self.Qtoken,
-          'Content-Type': 'application/json'
-        }       
-        response = requests.post(url, data=payload, headers=headers, files=None)
-        res = self.utils.fromByteToJson(response.content)   
-        print(res)     
-        if response.status_code == 201:            
-            self.uploadQFiles(res['id'],"")
-        else:
-            self.utils.emitMessageBox.emit(["Taková kompozice již existuje. Vyberte prosím jiný název.", "This composition already exists. Please choose another name."])
+    #     if private == 2:
+    #         private = "false"
+    #     if private == 0:
+    #         private = "true"        
+    #     payload="""{
+    #               "name": \""""+name+"""\",
+    #               "description":\""""+description+"""\",
+    #               "private":\""""+ str(private)+"""\",
+    #               "is_public": \""""+str(private)+"""\"
+    #             }"""
+    #     headers = {
+    #       'Authorization': 'token ' + self.Qtoken,
+    #       'Content-Type': 'application/json'
+    #     }       
+    #     response = requests.post(url, data=payload, headers=headers, files=None)
+    #     res = self.utils.fromByteToJson(response.content)   
+    #     print(res)     
+    #     if response.status_code == 201:            
+    #         self.uploadQFiles(res['id'],"")
+    #     else:
+    #         self.utils.emitMessageBox.emit(["Taková kompozice již existuje. Vyberte prosím jiný název.", "This composition already exists. Please choose another name."])
 
-    def convertQProject(self):
-        import random
-        import string
-        letters = string.ascii_lowercase
-        end = ''.join(random.choice(letters) for i in range(10))
-        path = tempFileFolder = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "qfield" + end
-        try:
-            shutil.rmtree(path, ignore_errors=True)
-        except OSError as error:
-            print(error)
+    # def convertQProject(self):
+    #     import random
+    #     import string
+    #     letters = string.ascii_lowercase
+    #     end = ''.join(random.choice(letters) for i in range(10))
+    #     path = tempFileFolder = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "qfield" + end
+    #     try:
+    #         shutil.rmtree(path, ignore_errors=True)
+    #     except OSError as error:
+    #         print(error)
 
-        try:
-            os.mkdir(path)
-        except OSError as error:
-            print(error)
-        cloud_convertor = CloudConverter(QgsProject.instance(), path)
-        cloud_convertor.convert()
-        return path
-    def uploadQFiles(self, project, path):
-        layers = QgsProject.instance().mapLayers().values()        
-        if len(layers) == 0:
-            self.utils.emitMessageBox.emit(["Nejsou vrstvy k exportu!", "No layers to export!"])
-            return
-        mypath = self.convertQProject()
-        self.dlg2.progressBar.show()
-        threading.Thread(target=lambda: self.postQData(project,mypath)).start()
+    #     try:
+    #         os.mkdir(path)
+    #     except OSError as error:
+    #         print(error)
+    #     cloud_convertor = CloudConverter(QgsProject.instance(), path)
+    #     cloud_convertor.convert()
+    #     return path
+    # def uploadQFiles(self, project, path):
+    #     layers = QgsProject.instance().mapLayers().values()        
+    #     if len(layers) == 0:
+    #         self.utils.emitMessageBox.emit(["Nejsou vrstvy k exportu!", "No layers to export!"])
+    #         return
+    #     mypath = self.convertQProject()
+    #     self.dlg2.progressBar.show()
+    #     threading.Thread(target=lambda: self.postQData(project,mypath)).start()
         
 
-    def postQData(self, project, mypath):
-        projekct_Id = project
-        payload={}     
-        filepaths = []
-        f = []
-        for (dirpath, dirnames, filenames) in walk(mypath):
-            f.extend(filenames)
-            break
-        for files in f:
-            filepaths.append(mypath + os.sep+files)
+    # def postQData(self, project, mypath):
+    #     projekct_Id = project
+    #     payload={}     
+    #     filepaths = []
+    #     f = []
+    #     for (dirpath, dirnames, filenames) in walk(mypath):
+    #         f.extend(filenames)
+    #         break
+    #     for files in f:
+    #         filepaths.append(mypath + os.sep+files)
         
-        for i in range (0,len(filepaths)):
+    #     for i in range (0,len(filepaths)):
 
-            files=[
-              ('file',(f[i],open(filepaths[i],'rb'),'application/octet-stream'))              
-            ]            
-            headers = {
-                      'Authorization': 'token ' + self.Qtoken}
-            url = "https://app.qfield.cloud/api/v1/files/" + projekct_Id+ "/" +f[i] + "/"          
-            print(url)
-            print(headers)                  
-            response = requests.post(url, data=payload, headers=headers, files=files)
+    #         files=[
+    #           ('file',(f[i],open(filepaths[i],'rb'),'application/octet-stream'))              
+    #         ]            
+    #         headers = {
+    #                   'Authorization': 'token ' + self.Qtoken}
+    #         url = "https://app.qfield.cloud/api/v1/files/" + projekct_Id+ "/" +f[i] + "/"          
+    #         print(url)
+    #         print(headers)                  
+    #         response = requests.post(url, data=payload, headers=headers, files=files)
 
          
-        QgsMessageLog.logMessage("qfieldExport")        
-        self.utils.showQgisBar(["Export proběhl úspěšně.","Export was successfull"], Qgis.Success) 
-    def getProjectsQfield(self):
-        url = "https://app.qfield.cloud/api/v1/projects/"
-        headers = {
-          'Authorization': 'token ' + self.Qtoken,
-          'Content-Type': 'application/json'
-        }    
-        response = requests.get(url, headers = headers)
-        print(response.status_code)
-        print(response.content)
-        return (self.utils.fromByteToJson(response.content))
-    def postProjectQfield(self):
-        url = "https://app.qfield.cloud/api/v1/projects/"
+    #     QgsMessageLog.logMessage("qfieldExport")        
+    #     self.utils.showQgisBar(["Export proběhl úspěšně.","Export was successfull"], Qgis.Success) 
+    # def getProjectsQfield(self):
+    #     url = "https://app.qfield.cloud/api/v1/projects/"
+    #     headers = {
+    #       'Authorization': 'token ' + self.Qtoken,
+    #       'Content-Type': 'application/json'
+    #     }    
+    #     response = requests.get(url, headers = headers)
+    #     print(response.status_code)
+    #     print(response.content)
+    #     return (self.utils.fromByteToJson(response.content))
+    # def postProjectQfield(self):
+    #     url = "https://app.qfield.cloud/api/v1/projects/"
 
-        payload="{  \"name\": \"test_qgis\",  \"description\": \"test_qgis\",  \"private\": true,  \"is_public\": true,  \"data_last_packaged_at\": \"2022-04-11T13:11:27.082Z\",  \"data_last_updated_at\": \"2022-04-11T13:11:27.082Z\"}"
-        headers = {
-          'Authorization': 'token ' + self.Qtoken,
-          'Content-Type': 'application/json'
-        }  
-        r = self.utils.requestWrapper("POST", url, payload, files = None)
+    #     payload="{  \"name\": \"test_qgis\",  \"description\": \"test_qgis\",  \"private\": true,  \"is_public\": true,  \"data_last_packaged_at\": \"2022-04-11T13:11:27.082Z\",  \"data_last_updated_at\": \"2022-04-11T13:11:27.082Z\"}"
+    #     headers = {
+    #       'Authorization': 'token ' + self.Qtoken,
+    #       'Content-Type': 'application/json'
+    #     }  
+    #     r = self.utils.requestWrapper("POST", url, payload, files = None)
     
 ### qfield plugin uploader
-    def _prepare_uri(self, uri: Union[str, List[str], QUrl]) -> QUrl:
-        if isinstance(uri, QUrl):
-            return uri
-        if isinstance(uri, str):
-            encoded_uri = uri
-        else:
-            encoded_parts = []
-            for part in uri:
-                encoded_parts.append(urllib.parse.quote(part))
-            encoded_uri = "/".join(encoded_parts)
-        if encoded_uri[-1] != "/":
-            encoded_uri += "/"
-        self.server_url = "https://app.qfield.cloud/"
-        return QUrl(self.server_url + encoded_uri)
-    def _clear_cloud_cookies(self, url: QUrl) -> None:
-        """When the CSRF_TOKEN cookie is present and the plugin is reloaded, the token has expired"""
-        for cookie in self._nam.cookieJar().cookiesForUrl(url):
-            self._nam.cookieJar().deleteCookie(cookie)
-    def cloud_upload_files(
-            self, uri: Union[str, List[str]], filenames: List[str], payload: Dict = None
-        ) -> QNetworkReply:
-            url = self._prepare_uri(uri)     
-            request = QNetworkRequest(url)
-            request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
-            print(b"Authorization", "Token {}".format(self.Qtoken).encode("utf-8"))
-            if self.Qtoken:
-                request.setRawHeader(
-                    b"Authorization", "Token {}".format(self.Qtoken).encode("utf-8")
-                )
-            multi_part = QHttpMultiPart(QHttpMultiPart.FormDataType)   
-            # most of the time there is no other payload
-            if payload is not None:
-                json_part = QHttpPart()
-                json_part.setHeader(QNetworkRequest.ContentTypeHeader, "application/json")
-                json_part.setHeader(
-                    QNetworkRequest.ContentDispositionHeader, 'form-data; name="json"'
-                )
-                json_part.setBody(json.dumps(payload).encode("utf-8"))
-                multi_part.append(json_part)           
-            for filename in filenames:               
-                with open(filename, "rb") as file:
-                    file_part = QHttpPart()
-                    file_part.setBody(file.read())
-                    file_part.setHeader(
-                        QNetworkRequest.ContentDispositionHeader,
-                        'form-data; name="file"; filename="{}"'.format(filename),
-                    )
-                    multi_part.append(file_part)    
-            request = QgsNetworkAccessManager.instance()
-            threading.Thread(target=lambda: request.post(request, multi_part)).start()
+    # def _prepare_uri(self, uri: Union[str, List[str], QUrl]) -> QUrl:
+    #     if isinstance(uri, QUrl):
+    #         return uri
+    #     if isinstance(uri, str):
+    #         encoded_uri = uri
+    #     else:
+    #         encoded_parts = []
+    #         for part in uri:
+    #             encoded_parts.append(urllib.parse.quote(part))
+    #         encoded_uri = "/".join(encoded_parts)
+    #     if encoded_uri[-1] != "/":
+    #         encoded_uri += "/"
+    #     self.server_url = "https://app.qfield.cloud/"
+    #     return QUrl(self.server_url + encoded_uri)
+    # def _clear_cloud_cookies(self, url: QUrl) -> None:
+    #     """When the CSRF_TOKEN cookie is present and the plugin is reloaded, the token has expired"""
+    #     for cookie in self._nam.cookieJar().cookiesForUrl(url):
+    #         self._nam.cookieJar().deleteCookie(cookie)
+    # def cloud_upload_files(
+    #         self, uri: Union[str, List[str]], filenames: List[str], payload: Dict = None
+    #     ) -> QNetworkReply:
+    #         url = self._prepare_uri(uri)     
+    #         request = QNetworkRequest(url)
+    #         request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
+    #         print(b"Authorization", "Token {}".format(self.Qtoken).encode("utf-8"))
+    #         if self.Qtoken:
+    #             request.setRawHeader(
+    #                 b"Authorization", "Token {}".format(self.Qtoken).encode("utf-8")
+    #             )
+    #         multi_part = QHttpMultiPart(QHttpMultiPart.FormDataType)   
+    #         # most of the time there is no other payload
+    #         if payload is not None:
+    #             json_part = QHttpPart()
+    #             json_part.setHeader(QNetworkRequest.ContentTypeHeader, "application/json")
+    #             json_part.setHeader(
+    #                 QNetworkRequest.ContentDispositionHeader, 'form-data; name="json"'
+    #             )
+    #             json_part.setBody(json.dumps(payload).encode("utf-8"))
+    #             multi_part.append(json_part)           
+    #         for filename in filenames:               
+    #             with open(filename, "rb") as file:
+    #                 file_part = QHttpPart()
+    #                 file_part.setBody(file.read())
+    #                 file_part.setHeader(
+    #                     QNetworkRequest.ContentDispositionHeader,
+    #                     'form-data; name="file"; filename="{}"'.format(filename),
+    #                 )
+    #                 multi_part.append(file_part)    
+    #         request = QgsNetworkAccessManager.instance()
+    #         threading.Thread(target=lambda: request.post(request, multi_part)).start()
 
 
     def crsChanged(self):       
@@ -920,11 +920,9 @@ class Layman(QObject):
         # Set CRS to EPSG:4326
         QApplication.instance().processEvents()        
         self.project.setCrs(QgsCoordinateReferenceSystem(self.crsOld))
-    def change_map_canvas(self, crs):   
-
+    def change_map_canvas(self, crs):
         crs = QgsCoordinateReferenceSystem(crs)        
         QApplication.instance().processEvents()
-
         self.project.setCrs(crs)
     def duplicateLayers(self):
         layerList = set()
