@@ -19,15 +19,12 @@ class Qfield:
             "is_public": private
         }   
         response = self.utils.requestWrapper("POST", url, payload = payload)
-        res = response.json()
-        print(res)
+        res = response.json()        
         if response.status_code == 201:
             self.uploadQFiles(res['id'], "")
         return response
         
-        # else:
-        #     self.utils.emitMessageBox(["Taková kompozice již existuje. Vyberte prosím jiný název.", "This composition already exists. Please choose another name."])
-
+        
     def convertQProject(self): 
         path = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
         cloud_convertor = CloudConverter(QgsProject.instance(), path)
@@ -41,28 +38,7 @@ class Qfield:
             return
         mypath = self.convertQProject()        
         threading.Thread(target=lambda: self.post_multiple_files(project_id, mypath)).start()
- 
-    # def postQData(self, project_id, mypath):        
-    #     payload={}     
-    #     filepaths = []
-    #     f = []
-    #     for (dirpath, dirnames, filenames) in os.walk(mypath):
-    #         f.extend(filenames)
-    #         break
-    #     for files in f:
-    #         filepaths.append(mypath + os.sep+files)
-        
-    #     for i in range (0,len(filepaths)):
-
-    #         files=[
-    #           ('file',(f[i],open(filepaths[i],'rb'),'application/octet-stream'))              
-    #         ]           
-           
-    #         url = self.URI +"/api/v1/files/" + project_id+ "/" +f[i] + "/"          
-    #         print(url)
-                       
-    #         response = self.utils.requestWrapper("POST", url, payload=None,  files=files)      
-    #         print(response.content)              
+             
    
 
     def post_multiple_files(self, project_id, directory_path):

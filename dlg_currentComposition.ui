@@ -445,19 +445,6 @@
        <normaloff>icons/back.png</normaloff>icons/back.png</iconset>
      </property>
     </widget>
-    <widget class="QLabel" name="label_info">
-     <property name="geometry">
-      <rect>
-       <x>20</x>
-       <y>330</y>
-       <width>481</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="textFormat">
-      <enum>Qt::AutoText</enum>
-     </property>
-    </widget>
     <widget class="QGroupBox" name="groupBox_4">
      <property name="geometry">
       <rect>

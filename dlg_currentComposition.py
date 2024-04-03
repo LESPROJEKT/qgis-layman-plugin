@@ -158,10 +158,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_readonly.hide()
         self.label_log.hide()        
         self.label_raster.hide()
-        self.treeWidget_layers.header().resizeSection(0,230)      
-        #self.pushButton_qfield.clicked.connect(lambda: self.setStackWidget("qfield"))  
-        self.pushButton_qfield.clicked.connect(self.exportToQfield)  
-        print(self.layman.current)
+        self.treeWidget_layers.header().resizeSection(0,230)     
+        self.pushButton_qfield.clicked.connect(self.exportToQfield)         
         if self.layman.current != None:
             self.layman.instance.refreshComposition()
             composition = self.layman.instance.getComposition()        
@@ -196,11 +194,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressBar_loader.hide()  
         self.show()
         result = self.exec_()  
-
-        ########## qfield
-    # def setQfieldUI(self):
-    #     self.qfield = Qfield(self.utils)
-    def exportToQfield(self):        
+    
+    def exportToQfield(self):  
+        try:
+            QgsProject.instance().layerWasAdded.disconnect()
+        except TypeError as e:
+            print(f"Chyba při odpojování on_layers_added: {e}")
+        try:
+            QgsProject.instance().layerRemoved.disconnect()
+        except TypeError as e:
+            print(f"Chyba při odpojování on_layers_added: {e}")            
+        name = self.layman.current    
         self.qfield = Qfield(self.utils)
         permissions = self.layman.instance.getAllPermissions()
         permission = "true" if 'EVERYONE' in permissions['read'] else "false"   
@@ -210,9 +214,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.showQgisBar([" Projekt by úspěšně vytvořen."," Project was successfully created."], Qgis.Success)    
         elif 'code' in res and res['code'] == 'project_already_exists':
             self.utils.showErr.emit(["Tento projekt již existuje.", " This project already exists"], str(response), Qgis.Warning, "")       
-
-        ## current composition was unset. Need additional code                 
-        ##################
+        self.layman.current = name
+        QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
+        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)             
+     
     def setVisibilityForCurrent(self, visible):
         if self.layman.instance is None:
             self.pushButton_editMeta.setEnabled(False)   
@@ -522,8 +527,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def itemClick(self, item, col):
         if item.checkState(0) == 2 and self.checkIfLayerIsInMoreGroups(QgsProject.instance().mapLayersByName(item.text(0))[0]):            
             self.showInfoDialogOnTop(self.tr("Layer ") + item.text(0) +self.tr(" is nested in two groups. Only parent group will be saved."))          
-        else:
-            self.label_info.setText("")
+     
             
     def checkIfLayerIsInMoreGroups(self, layer):
         root = QgsProject.instance().layerTreeRoot()
@@ -1289,7 +1293,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.showErr.emit([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, str(allInfo), Qgis.Warning, "")        
             
     def setNewUI(self): 
-        self.label_info.hide()    
+         
         self.treeWidget.clear()
         self.pushButton_new.hide()      
         layers = QgsProject.instance().mapLayers().values()     
@@ -1361,10 +1365,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             text = self.utils.removeUnacceptableChars(text)            
             url = self.URI + "/rest/"+self.layman.laymanUsername+"/maps/"+str(text)+"/file"
             r = requests.get(url, headers = self.utils.getAuthHeader(self.layman.authCfg)) 
-            res = r.json()            
-            ch = True
-            e = False
-          
+            res = r.json()       
+            e = False          
             try:
                 if res['code'] == 2:
                     ch = False
@@ -1374,14 +1376,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 ch = True
                 e = True ## kdyz nevraci rescode tak je to v poradku 
             if (not e):
-                self.pushButton_CreateComposition.setEnabled(True)
-                self.label_info.hide()
-
+                self.pushButton_CreateComposition.setEnabled(True)              
             else:
-                self.pushButton_CreateComposition.setEnabled(False)
-                self.label_info.show()               
-                self.label_info.setText(self.tr("Composition name already exists!"))           
-            self.label_info.setStyleSheet("color: red;")        
+                self.pushButton_CreateComposition.setEnabled(False)              
+                self.utils.showQgisBar([" Kompozice s tímto jménem již existuje"," Composition name already exists!"], Qgis.Warning) 
                 
     def checkForSpecialChars(self, s):
         special_characters = "!@#$%^&*()+?=,<>/"
@@ -1394,8 +1392,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.checkForSpecialChars(string):           
             self.showInfoDialogOnTop(self.tr("Unsupported char."))
         else:
-            self.pushButton_CreateComposition.setEnabled(True)
-            self.label_info.setText("")            
+            self.pushButton_CreateComposition.setEnabled(True)                      
             
     def createComposition(self,  title, abstract, setCurrent = False):         
         self.compositionDict = self.utils.fillCompositionDict()
@@ -1425,8 +1422,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 prj = QgsProject().instance()
                 QgsProject().instance().setTitle(title)
                 root = prj.layerTreeRoot()  
-                self.prj=QgsProject.instance()
-                # self.prj.removeAll.connect(self.layman.removeSignals)        
+                self.prj=QgsProject.instance()                    
                 QgsProject.instance().setTitle(title)  
                 self.pushButton_editMeta.setEnabled(True)   
                 self.pushButton_setPermissions.setEnabled(True)
@@ -1459,9 +1455,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.refreshCurrentForm()  
     def on_layers_added(self, layer):     
         if self.objectName() == "CurrentCompositionDialog":                
-            self.refreshCurrentForm(layer)
-                           
-                           
+            self.refreshCurrentForm(layer)   
                            
     def setLayerPropertiesUI(self):             
         self.pushButton_back_4.clicked.connect(lambda: self.setStackWidget("main", False)) 
@@ -1482,9 +1476,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.label_max.setText("None" if not layer['maxResolution'] else "1:"+str(self.utils.resolutionToScale(layer['maxResolution'])))
                 self.label_min.setText("1:"+str(int(self.utils.resolutionToScale(layer['minResolution']))))                
                 self.checkBox_visibility.setChecked(True if layer['visibility'] else False) 
-                self.label_path.setText(str(layer['path']))              
-                
-                
+                self.label_path.setText(str(layer['path']))   
                 
     def setGrayScaleForLayer(self, layer):       
         if  isinstance(layer, QgsRasterLayer):
