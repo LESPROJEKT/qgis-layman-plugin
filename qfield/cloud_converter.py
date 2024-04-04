@@ -35,9 +35,6 @@ from qgis.PyQt.QtXml import QDomDocument
 
 from qgis.core import QgsVectorFileWriter, QgsProject, QgsReadWriteContext
 import os
-import os
-import shutil
-import re
 from qgis.core import  QgsCoordinateTransformContext, QgsFields
 
 
@@ -50,6 +47,7 @@ class CloudConverter(QObject):
         self,
         project: QgsProject,
         export_dirname: str,
+        selectedLayers: list,
     ):
 
         super(CloudConverter, self).__init__(parent=None)
@@ -60,6 +58,7 @@ class CloudConverter(QObject):
         self.trUtf8 = self.tr
 
         self.export_dirname = Path(export_dirname)
+        self.selectedLayers = selectedLayers
 
     def convert(self) -> None:  # noqa: C901
         """
@@ -83,10 +82,11 @@ class CloudConverter(QObject):
                 )
 
             self.total_progress_updated.emit(0, 100, self.trUtf8("Converting project…"))
-            self.__layers = list(self.project.mapLayers().values())
-
+            self.__layers = list(self.project.mapLayers().values())           
             # Loop through all layers and copy them to the destination folder
             for current_layer_index, layer in enumerate(self.__layers):
+                if not layer.name() in self.selectedLayers:
+                    continue
                 self.total_progress_updated.emit(
                     current_layer_index,
                     len(self.__layers),
@@ -179,26 +179,6 @@ class CloudConverter(QObject):
 
         self.total_progress_updated.emit(100, 100, self.tr("Finished"))
  
-#     def convert_to_gpkg(self, layer, export_dirname):
-#         layer_name = layer.name().replace(" ", "")
-#         gpkg_path = os.path.join(export_dirname, f"{layer_name}.gpkg")
-#         options = QgsVectorFileWriter.SaveVectorOptions()
-#         options.driverName = "GPKG"
-#         options.layerName = layer_name
-
-
-#         # Provádění exportu
-#         result, _ = QgsVectorFileWriter.writeAsVectorFormatV2(layer,
-#                                                             gpkg_path,
-#                                                             QgsProject.instance().transformContext(),
-#                                                             options)
-
-#         if result == QgsVectorFileWriter.NoError:
-#             print(f"Vrstva '{layer_name}' byla úspěšně konvertována a uložena do {gpkg_path}")
-#             return gpkg_path
-#         else:
-#             print(f"Konverze vrstvy '{layer_name}' selhala.")
-#             return None
 
 # class CustomLayerSource(LayerSource):
    

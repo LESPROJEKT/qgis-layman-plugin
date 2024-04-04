@@ -133,14 +133,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.page4.setVisible(False)
             self.page5.setVisible(True)
             self.setLayerPropertiesUI()     
-        # if option == "qfield": 
-        #     self.page1.setVisible(False)
-        #     self.page2.setVisible(False)
-        #     self.page3.setVisible(False)
-        #     self.page4.setVisible(False)
-        #     self.page5.setVisible(False)
-        #     self.page.setVisible(True)
-        #     self.setQfieldUI()                                          
+                                       
             
     def setUi(self):    
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)  
@@ -195,7 +188,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.show()
         result = self.exec_()  
     
-    def exportToQfield(self):  
+    def exportToQfield(self):             
         try:
             QgsProject.instance().layerWasAdded.disconnect()
         except TypeError as e:
@@ -206,6 +199,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             print(f"Chyba při odpojování on_layers_added: {e}")            
         name = self.layman.current    
         self.qfield = Qfield(self.utils)
+        self.qfield.selectedLayers = self.getCheckedLayerNames()
         permissions = self.layman.instance.getAllPermissions()
         permission = "true" if 'EVERYONE' in permissions['read'] else "false"   
         response = self.qfield.createQProject(self.layman.instance.getName(), self.layman.instance.getDescription(), permission)
@@ -386,8 +380,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 item.setCheckState(0,0)                
                 self.layerServices = {}
                 iterator +=1    
-    def checkCheckbox(self, item, column):
-        
+
+    def checkCheckbox(self, item, column):        
         combobox = self.treeWidget_layers.itemWidget(item,2)
         if combobox is not None:            
             if item.checkState(column) == 2:                
@@ -396,7 +390,18 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:
                     combobox.setCurrentIndex(1)
             if item.checkState(column) == 0:
-                combobox.setCurrentIndex(2)                        
+                combobox.setCurrentIndex(2) 
+
+    def getCheckedLayerNames(self):
+        checkedLayers = []      
+        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
+        while iterator.value():
+            item = iterator.value()          
+            if item.checkState(0) == Qt.Checked:             
+                checkedLayers.append(item.text(0))
+            iterator += 1
+        return checkedLayers     
+                                 
     def getLayersOrder(self):
         bridge = self.layman.iface.layerTreeCanvasBridge()
         root = bridge.rootGroup()

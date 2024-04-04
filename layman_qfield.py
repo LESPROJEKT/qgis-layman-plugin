@@ -9,6 +9,7 @@ class Qfield:
         self.utils = utils
         #self.URI = "https://qfield.lesprojekt.cz"
         self.URI = "http://localhost:8011"
+        self.selectedLayers = []
 
     def createQProject(self, name, description, private):
         url = self.URI + "/api/v1/projects/" 
@@ -27,7 +28,7 @@ class Qfield:
         
     def convertQProject(self): 
         path = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
-        cloud_convertor = CloudConverter(QgsProject.instance(), path)
+        cloud_convertor = CloudConverter(QgsProject.instance(), path, self.selectedLayers)
         cloud_convertor.convert()
         return path
 
