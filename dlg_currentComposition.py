@@ -151,8 +151,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_readonly.hide()
         self.label_log.hide()        
         self.label_raster.hide()
-        self.treeWidget_layers.header().resizeSection(0,230)     
-        self.pushButton_qfield.clicked.connect(self.exportToQfield)         
+        self.treeWidget_layers.header().resizeSection(0,230)  
+        self.pushButton_qfield.clicked.connect(self.exportToQfield)  
         if self.layman.current != None:
             self.layman.instance.refreshComposition()
             composition = self.layman.instance.getComposition()        
@@ -188,7 +188,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.show()
         result = self.exec_()  
     
-    def exportToQfield(self):             
+    def exportToQfield(self):   
+        self.progressStart.emit()         
         try:
             QgsProject.instance().layerWasAdded.disconnect()
         except TypeError as e:
@@ -212,7 +213,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)             
-     
+        self.progressDone.emit()    
     def setVisibilityForCurrent(self, visible):
         if self.layman.instance is None:
             self.pushButton_editMeta.setEnabled(False)   

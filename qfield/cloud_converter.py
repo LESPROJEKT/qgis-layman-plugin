@@ -94,9 +94,9 @@ class CloudConverter(QObject):
                 )
 
                 layer_source = LayerSource(layer)
-                # if not layer_source.is_supported:
+                if not layer_source.is_supported:
                 #     self.project.removeMapLayer(layer)
-                #     continue
+                    continue
 
                 if layer.dataProvider() is not None:               
                     if layer_source.is_localized_path:

@@ -7,8 +7,8 @@ from .qfield.cloud_converter import CloudConverter
 class Qfield:
     def __init__(self, utils): 
         self.utils = utils
-        #self.URI = "https://qfield.lesprojekt.cz"
-        self.URI = "http://localhost:8011"
+        self.URI = "https://qfield.lesprojekt.cz"
+        #self.URI = "http://localhost:8011"
         self.selectedLayers = []
 
     def createQProject(self, name, description, private):
