@@ -372,7 +372,7 @@ class Layman(QObject):
         print(self.isAuthorized)
         print(self.laymanUsername, self.URI)
         print(self.current)
-        self.dlg_current = CurrentCompositionDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)   
+        self.dlg_current = CurrentCompositionDialog(self.utils, self.isAuthorized, self.URI, self)   
         
        
     def comboBoxChanged(self, text):        

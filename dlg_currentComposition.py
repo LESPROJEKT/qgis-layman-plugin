@@ -50,7 +50,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     progressDone = pyqtSignal()
     progressStart = pyqtSignal()
     onRefreshCurrentForm = pyqtSignal()
-    def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
+    def __init__(self,utils, isAuthorized, URI, layman, parent=None):
         """Constructor."""
         global dialog_running
         super(CurrentCompositionDialog, self).__init__(parent)
@@ -59,8 +59,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         dialog_running = True
         self.setObjectName("CurrentMapDialog")
         self.utils = utils
-        self.isAuthorized = isAuthorized
-        # self.layman.laymanUsername = laymanUsername
+        self.isAuthorized = isAuthorized       
         self.URI = URI
         self.layman = layman
         self.pushButton_CreateCompositionConnected = False
@@ -208,8 +207,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if response.status_code == 201:
             self.utils.showQgisBar([" Projekt by úspěšně vytvořen."," Project was successfully created."], Qgis.Success)    
         elif 'code' in res and res['code'] == 'project_already_exists':
-            self.utils.showQgisBar([" Tento projekt již existuje."," This project already exists."], Qgis.Warning)  
-            # self.utils.showErr.emit(["Tento projekt již existuje.", " This project already exists"], str(response), Qgis.Warning, "")       
+            self.utils.showQgisBar([" Tento projekt již existuje."," This project already exists."], Qgis.Warning)                 
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)             
@@ -484,9 +482,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.currentSet.append([item.text(0),self.treeWidget_layers.itemWidget(item,1).currentText(),self.treeWidget_layers.itemWidget(item,2).currentText()])
                 iterator +=1
         except:
-            print("neni v canvasu")                
-   
-        #self.differentThanBefore() zvýraznit
+            print("neni v canvasu")     
         if self.duplicateLayers():           
             self.showInfoDialogOnTop(self.tr("Duplicity in layer names!"))
             return
@@ -613,12 +609,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if item.checkState(0) == 2 and  self.utils.removeUnacceptableChars(item.text(0)) not in layerList:           
                 if not self.layman.checkLayerInCurrentCompositon(item.text(0)):              
                     layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
-                    if (isinstance(layer, QgsVectorLayer)):                                
-                        # layerType = layer.type()
-                        # if layerType == QgsMapLayer.VectorLayer:
-                        #     layer.editingStopped.connect(self.layerEditStopped)
-                        layers.append(layer)
-                        
+                    if (isinstance(layer, QgsVectorLayer)): 
+                        layers.append(layer)                        
                     else:
                         layers.append(layer)          
 
@@ -638,9 +630,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         del composition['layers'][i]
                         pom = pom + 1
             iterator +=1
-
-        uniq = self.checkUniqueName(layers)
-      
+        uniq = self.checkUniqueName(layers)      
         if uniq:
             if len(layers) > 0:          
                 newLayers = list()                
