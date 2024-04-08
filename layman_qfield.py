@@ -3,6 +3,7 @@ import tempfile
 import os
 from qgis.core import QgsProject
 from .qfield.cloud_converter import CloudConverter
+import json
 
 class Qfield:
     def __init__(self, utils): 
@@ -11,7 +12,7 @@ class Qfield:
         #self.URI = "http://localhost:8011"
         self.selectedLayers = []
 
-    def createQProject(self, name, description, private):
+    def createQProject(self, name, description, private):       
         url = self.URI + "/api/v1/projects/" 
         payload = {
             "name": name,
@@ -40,7 +41,7 @@ class Qfield:
         mypath = self.convertQProject()        
         threading.Thread(target=lambda: self.post_multiple_files(project_id, mypath)).start()
              
-   
+    
 
     def post_multiple_files(self, project_id, directory_path):
         url = f"{self.URI}/api/v1/files/{project_id}/"
@@ -57,3 +58,15 @@ class Qfield:
 
             multipart_files['file'][1].close()
             
+    def getProjects(self):            
+        url = f"{self.URI}/api/v1/projects/"
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=True)
+        print(response.status_code)
+        print(response.content)
+        return response
+                  
+    def updateProjectPermissions(self, project_id, username, permissions):
+        url = f"{self.URI}/api/v1/collaborators/{project_id}/{username}/"  
+        response = self.utils.requestWrapper("PUT", url, payload=json.dumps(permissions), files=None, emitErr=True)
+        return response
+      
