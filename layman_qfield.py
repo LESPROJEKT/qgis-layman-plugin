@@ -39,11 +39,11 @@ class Qfield:
             self.utils.emitMessageBox(["Nejsou vrstvy k exportu!", "No layers to export!"])
             return
         mypath = self.convertQProject()        
-        threading.Thread(target=lambda: self.post_multiple_files(project_id, mypath)).start()
+        threading.Thread(target=lambda: self.postMultipleFiles(project_id, mypath)).start()
              
     
 
-    def post_multiple_files(self, project_id, directory_path):
+    def postMultipleFiles(self, project_id, directory_path):
         url = f"{self.URI}/api/v1/files/{project_id}/"
         files_to_upload = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if os.path.isfile(os.path.join(directory_path, f))]  
         multipart_files = {}  
@@ -69,4 +69,37 @@ class Qfield:
         url = f"{self.URI}/api/v1/collaborators/{project_id}/{username}/"  
         response = self.utils.requestWrapper("PUT", url, payload=json.dumps(permissions), files=None, emitErr=True)
         return response
-      
+
+    def updateQfieldCloudPermissions(self, access_rights_json, project_id, existing_users):
+        base_url = "{}/api/v1/collaborators/{}/{}/"  
+        existing_users_set = set(existing_users)
+        for role, users in access_rights_json['access_rights'].items():      
+            qfield_role = "editor" if role == "write" else "reader"            
+            for username in users:
+                url = base_url.format(self.URI, project_id, username)
+                # Update only if the user exists in QFieldCloud
+                if username in existing_users_set:                 
+                    data = {"role": qfield_role}                   
+                    response = self.utils.requestWrapper("PUT", url, payload=json.dumps(data), files=None, emitErr=True) 
+                    if response.status_code == 200:
+                        print(f"Updated {username} to {qfield_role} successfully.")
+                    else:
+                        print(f"Failed to update {username}: {response.text}")
+
+    def fetchExistingUsers(self):        
+        url = f"{self.URI}/api/v1/users/"            
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=True)
+        if response.status_code == 200:
+            users_data = response.json()            
+            return [user['username'] for user in users_data]
+        else:
+            print(f"Failed to fetch users: {response.text}")
+            return []
+        
+    def getUserInfo(self):    
+        url = f"{self.URI}/api/v1/auth/user/"    
+        #url = "hyzdil"
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)  
+        return response        
+
+        

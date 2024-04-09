@@ -82,6 +82,7 @@ from .dlg_LoginQfield import LoginQfieldDialog
 from .dlg_showQProject import ShowQProjectDialog
 from .dlg_userInfo import UserInfoDialog
 from .layman_utils import LaymanUtils
+from .layman_qfield import Qfield   
 
 
 
@@ -171,7 +172,7 @@ class Layman(QObject):
         self.writeState(0)   
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
         self.dependencies = True
-        self.firstLogin = True
+        self.firstLogin = True        
         self.resamplingMethods = {
             "Není vybrán": "No value",
             "Nejbližší": "nearest",
@@ -200,6 +201,7 @@ class Layman(QObject):
             'Layman_{}.qm'.format(locale))
         self.locale = locale
         self.utils = LaymanUtils(self.iface, self.locale, self.laymanUsername)
+        self.qfield = Qfield(self.utils)
         if os.path.exists(locale_path):
             self.translator = QTranslator()
             self.translator.load(locale_path)
@@ -472,16 +474,14 @@ class Layman(QObject):
                         servers = self.utils.csvToArray(path)
                         for i in range (0,len(servers)):
                             if server == servers[i][1]:                                
-                                self.setServers(servers, i)                             
-                                  
+                                self.setServers(servers, i)     
                                 self.server = server.replace("/client","")
                         self.openAuthLiferayUrl2("",True)     
                         self.loggedThrowProject = True    
                         self.current = name       
         else:            
             self.current = None
-    def compositionExists(self,name):     
-                        
+    def compositionExists(self,name):  
         url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file'       
         r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))    
         if r.status_code == 200:
@@ -490,6 +490,7 @@ class Layman(QObject):
             self.utils.showQgisBar(["Kompozice nebyla nastavena protože aktuální uživatel není vlastník.","Compositon was not set because user is not owner."], Qgis.Warning) 
         else:
             return False 
+        
     def setGuiForItem(self, item):
         if item.text(1) == "GEOJSON":            
             item.setToolTip(1, self.tr("Layer loaded from a local geojson file."))
@@ -521,15 +522,13 @@ class Layman(QObject):
             return "RASTER"
         else:
             return "OGR"
+        
     def getDPI(self):
         return iface.mainWindow().physicalDpiX()/iface.mainWindow().logicalDpiX()
 
-
     def itemClick(self, item, col):
         if item.checkState(0) == 2 and self.checkIfLayerIsInMoreGroups(QgsProject.instance().mapLayersByName(item.text(0))[0]):
-            self.utils.emitMessageBox.emit(["Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena bude pouze nadřazená.", "Layer " + item.text(0) +" is nested in two groups. Only parent group will be saved."])
-            
-          
+            self.utils.emitMessageBox.emit(["Vrstva " + item.text(0) +" je vnořena do dvou skupin. Uložena bude pouze nadřazená.", "Layer " + item.text(0) +" is nested in two groups. Only parent group will be saved."])  
         else:
             self.dlg.label_info.setText("")
     def layersWasModified(self):
@@ -552,6 +551,7 @@ class Layman(QObject):
                         return False
                     else:
                         return True
+                    
     def getGroupOfLayer(self, layer):
         root = QgsProject.instance().layerTreeRoot()
         tree_layer = root.findLayer(layer.id())
@@ -562,6 +562,7 @@ class Layman(QObject):
                 print("Layer parent: {}".format(layer_parent.name() or 'root'))
                 group_parent = layer_parent.parent()
                 return layer_parent.name() or 'root'
+            
     def differentThanBefore(self):
         for index in range(0, self.dlg.listWidget_layers.count()):
             item = self.dlg.listWidget_layers.item(index)
@@ -580,7 +581,6 @@ class Layman(QObject):
                 if self.instance.isLayerId(self.layerIds[index][1]):
                     del item
                     self.dlg.listWidget_layers.repaint()
-
     
     def progressColor(self, name, status):
         for i in range(self.dlg.treeWidget.topLevelItemCount()):
@@ -591,34 +591,34 @@ class Layman(QObject):
                 else:
                     item.setData(0, Qt.ForegroundRole, QColor("red"))
 
-    def run_QfieldLoginDialog(self):
-        self.dlg2 = LoginQfieldDialog()
-        self.dlg2.setWindowFlags(self.dlg2.windowFlags() | Qt.WindowStaysOnTopHint)
-        self.dlg2.show()             
-        self.dlg2.pushButton_close.clicked.connect(lambda: self.dlg.close())
-        self.dlg2.pushButton_Connect.clicked.connect(self.loginQfield)
-        self.dlg2.pushButton_close.clicked.connect(self.closeQFieldDlg)
-        if self.settings.value("laymanRememberQfield"):
-            self.dlg2.checkBox_remember.setCheckState(2)
-            if self.settings.value("laymenQfieldAuthCfg", type=bool):
-                authcfg = self.settings.value("laymenQfieldAuthCfg")
-                authManager = QgsApplication.authManager()
-                if not authManager.masterPasswordHashInDatabase():
-                    return QgsAuthMethodConfig()            
-                cfg = QgsAuthMethodConfig()
-                authManager.loadAuthenticationConfig(authcfg, cfg, True)
-                self.dlg2.lineEdit_userName.setText(cfg.config('username'))
-                self.dlg2.lineEdit_password.setText(cfg.config('password'))
-                if self.qLogged:
-                    self.loginQfield()
-        else:
-            self.dlg2.checkBox_remember.setCheckState(0)
+    # def run_QfieldLoginDialog(self):
+    #     self.dlg2 = LoginQfieldDialog()
+    #     self.dlg2.setWindowFlags(self.dlg2.windowFlags() | Qt.WindowStaysOnTopHint)
+    #     self.dlg2.show()             
+    #     self.dlg2.pushButton_close.clicked.connect(lambda: self.dlg.close())
+    #     self.dlg2.pushButton_Connect.clicked.connect(self.loginQfield)
+    #     self.dlg2.pushButton_close.clicked.connect(self.closeQFieldDlg)
+    #     if self.settings.value("laymanRememberQfield"):
+    #         self.dlg2.checkBox_remember.setCheckState(2)
+    #         if self.settings.value("laymenQfieldAuthCfg", type=bool):
+    #             authcfg = self.settings.value("laymenQfieldAuthCfg")
+    #             authManager = QgsApplication.authManager()
+    #             if not authManager.masterPasswordHashInDatabase():
+    #                 return QgsAuthMethodConfig()            
+    #             cfg = QgsAuthMethodConfig()
+    #             authManager.loadAuthenticationConfig(authcfg, cfg, True)
+    #             self.dlg2.lineEdit_userName.setText(cfg.config('username'))
+    #             self.dlg2.lineEdit_password.setText(cfg.config('password'))
+    #             if self.qLogged:
+    #                 self.loginQfield()
+    #     else:
+    #         self.dlg2.checkBox_remember.setCheckState(0)
         
    
     def rememberLastServer(self, server):
         self.settings.setValue("laymanLastServer", server)
-    def qfieldLogin(self):
-        self.run_QfieldLoginDialog()
+    # def qfieldLogin(self):
+    #     self.run_QfieldLoginDialog()
     # def loginQfield(self):
     #     url = "https://app.qfield.cloud/api/v1/auth/token/"    
     #     login = self.dlg2.lineEdit_userName.text()
@@ -662,79 +662,79 @@ class Layman(QObject):
     #         return
     #     else:
     #         self.utils.showErr.emit(["Přihlášení nebylo úspěšné!", "Login was not successful!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)  
-    def loginQfield(self):
-        url = "https://app.qfield.cloud/api/v1/auth/token/"    
-        login = self.dlg2.lineEdit_userName.text()
-        passwd = self.dlg2.lineEdit_password.text()
-        if login == "" or passwd == "":
-            self.utils.emitMessageBox.emit(["Nejsou vyplněny přihlašovací údaje!", "Please fill login credentials!"])
-            return
-        payload =  {
-          "username": login,
-          "email": "",
-          "password": passwd
-        }     
-        response = self.utils.requestWrapper("POST", url, payload, files = None)
-        res = self.utils.fromByteToJson(response.content)
-        remember = self.dlg2.checkBox_remember.isChecked()        
-        if remember:
-            self.settings.setValue("laymanRememberQfield", remember)
-            self.setQAuth(username=login, password=passwd)
-        else:
-            self.settings.setValue("laymanRememberQfield", "")
-        if response.status_code == 200:
-            self.qLogged = True            
-            self.Qtoken = res['token']            
-            self.dlg2 = ShowQProjectDialog()
-            self.dlg2.show()
-            self.dlg2.progressBar.hide()
-            ret = self.getProjectsQfield()
-            try:
-                composition = self.instance.getComposition()
-                self.dlg2.lineEdit_name.setText(composition['name'])
-                self.dlg2.lineEdit_desciption.setText(composition['abstract'])
-            except:
-                print("kompozice není k dispozici")
-            for project in ret:              
-                print(project) 
-                item = QTreeWidgetItem([project['name'],project['owner'],str(project['is_public']), project['id']])
-                self.dlg2.treeWidget.addTopLevelItem(item)
-            self.dlg2.pushButton_close.clicked.connect(self.closeQFieldDlg)
-            self.dlg2.pushButton_export.clicked.connect(lambda:self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),""))
-            self.dlg2.pushButton_exportCreate.clicked.connect(lambda: self.createQProject(self.dlg2.lineEdit_name.text(),self.dlg2.lineEdit_desciption.text(),self.dlg2.checkBox_private.checkState()))
-            return
-        else:
-            self.utils.showErr.emit(["Přihlášení nebylo úspěšné!", "Login was not successful!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)      
-    def closeQFieldDlg(self): 
-        self.dlg2.close()           
-    def setQAuth(self, **kwargs: str) -> None:
+    # def loginQfield(self):
+    #     url = "https://app.qfield.cloud/api/v1/auth/token/"    
+    #     login = self.dlg2.lineEdit_userName.text()
+    #     passwd = self.dlg2.lineEdit_password.text()
+    #     if login == "" or passwd == "":
+    #         self.utils.emitMessageBox.emit(["Nejsou vyplněny přihlašovací údaje!", "Please fill login credentials!"])
+    #         return
+    #     payload =  {
+    #       "username": login,
+    #       "email": "",
+    #       "password": passwd
+    #     }     
+    #     response = self.utils.requestWrapper("POST", url, payload, files = None)
+    #     res = self.utils.fromByteToJson(response.content)
+    #     remember = self.dlg2.checkBox_remember.isChecked()        
+    #     if remember:
+    #         self.settings.setValue("laymanRememberQfield", remember)
+    #         self.setQAuth(username=login, password=passwd)
+    #     else:
+    #         self.settings.setValue("laymanRememberQfield", "")
+    #     if response.status_code == 200:
+    #         self.qLogged = True            
+    #         self.Qtoken = res['token']            
+    #         self.dlg2 = ShowQProjectDialog()
+    #         self.dlg2.show()
+    #         self.dlg2.progressBar.hide()
+    #         ret = self.getProjectsQfield()
+    #         try:
+    #             composition = self.instance.getComposition()
+    #             self.dlg2.lineEdit_name.setText(composition['name'])
+    #             self.dlg2.lineEdit_desciption.setText(composition['abstract'])
+    #         except:
+    #             print("kompozice není k dispozici")
+    #         for project in ret:              
+    #             print(project) 
+    #             item = QTreeWidgetItem([project['name'],project['owner'],str(project['is_public']), project['id']])
+    #             self.dlg2.treeWidget.addTopLevelItem(item)
+    #         self.dlg2.pushButton_close.clicked.connect(self.closeQFieldDlg)
+    #         self.dlg2.pushButton_export.clicked.connect(lambda:self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),""))
+    #         self.dlg2.pushButton_exportCreate.clicked.connect(lambda: self.createQProject(self.dlg2.lineEdit_name.text(),self.dlg2.lineEdit_desciption.text(),self.dlg2.checkBox_private.checkState()))
+    #         return
+    #     else:
+    #         self.utils.showErr.emit(["Přihlášení nebylo úspěšné!", "Login was not successful!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)      
+    # def closeQFieldDlg(self): 
+    #     self.dlg2.close()           
+    # def setQAuth(self, **kwargs: str) -> None:
 
-        authcfg = self.settings.value("laymenQfieldAuthCfg")
-        cfg = QgsAuthMethodConfig()
-        authManager = QgsApplication.authManager()
-        authManager.setMasterPassword()
-        authManager.loadAuthenticationConfig(authcfg, cfg, True)
+    #     authcfg = self.settings.value("laymenQfieldAuthCfg")
+    #     cfg = QgsAuthMethodConfig()
+    #     authManager = QgsApplication.authManager()
+    #     authManager.setMasterPassword()
+    #     authManager.loadAuthenticationConfig(authcfg, cfg, True)
 
-        cfg.setUri(self.URI)
+    #     cfg.setUri(self.URI)
 
-        if cfg.id():
-            for key, value in kwargs.items():
-                cfg.setConfig(key, value)
+    #     if cfg.id():
+    #         for key, value in kwargs.items():
+    #             cfg.setConfig(key, value)
 
-            authManager.updateAuthenticationConfig(cfg)
-        else:
-            cfg.setMethod("Basic")
-            cfg.setName("laymanQfield")            
+    #         authManager.updateAuthenticationConfig(cfg)
+    #     else:
+    #         cfg.setMethod("Basic")
+    #         cfg.setName("laymanQfield")            
 
-            for key, value in kwargs.items():
-                cfg.setConfig(key, value)
+    #         for key, value in kwargs.items():
+    #             cfg.setConfig(key, value)
 
-            authManager.storeAuthenticationConfig(cfg)
-            self.settings.setValue("laymenQfieldAuthCfg", cfg.id())
+    #         authManager.storeAuthenticationConfig(cfg)
+    #         self.settings.setValue("laymenQfieldAuthCfg", cfg.id())
 
-    def exportJunction(self, create):
-        if not create:
-            threading.Thread(target=lambda: self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),"")).start()
+    # def exportJunction(self, create):
+    #     if not create:
+    #         threading.Thread(target=lambda: self.uploadQFiles(self.dlg2.treeWidget.currentItem().text(3),"")).start()
     # def createQProject(self,name, description, private):
     #     url = "https://app.qfield.cloud/api/v1/projects/"
         
@@ -928,7 +928,6 @@ class Layman(QObject):
         layerList = set()
         duplicity = list()
         ret = False
-
         iterator = QTreeWidgetItemIterator(self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All)
         while iterator.value():
             item = iterator.value()
@@ -3378,6 +3377,7 @@ class Layman(QObject):
         end = string.find(delimiter, start)
         value = string[start:end]   
         return value
+    
     def parseUsernameFromUrl(self, url):     
         parsed_url = urlparse(url)     
         path = parsed_url.path  
@@ -3396,7 +3396,8 @@ class Layman(QObject):
         if url_param:                 
             return url_param  
         else:
-            return self.laymanUsername                           
+            return self.laymanUsername     
+                              
     def addLayerToComposition(self,composition, layersList, currentSet):        
         uri = self.URI.replace("/client","")
         for layer in layersList:
@@ -3555,8 +3556,7 @@ class Layman(QObject):
         time.sleep(0.5)
         url = self.URI+'/rest/' + self.laymanUsername + "/layers/"  
         r = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)
-        return r       
-       
+        return r   
 
     def getTempPath(self, name):
         if type(name) is tuple:
@@ -3712,7 +3712,7 @@ class Layman(QObject):
             self.currentLayerDict[str(rand)] = rlayer
             self.loadLayer(rlayer)          
             return False
-        QgsProject.instance().addMapLayer(layer)
+        
 
     def loadWms(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False, legend="0"):               
         layerName = self.parseWMSlayers(layerName) 
@@ -3749,17 +3749,13 @@ class Layman(QObject):
                 quri.setParam("authcfg", self.authCfg)   
         quri.setParam("contextualWMSLegend", legend)
         quri.setParam("url", url)        
-        rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')       
-        
-    
-        
+        rlayer = QgsRasterLayer(str(quri.encodedUri(), "utf-8").replace("%26","&").replace("%3D","="), layerNameTitle, 'wms')   
         if minRes != None and maxRes != None:
             rlayer.setMinimumScale(self.utils.resolutionToScale(maxRes))
             rlayer.setMaximumScale(self.utils.resolutionToScale(minRes))
             rlayer.setScaleBasedVisibility(True)
         if (groupName != '' or subgroupName != ''):                        
-            self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path            
-                              
+            self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path  
         else:             
             self.loadLayer(rlayer)  
             self.setVisibility.emit(rlayer)              
@@ -3768,16 +3764,10 @@ class Layman(QObject):
         return True
 
     def loadXYZ(self, url, layerName,layerNameTitle, format, epsg, groupName = '', subgroupName= '', visibility= '', i = -1, minRes= 0, maxRes=None):
-
-
         layerName = self.utils.removeUnacceptableChars(layerName)
         print("XYZ")
-
         epsg = "EPSG:4326"
         url = url.replace("%2F", "/").replace("%3A",":")
-
-
-
         rlayer = QgsRasterLayer("type=xyz&url="+url, layerNameTitle, "wms")
         print("xyz valid? " + str(rlayer.isValid()))
         try:
@@ -3791,16 +3781,12 @@ class Layman(QObject):
                 rlayer.setMaximumScale(self.utils.resolutionToScale(minRes))
                 rlayer.setScaleBasedVisibility(True)
             if (groupName != ''):
-
-                self.addWmsToGroup(subgroupName,rlayer, "")            
-
-
+                self.addWmsToGroup(subgroupName,rlayer, "") 
             else:
                 self.params = []
                 self.params.append(visibility)              
                 rand = random.randint(0,10000)
                 self.currentLayerDict[str(rand)] = rlayer
-
                 self.loadLayer(rlayer)   
                 self.setVisibility.emit(rlayer)                     
             if visibility == False:
@@ -3811,7 +3797,6 @@ class Layman(QObject):
 
     def loadLayer(self, layer, style = None):
         QgsProject.instance().addMapLayer(layer)
-
         if (isinstance(layer, QgsVectorLayer)):
             if style is None:
                 self.loadStyle.emit(layer)
@@ -3844,9 +3829,7 @@ class Layman(QObject):
             style = None    
         wfs_url = layer["protocol"]["url"]+"?service=WFS&version=auto&request=GetFeature&typeName="+layer["name"]+"&SRSNAME=" + epsg                   
         layer = QgsVectorLayer(wfs_url, layer['title'], 'WFS')
-        print(layer.isValid())
-        
-        
+        print(layer.isValid())   
         if (layer.isValid()):         
             if minRes != None and maxRes != None:
                 print("set scale")
@@ -3882,11 +3865,7 @@ class Layman(QObject):
             if not everyone:
                 quri.setParam("authcfg", self.authCfg)
         quri.setParam("url", url)
-        vlayer = QgsVectorLayer(url+"?" + str(quri.encodedUri(), "utf-8"), layerNameTitle, "WFS")
-        print("validity WFS")
-        print(vlayer.isValid())
-       
-            
+        vlayer = QgsVectorLayer(url+"?" + str(quri.encodedUri(), "utf-8"), layerNameTitle, "WFS")    
         if (vlayer.isValid()):         
             if minRes != None and maxRes != None:
                 print("set scale")
@@ -3907,9 +3886,7 @@ class Layman(QObject):
                     rand = random.randint(0,10000)
                     self.currentLayerDict[str(rand)] = vlayer     
                     self.loadLayer(vlayer)    
-                    self.setVisibility.emit(vlayer)                       
-                    
-     
+                    self.setVisibility.emit(vlayer)    
             else: ### cast pro slozenou geometrii
                 self.mixedLayers.append(layerName)
                 pointFeats = list()
@@ -3956,7 +3933,6 @@ class Layman(QObject):
                         self.addWmsToGroup(groupName,vl, True)
                     else:
                         self.addLayerToGroup(layerName,vl)
-
                 if (pol == 1):
                     vl = QgsVectorLayer("Polygon?crs="+epsg, layerName, "memory")
                     pr = vl.dataProvider()
@@ -3968,13 +3944,10 @@ class Layman(QObject):
                     if (groupName != ''):
                         self.addWmsToGroup(groupName,vl, True)
                     else:
-                        self.addLayerToGroup(layerName,vl)
-
-            
+                        self.addLayerToGroup(layerName,vl)            
             return True
         else:
-            self.loadLayer(vlayer)
-          
+            self.loadLayer(vlayer)          
             return False
           
     def forbidRename(self):
@@ -4087,8 +4060,7 @@ class Layman(QObject):
         payload = {
             'file': name.lower()+".geojson",
             'title': title
-            }
-        
+            }        
         response = self.utils.requestWrapper("POST", url, payload, files)
 
     def writeState(self,value):
@@ -4305,11 +4277,19 @@ class Layman(QObject):
         else:
             if self.dlg.objectName() == "ConnectionManagerDialog":
                 self.dlg.refreshAfterFailedLogin()
+        ### check Qfield ##
+        threading.Thread(target=lambda: self.qfieldCheck()).start()      
+    def qfieldCheck(self):        
+        if self.qfield.getUserInfo().status_code == 200:           
+            print("qfield ready") 
+        else:                   
+            print("qfield did not respond")    
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
         with open(save_path, 'wb') as fd:
             for chunk in r.iter_content(chunk_size=chunk_size):
                 fd.write(chunk)
+
     def copytree(self, src, dst, symlinks=False, ignore=None):
         try:
             shutil.rmtree(dst)
@@ -4324,12 +4304,9 @@ class Layman(QObject):
             if os.path.isdir(s):
                 shutil.copytree(s, d, symlinks, ignore)
             else:
-                shutil.copy2(s, d)
-       
-
+                shutil.copy2(s, d)   
   
     def saveIni(self):
-
         file =  os.getenv("HOME") + os.sep + ".layman" + os.sep + 'layman_user.INI'
         dir = os.getenv("HOME") + os.sep + ".layman"
         if not (os.path.isdir(dir)):
@@ -4341,7 +4318,7 @@ class Layman(QObject):
         self.utils.appendIniItem('id',self.client_id)
         self.utils.appendIniItem('server',self.server)
         self.utils.appendIniItem('layman',self.URI)   
-    
+
     def checkQgisVersion(self):
         version = Qgis.QGIS_VERSION_INT
         major = version // 10000
@@ -4350,17 +4327,18 @@ class Layman(QObject):
             return True
         else:
             return False
+        
     def _onSuccessTs(self):
         self.utils.showQgisBar(["Časová wms úspěšně exportována.","Time series WMS successfully exported."], Qgis.Success)  
         self.dlg.label_progress.setText(self.tr("Sucessfully exported:") + " 1 / 1")            
-        self.dlg.progressBar.hide()        
+        self.dlg.progressBar.hide() 
+
     def layerChanged(self):
         if (iface.activeLayer() != None and isinstance(iface.activeLayer(), QgsVectorLayer)):
             self.menu_saveLocalFile.setEnabled(True)
         else:
-            self.menu_saveLocalFile.setEnabled(False)
+            self.menu_saveLocalFile.setEnabled(False)   
 
-   
     def _onEmitMessageBox(self, message):    
         if self.locale == "cs":
             QMessageBox.information(None, "Layman", message[0])
@@ -4376,6 +4354,7 @@ class Layman(QObject):
         if end_index == -1: 
             return None
         return searchable_str[start_index:end_index] 
+    
     def preparePostgresUri(self, layer, username, password):
         uri = layer.dataProvider().dataSourceUri()
         dbname = self.find_substring(uri, "dbname='", "'")
@@ -4390,6 +4369,7 @@ class Layman(QObject):
             return ("postgresql://"+username+":"+password+"@"+host+":5432/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
         else:    
             return ("postgresql://"+username+":"+password+"@"+host+":"+port+"/"+dbname+"?schema="+schema+"&table="+table+"&geo_column="+geom)
+        
     def postPostreLayer(self, layer, username, password):
         uri = self.preparePostgresUri(layer, username, password)      
         layer_name = layer.name()        
@@ -4419,8 +4399,7 @@ class Layman(QObject):
                     self.utils.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)   
             else:                     
                 self.utils.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)       
-        layer.afterCommitChanges.connect(self.patchPostreLayer)
-        
+        layer.afterCommitChanges.connect(self.patchPostreLayer)        
         
     def patchPostreLayer(self):  
         def patchPostreLayerThread():
@@ -4435,12 +4414,10 @@ class Layman(QObject):
                     }    
             files = {'style': open(stylePath, 'rb')}
             response = self.utils.requestWrapper("PATCH", self.URI+'/rest/'+self.laymanUsername+'/layers/'+ self.utils.removeUnacceptableChars(layer_name), payload, files)     
-        threading.Thread(target=lambda: patchPostreLayerThread()).start()    
- 
+        threading.Thread(target=lambda: patchPostreLayerThread()).start()   
               
     def loadPostgisLayer(self, it):
-        layerName = self.utils.removeUnacceptableChars(it.text(0))
-        
+        layerName = self.utils.removeUnacceptableChars(it.text(0))        
         workspace = it.text(1)
         url = self.URI+'/rest/'+workspace+'/layers/'+str(layerName).lower() 
         r = requests.get(url, headers = self.utils.getAuthHeader(self.authCfg))
@@ -4454,11 +4431,9 @@ class Layman(QObject):
         user = self.find_substring(data["db"]["external_uri"], r"://", "@")
         srid = str(4326)
         dbname = data["db"]["external_uri"].split("/")[-1]
-        table = '"'+ schema +'"."'+ table + '" (' + geo_column + ') '  
-        
+        table = '"'+ schema +'"."'+ table + '" (' + geo_column + ') ' 
         if ("host.docker.internal" in host):
-            host = host.replace("host.docker.internal","localhost")            
-              
+            host = host.replace("host.docker.internal","localhost")        
         uri = "dbname='"+dbname+"' host="+host+" port="+port+" user='"+user+"' table="+ table +" key='id' srid="+srid
         style = self.getStyle(layerName, None, workspace)     
         layer = QgsVectorLayer(uri, it.text(0), 'postgres')  
@@ -4489,9 +4464,7 @@ class Layman(QObject):
         for layer in layers:      
             if layer.type() == QgsMapLayerType.VectorLayer and layer.dataProvider().name() == 'WFS':              
                 layer.dataProvider().reloadData() 
-                layer.triggerRepaint()
-                
- 
+                layer.triggerRepaint()       
               
     def run(self):
         """Run method that loads and starts the plugin"""

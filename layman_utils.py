@@ -61,8 +61,9 @@ class LaymanUtils(QObject):
             else:
                 response = requests.request(type, url = url, headers={**self.getAuthHeader(self.authCfg), **additionalHeaders}, data=payload, files=files)                 
         except Exception as ex:   
-            info = str(ex)            
-            self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
+            info = str(ex)    
+            if emitErr:        
+                self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")  
             return       
         if emitErr:
             if response.status_code not in (200, 201): 
