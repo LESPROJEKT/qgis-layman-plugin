@@ -23,13 +23,13 @@
 import os
 from PyQt5 import uic
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import QObject, pyqtSignal, Qt
+from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRect
 from PyQt5.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup, QPushButton, QMessageBox, QWidget, QVBoxLayout, QLineEdit
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QIcon
 from qgis.core import *
 import threading
 import requests
-from PyQt5.QtWidgets import QPushButton
+from PyQt5.QtWidgets import QPushButton, QStyledItemDelegate
 from PyQt5 import uic
 import tempfile
 import asyncio
@@ -643,25 +643,37 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.appendIniItem("layerCheckbox", "1")
         if value == 0:
             self.utils.appendIniItem("layerCheckbox", "0")
-
+    def getStatusIcon(self, status):        
+        icon_paths = {
+            'AVAILABLE': 'correct.png',
+            'PENDING': 'pending.png',
+            'FAILED': 'failed.png'
+        }      
+        icon_filename = icon_paths.get(status, 'failed.png')      
+        icon_path = os.path.join(self.layman.plugin_dir, 'icons', icon_filename) 
+        return QIcon(icon_path)
+    
     async def loadLayersThread(self, onlyOwn=False):
         self.layerNamesDict = dict()
-        self.treeWidget.clear()
+        self.treeWidget.clear()   
         if self.laymanUsername and self.isAuthorized:
             url = self.URI+'/rest/'+self.laymanUsername+'/layers'        
             r = await (self.utils.asyncRequestWrapper("GET", url))
             data = self.utils.fromByteToJson(r) 
             if onlyOwn:
                 for row in range(0, len(data)):
-                    if "native_crs" in data[row] and 'wfs_wms_status' in data[row]:
-                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs'],data[row]['wfs_wms_status']])
+                    if "native_crs" in data[row] and 'wfs_wms_status' in data[row]:                        
+                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
+                        status = data[row]['wfs_wms_status']
+                        icon = self.getStatusIcon(status)                        
+                        item.setIcon(4, icon) 
+                        item.setTextAlignment(4, Qt.AlignCenter)
                     elif "native_crs" in data[row]:                        
                         item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
                     else:
                         item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
                     self.treeWidget.addTopLevelItem(item)
                     self.layerNamesDict[data[row]['title']] = data[row]['name']
-
                 QgsMessageLog.logMessage("layersLoaded")
             else:
                 url = self.URI+'/rest/layers'              
@@ -676,8 +688,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     if dataAll[row] in data:
                         permissions = "own"
                     if permissions != "":
-                        if "native_crs" in dataAll[row]  and 'wfs_wms_status' in dataAll[row]:
-                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs'],dataAll[row]['wfs_wms_status']])
+                        if "native_crs" in dataAll[row]  and 'wfs_wms_status' in dataAll[row]:                            
+                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"own",dataAll[row]['native_crs']])
+                            status = dataAll[row]['wfs_wms_status']
+                            icon = self.getStatusIcon(status)
+                            item.setIcon(4, icon) 
                         elif "native_crs" in dataAll[row]:                        
                             item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs']])
                         else:
@@ -696,8 +711,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     permissions = "read"
                 if "EVERYONE" in data[row]['access_rights']['write']:
                     permissions = "write"
-                if "native_crs" in data[row]  and 'wfs_wms_status' in data[row]:
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs'],data[row]['wfs_wms_status']])
+                if "native_crs" in data[row]  and 'wfs_wms_status' in data[row]:                 
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
+                    status = data[row]['wfs_wms_status']
+                    icon = self.getStatusIcon(status)
+                    item.setIcon(4, icon) 
                 elif "native_crs" in data[row]:                    
                     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs']])
                 else:
@@ -988,4 +1006,15 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         QgsProject.instance().addMapLayer(layer)     
         layer.afterCommitChanges.connect(self.layman.patchPostreLayer)               
     def _onProgressDone(self):
-        self.progressBar_loader.hide()         
+        self.progressBar_loader.hide()      
+
+class CenterIconDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        icon = index.data(Qt.DecorationRole)
+        if icon:
+            rect = QRect(option.rect)
+            iconSize = icon.actualSize(rect.size())
+            iconRect = QRect(rect.left() + (rect.width() - iconSize.width()) / 2, rect.top() + (rect.height() - iconSize.height()) / 2, iconSize.width(), iconSize.height())
+            icon.paint(painter, iconRect, Qt.AlignCenter)
+        else:
+            super().paint(painter, option, index)        

@@ -545,7 +545,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             iterator +=1   
            
     async def loadMapsThread(self, onlyOwn):        
-        self.treeWidget.clear()
+        self.treeWidget.clear()        
         url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title' 
         r = await (self.utils.asyncRequestWrapper("GET", url))
         try:
@@ -556,9 +556,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if onlyOwn and self.isAuthorized:
             for row in range(0, len(data)):
                 if "native_crs" in data[row]:                    
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", data[row]['native_crs']])
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", data[row]['native_crs']])                    
                 else:
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])          
                 self.treeWidget.addTopLevelItem(item)   
             self.progressDone.emit()
         elif not self.isAuthorized:
