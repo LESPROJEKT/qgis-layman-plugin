@@ -104,7 +104,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_delete.setEnabled(False)
         self.pushButton_setPermissions.setEnabled(False)
         self.label_noUser.hide()        
-        self.pushButton_postgis.setEnabled(False)        
+        self.pushButton_postgis.setEnabled(False)     
+
+        delegate = CenterIconDelegate()
+        self.treeWidget.setItemDelegate(delegate)  
         try:
             checked = self.utils.getConfigItem("layercheckbox")
         except:
@@ -132,10 +135,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.treeWidget.selectedItems()[0])).start())
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.checkIfPostgis(self.treeWidget.selectedItems()[0])).start())
         self.filter.valueChanged.connect(self.filterResults)
-        self.treeWidget.setColumnWidth(0, 200)
+        self.treeWidget.setColumnWidth(0, 250)
         self.treeWidget.setColumnWidth(1, 80)
         self.treeWidget.setColumnWidth(2, 80)
-        self.treeWidget.setColumnWidth(3, 100)
+        self.treeWidget.setColumnWidth(3, 100) 
+        self.treeWidget.setColumnWidth(4, 50) 
+    
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.checkBox_own.stateChanged.connect(self.rememberValueLayer)
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")       
@@ -666,8 +671,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
                         status = data[row]['wfs_wms_status']
                         icon = self.getStatusIcon(status)                        
-                        item.setIcon(4, icon) 
-                        item.setTextAlignment(4, Qt.AlignCenter)
+                        item.setIcon(4, icon)                         
                     elif "native_crs" in data[row]:                        
                         item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
                     else:
@@ -724,7 +728,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("layersLoaded")
         self.progressBar_loader.hide()
-   
+        # self.treeWidget.resizeColumnToContents(3) 
+        # self.treeWidget.resizeColumnToContents(4) 
     def enableButtons(self, item, col):
         self.pushButton.setEnabled(True)
         self.pushButton_urlWfs.setEnabled(True)
@@ -1012,9 +1017,15 @@ class CenterIconDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         icon = index.data(Qt.DecorationRole)
         if icon:
-            rect = QRect(option.rect)
+            rect = option.rect
             iconSize = icon.actualSize(rect.size())
-            iconRect = QRect(rect.left() + (rect.width() - iconSize.width()) / 2, rect.top() + (rect.height() - iconSize.height()) / 2, iconSize.width(), iconSize.height())
+            iconRect = QRect(
+                round(rect.left() + (rect.width() - iconSize.width()) / 2),
+                round(rect.top() + (rect.height() - iconSize.height()) / 2),
+                iconSize.width(),
+                iconSize.height()
+            )
             icon.paint(painter, iconRect, Qt.AlignCenter)
         else:
-            super().paint(painter, option, index)        
+            super().paint(painter, option, index)
+      
