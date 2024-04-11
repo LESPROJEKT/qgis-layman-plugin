@@ -33,6 +33,8 @@ from .currentComposition import CurrentComposition
 import traceback
 from .layman_utils import ProxyStyle
 import asyncio
+from .layman_qfield import Qfield  
+
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'dlg_addMap.ui'))
 
@@ -59,6 +61,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setupUi(self)      
         self.globalRead = {}
         self.globalWrite = {}  
+        self.qfield = Qfield(self.utils)
         self.setUi()
         
     def connectEvents(self):
@@ -97,8 +100,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.filter.valueChanged.connect(self.filterResults)
         self.filter.valueChanged.connect(self.disableButtonsAddMap)
         self.pushButton_close.clicked.connect(lambda: self.close())        
-        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadMapsThread(state)))
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")        
         self.checkBox_own.stateChanged.connect(self.disableButtonsAddMap)
         self.checkBox_own.stateChanged.connect(self.rememberValueMap)
         self.checkBox_own.stateChanged.connect(lambda: self.filterResults(self.filter.text()))      
@@ -119,6 +121,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if checked == "1":
             self.checkBox_own.setCheckState(2)
             checked = True
+        self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadMapsThread(state)))    
         asyncio.run(self.loadMapsThread(checked))        
       
          
@@ -543,9 +546,15 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 item.setHidden(False)
             iterator +=1   
-           
+    def matchQfield(self, name, owner, server_response):        
+        for item in server_response:           
+            if item["name"] == name and item["owner"] == owner:
+                return True  
+        return False        
     async def loadMapsThread(self, onlyOwn):        
         self.treeWidget.clear()        
+        qProjects = self.qfield.getProjects()  
+        qProjects = qProjects.json()    
         url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title' 
         r = await (self.utils.asyncRequestWrapper("GET", url))
         try:
@@ -555,10 +564,11 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             return            
         if onlyOwn and self.isAuthorized:
             for row in range(0, len(data)):
-                if "native_crs" in data[row]:                    
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", data[row]['native_crs']])                    
-                else:
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])          
+                # if "native_crs" in data[row]:  
+                # print(self.matchQfield(data[row]['title'], data[row]['workspace'], qProjects))
+                item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", str(self.matchQfield(data[row]['title'], data[row]['workspace'], qProjects))])                    
+                # else:
+                #     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])          
                 self.treeWidget.addTopLevelItem(item)   
             self.progressDone.emit()
         elif not self.isAuthorized:
