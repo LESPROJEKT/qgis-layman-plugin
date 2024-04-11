@@ -28,12 +28,13 @@ import requests
 from PyQt5.QtCore import QObject, pyqtSignal, Qt
 from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup, QLineEdit, QWidget, QVBoxLayout
 from qgis.core import *
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QIcon
 from .currentComposition import CurrentComposition
 import traceback
 from .layman_utils import ProxyStyle
 import asyncio
 from .layman_qfield import Qfield  
+from .layman_utils import CenterIconDelegate
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'dlg_addMap.ui'))
@@ -89,6 +90,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.setColumnWidth(0, 300)
         self.treeWidget.setColumnWidth(2, 80)
         self.label_noUser.hide()
+        delegate = CenterIconDelegate()
+        self.treeWidget.setItemDelegate(delegate)  
         self.pushButton_map.clicked.connect(lambda: self.progressBar_loader.show())
         self.pushButton_map.clicked.connect(lambda: self.readMapJson(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), 'WFS', self.treeWidget.selectedItems()[0].text(1)))        
         if not self.isAuthorized:
@@ -553,6 +556,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         return False        
     async def loadMapsThread(self, onlyOwn):        
         self.treeWidget.clear()        
+        icon = QIcon(os.path.join(self.layman.plugin_dir, 'icons', 'qfield.png')) 
         qProjects = self.qfield.getProjects()  
         qProjects = qProjects.json()    
         url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title' 
@@ -566,7 +570,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             for row in range(0, len(data)):
                 # if "native_crs" in data[row]:  
                 # print(self.matchQfield(data[row]['title'], data[row]['workspace'], qProjects))
-                item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", str(self.matchQfield(data[row]['title'], data[row]['workspace'], qProjects))])                    
+                item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", str(self.matchQfield(data[row]['title'], data[row]['workspace'], qProjects))])
+                # qfieldExists = self.matchQfield(data[row]['title'], data[row]['workspace'], qProjects)
+                # if qfieldExists:
+                #     item.setIcon(3, icon)                   
                 # else:
                 #     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])          
                 self.treeWidget.addTopLevelItem(item)   

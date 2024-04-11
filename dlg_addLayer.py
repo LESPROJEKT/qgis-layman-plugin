@@ -29,10 +29,11 @@ from PyQt5.QtGui import QPixmap, QIcon
 from qgis.core import *
 import threading
 import requests
-from PyQt5.QtWidgets import QPushButton, QStyledItemDelegate
+from PyQt5.QtWidgets import QPushButton
 from PyQt5 import uic
 import tempfile
 import asyncio
+from .layman_utils import CenterIconDelegate
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -1013,19 +1014,5 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def _onProgressDone(self):
         self.progressBar_loader.hide()      
 
-class CenterIconDelegate(QStyledItemDelegate):
-    def paint(self, painter, option, index):
-        icon = index.data(Qt.DecorationRole)
-        if icon:
-            rect = option.rect
-            iconSize = icon.actualSize(rect.size())
-            iconRect = QRect(
-                round(rect.left() + (rect.width() - iconSize.width()) / 2),
-                round(rect.top() + (rect.height() - iconSize.height()) / 2),
-                iconSize.width(),
-                iconSize.height()
-            )
-            icon.paint(painter, iconRect, Qt.AlignCenter)
-        else:
-            super().paint(painter, option, index)
+
       

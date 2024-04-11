@@ -5,10 +5,10 @@ import os
 import re
 import PyQt5
 from qgis.core import *
-from PyQt5.QtCore import QObject, pyqtSignal, QUrl, QByteArray, Qt
+from PyQt5.QtCore import QObject, pyqtSignal, QUrl, QByteArray, Qt, QRect
 import io
 from PyQt5.QtNetwork import  QNetworkRequest
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QMessageBox, QApplication
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QMessageBox, QApplication, QStyledItemDelegate
 from qgis.PyQt.QtGui import QGuiApplication
 from .dlg_errMsg import ErrMsgDialog
 import tempfile
@@ -880,5 +880,20 @@ class ProxyStyle(QtWidgets.QProxyStyle):
                         QtWidgets.QStyle.PM_ButtonShiftVertical, option, widget
                     ),
                 )
-                painter.drawPixmap(iconRect, pixmap)                 
-                
+                painter.drawPixmap(iconRect, pixmap)  
+                              
+class CenterIconDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        icon = index.data(Qt.DecorationRole)
+        if icon:
+            rect = option.rect
+            iconSize = icon.actualSize(rect.size())
+            iconRect = QRect(
+                round(rect.left() + (rect.width() - iconSize.width()) / 2),
+                round(rect.top() + (rect.height() - iconSize.height()) / 2),
+                iconSize.width(),
+                iconSize.height()
+            )
+            icon.paint(painter, iconRect, Qt.AlignCenter)
+        else:
+            super().paint(painter, option, index)                

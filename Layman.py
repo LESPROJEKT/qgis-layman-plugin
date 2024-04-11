@@ -205,10 +205,8 @@ class Layman(QObject):
         if os.path.exists(locale_path):
             self.translator = QTranslator()
             self.translator.load(locale_path)
-
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
-
         # Declare instance attributes
         self.utils.recalculateDPI()
         self.actions = []
