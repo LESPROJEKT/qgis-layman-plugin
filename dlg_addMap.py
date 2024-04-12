@@ -125,11 +125,62 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.checkBox_own.setCheckState(2)
             checked = True
         self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadMapsThread(state)))    
-        asyncio.run(self.loadMapsThread(checked))        
-      
-         
-    def collectPermissionsAndSave(self, tab_widget, map):
-        self.failed = []
+        asyncio.run(self.loadMapsThread(checked))  
+
+
+    def findCommonUsers(self, usernames, qfield_users):      
+        usernames_set = set(usernames)      
+        common_users = []
+        for user in qfield_users:
+            if user['username'] in usernames_set:
+                common_users.append(user['username'])
+        return common_users      
+        
+    def updateUserLists(self, users_write, users_read, server_response):
+        users_write_set = set(users_write)
+        users_read_set = set(users_read)    
+        deleted_users_set = set()
+        for entry in server_response:
+            collaborator = entry['collaborator']
+            role = entry['role']
+            if role == 'reader':
+                # Pokud má být uživatel reader a je ve write, přesuň ho
+                if collaborator in users_write_set:
+                    users_write_set.remove(collaborator)
+                    deleted_users_set.add(collaborator)  # Uživatel změnil roli
+                # Přidej ho do read, pokud tam už není
+                if collaborator not in users_read_set:
+                    users_read_set.add(collaborator)            
+            elif role == 'editor':              
+                if collaborator in users_read_set:
+                    users_read_set.remove(collaborator)
+                    deleted_users_set.add(collaborator)           
+                if collaborator not in users_write_set:
+                    users_write_set.add(collaborator)   
+        return list(users_write_set), list(users_read_set), list(deleted_users_set)
+    
+    def updateQfieldPermissions(self, tab_widget, map):   
+        read_access, write_access = self.getUserPermissions(tab_widget)
+        # print(read_access)
+        # print(self.qfield.getAllUsers().json())
+        existingUsers = self.qfield.getAllUsers().json()
+        users_write = self.findCommonUsers(write_access, existingUsers)
+        users_read = self.findCommonUsers(read_access, existingUsers)
+        users_write_set = set(users_write)  
+        users_read = [user for user in users_read if user not in users_write_set]
+        print(users_read)
+        print(users_write)
+        print(self.qfield.getPermissionsForProject("xx").json())
+        ## doplnit project id
+        users_write, users_read, users_deleted = self.updateUserLists(users_write, users_read, self.qfield.getPermissionsForProject("xx").json())
+        
+        
+        ####
+        #detect if users exists
+        #post update
+        
+        ### 
+    def getUserPermissions(self, tab_widget):    
         read_access = []
         write_access = []
 
@@ -156,14 +207,16 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.layman.laymanUsername not in write_access:
             write_access.append(self.layman.laymanUsername)
         if self.layman.laymanUsername not in read_access:
-            read_access.append(self.layman.laymanUsername)
-
+            read_access.append(self.layman.laymanUsername)    
+        return  [read_access,write_access]         
+    def collectPermissionsAndSave(self, tab_widget, map):
+        self.failed = []        
+        read_access, write_access = self.getUserPermissions(tab_widget)
         data = {
             'access_rights.read': self.utils.listToString(read_access),
             'access_rights.write': self.utils.listToString(write_access)
         }
         
- 
         map = self.utils.removeUnacceptableChars(map)      
         url = self.URI+'/rest/'+self.layman.laymanUsername+'/maps/'+map
         response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))      
@@ -500,7 +553,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if not self.permissionsConnected: 
             self.pushButton_close.clicked.connect(lambda: self.close())                    
             self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())      
-            self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, mapName)).start())                  
+            #self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, mapName)).start())                  
+            self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.updateQfieldPermissions, args=(self.tabWidget, mapName)).start())                  
             self.permissionsConnected = True
     def showThumbnailMap(self, it, workspace):        
         map = it ##pro QTreeWidget
@@ -686,8 +740,6 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         projection = data['projection'].replace("epsg:","").replace("EPSG:","")
         if projection != "":
             crs=QgsCoordinateReferenceSystem(int(projection))
-
-
             if self.layman.crsChangedConnect == False:
                 self.layman.project.setCrs(crs)
                 self.layman.project.crsChanged.connect(self.layman.crsChanged)
