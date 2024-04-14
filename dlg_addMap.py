@@ -170,10 +170,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         users_read = [user for user in users_read if user not in users_write_set]
         print(users_read)
         print(users_write)
-        print(self.qfield.getPermissionsForProject("xx").json())
+        projectPermissions = self.qfield.getPermissionsForProject("xx").json()
         ## doplnit project id
-        users_write, users_read, users_deleted = self.updateUserLists(users_write, users_read, self.qfield.getPermissionsForProject("xx").json())
-        
+        users_write, users_read, users_deleted = self.updateUserLists(users_write, users_read, projectPermissions)
+
         
         ####
         #detect if users exists
