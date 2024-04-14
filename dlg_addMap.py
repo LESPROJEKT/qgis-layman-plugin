@@ -128,7 +128,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         asyncio.run(self.loadMapsThread(checked))  
 
 
-    def findCommonUsers(self, usernames, qfield_users):      
+    def findCommonUsers(self, usernames, qfield_users):        
+        usernames.remove(self.laymanUsername)       ## remove owner 
         usernames_set = set(usernames)      
         common_users = []
         for user in qfield_users:
@@ -158,8 +159,31 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 if collaborator not in users_write_set:
                     users_write_set.add(collaborator)   
         return list(users_write_set), list(users_read_set), list(deleted_users_set)
-    
+    def qfieldPermissionsJunction(self, project_id, users_write, users_read):       
+        project_permissions = self.qfield.getPermissionsForProject(project_id).json()
+        print(project_permissions)
+        current_permissions = {perm['collaborator']: perm['role'] for perm in project_permissions}
+        print(current_permissions)                 
+        for user in users_write:
+            role = 'editor'
+            if user not in current_permissions:               
+                self.qfield.postPermissionsForProject(project_id, user, role)
+            elif current_permissions[user] != role:               
+                self.qfield.patchPermissionsForProject(project_id, user, role)           
+        for user in users_read:
+            role = 'reader'
+            if user not in current_permissions:               
+                self.qfield.postPermissionForUser(project_id, user, role)
+            elif current_permissions[user] != role:                
+                self.qfield.updatePermissionForUser(project_id, user, role)            
+        all_users = set(users_write) | set(users_read)
+        for user, role in current_permissions.items():
+            if user not in all_users:               
+                self.qfield.deletePermissionsForProject(project_id, user)
+
     def updateQfieldPermissions(self, tab_widget, map):   
+        print(map)
+        print(self.qfield.findProjectByName(map))
         read_access, write_access = self.getUserPermissions(tab_widget)
         # print(read_access)
         # print(self.qfield.getAllUsers().json())
@@ -170,9 +194,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         users_read = [user for user in users_read if user not in users_write_set]
         print(users_read)
         print(users_write)
-        projectPermissions = self.qfield.getPermissionsForProject("xx").json()
+        # projectPermissions = self.qfield.("xx").json()getPermissionsForProject
         ## doplnit project id
-        users_write, users_read, users_deleted = self.updateUserLists(users_write, users_read, projectPermissions)
+       # users_write, users_read, users_deleted = self.updateUserLists(users_write, users_read, projectPermissions)
+        self.qfieldPermissionsJunction("project_id", users_write, users_read)
 
         
         ####
@@ -611,7 +636,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     async def loadMapsThread(self, onlyOwn):        
         self.treeWidget.clear()        
         icon = QIcon(os.path.join(self.layman.plugin_dir, 'icons', 'qfield.png')) 
-        qProjects = self.qfield.getProjects()  
+        qProjects = self.qfield.getProjects()        
         qProjects = qProjects.json()    
         url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title' 
         r = await (self.utils.asyncRequestWrapper("GET", url))

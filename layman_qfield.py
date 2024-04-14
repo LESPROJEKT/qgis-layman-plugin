@@ -149,3 +149,10 @@ class Qfield:
         url = f"{self.URI}/api/v1/collaborators/{project_id}/{username}/"  
         response = self.utils.requestWrapper("DELETE", url, payload=payload, files=None, emitErr=False)       
         return response 
+    
+    def findProjectByName(self, project_name):
+        projects = self.getProjects().json()
+        for project in projects:
+            if project['name'] == project_name:
+                return project['id']
+        return None 
