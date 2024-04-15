@@ -129,7 +129,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
     def findCommonUsers(self, usernames, qfield_users):        
-        usernames.remove(self.laymanUsername)       ## remove owner 
+        # usernames.remove(self.laymanUsername)       ## remove owner 
         usernames_set = set(usernames)      
         common_users = []
         for user in qfield_users:
@@ -159,26 +159,40 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 if collaborator not in users_write_set:
                     users_write_set.add(collaborator)   
         return list(users_write_set), list(users_read_set), list(deleted_users_set)
-    def qfieldPermissionsJunction(self, project_id, users_write, users_read):       
+    def qfieldPermissionsJunction(self, project_id, users_write, users_read):    
         project_permissions = self.qfield.getPermissionsForProject(project_id).json()
         print(project_permissions)
         current_permissions = {perm['collaborator']: perm['role'] for perm in project_permissions}
         print(current_permissions)                 
         for user in users_write:
+            if user ==  self.laymanUsername:
+                continue
             role = 'editor'
             if user not in current_permissions:               
+                print(user, role)
+                print("post")
                 self.qfield.postPermissionsForProject(project_id, user, role)
-            elif current_permissions[user] != role:               
+            elif current_permissions[user] != role:  
+                print("patch")             
+                print(user, role)
                 self.qfield.patchPermissionsForProject(project_id, user, role)           
         for user in users_read:
+            if user ==  self.laymanUsername:
+                continue
             role = 'reader'
-            if user not in current_permissions:               
+            if user not in current_permissions:    
+                print("post")           
+                print(user, role)
                 self.qfield.postPermissionForUser(project_id, user, role)
-            elif current_permissions[user] != role:                
-                self.qfield.updatePermissionForUser(project_id, user, role)            
+            elif current_permissions[user] != role:   
+                print("patch")
+                print(user, role)             
+                self.qfield.patchermissionForUser(project_id, user, role)            
         all_users = set(users_write) | set(users_read)
         for user, role in current_permissions.items():
-            if user not in all_users:               
+            if user not in all_users:          
+                print("delete")
+                print(user)
                 self.qfield.deletePermissionsForProject(project_id, user)
 
     def updateQfieldPermissions(self, tab_widget, map):   
