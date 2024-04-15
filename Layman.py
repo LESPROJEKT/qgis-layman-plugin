@@ -2127,7 +2127,9 @@ class Layman(QObject):
         for i in range(symbol.symbolLayerCount()):
             sl = symbol.symbolLayer(i)
             if isinstance(sl, QgsSvgMarkerSymbolLayer):
-                symbolPath = sl.path();
+                symbolPath = sl.path()
+                if 'base64' in symbolPath:
+                    return
                 shutil.copy(symbolPath, tempPath)
                 print("Copying " + str(sl.path()))
                 fileNames.append(tempPath + os.sep + os.path.basename(symbolPath))
@@ -2861,10 +2863,12 @@ class Layman(QObject):
                     return
             except:
                 print("uuid")
-        if self.dlg.layersToUpload == 1:
+        if self.layersToUpload == 1:
             QgsMessageLog.logMessage("resetProgressbar")            
             self.dlg.label_progress.setText(self.tr("Sucessfully exported: ") +  str(1) + " / " + str(1) )
-
+        else:
+            self.uploaded = self.uploaded + 1
+            self.exportLayerSuccessful.emit(layer_name)
         QgsMessageLog.logMessage("export")
         QgsMessageLog.logMessage("disableProgress")
 
@@ -2888,6 +2892,7 @@ class Layman(QObject):
             f.close()
             files = {'file': (layer_name.lower().replace(" ", "_")+ext, open(filePath +os.sep+ "chunk"+str(i)+ext, 'rb')),}         
             while failedRequest != 0:
+                QgsMessageLog.logMessage("enableProgress")
                 try:
                     failedRequest = 0                   
                     response = self.utils.requestWrapper("POST", url, payload, files)
