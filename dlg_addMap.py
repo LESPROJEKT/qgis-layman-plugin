@@ -195,30 +195,15 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 print(user)
                 self.qfield.deletePermissionsForProject(project_id, user)
 
-    def updateQfieldPermissions(self, tab_widget, map):   
-        print(map)
-        print(self.qfield.findProjectByName(map))
-        read_access, write_access = self.getUserPermissions(tab_widget)
-        # print(read_access)
-        # print(self.qfield.getAllUsers().json())
+    def updateQfieldPermissions(self, tab_widget, map):        
+        read_access, write_access = self.getUserPermissions(tab_widget)    
         existingUsers = self.qfield.getAllUsers().json()
         users_write = self.findCommonUsers(write_access, existingUsers)
         users_read = self.findCommonUsers(read_access, existingUsers)
         users_write_set = set(users_write)  
         users_read = [user for user in users_read if user not in users_write_set]
-        print(users_read)
-        print(users_write)
-        # projectPermissions = self.qfield.("xx").json()getPermissionsForProject
-        ## doplnit project id
-       # users_write, users_read, users_deleted = self.updateUserLists(users_write, users_read, projectPermissions)
-        self.qfieldPermissionsJunction("project_id", users_write, users_read)
-
+        self.qfieldPermissionsJunction("project_id", users_write, users_read)       
         
-        ####
-        #detect if users exists
-        #post update
-        
-        ### 
     def getUserPermissions(self, tab_widget):    
         read_access = []
         write_access = []

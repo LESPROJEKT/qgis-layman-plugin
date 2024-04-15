@@ -111,8 +111,7 @@ class Qfield:
         response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)       
         return response  
     
-    def getPermissionsForProject(self, project_id):
-        project_id = "50f4b766-c66c-48bf-b9d1-f197edbc937b"
+    def getPermissionsForProject(self, project_id):       
         url = f"{self.URI}/api/v1/collaborators/{project_id}/"          
         response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)       
         return response  
