@@ -121,11 +121,14 @@ class Qfield:
         "collaborator": username,
         "role": role
         }
+        print(payload)
         url = f"{self.URI}/api/v1/collaborators/{project_id}/"  
-        response = self.utils.requestWrapper("POST", url, payload=payload, files=None, emitErr=False)       
+        print(url)
+        response = self.utils.requestWrapper("POST", url, payload=payload, files=None, emitErr=False)     
+        print(response.content) 
         return response
     
-    def putPermissionsForProject(self, project_id, username, role):
+    def putPermissionsForProject(self, project_id, role, username):
         payload ={
         "role": role
         }
@@ -133,7 +136,7 @@ class Qfield:
         response = self.utils.requestWrapper("PUT", url, payload=payload, files=None, emitErr=False)       
         return response   
     
-    def patchPermissionsForProject(self, project_id, username, role):
+    def patchPermissionsForProject(self, project_id, role, username):
         payload ={
         "role": role
         }
@@ -141,12 +144,9 @@ class Qfield:
         response = self.utils.requestWrapper("PATCH", url, payload=payload, files=None, emitErr=False)       
         return response 
     
-    def deletePermissionsForProject(self, project_id, username, role):
-        payload ={
-        "role": role
-        }
+    def deletePermissionsForProject(self, project_id, username):      
         url = f"{self.URI}/api/v1/collaborators/{project_id}/{username}/"  
-        response = self.utils.requestWrapper("DELETE", url, payload=payload, files=None, emitErr=False)       
+        response = self.utils.requestWrapper("DELETE", url, payload=None, files=None, emitErr=False)       
         return response 
     
     def findProjectByName(self, project_name):
