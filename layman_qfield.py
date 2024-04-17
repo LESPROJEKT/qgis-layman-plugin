@@ -4,6 +4,7 @@ import os
 from qgis.core import QgsProject
 from .qfield.cloud_converter import CloudConverter
 import json
+import urllib.parse
 
 class Qfield:
     def __init__(self, utils): 

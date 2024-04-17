@@ -34,7 +34,7 @@ import traceback
 from .layman_utils import ProxyStyle
 import asyncio
 from .layman_qfield import Qfield  
-from .layman_utils import CenterIconDelegate
+from .layman_utils import CenterIconDelegate,IconQfieldDelegate
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'dlg_addMap.ui'))
@@ -90,7 +90,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.setColumnWidth(0, 300)
         self.treeWidget.setColumnWidth(2, 80)
         self.label_noUser.hide()
-        delegate = CenterIconDelegate()
+        delegate = IconQfieldDelegate()
         self.treeWidget.setItemDelegate(delegate)  
         self.pushButton_map.clicked.connect(lambda: self.progressBar_loader.show())
         self.pushButton_map.clicked.connect(lambda: self.readMapJson(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), 'WFS', self.treeWidget.selectedItems()[0].text(1)))        
@@ -133,8 +133,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         usernames_set = set(usernames)      
         common_users = []
         for user in qfield_users:
-            if user['username'] in usernames_set:
-                common_users.append(user['username'])
+            if user['username_display'] in usernames_set:
+                common_users.append(user['username_display'])
         return common_users      
         
     def updateUserLists(self, users_write, users_read, server_response):
@@ -159,41 +159,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 if collaborator not in users_write_set:
                     users_write_set.add(collaborator)   
         return list(users_write_set), list(users_read_set), list(deleted_users_set)
-    # def qfieldPermissionsJunction(self, project_id, users_write, users_read):    
-    #     project_permissions = self.qfield.getPermissionsForProject(project_id).json()
-    #     print(project_permissions)        
-    #     current_permissions = {perm['collaborator']: perm['role'] for perm in project_permissions}
-    #     print(current_permissions)                 
-    #     for user in users_write:
-    #         if user ==  self.laymanUsername:
-    #             continue
-    #         role = 'editor'
-    #         if user not in current_permissions:               
-    #             print(user, role)
-    #             print("post")
-    #             self.qfield.postPermissionsForProject(project_id, role, user)
-    #         elif current_permissions[user] != role:  
-    #             print("patch")             
-    #             print(user, role)
-    #             self.qfield.patchPermissionsForProject(project_id, role, user)        
-    #     for user in users_read:
-    #         if user ==  self.laymanUsername:
-    #             continue
-    #         role = 'reader'
-    #         if user not in current_permissions:    
-    #             print("post")           
-    #             print(user, role)
-    #             self.qfield.postPermissionsForProject(project_id, role, user)
-    #         elif current_permissions[user] != role:   
-    #             print("patch")
-    #             print(user, role)             
-    #             self.qfield.patchermissionForUser(project_id, role, user)            
-    #     all_users = set(users_write) | set(users_read)
-    #     for user, role in current_permissions.items():
-    #         if user not in all_users:          
-    #             print("delete")
-    #             print(user)
-    #             self.qfield.deletePermissionsForProject(project_id, user)
+    
 
     def qfieldPermissionsJunction(self, project_id, users_write, users_read):        
         def transform_user_or_role(user_or_role):
@@ -206,10 +172,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             return [transform_user_or_role(user_or_role) for user_or_role in user_list]    
         users_write_processed = process_user_list(users_write)
         users_read_processed = process_user_list(users_read)        
-        if "@roles/EVERYONE" in users_write_processed:
-            users_read_processed = ["@roles/EVERYONE"]
-        if "@roles/EVERYONE" in users_read_processed:
-            users_write_processed = ["@roles/EVERYONE"]
+        # if "@roles/EVERYONE" in users_write_processed:
+        #     users_read_processed = ["@roles/EVERYONE"]
+        # if "@roles/EVERYONE" in users_read_processed:
+        #     users_write_processed = ["@roles/EVERYONE"]
         project_permissions = self.qfield.getPermissionsForProject(project_id).json()
         print(project_permissions)        
         current_permissions = {perm['collaborator']: perm['role'] for perm in project_permissions}
@@ -224,11 +190,13 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             elif current_permissions[user] != role:  
                 print("patch")             
                 print(user, role)
-                self.qfield.patchPermissionsForProject(project_id, role, user)  
+                print(self.qfield.patchPermissionsForProject(project_id, role, user).content)  
            
         
         for user in users_read_processed:
             if user ==  self.laymanUsername:
+                continue
+            if user in users_write_processed:
                 continue
             role = 'reader'
             if user not in current_permissions:    
@@ -238,7 +206,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             elif current_permissions[user] != role:   
                 print("patch")
                 print(user, role)             
-                self.qfield.patchermissionForUser(project_id, role, user)     
+                self.qfield.patchPermissionsForProject(project_id, role, user)     
           
         all_users = set(users_write) | set(users_read)
         for user, role in current_permissions.items():
@@ -252,7 +220,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         
         read_access, write_access = self.getUserPermissions(tab_widget)  
         print(read_access, write_access)        
-        existingUsers = self.qfield.getAllUsers().json()       
+        existingUsers = self.qfield.getAllUsers().json()   
         users_write = self.findCommonUsers(write_access, existingUsers)
         users_read = self.findCommonUsers(read_access, existingUsers)
         users_write_set = set(users_write)  
@@ -703,10 +671,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             for row in range(0, len(data)):
                 # if "native_crs" in data[row]:  
                 # print(self.matchQfield(data[row]['title'], data[row]['workspace'], qProjects))
-                item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", str(self.matchQfield(data[row]['title'], data[row]['workspace'], qProjects))])
-                # qfieldExists = self.matchQfield(data[row]['title'], data[row]['workspace'], qProjects)
-                # if qfieldExists:
-                #     item.setIcon(3, icon)                   
+                item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", data[row]['native_crs']])
+                qfieldExists = self.matchQfield(data[row]['title'], data[row]['workspace'], qProjects)
+                if qfieldExists:
+                    item.setIcon(0, icon)                   
                 # else:
                 #     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])          
                 self.treeWidget.addTopLevelItem(item)   
@@ -723,6 +691,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             for row in range(0, len(dataAll)):
                 if "native_crs" in dataAll[row]:
                     item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read", dataAll[row]['native_crs']])
+                    qfieldExists = self.matchQfield(dataAll[row]['title'], dataAll[row]['workspace'], qProjects)
+                    if qfieldExists:
+                        item.setIcon(0, icon) 
                 else:
                     item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read"])
                 self.treeWidget.addTopLevelItem(item)
@@ -745,6 +716,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 if permissions != "":
                     if "native_crs" in dataAll[row]:
                         item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions, dataAll[row]['native_crs']])
+                        qfieldExists = self.matchQfield(dataAll[row]['title'], dataAll[row]['workspace'], qProjects)
+                        if qfieldExists:
+                            item.setIcon(0, icon) 
                     else:
                         item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])                    
                     self.treeWidget.addTopLevelItem(item)   

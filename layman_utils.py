@@ -5,7 +5,7 @@ import os
 import re
 import PyQt5
 from qgis.core import *
-from PyQt5.QtCore import QObject, pyqtSignal, QUrl, QByteArray, Qt, QRect
+from PyQt5.QtCore import QObject, pyqtSignal, QUrl, QByteArray, Qt, QRect, QSize
 import io
 from PyQt5.QtNetwork import  QNetworkRequest
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QMessageBox, QApplication, QStyledItemDelegate
@@ -882,18 +882,62 @@ class ProxyStyle(QtWidgets.QProxyStyle):
                 )
                 painter.drawPixmap(iconRect, pixmap)  
                               
+
+class IconQfieldDelegate(QtWidgets.QStyledItemDelegate):
+    def paint(self, painter, option, index):   
+        if option.state & QtWidgets.QStyle.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        text = index.model().data(index, QtCore.Qt.DisplayRole)
+        icon = index.model().data(index, QtCore.Qt.DecorationRole)      
+        if text:
+            painter.save()
+            painter.drawText(option.rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, text)
+            painter.restore()      
+        if icon and index.column() == 0:  
+            space = 5 
+            text_width_with_space = option.fontMetrics.width(text) + space
+            icon_size = QtCore.QSize(14, 14)
+            icon_x = int(option.rect.left() + text_width_with_space)
+            icon_y = int(option.rect.center().y() - icon_size.height() / 2)           
+            icon_rect = QtCore.QRect(icon_x, icon_y, icon_size.width(), icon_size.height())           
+            painter.save()
+            painter.setClipRect(option.rect)  
+            icon.paint(painter, icon_rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+            painter.restore()
+
+
+
+class IconQfieldRightDelegate(QtWidgets.QStyledItemDelegate):
+    def paint(self, painter, option, index):           
+        if option.state & QtWidgets.QStyle.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())  
+        text = index.model().data(index, QtCore.Qt.DisplayRole)
+        icon = index.model().data(index, QtCore.Qt.DecorationRole)     
+        if text:
+            painter.save()
+            painter.drawText(option.rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, text)
+            painter.restore()       
+        if icon and index.column() == 0:  
+            icon_size = QtCore.QSize(14, 14) 
+            icon_x = int(option.rect.right() - icon_size.width())  
+            icon_y = int(option.rect.center().y() - icon_size.height() / 2)  
+            icon_rect = QtCore.QRect(icon_x, icon_y, icon_size.width(), icon_size.height())          
+            painter.save()
+            icon.paint(painter, icon_rect, QtCore.Qt.AlignCenter)
+            painter.restore()
+
+
+
+
 class CenterIconDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         icon = index.data(Qt.DecorationRole)
-        if icon:
-            rect = option.rect
-            iconSize = icon.actualSize(rect.size())
-            iconRect = QRect(
-                round(rect.left() + (rect.width() - iconSize.width()) / 2),
-                round(rect.top() + (rect.height() - iconSize.height()) / 2),
-                iconSize.width(),
-                iconSize.height()
-            )
+        if icon:         
+            iconSize = QSize(14, 14)            
+            iconX = round(option.rect.left() + (option.rect.width() - iconSize.width()) / 2)
+            iconY = round(option.rect.top() + (option.rect.height() - iconSize.height()) / 2)
+            iconRect = QRect(iconX, iconY, iconSize.width(), iconSize.height())             
             icon.paint(painter, iconRect, Qt.AlignCenter)
         else:
-            super().paint(painter, option, index)                
+            super().paint(painter, option, index)
+
