@@ -5,10 +5,10 @@ import os
 import re
 import PyQt5
 from qgis.core import *
-from PyQt5.QtCore import QObject, pyqtSignal, QUrl, QByteArray, Qt
+from PyQt5.QtCore import QObject, pyqtSignal, QUrl, QByteArray, Qt, QRect, QSize
 import io
 from PyQt5.QtNetwork import  QNetworkRequest
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QMessageBox, QApplication
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QMessageBox, QApplication, QStyledItemDelegate
 from qgis.PyQt.QtGui import QGuiApplication
 from .dlg_errMsg import ErrMsgDialog
 import tempfile
@@ -54,15 +54,19 @@ class LaymanUtils(QObject):
     def getDPI(self):
         return self.iface.mainWindow().physicalDpiX()/self.iface.mainWindow().logicalDpiX()      
                
-    def requestWrapper(self, type, url, payload = None, files = None, emitErr = True):       
+    def requestWrapper(self, type, url, payload = None, files = None, emitErr = True, additionalHeaders = None):       
         try:
-            response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files) 
+            if additionalHeaders is None:
+                response = requests.request(type, url = url, headers=self.getAuthHeader(self.authCfg), data=payload, files=files) 
+            else:
+                response = requests.request(type, url = url, headers={**self.getAuthHeader(self.authCfg), **additionalHeaders}, data=payload, files=files)                 
         except Exception as ex:   
-            info = str(ex)            
-            self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")                
+            info = str(ex)    
+            if emitErr:        
+                self.showErr.emit(["Připojení není k dispozici","Connection is not available"],info, str(info), Qgis.Warning, "")  
             return       
         if emitErr:
-            if response.status_code != 200: 
+            if response.status_code not in (200, 201): 
                 print(url)              
                 self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)    
         return response        
@@ -84,8 +88,7 @@ class LaymanUtils(QObject):
             
         response = await asyncio.to_thread(conn.getresponse)
         response_content = response.read()
-        if emitErr and response.status != 200:
-            # Zpracování chybového stavu a emitování chybové zprávy
+        if emitErr and response.status != 200:        
             content = response_content.decode('utf-8')
             self.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successful"], f"code: {response.status}", content, Qgis.Warning, url)
         conn.close()  
@@ -109,8 +112,7 @@ class LaymanUtils(QObject):
     def showMessageError(self, text, info, err, typ, url):     
         widget = QWidget()
         layout = QHBoxLayout() 
-        layout.setAlignment(Qt.AlignCenter)       
-        #layout.addWidget(QLabel("Layman - "+ text[0] if self.locale == "cs" else text[1]))
+        layout.setAlignment(Qt.AlignCenter)   
         button = QPushButton("Více informací" if self.locale == "cs" else "More info")
         label2 = self.iface.messageBar().createMessage("Layman:", text[0] if self.locale == "cs" else text[1])
         layout.addWidget(label2)
@@ -195,7 +197,8 @@ class LaymanUtils(QObject):
             if success[0] == True:
                 header = (req.rawHeader(QByteArray(b"Authorization")))  
                 authHeader ={
-                  "Authorization": str(header, 'utf-8')
+                  "Authorization": str(header, 'utf-8'),
+                  "X-Client": "LAYMAN",
                 }
                 return authHeader
             else:
@@ -877,5 +880,64 @@ class ProxyStyle(QtWidgets.QProxyStyle):
                         QtWidgets.QStyle.PM_ButtonShiftVertical, option, widget
                     ),
                 )
-                painter.drawPixmap(iconRect, pixmap)                 
-                
+                painter.drawPixmap(iconRect, pixmap)  
+                              
+
+class IconQfieldDelegate(QtWidgets.QStyledItemDelegate):
+    def paint(self, painter, option, index):   
+        if option.state & QtWidgets.QStyle.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        text = index.model().data(index, QtCore.Qt.DisplayRole)
+        icon = index.model().data(index, QtCore.Qt.DecorationRole)      
+        if text:
+            painter.save()
+            painter.drawText(option.rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, text)
+            painter.restore()      
+        if icon and index.column() == 0:  
+            space = 5 
+            text_width_with_space = option.fontMetrics.width(text) + space
+            icon_size = QtCore.QSize(14, 14)
+            icon_x = int(option.rect.left() + text_width_with_space)
+            icon_y = int(option.rect.center().y() - icon_size.height() / 2)           
+            icon_rect = QtCore.QRect(icon_x, icon_y, icon_size.width(), icon_size.height())           
+            painter.save()
+            painter.setClipRect(option.rect)  
+            icon.paint(painter, icon_rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+            painter.restore()
+
+
+
+class IconQfieldRightDelegate(QtWidgets.QStyledItemDelegate):
+    def paint(self, painter, option, index):           
+        if option.state & QtWidgets.QStyle.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())  
+        text = index.model().data(index, QtCore.Qt.DisplayRole)
+        icon = index.model().data(index, QtCore.Qt.DecorationRole)     
+        if text:
+            painter.save()
+            painter.drawText(option.rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, text)
+            painter.restore()       
+        if icon and index.column() == 0:  
+            icon_size = QtCore.QSize(14, 14) 
+            icon_x = int(option.rect.right() - icon_size.width())  
+            icon_y = int(option.rect.center().y() - icon_size.height() / 2)  
+            icon_rect = QtCore.QRect(icon_x, icon_y, icon_size.width(), icon_size.height())          
+            painter.save()
+            icon.paint(painter, icon_rect, QtCore.Qt.AlignCenter)
+            painter.restore()
+
+
+
+
+class CenterIconDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        icon = index.data(Qt.DecorationRole)
+        if icon:         
+            iconSize = QSize(14, 14)            
+            iconX = round(option.rect.left() + (option.rect.width() - iconSize.width()) / 2)
+            iconY = round(option.rect.top() + (option.rect.height() - iconSize.height()) / 2)
+            iconRect = QRect(iconX, iconY, iconSize.width(), iconSize.height())             
+            icon.paint(painter, iconRect, Qt.AlignCenter)
+        else:
+            super().paint(painter, option, index)
+

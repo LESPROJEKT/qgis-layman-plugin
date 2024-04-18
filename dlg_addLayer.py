@@ -23,9 +23,9 @@
 import os
 from PyQt5 import uic
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import QObject, pyqtSignal, Qt
+from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRect
 from PyQt5.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup, QPushButton, QMessageBox, QWidget, QVBoxLayout, QLineEdit
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QIcon
 from qgis.core import *
 import threading
 import requests
@@ -33,7 +33,8 @@ from PyQt5.QtWidgets import QPushButton
 from PyQt5 import uic
 import tempfile
 import asyncio
-from distutils.version import LooseVersion
+from .layman_utils import CenterIconDelegate
+
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -104,7 +105,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_delete.setEnabled(False)
         self.pushButton_setPermissions.setEnabled(False)
         self.label_noUser.hide()        
-        self.pushButton_postgis.setEnabled(False)        
+        self.pushButton_postgis.setEnabled(False)     
+
+        delegate = CenterIconDelegate()
+        self.treeWidget.setItemDelegate(delegate)  
         try:
             checked = self.utils.getConfigItem("layercheckbox")
         except:
@@ -132,10 +136,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.treeWidget.selectedItems()[0])).start())
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.checkIfPostgis(self.treeWidget.selectedItems()[0])).start())
         self.filter.valueChanged.connect(self.filterResults)
-        self.treeWidget.setColumnWidth(0, 200)
+        self.treeWidget.setColumnWidth(0, 250)
         self.treeWidget.setColumnWidth(1, 80)
         self.treeWidget.setColumnWidth(2, 80)
-        self.treeWidget.setColumnWidth(3, 100)
+        self.treeWidget.setColumnWidth(3, 100) 
+        self.treeWidget.setColumnWidth(4, 50) 
+    
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.checkBox_own.stateChanged.connect(self.rememberValueLayer)
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")       
@@ -165,10 +171,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
             if table_widget:
                 self.collectAccessFromTable(table_widget, read_access, "read")
-            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):                 
-                role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
-                if role_table_widget:
-                    self.collectAccessFromTable(role_table_widget, read_access, "read")
+            role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+            if role_table_widget:
+                self.collectAccessFromTable(role_table_widget, read_access, "read")
 
         if self.radioButton_writePublic.isChecked():
             write_access = ['EVERYONE']
@@ -176,16 +181,14 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
             if table_widget:
                 self.collectAccessFromTable(table_widget, write_access, "write")
-            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):     
-                role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
-                if role_table_widget:
-                    self.collectAccessFromTable(role_table_widget, write_access, "write")
+            role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+            if role_table_widget:
+                self.collectAccessFromTable(role_table_widget, write_access, "write")
 
         if self.layman.laymanUsername not in write_access:
             write_access.append(self.layman.laymanUsername)
-        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):             
-            if self.layman.laymanUsername not in read_access:
-                read_access.append(self.layman.laymanUsername)
+        if self.layman.laymanUsername not in read_access:
+            read_access.append(self.layman.laymanUsername)
 
         data = {
             'access_rights.read': self.utils.listToString(read_access),
@@ -299,58 +302,57 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         userTab.setLayout(userLayout)    
         tab_widget.addTab(userTab, self.tr("Permissions by user"))
     ### add roles
-        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-            num_columns = 4  
-            role_widget = QTableWidget()
-            role_widget.verticalHeader().setVisible(False)
-            self.utils.setTableWidgetNotBorder(role_widget)
-            role_widget.setRowCount(len(user_dict))
-            role_widget.setColumnCount(num_columns)  
-            role_widget.setHorizontalHeaderLabels([self.tr('Role'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
-            roles = self.getRoles()
-            self.roles = roles
-            row = 0
-            for rolename in (roles):    
-                if rolename == "EVERYONE":
-                    continue
-                self.globalRead[rolename] = rolename in read_access
-                self.globalWrite[rolename] = rolename in write_access
-                role_widget.setItem(row, 0, QTableWidgetItem(rolename))   
-                read_checkbox = QCheckBox()
-                write_checkbox = QCheckBox()  
-                write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
-                read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")   
-                write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(True) if state else None)
-                read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)
-                role_widget.setCellWidget(row, 1, read_checkbox)
-                role_widget.setCellWidget(row, 2, write_checkbox) 
-                if rolename in write_access:
-                    write_checkbox.setChecked(True)
-                    read_checkbox.setChecked(True)
-                    self.globalWrite[rolename] = True
-                else:
-                    if rolename in read_access:
-                        self.globalRead[rolename] = True
-                    read_checkbox.setChecked(rolename in read_access)      
-                if everyone_read_checked:                  
-                    read_checkbox.setChecked(True)   
-                    read_checkbox.setEnabled(False)  
-                if everyone_write_checked:                  
-                    write_checkbox.setChecked(True)    
-                    write_checkbox.setEnabled(False)                        
-                role_widget.setItem(row, 3, QTableWidgetItem(rolename))         
-                role_widget.setColumnHidden(3, True)
-                role_widget.resizeColumnToContents(0)
-                row = row + 1
-            roleTab = QWidget()
-            roleLayout = QVBoxLayout()
-            self.roleFilterLineEdit = QLineEdit()
-            self.roleFilterLineEdit.setPlaceholderText(self.tr("Filter roles..."))
-            self.roleFilterLineEdit.textChanged.connect(self.filterRecords)  
-            roleLayout.addWidget(self.roleFilterLineEdit)  
-            roleLayout.addWidget(role_widget)  
-            roleTab.setLayout(roleLayout)      
-            tab_widget.addTab(roleTab, self.tr("Permissions by role"))   
+        num_columns = 4  
+        role_widget = QTableWidget()
+        role_widget.verticalHeader().setVisible(False)
+        self.utils.setTableWidgetNotBorder(role_widget)
+        role_widget.setRowCount(len(user_dict))
+        role_widget.setColumnCount(num_columns)  
+        role_widget.setHorizontalHeaderLabels([self.tr('Role'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
+        roles = self.getRoles()
+        self.roles = roles
+        row = 0
+        for rolename in (roles):    
+            if rolename == "EVERYONE":
+                continue
+            self.globalRead[rolename] = rolename in read_access
+            self.globalWrite[rolename] = rolename in write_access
+            role_widget.setItem(row, 0, QTableWidgetItem(rolename))   
+            read_checkbox = QCheckBox()
+            write_checkbox = QCheckBox()  
+            write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
+            read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")   
+            write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(True) if state else None)
+            read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)
+            role_widget.setCellWidget(row, 1, read_checkbox)
+            role_widget.setCellWidget(row, 2, write_checkbox) 
+            if rolename in write_access:
+                write_checkbox.setChecked(True)
+                read_checkbox.setChecked(True)
+                self.globalWrite[rolename] = True
+            else:
+                if rolename in read_access:
+                    self.globalRead[rolename] = True
+                read_checkbox.setChecked(rolename in read_access)      
+            if everyone_read_checked:                  
+                read_checkbox.setChecked(True)   
+                read_checkbox.setEnabled(False)  
+            if everyone_write_checked:                  
+                write_checkbox.setChecked(True)    
+                write_checkbox.setEnabled(False)                        
+            role_widget.setItem(row, 3, QTableWidgetItem(rolename))         
+            role_widget.setColumnHidden(3, True)
+            role_widget.resizeColumnToContents(0)
+            row = row + 1
+        roleTab = QWidget()
+        roleLayout = QVBoxLayout()
+        self.roleFilterLineEdit = QLineEdit()
+        self.roleFilterLineEdit.setPlaceholderText(self.tr("Filter roles..."))
+        self.roleFilterLineEdit.textChanged.connect(self.filterRecords)  
+        roleLayout.addWidget(self.roleFilterLineEdit)  
+        roleLayout.addWidget(role_widget)  
+        roleTab.setLayout(roleLayout)      
+        tab_widget.addTab(roleTab, self.tr("Permissions by role"))   
     def onRadioButtonWritePrivateToggled(self, checked):
         if checked:
             self.radioButton_readPublic.setChecked(True)
@@ -395,38 +397,33 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                              
     def filterRecords(self):
         user_filter_text = self.userFilterLineEdit.text().lower()
-        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
-            role_filter_text = self.roleFilterLineEdit.text().lower()
+        role_filter_text = self.roleFilterLineEdit.text().lower()
 
         user_widget = self.getUserWidget()
-        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-            role_widget = self.getRoleWidget()
+        role_widget = self.getRoleWidget()
        
         if isinstance(user_widget, QTableWidget):
             for row in range(user_widget.rowCount()):
                 item = user_widget.item(row, 0)
                 if item:
                     user_widget.setRowHidden(row, user_filter_text not in item.text().lower())
-        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-            if isinstance(role_widget, QTableWidget):
-                for row in range(role_widget.rowCount()):
-                    item = role_widget.item(row, 0)
-                    if item:
-                        role_widget.setRowHidden(row, role_filter_text not in item.text().lower())
-        
+      
+        if isinstance(role_widget, QTableWidget):
+            for row in range(role_widget.rowCount()):
+                item = role_widget.item(row, 0)
+                if item:
+                    role_widget.setRowHidden(row, role_filter_text not in item.text().lower())
+     
     def updatePermissions(self, permissionType, isPublic):
         user_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by user"))
-        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-            role_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by role"))       
+        role_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by role"))       
         if permissionType == 'read':
             if isPublic:               
                 self.updateWidgetPermissions(user_widget, 'read', True)
-                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-                    self.updateWidgetPermissions(role_widget, 'read', True)
+                self.updateWidgetPermissions(role_widget, 'read', True)
             else:     
                 self.globalUpdateFromPermissions(user_widget, 'read', self.globalRead)
-                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-                    self.globalUpdateFromPermissions(role_widget, 'read', self.globalRead)          
+                self.globalUpdateFromPermissions(role_widget, 'read', self.globalRead)          
                 if self.radioButton_writePublic.isChecked():
                     self.radioButton_writePrivate.setChecked(True)
 
@@ -434,18 +431,15 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             if isPublic:              
                 self.radioButton_readPublic.setChecked(True)
                 self.updateWidgetPermissions(user_widget, 'write', True)
-                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-                    self.updateWidgetPermissions(role_widget, 'write', True)               
+                self.updateWidgetPermissions(role_widget, 'write', True)               
             else:              
                 self.globalUpdateFromPermissions(user_widget, 'write', self.globalWrite)
-                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-                    self.globalUpdateFromPermissions(role_widget, 'write', self.globalWrite)
+                self.globalUpdateFromPermissions(role_widget, 'write', self.globalWrite)
 
      
         if self.radioButton_writePrivate.isChecked() and self.radioButton_readPublic.isChecked():
             self.updateWidgetPermissions(user_widget, 'read', True)
-            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-                self.updateWidgetPermissions(role_widget, 'read', True)             
+            self.updateWidgetPermissions(role_widget, 'read', True)             
                          
     def alignCheckboxesInTable(self, table_widget, count):
         for row in range(count):
@@ -655,25 +649,36 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.appendIniItem("layerCheckbox", "1")
         if value == 0:
             self.utils.appendIniItem("layerCheckbox", "0")
-
+    def getStatusIcon(self, status):        
+        icon_paths = {
+            'AVAILABLE': 'correct.png',
+            'PENDING': 'pending.png',
+            'FAILED': 'failed.png'
+        }      
+        icon_filename = icon_paths.get(status, 'failed.png')      
+        icon_path = os.path.join(self.layman.plugin_dir, 'icons', icon_filename) 
+        return QIcon(icon_path)
+    
     async def loadLayersThread(self, onlyOwn=False):
         self.layerNamesDict = dict()
-        self.treeWidget.clear()
+        self.treeWidget.clear()   
         if self.laymanUsername and self.isAuthorized:
             url = self.URI+'/rest/'+self.laymanUsername+'/layers'        
             r = await (self.utils.asyncRequestWrapper("GET", url))
             data = self.utils.fromByteToJson(r) 
             if onlyOwn:
                 for row in range(0, len(data)):
-                    if "native_crs" in data[row] and 'wfs_wms_status' in data[row]:
-                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs'],data[row]['wfs_wms_status']])
+                    if "native_crs" in data[row] and 'wfs_wms_status' in data[row]:                        
+                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
+                        status = data[row]['wfs_wms_status']
+                        icon = self.getStatusIcon(status)                        
+                        item.setIcon(4, icon)                         
                     elif "native_crs" in data[row]:                        
                         item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
                     else:
                         item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
                     self.treeWidget.addTopLevelItem(item)
                     self.layerNamesDict[data[row]['title']] = data[row]['name']
-
                 QgsMessageLog.logMessage("layersLoaded")
             else:
                 url = self.URI+'/rest/layers'              
@@ -688,8 +693,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     if dataAll[row] in data:
                         permissions = "own"
                     if permissions != "":
-                        if "native_crs" in dataAll[row]  and 'wfs_wms_status' in dataAll[row]:
-                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs'],dataAll[row]['wfs_wms_status']])
+                        if "native_crs" in dataAll[row]  and 'wfs_wms_status' in dataAll[row]:                            
+                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"own",dataAll[row]['native_crs']])
+                            status = dataAll[row]['wfs_wms_status']
+                            icon = self.getStatusIcon(status)
+                            item.setIcon(4, icon) 
                         elif "native_crs" in dataAll[row]:                        
                             item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs']])
                         else:
@@ -708,8 +716,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     permissions = "read"
                 if "EVERYONE" in data[row]['access_rights']['write']:
                     permissions = "write"
-                if "native_crs" in data[row]  and 'wfs_wms_status' in data[row]:
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs'],data[row]['wfs_wms_status']])
+                if "native_crs" in data[row]  and 'wfs_wms_status' in data[row]:                 
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
+                    status = data[row]['wfs_wms_status']
+                    icon = self.getStatusIcon(status)
+                    item.setIcon(4, icon) 
                 elif "native_crs" in data[row]:                    
                     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs']])
                 else:
@@ -718,7 +729,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("layersLoaded")
         self.progressBar_loader.hide()
-   
+        # self.treeWidget.resizeColumnToContents(3) 
+        # self.treeWidget.resizeColumnToContents(4) 
     def enableButtons(self, item, col):
         self.pushButton.setEnabled(True)
         self.pushButton_urlWfs.setEnabled(True)
@@ -1000,4 +1012,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         QgsProject.instance().addMapLayer(layer)     
         layer.afterCommitChanges.connect(self.layman.patchPostreLayer)               
     def _onProgressDone(self):
-        self.progressBar_loader.hide()         
+        self.progressBar_loader.hide()      
+
+
+      
