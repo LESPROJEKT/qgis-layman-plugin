@@ -9,8 +9,8 @@ import urllib.parse
 class Qfield:
     def __init__(self, utils): 
         self.utils = utils
-        self.URI = "https://qfield.lesprojekt.cz"
-        #self.URI = "http://localhost:8011"
+        #self.URI = "https://qfield.lesprojekt.cz"
+        self.URI = "http://localhost:8011"
         self.selectedLayers = []
 
     def createQProject(self, name, description, private):       
@@ -129,18 +129,21 @@ class Qfield:
         print(response.content) 
         return response
     
-    def putPermissionsForProject(self, project_id, role, username):
+    def putPermissionsForProject(self, project_id, role, username):  
         payload ={
         "role": role
         }
+        username = self.checkIfGroup(username)
         url = f"{self.URI}/api/v1/collaborators/{project_id}/{username}/"  
         response = self.utils.requestWrapper("PUT", url, payload=payload, files=None, emitErr=False)       
         return response   
     
-    def patchPermissionsForProject(self, project_id, role, username):
+    def patchPermissionsForProject(self, project_id, role, username):        
         payload ={
+        "collaborator": username,    
         "role": role
         }
+        username = self.checkIfGroup(username)
         url = f"{self.URI}/api/v1/collaborators/{project_id}/{username}/"  
         response = self.utils.requestWrapper("PATCH", url, payload=payload, files=None, emitErr=False)       
         return response 
@@ -156,3 +159,8 @@ class Qfield:
             if project['name'] == project_name:
                 return project['id']
         return None 
+    def checkIfGroup(self, username):
+        if "@" in username:
+            return "roles"
+        else:
+            return username
