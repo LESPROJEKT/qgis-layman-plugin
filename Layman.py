@@ -4280,8 +4280,10 @@ class Layman(QObject):
     def qfieldCheck(self):        
         if self.qfield.getUserInfo().status_code == 200:           
             print("qfield ready") 
+            self.qfieldReady = True
         else:                   
             print("qfield did not respond")    
+            self.qfieldReady = False
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
         with open(save_path, 'wb') as fd:

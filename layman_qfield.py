@@ -99,7 +99,7 @@ class Qfield:
         
     def getUserInfo(self):    
         url = f"{self.URI}/api/v1/auth/user/"          
-        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)  
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)          
         return response        
 
     def getProjects(self):

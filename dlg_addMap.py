@@ -125,11 +125,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.checkBox_own.setCheckState(2)
             checked = True
         self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadMapsThread(state)))    
-        asyncio.run(self.loadMapsThread(checked))  
+        asyncio.run(self.loadMapsThread(checked)) 
 
-
-    def findCommonUsers(self, usernames, qfield_users):        
-        ### dodělat detekce rolí
+    def findCommonUsers(self, usernames, qfield_users): 
         usernames_set = set(usernames)      
         common_users = []
         for user in qfield_users:
@@ -144,12 +142,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         for entry in server_response:
             collaborator = entry['collaborator']
             role = entry['role']
-            if role == 'reader':
-                # Pokud má být uživatel reader a je ve write, přesuň ho
+            if role == 'reader':               
                 if collaborator in users_write_set:
                     users_write_set.remove(collaborator)
-                    deleted_users_set.add(collaborator)  # Uživatel změnil roli
-                # Přidej ho do read, pokud tam už není
+                    deleted_users_set.add(collaborator)                 
                 if collaborator not in users_read_set:
                     users_read_set.add(collaborator)            
             elif role == 'editor':              
@@ -158,8 +154,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     deleted_users_set.add(collaborator)           
                 if collaborator not in users_write_set:
                     users_write_set.add(collaborator)   
-        return list(users_write_set), list(users_read_set), list(deleted_users_set)
-    
+        return list(users_write_set), list(users_read_set), list(deleted_users_set)    
 
     def qfieldPermissionsJunction(self, project_id, users_write, users_read):        
         def transform_user_or_role(user_or_role):
@@ -171,13 +166,14 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 return ["@roles/EVERYONE"]
             return [transform_user_or_role(user_or_role) for user_or_role in user_list]    
         users_write_processed = process_user_list(users_write)
-        users_read_processed = process_user_list(users_read)        
-        # if "@roles/EVERYONE" in users_write_processed:
-        #     users_read_processed = ["@roles/EVERYONE"]
-        # if "@roles/EVERYONE" in users_read_processed:
-        #     users_write_processed = ["@roles/EVERYONE"]
-        project_permissions = self.qfield.getPermissionsForProject(project_id).json()
-        print(project_permissions)        
+        users_read_processed = process_user_list(users_read)   
+        project_permissions = self.qfield.getPermissionsForProject(project_id).json()        
+        if "@roles/EVERYONE" in users_read_processed:
+            users_read_processed = ["@roles/EVERYONE"]   
+        elif "@roles/EVERYONE" in users_write_processed:
+            users_write_processed = ["@roles/EVERYONE"]           
+        else:      
+            users_read_processed = [user for user in users_read_processed if user not in users_write_processed]  
         current_permissions = {perm['collaborator']: perm['role'] for perm in project_permissions}
         for user in users_write_processed:
             if user ==  self.laymanUsername:
@@ -190,9 +186,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             elif current_permissions[user] != role:  
                 print("patch")             
                 print(user, role)
-                print(self.qfield.patchPermissionsForProject(project_id, role, user).content)  
-           
-        
+                print(self.qfield.patchPermissionsForProject(project_id, role, user).content)        
         for user in users_read_processed:
             if user ==  self.laymanUsername:
                 continue
@@ -217,7 +211,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     
 
     def updateQfieldPermissions(self, tab_widget, map):        
-        
+        if not self.layman.qfieldReady:
+            return
         read_access, write_access = self.getUserPermissions(tab_widget)  
         print(read_access, write_access)        
         existingUsers = self.qfield.getAllUsers().json()   
@@ -294,10 +289,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 if type == "write":                    
                     write_checkbox = table_widget.cellWidget(row, 2)
                     if write_checkbox.isChecked():
-                        access_list.append(username)              
-
-
-                       
+                        access_list.append(username)    
                                                  
     def getRoles(self):
         uri = self.URI + "/rest/roles"
