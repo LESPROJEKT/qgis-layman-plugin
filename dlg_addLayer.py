@@ -132,7 +132,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.checkBox_own.setEnabled(False)
         self.treeWidget.itemClicked.connect(lambda item, col: threading.Thread(target=lambda: self.enableButtons(item, col)).start())
         self.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
-        self.treeWidget.itemClicked.connect(self.setPermissionsButton)
+        self.treeWidget.itemClicked.connect(self.setButtons)
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.treeWidget.selectedItems()[0])).start())
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.checkIfPostgis(self.treeWidget.selectedItems()[0])).start())
         self.filter.valueChanged.connect(self.filterResults)
@@ -669,7 +669,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             if onlyOwn:
                 for row in range(0, len(data)):
                     if "native_crs" in data[row] and 'wfs_wms_status' in data[row]:                        
-                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
+                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])                        
                         status = data[row]['wfs_wms_status']
                         icon = self.getStatusIcon(status)                        
                         item.setIcon(4, icon)                         
@@ -694,7 +694,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         permissions = "own"
                     if permissions != "":
                         if "native_crs" in dataAll[row]  and 'wfs_wms_status' in dataAll[row]:                            
-                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"own",dataAll[row]['native_crs']])
+                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs']])
                             status = dataAll[row]['wfs_wms_status']
                             icon = self.getStatusIcon(status)
                             item.setIcon(4, icon) 
@@ -717,7 +717,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 if "EVERYONE" in data[row]['access_rights']['write']:
                     permissions = "write"
                 if "native_crs" in data[row]  and 'wfs_wms_status' in data[row]:                 
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
+                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs']])
                     status = data[row]['wfs_wms_status']
                     icon = self.getStatusIcon(status)
                     item.setIcon(4, icon) 
@@ -759,7 +759,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def checkSelectedCount(self):
         selected_items = self.treeWidget.selectedItems()
         all_conditions_met = all(
-            item.text(2) == "own" or item.text(4) == "AVAILABLE"
+            item.text(2) == "own"
             for item in selected_items
         )       
         if (len(self.treeWidget.selectedItems()) > 1) and all_conditions_met:
@@ -770,8 +770,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_delete.setEnabled(False)  
-    def setPermissionsButton(self, item):
-        if item.text(2) != "own" or item.text(4) != "AVAILABLE":
+    def setButtons(self, item):
+        if item.text(2) != "own":
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_delete.setEnabled(False)
         else:
