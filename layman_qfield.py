@@ -9,8 +9,8 @@ import urllib.parse
 class Qfield:
     def __init__(self, utils): 
         self.utils = utils
-        self.URI = "https://qfield.lesprojekt.cz"
-        #self.URI = "http://localhost:8011"
+        #self.URI = "https://qfield.lesprojekt.cz"
+        self.URI = "http://localhost:8011"
         self.selectedLayers = []
 
     def createQProject(self, name, description, private):       
@@ -99,7 +99,8 @@ class Qfield:
         
     def getUserInfo(self):    
         url = f"{self.URI}/api/v1/auth/user/"          
-        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)          
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)      
+        print(response.content)    
         return response        
 
     def getProjects(self):

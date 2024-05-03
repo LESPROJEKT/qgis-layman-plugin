@@ -642,7 +642,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 item.setHidden(False)
             iterator +=1   
-    def matchQfield(self, name, owner, server_response):        
+    def matchQfield(self, name, owner, server_response):   
+        if 'code' in server_response:
+            if server_response['code'] == 'unknown_error':
+                return False
         for item in server_response:           
             if item["name"] == name and item["owner"] == owner:
                 return True  
