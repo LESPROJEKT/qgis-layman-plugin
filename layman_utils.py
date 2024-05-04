@@ -18,6 +18,7 @@ import http.client
 import asyncio
 import ssl
 import urllib.parse
+import hashlib
 
 class LaymanUtils(QObject): 
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)  
@@ -839,6 +840,20 @@ QPushButton::indicator {
     def decode_url(self, encoded_url):
         decoded_url = urllib.parse.unquote(encoded_url)
         return decoded_url
+    def generate_md5(self, filename):
+        hash_md5 = hashlib.md5()
+        with open(filename, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+    def create_local_files_hash_dict(self, directory):
+        files_hashes = {}
+        for filename in os.listdir(directory):
+            full_path = os.path.join(directory, filename)
+            if os.path.isfile(full_path):
+                files_hashes[filename] = self.generate_md5(full_path)
+        return files_hashes
+
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:

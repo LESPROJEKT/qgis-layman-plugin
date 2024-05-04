@@ -213,12 +213,24 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             # layersToDelete = self.qfield.findLayersToDelete(self.layman.instance.getLayerList(), qfieldFiles)
             # layersToPost = self.qfield.findLayersToPost(self.layman.instance.getLayerList(), qfieldFiles)
             #layersToCheck = self.qfield.findLayersToCheck(self.layman.instance.getLayerList(), qfieldFiles)
-            # self.qfield.convertQProject()   
+             # self.qfield.convertQProject()  
+            #filesToCheck = self.qfield.filesToCheck("converted dir", qfieldFiles)         
+            # local_hashes = self.utils.create_local_files_hash_dict("converted dir")   
+            # self.syncFiles(local_hashes,filesToCheck)
             ## check project file, check atttachments file, check existing files           
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)             
-        self.progressDone.emit()    
+        self.progressDone.emit()   
+  
+    def syncFiles(self, local_files_hashes, server_files_hashes):
+        for filename, local_hash in local_files_hashes.items():
+            server_hash = server_files_hashes.get(filename)         
+            if local_hash != server_hash:
+                print(f"Soubor {filename} byl změněn, posílám na server.")                
+            else:
+                print(f"Soubor {filename} je aktuální, žádná akce není potřebná.")
+
     def setVisibilityForCurrent(self, visible):
         if self.layman.instance is None:
             self.pushButton_editMeta.setEnabled(False)   

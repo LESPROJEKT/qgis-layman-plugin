@@ -203,3 +203,14 @@ class Qfield:
         server_gpkg_layers = {layer['name'] for layer in server_layers if layer['name'].endswith('.gpkg')}  
         gpkg_layers_to_check = [layer for layer in local_layers if layer.endswith('.gpkg') and layer in server_gpkg_layers]    
         return gpkg_layers_to_check     
+    
+    def filesToCheck(self, local_dir, server_layers):       
+        extensions = ('.gpkg', '.zip', '.qgs', '.qgz')       
+        server_files = {layer['name']: layer for layer in server_layers if layer['name'].endswith(extensions)}    
+        local_files_to_check = {}       
+        for filename in os.listdir(local_dir):
+            if filename.endswith(extensions) and filename in server_files:
+                full_path = os.path.join(local_dir, filename)
+                md5_hash = self.utils.generate_md5(full_path)
+                local_files_to_check[filename] = md5_hash
+        return local_files_to_check
