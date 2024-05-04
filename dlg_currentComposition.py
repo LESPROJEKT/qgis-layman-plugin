@@ -207,7 +207,14 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if response.status_code == 201:
             self.utils.showQgisBar([" Projekt by úspěšně vytvořen."," Project was successfully created."], Qgis.Success)    
         elif 'code' in res and res['code'] == 'project_already_exists':
-            self.utils.showQgisBar([" Tento projekt již existuje."," This project already exists."], Qgis.Warning)                 
+            self.utils.showQgisBar([" Tento projekt již existuje."," This project already exists."], Qgis.Warning)   
+            ## there will be project file update
+            # qfieldFiles = self.qfield.getProjectFiles()            
+            # layersToDelete = self.qfield.findLayersToDelete(self.layman.instance.getLayerList(), qfieldFiles)
+            # layersToPost = self.qfield.findLayersToPost(self.layman.instance.getLayerList(), qfieldFiles)
+            #layersToCheck = self.qfield.findLayersToCheck(self.layman.instance.getLayerList(), qfieldFiles)
+            # self.qfield.convertQProject()   
+            ## check project file, check atttachments file, check existing files           
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)             
@@ -485,8 +492,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             print("neni v canvasu")     
         if self.duplicateLayers():           
             self.showInfoDialogOnTop(self.tr("Duplicity in layer names!"))
-            return
-        ## hlidani nove pridanych vrstev pro symbologii      
+            return         
         composition = self.layman.instance.getComposition()
         layerList = []
         for i in range (0, len(composition['layers'])):
@@ -539,7 +545,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             layer_parent = tree_layer.parent()
 
             if layer_parent:                
-                group_parent = layer_parent.parent() # If you want to go up another level
+                group_parent = layer_parent.parent() 
                 test = layer_parent.name() or 'root'
                 if test == 'root':
                     return False

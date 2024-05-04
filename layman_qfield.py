@@ -154,6 +154,29 @@ class Qfield:
         response = self.utils.requestWrapper("DELETE", url, payload=None, files=None, emitErr=False)       
         return response 
     
+    def getProjectFiles(self, project_id):      
+        url = f"{self.URI}/api/v1/files/{project_id}/"  
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)       
+        return response 
+    
+    def getProjectFile(self, project_id, filename):      
+        url = f"{self.URI}/api/v1/files/{project_id}/{filename}"  
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)       
+        return response 
+    
+    def postProjectFile(self, project_id, filename):  
+        files = {
+            'file': (filename, open(filename, 'rb'))
+        }   
+        url = f"{self.URI}/api/v1/files/{project_id}/{filename}"  
+        response = self.utils.requestWrapper("POST", url, payload=None, files=files, emitErr=False)       
+        return response 
+    
+    def deleteProjectFile(self, project_id, filename):      
+        url = f"{self.URI}/api/v1/files/{project_id}/{filename}"  
+        response = self.utils.requestWrapper("DELETE", url, payload=None, files=None, emitErr=False)       
+        return response 
+    
     def findProjectByName(self, project_name):
         projects = self.getProjects().json()
         for project in projects:
@@ -165,3 +188,18 @@ class Qfield:
             return "roles"
         else:
             return username
+        
+    def findLayersToPost(self, local_layers, server_layers):   
+        server_layer_names = {layer['name'] for layer in server_layers}      
+        layers_to_upload = [layer for layer in local_layers if layer not in server_layer_names]
+        return layers_to_upload
+
+    def findLayersToDelete(self, local_layers, server_layers):
+        server_layer_names = {layer['name'] for layer in server_layers}
+        layers_to_delete = [layer for layer in server_layer_names if layer not in local_layers]
+        return layers_to_delete  
+    
+    def findLayersToCheck(local_layers, server_layers):  
+        server_gpkg_layers = {layer['name'] for layer in server_layers if layer['name'].endswith('.gpkg')}  
+        gpkg_layers_to_check = [layer for layer in local_layers if layer.endswith('.gpkg') and layer in server_gpkg_layers]    
+        return gpkg_layers_to_check     
