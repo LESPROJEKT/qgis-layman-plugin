@@ -160,20 +160,23 @@ class Qfield:
         return response 
     
     def getProjectFile(self, project_id, filename):      
-        url = f"{self.URI}/api/v1/files/{project_id}/{filename}"  
+        url = f"{self.URI}/api/v1/files/{project_id}/{filename}/"  
         response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)       
         return response 
     
     def postProjectFile(self, project_id, filename): 
+        fullname = filename
+        filename = self.utils.get_filename_without_extension(filename)
         files = {
-            'file': ("uuu", open(filename, 'rb'))
+            'file': (filename, open(fullname, 'rb'))
         }   
-        url = f"{self.URI}/api/v1/files/{project_id}/{filename}"  
-        response = self.utils.requestWrapper("POST", url, payload=None, files=files, emitErr=False)       
+        url = f"{self.URI}/api/v1/files/{project_id}/{filename}/"  
+        response = self.utils.requestWrapper("POST", url, payload=None, files=files, emitErr=False)   
+        print(response.content)    
         return response 
     
     def deleteProjectFile(self, project_id, filename):      
-        url = f"{self.URI}/api/v1/files/{project_id}/{filename}"  
+        url = f"{self.URI}/api/v1/files/{project_id}/{filename}/"  
         response = self.utils.requestWrapper("DELETE", url, payload=None, files=None, emitErr=False)       
         return response 
     
