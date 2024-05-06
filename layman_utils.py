@@ -846,13 +846,19 @@ QPushButton::indicator {
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
         return hash_md5.hexdigest()
-    def create_local_files_hash_dict(self, directory):
+    
+    def create_local_files_hash_dict(self, directory):        
         files_hashes = {}
         for filename in os.listdir(directory):
             full_path = os.path.join(directory, filename)
             if os.path.isfile(full_path):
-                files_hashes[filename] = self.generate_md5(full_path)
+                files_hashes[full_path] = self.generate_md5(full_path)
         return files_hashes
+    
+    def get_filename_without_extension(self, full_path):
+        filename_with_extension = os.path.basename(full_path)
+        filename_without_extension, _ = os.path.splitext(filename_with_extension)
+        return filename_without_extension
 
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):

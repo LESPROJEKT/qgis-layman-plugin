@@ -207,36 +207,45 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if response.status_code == 201:
             self.utils.showQgisBar([" Projekt by úspěšně vytvořen."," Project was successfully created."], Qgis.Success)    
         elif 'code' in res and res['code'] == 'project_already_exists':
+            try:
+                QgsProject.instance().readProject.disconnect() 
+            except:
+                ("read project is already disconnected")    
             self.utils.showQgisBar([" Tento projekt již existuje."," This project already exists."], Qgis.Warning)  
             print(res) 
             project_id = self.qfield.getProjectByName(name)
             ## there will be project file update        
-            # qfieldFiles = self.qfield.getProjectFiles()            
-            # layersToDelete = self.qfield.findLayersToDelete(self.layman.instance.getLayerList(), qfieldFiles)
-            # layersToPost = self.qfield.findLayersToPost(self.layman.instance.getLayerList(), qfieldFiles)
+            qfieldFiles = self.qfield.getProjectFiles(project_id).json()        
+            layersToDelete = self.qfield.findLayersToDelete(self.layman.instance.getLayerList(), qfieldFiles)
+            layersToPost = self.qfield.findLayersToPost(self.layman.instance.getLayerList(), qfieldFiles)
             #layersToCheck = self.qfield.findLayersToCheck(self.layman.instance.getLayerList(), qfieldFiles)
-             #convertedProjectPath = self.qfield.convertQProject()  
-            #filesToCheck = self.qfield.filesToCheck(convertedProjectPath, qfieldFiles)         
-            # local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)   
-            # self.syncFiles(local_hashes,filesToCheck, layersToPost, layersToDelete, project_id)
+            convertedProjectPath = self.qfield.convertQProject()  
+            filesToCheck = self.qfield.filesToCheck(convertedProjectPath, qfieldFiles)         
+            local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)   
+            self.syncFiles(local_hashes,filesToCheck, layersToPost, layersToDelete, project_id)
+            QgsProject.instance().readProject.connect(lambda: self.layman.projectReaded(False)) 
             ## check project file, check atttachments file, check existing files           
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)             
         self.progressDone.emit()   
   
-    def syncFiles(self, local_files_hashes, server_files_hashes, layers_to_post, layers_to_delete, project_id):
+    def syncFiles(self, local_files_hashes, server_files_hashes, layers_to_post, layers_to_delete, project_id):      
         for filename, local_hash in local_files_hashes.items():
-            server_hash = server_files_hashes.get(filename)         
-            if local_hash != server_hash:
+            fullpath = filename          
+            filename = self.utils.get_filename_without_extension(filename)      
+            print(server_files_hashes)              
+            server_hash = server_files_hashes.get(filename)   
+            if local_hash != server_hash and server_hash != None:             
                 print(f"Soubor {filename} byl změněn, posílám na server.")   
-                ## patch             
+                self.qfield.postProjectFile(project_id, fullpath)   
+            elif filename in layers_to_post:                             
+                self.qfield.postProjectFile(project_id, fullpath)
+            elif filename in layers_to_delete:
+                self.qfield.deleteProjectFile(project_id, fullpath)                                       
             else:
                 print(f"Soubor {filename} je aktuální, žádná akce není potřebná.")
-        for layer in layers_to_post:
-            self.qfield.postProjectFile(project_id, layer)
-        for layer in layers_to_delete:
-            self.qfield.deleteProjectFile(project_id, layer)
+            
     def setVisibilityForCurrent(self, visible):
         if self.layman.instance is None:
             self.pushButton_editMeta.setEnabled(False)   
