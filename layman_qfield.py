@@ -214,3 +214,10 @@ class Qfield:
                 md5_hash = self.utils.generate_md5(full_path)
                 local_files_to_check[filename] = md5_hash
         return local_files_to_check
+    
+    def getProjectByName(self, name):
+        project_list = self.getProjects().json()
+        for project in project_list:
+            if project['name'] == name:
+                return project['id']
+        return None 
