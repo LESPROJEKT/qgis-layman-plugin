@@ -846,7 +846,12 @@ QPushButton::indicator {
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
         return hash_md5.hexdigest()
-    
+    def generate_sha256(self, filename):
+        hash_sha256 = hashlib.sha256()
+        with open(filename, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_sha256.update(chunk)
+        return hash_sha256.hexdigest()
     def create_local_files_hash_dict(self, directory):        
         files_hashes = {}
         for filename in os.listdir(directory):
@@ -854,6 +859,10 @@ QPushButton::indicator {
             if os.path.isfile(full_path):
                 files_hashes[full_path] = self.generate_md5(full_path)
         return files_hashes
+    
+    def get_filename_with_extension(self, full_path):
+        filename_with_extension = os.path.basename(full_path)       
+        return filename_with_extension
     
     def get_filename_without_extension(self, full_path):
         filename_with_extension = os.path.basename(full_path)

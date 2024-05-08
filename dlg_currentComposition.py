@@ -211,20 +211,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 QgsProject.instance().readProject.disconnect() 
             except:
                 ("read project is already disconnected")    
-            self.utils.showQgisBar([" Tento projekt již existuje."," This project already exists."], Qgis.Warning)  
-            print(res) 
-            project_id = self.qfield.getProjectByName(name)
-            ## there will be project file update        
+            convertedProjectPath = self.qfield.convertQProject()            
+            self.utils.showQgisBar([" Aktualizuji project QField."," Update QField project"], Qgis.Success)          
+            project_id = self.qfield.getProjectByName(name)              
             qfieldFiles = self.qfield.getProjectFiles(project_id).json()        
             layersToDelete = self.qfield.findLayersToDelete(self.layman.instance.getLayerList(), qfieldFiles)
-            layersToPost = self.qfield.findLayersToPost(self.layman.instance.getLayerList(), qfieldFiles)
-            #layersToCheck = self.qfield.findLayersToCheck(self.layman.instance.getLayerList(), qfieldFiles)
-            convertedProjectPath = self.qfield.convertQProject()  
+            layersToPost = self.qfield.findLayersToPost(self.layman.instance.getLayerList(), qfieldFiles)                        
             filesToCheck = self.qfield.filesToCheck(convertedProjectPath, qfieldFiles)         
             local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)   
             self.syncFiles(local_hashes,filesToCheck, layersToPost, layersToDelete, project_id)
-            QgsProject.instance().readProject.connect(lambda: self.layman.projectReaded(False)) 
-            ## check project file, check atttachments file, check existing files           
+            QgsProject.instance().readProject.connect(lambda: self.layman.projectReaded(False))                   
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)             
@@ -233,9 +229,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def syncFiles(self, local_files_hashes, server_files_hashes, layers_to_post, layers_to_delete, project_id):      
         for filename, local_hash in local_files_hashes.items():
             fullpath = filename          
-            filename = self.utils.get_filename_without_extension(filename)      
-            print(server_files_hashes)              
+            filename = self.utils.get_filename_with_extension(filename)    
             server_hash = server_files_hashes.get(filename)   
+            print(local_hash, server_hash)
             if local_hash != server_hash and server_hash != None:             
                 print(f"Soubor {filename} byl změněn, posílám na server.")   
                 self.qfield.postProjectFile(project_id, fullpath)   
