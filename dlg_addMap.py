@@ -723,6 +723,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.appendIniItem("mapCheckbox", "1")
         if value == 0:
             self.utils.appendIniItem("mapCheckbox", "0")  
+    def deleteQfieldProject(self, name):
+        project_id = self.qfield.getProjectByName(name)  
+        if project_id is not None:
+            self.qfield.deleteProject(project_id)            
     def deleteMap(self,name):          
         msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete map"), self.tr("Do you want really delete composition ")+name+"?")
         msgbox.addButton(QMessageBox.Yes)
@@ -731,6 +735,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         reply = msgbox.exec()
         if (reply == QMessageBox.Yes):
             name = self.utils.removeUnacceptableChars(name)
+            self.deleteQfieldProject(name)
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
             response = requests.delete(url, headers = self.utils.getAuthHeader(self.utils.authCfg))           
             if (response.status_code == 200):

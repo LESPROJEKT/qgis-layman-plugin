@@ -178,7 +178,10 @@ class Qfield:
         url = f"{self.URI}/api/v1/files/{project_id}/{filename}/"  
         response = self.utils.requestWrapper("DELETE", url, payload=None, files=None, emitErr=False)       
         return response 
-    
+    def deleteProject(self, project_id):
+        url = f"{self.URI}/api/v1/projects/{project_id}/"  
+        response = self.utils.requestWrapper("DELETE", url, payload=None, files=None, emitErr=False)       
+        return response 
     def findProjectByName(self, project_name):
         projects = self.getProjects().json()
         for project in projects:

@@ -80,6 +80,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setupUi(self)
         self.globalRead = {}
         self.globalWrite = {}  
+        self.qfield = Qfield(self.utils)
         self.setUi()
     
         
@@ -180,7 +181,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_close2.clicked.connect(lambda: self.close())                  
             self.pushButton_save.clicked.connect(lambda: self.updateComposition())
             self.checkBox_all.stateChanged.connect(self.checkAllLayers)
-            self.pushButton_delete.clicked.connect(lambda: self.deleteCurrentMap())              
+            self.pushButton_delete.clicked.connect(lambda: self.deleteCurrentMap())                     
             self.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())       
             self.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
         self.progressBar_loader.hide()  
@@ -197,8 +198,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             QgsProject.instance().layerRemoved.disconnect()
         except TypeError as e:
             print(f"Chyba při odpojování on_layers_added: {e}")            
-        name = self.layman.current    
-        self.qfield = Qfield(self.utils)
+        name = self.layman.current            
         self.qfield.selectedLayers = self.getCheckedLayerNames()
         permissions = self.layman.instance.getAllPermissions()
         permission = "true" if 'EVERYONE' in permissions['read'] else "false"   
@@ -1531,7 +1531,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.utils.showErr.emit([" Změny nebyly uloženy.", " Changes was not saved."], "code: " + str(response.status_code), str(response.content), Qgis.Warning, "")            
         self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])                            
-        
+    def deleteQfieldProject(self, name):
+        project_id = self.qfield.getProjectByName(name)  
+        if project_id is not None:
+            self.qfield.deleteProject(project_id)
     def deleteCurrentMap(self):
         composition = self.layman.instance.getComposition()        
         msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete map"), self.tr("Do you want really delete this composition?"))
@@ -1541,6 +1544,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
         reply = msgbox.exec()
         if (reply == QMessageBox.Yes):
+            self.deleteQfieldProject(composition['name'])
             url = self.URI+'/rest/'+self.layman.laymanUsername+'/maps/'+composition['name']           
             response = self.utils.requestWrapper("DELETE", url, payload = None, files = None)
             if (response.status_code == 200):
