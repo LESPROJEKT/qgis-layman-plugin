@@ -217,7 +217,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             qfieldFiles = self.qfield.getProjectFiles(project_id).json()        
             layersToDelete = self.qfield.findLayersToDelete(self.layman.instance.getLayerList(), qfieldFiles)
             layersToPost = self.qfield.findLayersToPost(self.layman.instance.getLayerList(), qfieldFiles)                        
-            filesToCheck = self.qfield.filesToCheck(convertedProjectPath, qfieldFiles)         
+            filesToCheck = self.qfield.filesToCheck(qfieldFiles)         
             local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)   
             self.syncFiles(local_hashes,filesToCheck, layersToPost, layersToDelete, project_id)
             QgsProject.instance().readProject.connect(lambda: self.layman.projectReaded(False))                   
@@ -230,8 +230,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         for filename, local_hash in local_files_hashes.items():
             fullpath = filename          
             filename = self.utils.get_filename_with_extension(filename)    
-            server_hash = server_files_hashes.get(filename)   
-            print(local_hash, server_hash)
+            server_hash = server_files_hashes.get(filename)       
             if local_hash != server_hash and server_hash != None:             
                 print(f"Soubor {filename} byl změněn, posílám na server.")   
                 self.qfield.postProjectFile(project_id, fullpath)   

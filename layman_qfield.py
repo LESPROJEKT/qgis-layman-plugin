@@ -171,8 +171,7 @@ class Qfield:
             'file': (filename, open(fullname, 'rb'))
         }   
         url = f"{self.URI}/api/v1/files/{project_id}/{filename}/"  
-        response = self.utils.requestWrapper("POST", url, payload=None, files=files, emitErr=False)   
-        print(response.content)    
+        response = self.utils.requestWrapper("POST", url, payload=None, files=files, emitErr=False)         
         return response 
     
     def deleteProjectFile(self, project_id, filename):      
@@ -197,14 +196,12 @@ class Qfield:
         layers_to_upload = [layer["title"] for layer in local_layers if layer['title'] not in server_layer_names]
         return layers_to_upload
 
-    def findLayersToDelete(self, local_layers, server_layers):
-        print(server_layers)
+    def findLayersToDelete(self, local_layers, server_layers):       
         server_layer_names = {layer['name'] for layer in server_layers}
         layers_to_delete = [layer["title"] for layer in server_layer_names if layer not in local_layers]
         return layers_to_delete  
     
-    def findLayersToDelete(self, local_layers, server_layers):
-        print(server_layers)     
+    def findLayersToDelete(self, local_layers, server_layers):   
         local_layer_titles = {layer['title'] for layer in local_layers}   
         layers_to_delete = [layer['name'] for layer in server_layers if layer['name'] not in local_layer_titles]        
         return layers_to_delete
@@ -212,25 +209,9 @@ class Qfield:
     def findLayersToCheck(local_layers, server_layers):  
         server_gpkg_layers = {layer['name'] for layer in server_layers if layer['name'].endswith('.gpkg')}  
         gpkg_layers_to_check = [layer for layer in local_layers if layer.endswith('.gpkg') and layer in server_gpkg_layers]    
-        return gpkg_layers_to_check     
+        return gpkg_layers_to_check        
     
-    # def filesToCheck(self, local_dir, server_layers):    
-    #     extensions = ('.gpkg', '.zip', '.qgs', '.qgz', '.qgs~')
-    #     print(server_layers)
-        
-    #     server_files = {layer['name']: layer for layer in server_layers if layer['name'].endswith(extensions)}    
-    #     local_files_to_check = {}       
-    #     for filename in os.listdir(local_dir):
-    #         if filename.endswith(extensions) and filename in server_files:
-    #             full_path = os.path.join(local_dir, filename)
-    #             md5_hash = self.utils.generate_md5(full_path)
-    #             local_files_to_check[filename] = {
-    #                 'md5': md5_hash,
-    #                 'server_info': server_files[filename] 
-    #             }
-
-    #     return local_files_to_check
-    def filesToCheck(self, local_dir, server_layers):      
+    def filesToCheck(self, server_layers):      
         extensions = ('.gpkg', '.zip', '.qgs', '.qgz', '.qgs~')        
         server_files_hashes = {}
         for layer in server_layers:
