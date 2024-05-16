@@ -646,15 +646,17 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if 'code' in server_response:
             if server_response['code'] == 'unknown_error':
                 return False
-        for item in server_response:           
+        for item in server_response:    
             if item["name"] == name and item["owner"] == owner:
                 return True  
         return False        
+    
     async def loadMapsThread(self, onlyOwn):        
         self.treeWidget.clear()        
         icon = QIcon(os.path.join(self.layman.plugin_dir, 'icons', 'qfield.png')) 
         qProjects = self.qfield.getProjects()        
-        qProjects = qProjects.json()    
+        qProjects = qProjects.json()   
+        names = self.utils.getUserScreenNames()       
         url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title' 
         r = await (self.utils.asyncRequestWrapper("GET", url))
         try:
@@ -663,15 +665,11 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
             return            
         if onlyOwn and self.isAuthorized:
-            for row in range(0, len(data)):
-                # if "native_crs" in data[row]:  
-                # print(self.matchQfield(data[row]['title'], data[row]['workspace'], qProjects))
+            for row in range(0, len(data)):       
                 item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", data[row]['native_crs']])
-                qfieldExists = self.matchQfield(data[row]['title'], data[row]['workspace'], qProjects)
+                qfieldExists = self.matchQfield(data[row]['title'], names[data[row]['workspace']], qProjects)              
                 if qfieldExists:
-                    item.setIcon(0, icon)                   
-                # else:
-                #     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])          
+                    item.setIcon(0, icon)    
                 self.treeWidget.addTopLevelItem(item)   
             self.progressDone.emit()
         elif not self.isAuthorized:
@@ -686,7 +684,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             for row in range(0, len(dataAll)):
                 if "native_crs" in dataAll[row]:
                     item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read", dataAll[row]['native_crs']])
-                    qfieldExists = self.matchQfield(dataAll[row]['title'], dataAll[row]['workspace'], qProjects)
+                    qfieldExists = self.matchQfield(dataAll[row]['title'], names[dataAll[row]['workspace']], qProjects)
                     if qfieldExists:
                         item.setIcon(0, icon) 
                 else:
@@ -711,7 +709,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 if permissions != "":
                     if "native_crs" in dataAll[row]:
                         item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions, dataAll[row]['native_crs']])
-                        qfieldExists = self.matchQfield(dataAll[row]['title'], dataAll[row]['workspace'], qProjects)
+                        qfieldExists = self.matchQfield(dataAll[row]['title'], names[dataAll[row]['workspace']], qProjects)
                         if qfieldExists:
                             item.setIcon(0, icon) 
                     else:

@@ -166,7 +166,7 @@ class Layman(QObject):
         self.DPI = self.getDPI()
         self.supportedEPSG = ['EPSG:4326', 'EPSG:3857', 'EPSG:5514', 'EPSG:102067', 'EPSG:32634', 'EPSG:32633', 'EPSG:3034', 'EPSG:3035', 'EPSG:305']      
         self.iface.layerTreeView().currentLayerChanged.connect(lambda: self.layerChanged())
-        QgsProject.instance().readProject.connect(lambda: self.projectReaded(False))  
+        self.connectProjectRead()
         self.iface.newProjectCreated.connect(self.removeCurrent)
         self.processingList = []
         self.writeState(0)   
@@ -4465,7 +4465,14 @@ class Layman(QObject):
             if layer.type() == QgsMapLayerType.VectorLayer and layer.dataProvider().name() == 'WFS':              
                 layer.dataProvider().reloadData() 
                 layer.triggerRepaint()       
-              
+    def connectProjectRead(self):        
+        self.project_read_slot = lambda: self.projectReaded(False)
+        QgsProject.instance().readProject.connect(self.project_read_slot)
+
+    def disconnectProjectRead(self):
+        if self.project_read_slot:            
+            QgsProject.instance().readProject.disconnect(self.project_read_slot)
+            self.project_read_slot = None                
     def run(self):
         """Run method that loads and starts the plugin"""
 

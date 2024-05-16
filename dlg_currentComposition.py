@@ -208,7 +208,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.showQgisBar([" Projekt by úspěšně vytvořen."," Project was successfully created."], Qgis.Success)    
         elif 'code' in res and res['code'] == 'project_already_exists':
             try:
-                QgsProject.instance().readProject.disconnect() 
+                self.layman.disconnectProjectRead()
             except:
                 ("read project is already disconnected")    
             convertedProjectPath = self.qfield.convertQProject()            
@@ -220,7 +220,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             filesToCheck = self.qfield.filesToCheck(qfieldFiles)         
             local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)   
             self.syncFiles(local_hashes,filesToCheck, layersToPost, layersToDelete, project_id)
-            QgsProject.instance().readProject.connect(lambda: self.layman.projectReaded(False))                   
+            self.layman.connectProjectRead()                  
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)             

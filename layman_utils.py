@@ -868,6 +868,14 @@ QPushButton::indicator {
         filename_with_extension = os.path.basename(full_path)
         filename_without_extension, _ = os.path.splitext(filename_with_extension)
         return filename_without_extension
+    def getUserScreenNames(self):       
+        usersEndpoint = self.URI + "/rest/users"   
+        r = self.requestWrapper("GET", usersEndpoint, payload=None, files=None)   
+        res = self.fromByteToJson(r.content)  
+        user_screen_names = {}    
+        for user in res:   
+            user_screen_names[user['username']] = user['screen_name']
+        return user_screen_names
 
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
