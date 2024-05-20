@@ -876,6 +876,16 @@ QPushButton::indicator {
         for user in res:   
             user_screen_names[user['username']] = user['screen_name']
         return user_screen_names
+    def saveUnsavedLayers(self):    
+        project = QgsProject.instance()   
+        for layer in project.mapLayers().values():        
+            if layer.type() == QgsMapLayer.VectorLayer and layer.isModified():           
+                if layer.commitChanges():
+                    print(f"Changes saved for layer: {layer.name()}")
+                else:
+                    print(f"Failed to save changes for layer: {layer.name()}")
+            else:            
+                print(f"No changes to save or not a vector layer: {layer.name()}")
 
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):

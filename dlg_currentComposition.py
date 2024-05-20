@@ -189,7 +189,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         result = self.exec_()  
     
     def exportToQfield(self):   
-        self.progressStart.emit()         
+        self.progressStart.emit() 
+        self.utils.saveUnsavedLayers()        
         try:
             QgsProject.instance().layerWasAdded.disconnect()
         except TypeError as e:
@@ -218,7 +219,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             layersToDelete = self.qfield.findLayersToDelete(self.layman.instance.getLayerList(), qfieldFiles)
             layersToPost = self.qfield.findLayersToPost(self.layman.instance.getLayerList(), qfieldFiles)                        
             filesToCheck = self.qfield.filesToCheck(qfieldFiles)         
-            local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)   
+            local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)               
             self.syncFiles(local_hashes,filesToCheck, layersToPost, layersToDelete, project_id)
             self.layman.connectProjectRead()                  
         self.layman.current = name
@@ -229,17 +230,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def syncFiles(self, local_files_hashes, server_files_hashes, layers_to_post, layers_to_delete, project_id):      
         for filename, local_hash in local_files_hashes.items():
             fullpath = filename          
-            filename = self.utils.get_filename_with_extension(filename)    
+            filename = self.utils.get_filename_with_extension(filename) 
             server_hash = server_files_hashes.get(filename)       
             if local_hash != server_hash and server_hash != None:             
-                print(f"Soubor {filename} byl změněn, posílám na server.")   
+                print(f"File {filename} was changed, sending to server.")   
                 self.qfield.postProjectFile(project_id, fullpath)   
             elif filename in layers_to_post:                             
                 self.qfield.postProjectFile(project_id, fullpath)
             elif filename in layers_to_delete:
                 self.qfield.deleteProjectFile(project_id, fullpath)                                       
             else:
-                print(f"Soubor {filename} je aktuální, žádná akce není potřebná.")
+                print(f"File {filename} is up to date.")
             
     def setVisibilityForCurrent(self, visible):
         if self.layman.instance is None:
@@ -279,8 +280,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.layman.instance == None:
             return
         composition = self.layman.instance.getComposition()
-        if self.layman.current != None:
-            print(self.layman.instance.getComposition())
+        if self.layman.current != None:           
             try:
                 writePermissions = self.layman.instance.getAllPermissions()['write']
             except:
@@ -729,8 +729,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
  
         map = self.utils.removeUnacceptableChars(map)      
         url = self.URI+'/rest/'+self.layman.laymanUsername+'/maps/'+map
-        response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))      
-        print(response.content)       
+        response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))                
         if (response.status_code != 200):
             self.failed.append(map)          
         if len(self.failed) == 0:       
@@ -1090,9 +1089,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:                    
                     self.showInfoDialogOnTop(self.tr("This user already exists in the list!"))                            
                     return False
-            else:          
-                print(itemsTextListWrite)    
-                print(usernameList[self.comboBox_users.currentIndex()])
+            else: 
                 if ((usernameList[self.comboBox_users.currentIndex()] not in itemsTextListWrite) and type == "write"):               
                     return True
                 else: 
@@ -1195,8 +1192,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         src = QgsCoordinateReferenceSystem(int(composition['projection'].split(":")[1])) 
         epsg = self.comboBox_epsg.currentText()
         dest = QgsCoordinateReferenceSystem(int(epsg))
-        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())  
-        print(src,dest)      
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())              
         #transformace extentu   
         coords = self.utils.tranformCoords(float(self.lineEdit_xmin.text().replace(",",".")), float(self.lineEdit_xmax.text().replace(",",".")), float(self.lineEdit_ymin.text().replace(",",".")), float(self.lineEdit_ymax.text().replace(",",".")),src,dest)
         coords = self.utils.tranformCoords(composition['nativeExtent'][0], composition['nativeExtent'][2], composition['nativeExtent'][1], composition['nativeExtent'][3], src, dest) 
@@ -1258,9 +1254,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         for i in range(len(composition['layers'])):
             className = composition['layers'][i]['className']
             if className in ('HSLayers.Layer.WMS','OpenLayers.Layer.Vector', 'WMS', 'Vector'):
-                name = self.utils.removeUnacceptableChars(composition['layers'][i]['title'])
-     
-               
+                name = self.utils.removeUnacceptableChars(composition['layers'][i]['title'])    
                 for i in range (0, len(names)):
                     if names[i] == name:
                         print("matched")

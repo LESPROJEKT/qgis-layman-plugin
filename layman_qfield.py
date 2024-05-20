@@ -9,8 +9,8 @@ import urllib.parse
 class Qfield:
     def __init__(self, utils): 
         self.utils = utils
-        #self.URI = "https://qfield.lesprojekt.cz"
-        self.URI = "http://localhost:8011"
+        self.URI = "https://qfield.lesprojekt.cz"
+        #self.URI = "http://localhost:8011"
         self.selectedLayers = []
 
     def createQProject(self, name, description, private):       
@@ -166,7 +166,7 @@ class Qfield:
     
     def postProjectFile(self, project_id, filename): 
         fullname = filename
-        filename = self.utils.get_filename_without_extension(filename)
+        filename = self.utils.get_filename_with_extension(filename)         
         files = {
             'file': (filename, open(fullname, 'rb'))
         }   

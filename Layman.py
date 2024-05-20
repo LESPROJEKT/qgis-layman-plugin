@@ -4469,7 +4469,7 @@ class Layman(QObject):
         self.project_read_slot = lambda: self.projectReaded(False)
         QgsProject.instance().readProject.connect(self.project_read_slot)
 
-    def disconnectProjectRead(self):
+    def disconnectProjectRead(self): 
         if self.project_read_slot:            
             QgsProject.instance().readProject.disconnect(self.project_read_slot)
             self.project_read_slot = None                
