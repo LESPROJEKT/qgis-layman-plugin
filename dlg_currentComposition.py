@@ -192,7 +192,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     
     def exportToQfield(self):   
         self.progressStart.emit() 
-        self.utils.saveUnsavedLayers()        
+        self.utils.saveUnsavedLayers()   
+        try:
+            self.layman.disconnectProjectRead()
+        except:
+            ("read project is already disconnected")         
         try:
             QgsProject.instance().layerWasAdded.disconnect()
         except TypeError as e:
@@ -210,10 +214,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if response.status_code == 201:
             self.utils.showQgisBar([" Projekt by úspěšně vytvořen."," Project was successfully created."], Qgis.Success)    
         elif 'code' in res and res['code'] == 'project_already_exists':
-            try:
-                self.layman.disconnectProjectRead()
-            except:
-                ("read project is already disconnected")    
+            
             convertedProjectPath = self.qfield.convertQProject()            
             self.utils.showQgisBar([" Aktualizuji project QField."," Update QField project"], Qgis.Success)          
             project_id = self.qfield.getProjectByName(name)              
@@ -222,11 +223,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             layersToPost = self.qfield.findLayersToPost(self.layman.instance.getLayerList(), qfieldFiles)                        
             filesToCheck = self.qfield.filesToCheck(qfieldFiles)         
             local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)               
-            self.syncFiles(local_hashes,filesToCheck, layersToPost, layersToDelete, project_id)
-            self.layman.connectProjectRead()                  
+            self.syncFiles(local_hashes,filesToCheck, layersToPost, layersToDelete, project_id)                              
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
-        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)             
+        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)  
+        self.layman.connectProjectRead()           
         self.progressDone.emit()   
   
     def syncFiles(self, local_files_hashes, server_files_hashes, layers_to_post, layers_to_delete, project_id):      

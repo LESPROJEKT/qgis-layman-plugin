@@ -83,7 +83,7 @@ from .dlg_showQProject import ShowQProjectDialog
 from .dlg_userInfo import UserInfoDialog
 from .layman_utils import LaymanUtils
 from .layman_qfield import Qfield   
-
+from functools import partial
 
 
 class Layman(QObject):
@@ -4174,15 +4174,16 @@ class Layman(QObject):
         for layer in layers:      
             if layer.type() == QgsMapLayerType.VectorLayer and layer.dataProvider().name() == 'WFS':              
                 layer.dataProvider().reloadData() 
-                layer.triggerRepaint()       
-    def connectProjectRead(self):        
-        self.project_read_slot = lambda: self.projectReaded(False)
+                layer.triggerRepaint()    
+                
+    def connectProjectRead(self):    
+        self.project_read_slot = partial(self.projectReaded, False)
         QgsProject.instance().readProject.connect(self.project_read_slot)
 
-    def disconnectProjectRead(self): 
-        if self.project_read_slot:            
+    def disconnectProjectRead(self):
+        if self.project_read_slot:
             QgsProject.instance().readProject.disconnect(self.project_read_slot)
-            self.project_read_slot = None                
+            self.project_read_slot = None            
     def run(self):
         """Run method that loads and starts the plugin"""
 
