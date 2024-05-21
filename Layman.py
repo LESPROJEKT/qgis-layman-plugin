@@ -216,6 +216,7 @@ class Layman(QObject):
         QgsApplication.messageLog().messageReceived.connect(self.write_log_message)   
         self.pluginIsActive = False
         self.dockwidget = None
+        self.qfieldReady = False
         self.loggedThrowProject = False
         ## prepare temp dir
         tempDir = tempfile.gettempdir() + os.sep + "atlas"
@@ -3985,8 +3986,7 @@ class Layman(QObject):
                 self.dlg.refreshAfterFailedLogin()
         ### check Qfield ##
         threading.Thread(target=lambda: self.qfieldCheck()).start()      
-    def qfieldCheck(self):
-        self.qfieldReady = False             
+    def qfieldCheck(self):                     
         user_info = self.qfield.getUserInfo()   
         if user_info is not None and user_info.status_code == 200:         
             print("qfield ready") 
