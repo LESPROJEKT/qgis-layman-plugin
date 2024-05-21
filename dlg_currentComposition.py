@@ -185,6 +185,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())       
             self.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
         self.progressBar_loader.hide()  
+        if self.layman.qfieldReady:
+            self.pushButton_qfield.setEnabled(False)
         self.show()
         result = self.exec_()  
     
@@ -259,8 +261,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_delete.setEnabled(False)              
             self.pushButton_save.setEnabled(False)
-            self.pushButton_copyUrl.setEnabled(True)   
-            self.pushButton_qfield.setEnabled(True)
+            self.pushButton_copyUrl.setEnabled(True) 
+            if self.layman.qfieldReady:  
+                self.pushButton_qfield.setEnabled(True)
             self.pushButton_new.setEnabled(True)
             self.label_readonly.show()
             self.pushButton_new.show()   
@@ -272,8 +275,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_editMeta.setEnabled(visible)            
             self.pushButton_save.setEnabled(visible)
             self.pushButton_delete.setEnabled(visible)     
-            self.pushButton_copyUrl.setEnabled(visible)   
-            self.pushButton_qfield.setEnabled(visible)
+            self.pushButton_copyUrl.setEnabled(visible) 
+            if self.layman.qfieldReady:  
+                self.pushButton_qfield.setEnabled(visible)
             self.checkBox_all.setEnabled(visible)
     def refreshCurrentForm(self, layerAdded = None):
         self.pushButton_new.show()  
@@ -302,7 +306,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.pushButton_setPermissions.setEnabled(True)                        
                 self.pushButton_save.setEnabled(True)
                 self.pushButton_delete.setEnabled(True)
-                self.pushButton_qfield.setEnabled(True) 
+                if self.layman.qfieldReady:
+                    self.pushButton_qfield.setEnabled(True) 
+                else:
+                    self.pushButton_qfield.setEnabled(False)     
                 self.pushButton_copyUrl.setEnabled(True) 
         
         
@@ -1424,11 +1431,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             name = self.utils.removeUnacceptableChars(title)
             data = self.layman.getEmptyComposite(name,title, abstract) 
-            self.layman.importCleanComposite(data)
-            try:
-                self.refreshCompositeList(True)
-            except:
-                print("err")
+            self.layman.importCleanComposite(data)          
             if setCurrent:                
                 self.layman.current = name
                 self.layman.selectedWorkspace = self.layman.laymanUsername
@@ -1587,5 +1590,5 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             QgsProject.instance().layerRemoved.disconnect()
         except:
             print("not connected")            
-        print(self.layman.dlg_current)
+        
         

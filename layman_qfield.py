@@ -61,9 +61,7 @@ class Qfield:
             
     def getProjects(self):            
         url = f"{self.URI}/api/v1/projects/"
-        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=True)
-        print(response.status_code)
-        print(response.content)
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=True)        
         return response
                   
     def updateProjectPermissions(self, project_id, username, permissions):
@@ -99,8 +97,7 @@ class Qfield:
         
     def getUserInfo(self):    
         url = f"{self.URI}/api/v1/auth/user/"          
-        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)      
-        print(response.content)    
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)                
         return response        
 
     def getProjects(self):
