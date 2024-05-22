@@ -213,8 +213,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def updateQfieldPermissions(self, tab_widget, map):        
         if not self.layman.qfieldReady:
             return
-        read_access, write_access = self.getUserPermissions(tab_widget)  
-        print(read_access, write_access)        
+        read_access, write_access = self.getUserPermissions(tab_widget) 
+        read_access = self.utils.transformUsernames(read_access)   
+        write_access = self.utils.transformUsernames(write_access)  
+        print(read_access, write_access)     
         existingUsers = self.qfield.getAllUsers().json()   
         users_write = self.findCommonUsers(write_access, existingUsers)
         users_read = self.findCommonUsers(read_access, existingUsers)
@@ -592,7 +594,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if not self.permissionsConnected: 
             self.pushButton_close.clicked.connect(lambda: self.close())                    
             self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())      
-            #self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, mapName)).start())                  
+            self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, mapName)).start())                  
             self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.updateQfieldPermissions, args=(self.tabWidget, mapName)).start())                  
             self.permissionsConnected = True
     def showThumbnailMap(self, it, workspace):        

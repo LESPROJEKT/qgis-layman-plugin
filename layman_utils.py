@@ -886,7 +886,15 @@ QPushButton::indicator {
                     print(f"Failed to save changes for layer: {layer.name()}")
             else:            
                 print(f"No changes to save or not a vector layer: {layer.name()}")
-
+    def transformUsernames(self, search_names):        
+        user_screen_names = self.getUserScreenNames()
+        result = []
+        for name in search_names:
+            if name.isupper():               
+                result.append(name)
+            else:                
+                result.append(user_screen_names.get(name, name))
+        return result
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:

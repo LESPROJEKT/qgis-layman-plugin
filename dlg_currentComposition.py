@@ -605,9 +605,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if len(self.layman.stylesToUpdate) > 0:
             layerList = set()
             for layer in self.layman.stylesToUpdate:
-                layerList.add(self.removeUnacceptableChars(layer.name()))
+                layerList.add(self.utils.removeUnacceptableChars(layer.name()))
             for lay in composition['layers']:
-                if self.removeUnacceptableChars(lay['title']) in layerList:
+                if self.utils.removeUnacceptableChars(lay['title']) in layerList:
                     try:
                         self.layman.updateLayerStyle(lay['title'], lay['workspace'])
                     except:
@@ -760,14 +760,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     read_checkbox = table_widget.cellWidget(row, 1)
                     if read_checkbox.isChecked():                        
                         access_list.append(username)
-
                 if type == "write":                    
                     write_checkbox = table_widget.cellWidget(row, 2)
                     if write_checkbox.isChecked():
-                        access_list.append(username)
-
-
-                       
+                        access_list.append(username)                       
                                                  
     def getRoles(self):
         uri = self.URI + "/rest/roles"

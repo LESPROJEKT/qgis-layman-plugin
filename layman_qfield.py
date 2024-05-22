@@ -149,6 +149,7 @@ class Qfield:
     def deletePermissionsForProject(self, project_id, username):      
         url = f"{self.URI}/api/v1/collaborators/{project_id}/{username}/"  
         response = self.utils.requestWrapper("DELETE", url, payload=None, files=None, emitErr=False)       
+        # print(response.content)
         return response 
     
     def getProjectFiles(self, project_id):      
