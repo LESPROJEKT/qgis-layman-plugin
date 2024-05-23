@@ -199,7 +199,7 @@ class LaymanUtils(QObject):
                 header = (req.rawHeader(QByteArray(b"Authorization")))  
                 authHeader ={
                   "Authorization": str(header, 'utf-8'),
-                  "X-Client": "LAYMAN",
+                  "X-Client": "LAYMAN",                  
                 }
                 return authHeader
             else:

@@ -146,10 +146,15 @@ class Qfield:
         response = self.utils.requestWrapper("PATCH", url, payload=payload, files=None, emitErr=False)       
         return response 
     
-    def deletePermissionsForProject(self, project_id, username):      
-        url = f"{self.URI}/api/v1/collaborators/{project_id}/{username}/"  
-        response = self.utils.requestWrapper("DELETE", url, payload=None, files=None, emitErr=False)       
-        # print(response.content)
+    def deletePermissionsForProject(self, project_id, username):  
+        data = json.dumps({
+            "collaborator": username
+        })    
+        additional_headers = {
+            "Content-Type": "application/json"            
+        }
+        url = f"{self.URI}/api/v1/collaborators/{project_id}/user/"       
+        response = self.utils.requestWrapper("DELETE", url, payload=data, files=None, emitErr=False, additionalHeaders=additional_headers)    
         return response 
     
     def getProjectFiles(self, project_id):      

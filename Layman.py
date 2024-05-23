@@ -3869,8 +3869,8 @@ class Layman(QObject):
             self.disableEnvironment()
             return
         if res is None:
-            self.utils.emitMessageBox.emit(["Layman server neodpověděl!", "Layman server not respond!"])         
-            self.logout()
+            self.utils.emitMessageBox.emit(["Layman server neodpověděl!", "Layman server not respond!"])        
+          
             return               
         if 'code' in res:          
            if res['code'] == 34:            
@@ -3894,10 +3894,10 @@ class Layman(QObject):
                 self.setPluginLabel.emit('<a href="'+self.server+'">' + url + '</a>')                
             except Exception as ex:
                 print(ex) 
-                self.utils.emitMessageBox.emit(["Komunikaci se serverem nelze navázat!", "Communication with the server cannot be established!"])  
-                self.logout()
+                self.utils.emitMessageBox.emit(["Komunikaci se serverem nelze navázat!", "Communication with the server cannot be established!"])              
                 return False
         return True
+    
     def onSetPluginLabel(self,string):
         print(self.textbox)
         self.textbox.setOpenExternalLinks(True)
@@ -4175,7 +4175,7 @@ class Layman(QObject):
             if layer.type() == QgsMapLayerType.VectorLayer and layer.dataProvider().name() == 'WFS':              
                 layer.dataProvider().reloadData() 
                 layer.triggerRepaint()    
-                
+
     def connectProjectRead(self):    
         self.project_read_slot = partial(self.projectReaded, False)
         QgsProject.instance().readProject.connect(self.project_read_slot)

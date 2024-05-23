@@ -202,9 +202,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 print(user, role)             
                 self.qfield.patchPermissionsForProject(project_id, role, user)     
           
-        all_users = set(users_write) | set(users_read)
-        for user, role in current_permissions.items():
-            if user not in all_users:          
+        all_users = set(users_write) | set(users_read)   
+        for user, role in current_permissions.items():           
+            if user.replace("@roles", "") not in all_users:          
                 print("delete")
                 print(user)
                 self.qfield.deletePermissionsForProject(project_id, user)
