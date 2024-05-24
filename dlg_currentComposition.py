@@ -967,8 +967,49 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
      
         if self.radioButton_writePrivate.isChecked() and self.radioButton_readPublic.isChecked():
             self.updateWidgetPermissions(user_widget, 'read', True)
-            self.updateWidgetPermissions(role_widget, 'read', True)             
-                         
+            self.updateWidgetPermissions(role_widget, 'read', True)  
+
+    def updateQfieldPermissions(self, tab_widget, map):        
+        if not self.layman.qfieldReady:
+            return
+        read_access, write_access = self.getUserPermissions(tab_widget) 
+        read_access = self.utils.transformUsernames(read_access)   
+        write_access = self.utils.transformUsernames(write_access) 
+        existingUsers = self.qfield.getAllUsers().json()   
+        users_write = self.utils.findCommonUsers(write_access, existingUsers)
+        users_read = self.utils.findCommonUsers(read_access, existingUsers)
+        users_write_set = set(users_write)  
+        users_read = [user for user in users_read if user not in users_write_set]        
+        self.qfield.qfieldPermissionsJunction(self.qfield.findProjectByName(map), users_write, users_read, self.layman.laymanUsername)   
+
+    def getUserPermissions(self, tab_widget):    
+        read_access = []
+        write_access = []
+        if self.radioButton_readPublic.isChecked():
+            read_access = ['EVERYONE']
+        else:
+            table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
+            if table_widget:
+                self.collectAccessFromTable(table_widget, read_access, "read")
+            role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+            if role_table_widget:
+                self.collectAccessFromTable(role_table_widget, read_access, "read")
+
+        if self.radioButton_writePublic.isChecked():
+            write_access = ['EVERYONE']
+        else:
+            table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
+            if table_widget:
+                self.collectAccessFromTable(table_widget, write_access, "write")
+            role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+            if role_table_widget:
+                self.collectAccessFromTable(role_table_widget, write_access, "write")
+        if self.layman.laymanUsername not in write_access:
+            write_access.append(self.layman.laymanUsername)
+        if self.layman.laymanUsername not in read_access:
+            read_access.append(self.layman.laymanUsername)    
+        return  [read_access,write_access]         
+    
     def alignCheckboxesInTable(self, table_widget, count):
         for row in range(count):
             for col in [1, 2]:       
@@ -1065,6 +1106,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if not self.permissionsConnected:           
             self.pushButton_save_permissions.clicked.connect(lambda:  self.progressBar_loader.show())      
             self.pushButton_save_permissions.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, mapName)).start()) 
+            self.pushButton_save_permissions.clicked.connect(lambda: threading.Thread(target=self.updateQfieldPermissions, args=(self.tabWidget, mapName)).start())                  
             self.permissionsConnected = True    
             
     def checkAddedItemDuplicity(self, type, usernameList):

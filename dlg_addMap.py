@@ -127,13 +127,13 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadMapsThread(state)))    
         asyncio.run(self.loadMapsThread(checked)) 
 
-    def findCommonUsers(self, usernames, qfield_users): 
-        usernames_set = set(usernames)      
-        common_users = []
-        for user in qfield_users:
-            if user['username_display'] in usernames_set:
-                common_users.append(user['username_display'])
-        return common_users      
+    # def findCommonUsers(self, usernames, qfield_users): 
+    #     usernames_set = set(usernames)      
+    #     common_users = []
+    #     for user in qfield_users:
+    #         if user['username_display'] in usernames_set:
+    #             common_users.append(user['username_display'])
+    #     return common_users      
         
     def updateUserLists(self, users_write, users_read, server_response):
         users_write_set = set(users_write)
@@ -156,58 +156,58 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     users_write_set.add(collaborator)   
         return list(users_write_set), list(users_read_set), list(deleted_users_set)    
 
-    def qfieldPermissionsJunction(self, project_id, users_write, users_read):        
-        def transform_user_or_role(user_or_role):
-            if user_or_role.isupper():  
-                return f"@roles/{user_or_role}"
-            return user_or_role      
-        def process_user_list(user_list):
-            if "EVERYONE" in user_list:
-                return ["@roles/EVERYONE"]
-            return [transform_user_or_role(user_or_role) for user_or_role in user_list]    
-        users_write_processed = process_user_list(users_write)
-        users_read_processed = process_user_list(users_read)   
-        project_permissions = self.qfield.getPermissionsForProject(project_id).json()        
-        if "@roles/EVERYONE" in users_read_processed:
-            users_read_processed = ["@roles/EVERYONE"]   
-        elif "@roles/EVERYONE" in users_write_processed:
-            users_write_processed = ["@roles/EVERYONE"]           
-        else:      
-            users_read_processed = [user for user in users_read_processed if user not in users_write_processed]  
-        current_permissions = {perm['collaborator']: perm['role'] for perm in project_permissions}
-        for user in users_write_processed:
-            if user ==  self.laymanUsername:
-                continue
-            role = 'editor'
-            if user not in current_permissions:               
-                print(user, role)
-                print("post")
-                self.qfield.postPermissionsForProject(project_id, role, user)
-            elif current_permissions[user] != role:  
-                print("patch")             
-                print(user, role)
-                print(self.qfield.patchPermissionsForProject(project_id, role, user).content)        
-        for user in users_read_processed:
-            if user ==  self.laymanUsername:
-                continue
-            if user in users_write_processed:
-                continue
-            role = 'reader'
-            if user not in current_permissions:    
-                print("post")           
-                print(user, role)
-                self.qfield.postPermissionsForProject(project_id, role, user)
-            elif current_permissions[user] != role:   
-                print("patch")
-                print(user, role)             
-                self.qfield.patchPermissionsForProject(project_id, role, user)     
+    # def qfieldPermissionsJunction(self, project_id, users_write, users_read):        
+    #     def transform_user_or_role(user_or_role):
+    #         if user_or_role.isupper():  
+    #             return f"@roles/{user_or_role}"
+    #         return user_or_role      
+    #     def process_user_list(user_list):
+    #         if "EVERYONE" in user_list:
+    #             return ["@roles/EVERYONE"]
+    #         return [transform_user_or_role(user_or_role) for user_or_role in user_list]    
+    #     users_write_processed = process_user_list(users_write)
+    #     users_read_processed = process_user_list(users_read)   
+    #     project_permissions = self.qfield.getPermissionsForProject(project_id).json()        
+    #     if "@roles/EVERYONE" in users_read_processed:
+    #         users_read_processed = ["@roles/EVERYONE"]   
+    #     elif "@roles/EVERYONE" in users_write_processed:
+    #         users_write_processed = ["@roles/EVERYONE"]           
+    #     else:      
+    #         users_read_processed = [user for user in users_read_processed if user not in users_write_processed]  
+    #     current_permissions = {perm['collaborator']: perm['role'] for perm in project_permissions}
+    #     for user in users_write_processed:
+    #         if user ==  self.laymanUsername:
+    #             continue
+    #         role = 'editor'
+    #         if user not in current_permissions:               
+    #             print(user, role)
+    #             print("post")
+    #             self.qfield.postPermissionsForProject(project_id, role, user)
+    #         elif current_permissions[user] != role:  
+    #             print("patch")             
+    #             print(user, role)
+    #             print(self.qfield.patchPermissionsForProject(project_id, role, user).content)        
+    #     for user in users_read_processed:
+    #         if user ==  self.laymanUsername:
+    #             continue
+    #         if user in users_write_processed:
+    #             continue
+    #         role = 'reader'
+    #         if user not in current_permissions:    
+    #             print("post")           
+    #             print(user, role)
+    #             self.qfield.postPermissionsForProject(project_id, role, user)
+    #         elif current_permissions[user] != role:   
+    #             print("patch")
+    #             print(user, role)             
+    #             self.qfield.patchPermissionsForProject(project_id, role, user)     
           
-        all_users = set(users_write) | set(users_read)   
-        for user, role in current_permissions.items():           
-            if user.replace("@roles", "") not in all_users:          
-                print("delete")
-                print(user)
-                self.qfield.deletePermissionsForProject(project_id, user)
+    #     all_users = set(users_write) | set(users_read)   
+    #     for user, role in current_permissions.items():           
+    #         if user.replace("@roles", "") not in all_users:          
+    #             print("delete")
+    #             print(user)
+    #             self.qfield.deletePermissionsForProject(project_id, user)
     
 
     def updateQfieldPermissions(self, tab_widget, map):        
@@ -215,14 +215,13 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             return
         read_access, write_access = self.getUserPermissions(tab_widget) 
         read_access = self.utils.transformUsernames(read_access)   
-        write_access = self.utils.transformUsernames(write_access)  
-        print(read_access, write_access)     
+        write_access = self.utils.transformUsernames(write_access) 
         existingUsers = self.qfield.getAllUsers().json()   
-        users_write = self.findCommonUsers(write_access, existingUsers)
-        users_read = self.findCommonUsers(read_access, existingUsers)
+        users_write = self.utils.findCommonUsers(write_access, existingUsers)
+        users_read = self.utils.findCommonUsers(read_access, existingUsers)
         users_write_set = set(users_write)  
         users_read = [user for user in users_read if user not in users_write_set]        
-        self.qfieldPermissionsJunction(self.qfield.findProjectByName(map), users_write, users_read)       
+        self.qfield.qfieldPermissionsJunction(self.qfield.findProjectByName(map), users_write, users_read, self.laymanUsername)       
         
     def getUserPermissions(self, tab_widget):    
         read_access = []

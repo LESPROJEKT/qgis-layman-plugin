@@ -895,6 +895,13 @@ QPushButton::indicator {
             else:                
                 result.append(user_screen_names.get(name, name))
         return result
+    def findCommonUsers(self, usernames, qfield_users): 
+        usernames_set = set(usernames)      
+        common_users = []
+        for user in qfield_users:
+            if user['username_display'] in usernames_set:
+                common_users.append(user['username_display'])
+        return common_users      
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:

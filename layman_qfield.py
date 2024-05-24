@@ -232,3 +232,55 @@ class Qfield:
             if project['name'] == name:
                 return project['id']
         return None 
+    def qfieldPermissionsJunction(self, project_id, users_write, users_read, laymanUsername):        
+        def transform_user_or_role(user_or_role):
+            if user_or_role.isupper():  
+                return f"@roles/{user_or_role}"
+            return user_or_role      
+        def process_user_list(user_list):
+            if "EVERYONE" in user_list:
+                return ["@roles/EVERYONE"]
+            return [transform_user_or_role(user_or_role) for user_or_role in user_list]    
+        users_write_processed = process_user_list(users_write)
+        users_read_processed = process_user_list(users_read)   
+        project_permissions = self.getPermissionsForProject(project_id).json()        
+        if "@roles/EVERYONE" in users_read_processed:
+            users_read_processed = ["@roles/EVERYONE"]   
+        elif "@roles/EVERYONE" in users_write_processed:
+            users_write_processed = ["@roles/EVERYONE"]           
+        else:      
+            users_read_processed = [user for user in users_read_processed if user not in users_write_processed]  
+        current_permissions = {perm['collaborator']: perm['role'] for perm in project_permissions}
+        for user in users_write_processed:
+            if user ==  laymanUsername:
+                continue
+            role = 'editor'
+            if user not in current_permissions:               
+                print(user, role)
+                print("post")
+                self.postPermissionsForProject(project_id, role, user)
+            elif current_permissions[user] != role:  
+                print("patch")             
+                print(user, role)
+                print(self.patchPermissionsForProject(project_id, role, user).content)        
+        for user in users_read_processed:
+            if user ==  laymanUsername:
+                continue
+            if user in users_write_processed:
+                continue
+            role = 'reader'
+            if user not in current_permissions:    
+                print("post")           
+                print(user, role)
+                self.postPermissionsForProject(project_id, role, user)
+            elif current_permissions[user] != role:   
+                print("patch")
+                print(user, role)             
+                self.patchPermissionsForProject(project_id, role, user)     
+          
+        all_users = set(users_write) | set(users_read)   
+        for user, role in current_permissions.items():           
+            if user.replace("@roles/", "") not in all_users:          
+                print("delete")
+                print(user)
+                self.deletePermissionsForProject(project_id, user)
