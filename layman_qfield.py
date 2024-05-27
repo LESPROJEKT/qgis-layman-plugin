@@ -262,7 +262,7 @@ class Qfield:
             elif current_permissions[user] != role:  
                 print("patch")             
                 print(user, role)
-                print(self.patchPermissionsForProject(project_id, role, user).content)        
+                self.patchPermissionsForProject(project_id, role, user)    
         for user in users_read_processed:
             if user ==  laymanUsername:
                 continue
