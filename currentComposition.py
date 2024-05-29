@@ -114,6 +114,13 @@ class CurrentComposition(object):
         data = r.json()
         print(data)
         return data['access_rights']
+    def getOnlyMyLayers(self):  
+        layers = self.getLayerList()
+        titles = []    
+        for layer in layers:     
+            if 'workspace' in layer and layer['workspace'] == self.workspace:       
+                titles.append(layer['title'])    
+        return titles
     def removeUnacceptableChars(self, input):
         input = input.lower()
         input = input.replace("ř","r")

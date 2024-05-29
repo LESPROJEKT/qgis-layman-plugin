@@ -185,13 +185,18 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())       
             self.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
         self.progressBar_loader.hide()  
-        if self.layman.qfieldReady:
+        if not self.layman.qfieldReady:
             self.pushButton_qfield.setEnabled(False)
         self.show()
         result = self.exec_()  
     
     def exportToQfield(self):   
         self.progressStart.emit() 
+        ## check layers permissions##
+        # myLayers = self.layman.instance.getOnlyMyLayers()
+        # print(self.utils.filterTitlesByAccessRights(myLayers))
+        ##
+        
         self.utils.saveUnsavedLayers()   
         try:
             self.layman.disconnectProjectRead()
@@ -213,8 +218,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         res = response.json()
         if response.status_code == 201:
             self.utils.showQgisBar([" Projekt by úspěšně vytvořen."," Project was successfully created."], Qgis.Success)    
-        elif 'code' in res and res['code'] == 'project_already_exists':
-            
+        elif 'code' in res and res['code'] == 'project_already_exists':            
             convertedProjectPath = self.qfield.convertQProject()            
             self.utils.showQgisBar([" Aktualizuji project QField."," Update QField project"], Qgis.Success)          
             project_id = self.qfield.getProjectByName(name)              
@@ -245,7 +249,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 print(f"File {filename} is up to date.")
             
-    def setVisibilityForCurrent(self, visible):
+    def setVisibilityForCurrent(self, visible):           
         if self.layman.instance is None:
             self.pushButton_editMeta.setEnabled(False)   
             self.pushButton_setPermissions.setEnabled(False)
@@ -276,8 +280,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_editMeta.setEnabled(visible)            
             self.pushButton_save.setEnabled(visible)
             self.pushButton_delete.setEnabled(visible)     
-            self.pushButton_copyUrl.setEnabled(visible) 
-            if self.layman.qfieldReady:  
+            self.pushButton_copyUrl.setEnabled(visible)             
+            if self.layman.qfieldReady: 
                 self.pushButton_qfield.setEnabled(visible)
             self.checkBox_all.setEnabled(visible)
     def refreshCurrentForm(self, layerAdded = None):

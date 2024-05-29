@@ -902,6 +902,18 @@ QPushButton::indicator {
             if user['username_display'] in usernames_set:
                 common_users.append(user['username_display'])
         return common_users      
+    def filterTitlesByAccessRights(self, layers):  
+        url = self.URI+'/rest/'+self.laymanUsername+'/layers'
+        response = requests.get(url, headers = self.getAuthHeader(self.authCfg))         
+        titles = [] 
+        for layer in response.json():            
+            read_rights = layer.get('access_rights', {}).get('read', [])
+            write_rights = layer.get('access_rights', {}).get('write', [])     
+            if "EVERYONE" not in read_rights and "EVERYONE" not in write_rights:              
+                if layer['title'] in layers:
+                    titles.append(layer['title'])          
+        return titles
+    
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:
