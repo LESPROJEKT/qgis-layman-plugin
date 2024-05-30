@@ -902,18 +902,66 @@ QPushButton::indicator {
             if user['username_display'] in usernames_set:
                 common_users.append(user['username_display'])
         return common_users      
-    def filterTitlesByAccessRights(self, layers):  
-        url = self.URI+'/rest/'+self.laymanUsername+'/layers'
-        response = requests.get(url, headers = self.getAuthHeader(self.authCfg))         
-        titles = [] 
-        for layer in response.json():            
+    # def filterTitlesByAccessRights(self, layers):  
+    #     url = self.URI+'/rest/'+self.laymanUsername+'/layers'
+    #     response = requests.get(url, headers = self.getAuthHeader(self.authCfg))         
+    #     titles = [] 
+    #     for layer in response.json():            
+    #         read_rights = layer.get('access_rights', {}).get('read', [])
+    #         write_rights = layer.get('access_rights', {}).get('write', [])     
+    #         if "EVERYONE" not in read_rights and "EVERYONE" not in write_rights:              
+    #             if layer['title'] in layers:
+    #                 titles.append(layer['title'])          
+    #     return titles
+    def filterTitlesByAccessRights(self, layers):
+        url = self.URI + '/rest/' + self.laymanUsername + '/layers'
+        response = requests.get(url, headers=self.getAuthHeader(self.authCfg))
+        
+        filtered_layers = []  # Seznam pro uložení vrstev jako slovníky s názvem a přístupovými právy
+
+        for layer in response.json():
             read_rights = layer.get('access_rights', {}).get('read', [])
-            write_rights = layer.get('access_rights', {}).get('write', [])     
-            if "EVERYONE" not in read_rights and "EVERYONE" not in write_rights:              
+            write_rights = layer.get('access_rights', {}).get('write', [])
+            
+            if "EVERYONE" not in read_rights and "EVERYONE" not in write_rights:
                 if layer['title'] in layers:
-                    titles.append(layer['title'])          
-        return titles
-    
+                    # Přidání slovníku s názvem vrstvy a jejími právy
+                    filtered_layers.append({
+                        'title': layer['title'],
+                        'access_rights': {
+                            'read': read_rights,
+                            'write': write_rights
+                        }
+                    })
+        
+        return filtered_layers
+    def updateLayerAccessRights(self, filtered_layers):       
+        for layer in filtered_layers:
+            title = layer['title']            
+            title = self.removeUnacceptableChars(title)         
+            url = f"{self.URI}/rest/{self.laymanUsername}/layers/{title}"         
+            read_access = layer['access_rights']['read'] + ['EVERYONE']
+            write_access = layer['access_rights']['write'] + ['EVERYONE']           
+            data = {
+                'access_rights.read': self.listToString(read_access),
+                'access_rights.write': self.listToString(write_access)
+            }        
+            response = requests.patch(url, data=data, headers=self.getAuthHeader(self.authCfg))
+            print(f"Update for layer '{title}': {response.status_code}, Response: {response.text}")
+
+    def removeAuthcfg(self, json_layers):               
+        layer_data = json.loads(json_layers) if isinstance(json_layers, str) else json_layers  
+        layers_to_update = [layer['title'] for layer in layer_data]
+        project = QgsProject.instance()    
+        for layer in project.mapLayers().values():           
+            if layer.name() in layers_to_update:          
+                original_url = layer.source()               
+                parts = original_url.split("&")               
+                filtered_parts = [part for part in parts if not part.startswith("authcfg=")]              
+                new_url = "&".join(filtered_parts)              
+                layer.setDataSource(new_url, layer.name(), layer.providerType())
+
+
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:

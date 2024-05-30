@@ -193,10 +193,18 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def exportToQfield(self):   
         self.progressStart.emit() 
         ## check layers permissions##
-        # myLayers = self.layman.instance.getOnlyMyLayers()
-        # print(self.utils.filterTitlesByAccessRights(myLayers))
-        ##
-        
+        myLayers = self.layman.instance.getOnlyMyLayers()
+        layersToUpdate = self.utils.filterTitlesByAccessRights(myLayers)
+        if layersToUpdate:   
+            msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("QField does not support private layers. Would you like to set these layers as public?"))
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()                                                 
+            if (reply == QMessageBox.Yes):
+                print(layersToUpdate)
+                self.utils.updateLayerAccessRights(self.utils.filterTitlesByAccessRights(layersToUpdate))
+                self.utils.removeAuthcfg(layersToUpdate)        
         self.utils.saveUnsavedLayers()   
         try:
             self.layman.disconnectProjectRead()
