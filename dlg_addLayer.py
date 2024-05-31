@@ -771,7 +771,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_delete.setEnabled(False)  
     def setPermissionsButton(self, item):
-        if item.text(2) != "own" or item.text(4) != "AVAILABLE":
+        if item.text(2) != "own":
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_delete.setEnabled(False)
         else:
