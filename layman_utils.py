@@ -19,6 +19,7 @@ import asyncio
 import ssl
 import urllib.parse
 import hashlib
+from datetime import datetime, timedelta
 
 class LaymanUtils(QObject): 
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)  
@@ -278,8 +279,7 @@ class LaymanUtils(QObject):
             if timeDimension != {}:  
                 if 'values' in timeDimension['time']:           
                     print("wmst")             
-                    quri.setParam("type", "wmst")
-                      #quri.setParam("timeDimensionExtent", "1995-01-01/2021-12-31/PT5M")                        
+                    quri.setParam("type", "wmst")                                     
                     quri.setParam("timeDimensionExtent", str(timeDimension['time']['values']))
                     quri.setParam("allowTemporalUpdates", "true")
                     quri.setParam("temporalSource", "provider")
@@ -313,7 +313,7 @@ class LaymanUtils(QObject):
             rlayer.setMaximumScale(self.resolutionToScale(minRes))
             rlayer.setScaleBasedVisibility(True)
         if (groupName != '' or subgroupName != ''):                        
-            self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path            
+            self.addWmsToGroup(subgroupName,rlayer, "")           
                               
         else:             
             self.loadLayer(rlayer, workspace)  
@@ -542,10 +542,8 @@ class LaymanUtils(QObject):
             self.saveExternalStyle(style, layer_name)     
             return 200, suffix.replace(".","")
         if self.selectedWorkspace:
-            response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
-            #response = self.requestWrapper("GET", self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
-        else:
-            #response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
+            response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))           
+        else:            
             response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))      
         res = response.content
         res = res.decode("utf-8")
@@ -961,6 +959,61 @@ QPushButton::indicator {
                 new_url = "&".join(filtered_parts)              
                 layer.setDataSource(new_url, layer.name(), layer.providerType())
 
+    def compareUpdates(self, qfieldUpdate, laymanUpdate):      
+        json_obj1 = json.loads(qfieldUpdate)
+        json_obj2 = json.loads(laymanUpdate)        
+        created_at1 = datetime.fromisoformat(json_obj1['created_at'])
+        updated_at1 = datetime.fromisoformat(json_obj1['updated_at'])
+        updated_at2 = datetime.fromisoformat(json_obj2['updated_at'])        
+        if updated_at1 != created_at1:         
+            time_difference = updated_at2 - updated_at1
+            if time_difference >= timedelta(minutes=3):
+                return "Informace: První updated_at je starší nebo rovno 3 minutám oproti druhému updated_at."
+            else:
+                return "Informace: První updated_at není starší než 3 minuty oproti druhému updated_at."
+        else:
+            return "Informace: updated_at a created_at v prvním JSON objektu jsou stejné."       
+
+
+    def compareLayers(qfieldFiles, laymanLayers, layersInProject):       
+        qfieldFiles = json.loads(qfieldFiles)
+        laymanLayers = json.loads(laymanLayers)    
+        layer_dict2 = {layer['title']: layer for layer in laymanLayers if layer['title'] in layersInProject}   
+        for layer1 in qfieldFiles:
+            name1 = layer1['name']       
+            if name1.endswith('.gpkg'):
+                base_name1 = name1.rsplit('.', 1)[0]  
+                last_modified1_str = layer1['last_modified']
+                last_modified1 = datetime.strptime(last_modified1_str, "%d.%m.%Y %H:%M:%S UTC")               
+                if base_name1 in layer_dict2:
+                    layer2 = layer_dict2[base_name1]
+                    updated_at2_str = layer2['updated_at']
+                    updated_at2 = datetime.fromisoformat(updated_at2_str.replace("Z", "+00:00"))              
+                    time_difference = updated_at2 - last_modified1
+                    if time_difference >= timedelta(minutes=3):
+                        print(f"Informace: last_modified vrstvy '{name1}' je starší nebo rovno 3 minutám oproti updated_at vrstvy '{base_name1}'.")
+                    else:
+                        print(f"Informace: last_modified vrstvy '{name1}' není starší než 3 minuty oproti updated_at vrstvy '{base_name1}'.")
+                else:
+                    print(f"Informace: Vrstva s názvem '{base_name1}' nebyla nalezena ve druhém seznamu.")
+
+  
+    def getLayersFromComposition(self, name):
+        url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file'                
+        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        if r is not None:
+            data = r.json()
+            layers = [layer['title'] for layer in data.get('layers', [])]
+            return layers
+        else:
+            return []   
+    def downloadFile(self, url, local_filename):
+        headers = self.getAuthHeader(self.authCfg)
+        with requests.get(url, headers=headers, stream=True) as r:
+            r.raise_for_status()
+            with open(local_filename, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk) 
 
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):

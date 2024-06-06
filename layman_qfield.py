@@ -63,7 +63,12 @@ class Qfield:
         url = f"{self.URI}/api/v1/projects/"
         response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=True)        
         return response
-                  
+    
+    def getProject(self, project_id):            
+        url = f"{self.URI}/api/v1/projects/{project_id}/"
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=True)        
+        return response              
+    
     def updateProjectPermissions(self, project_id, username, permissions):
         url = f"{self.URI}/api/v1/collaborators/{project_id}/{username}/"  
         response = self.utils.requestWrapper("PUT", url, payload=json.dumps(permissions), files=None, emitErr=True)
@@ -232,6 +237,24 @@ class Qfield:
             if project['name'] == name:
                 return project['id']
         return None 
+    
+    def downloadProject(self, project_id):        
+        url = f"{self.URI}/api/v1/packages/{project_id}/latest/"
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)  
+        response.raise_for_status()  # Zkontrolujeme, zda byla žádost úspěšná
+        print(response.content)
+        data = response.json()
+        files = data.get("files", [])      
+        download_directory = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
+        os.makedirs(download_directory, exist_ok=True)
+        for file_info in files:
+            filename = file_info['name']
+            download_url = f"{self.URI}/api/v1/packages/{project_id}/latest/files/{filename}"
+            local_path = os.path.join(download_directory, os.path.basename(filename))            
+            print(f"Downloading {filename} to {local_path}...")
+            self.utils.downloadFile(download_url, local_path)
+        print("All files have been downloaded.")
+
     def qfieldPermissionsJunction(self, project_id, users_write, users_read, laymanUsername):        
         def transform_user_or_role(user_or_role):
             if user_or_role.isupper():  
