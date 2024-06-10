@@ -461,6 +461,19 @@
       <string>Show only my compositions</string>
      </property>
     </widget>
+    <widget class="QPushButton" name="pushButton_qfieldSync">
+     <property name="geometry">
+      <rect>
+       <x>320</x>
+       <y>0</y>
+       <width>88</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Qfield sync</string>
+     </property>
+    </widget>
    </widget>
   </widget>
  </widget>

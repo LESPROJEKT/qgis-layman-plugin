@@ -94,6 +94,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         delegate = IconQfieldDelegate()
         self.treeWidget.setItemDelegate(delegate)  
         self.pushButton_map.clicked.connect(lambda: self.progressBar_loader.show())
+        self.pushButton_qfieldSync.clicked.connect(self.qfieldSync)
         self.pushButton_map.clicked.connect(lambda: self.readMapJson(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), 'WFS', self.treeWidget.selectedItems()[0].text(1)))        
         if not self.isAuthorized:
             self.checkBox_own.setEnabled(False)
@@ -127,7 +128,14 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             checked = True
         self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadMapsThread(state)))    
         asyncio.run(self.loadMapsThread(checked))     
-        
+
+    def qfieldSync(self):
+        name = self.treeWidget.selectedItems()[0].text(0)
+        project_id = self.qfield.getProjectByName(name)
+        path = self.qfield.downloadProject(project_id)
+        self.utils.openQgisProject(path)
+
+
     def updateUserLists(self, users_write, users_read, server_response):
         users_write_set = set(users_write)
         users_read_set = set(users_read)    

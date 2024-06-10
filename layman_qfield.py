@@ -124,10 +124,8 @@ class Qfield:
         payload ={
         "collaborator": username,
         "role": role
-        }
-        print(payload)
-        url = f"{self.URI}/api/v1/collaborators/{project_id}/"  
-        print(url)
+        }        
+        url = f"{self.URI}/api/v1/collaborators/{project_id}/"      
         response = self.utils.requestWrapper("POST", url, payload=payload, files=None, emitErr=False)     
         print(response.content) 
         return response
@@ -232,29 +230,50 @@ class Qfield:
                         server_files_hashes[layer['name']] = version['md5sum']
         return server_files_hashes
     def getProjectByName(self, name):
-        project_list = self.getProjects().json()
+        project_list = self.getProjects().json()      
         for project in project_list:
             if project['name'] == name:
                 return project['id']
         return None 
     
-    def downloadProject(self, project_id):        
+    # def downloadProject(self, project_id):        
+    #     url = f"{self.URI}/api/v1/packages/{project_id}/latest/"
+    #     response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)  
+    #     response.raise_for_status() 
+    #     print(response.content)
+    #     data = response.json()
+    #     files = data.get("files", [])      
+    #     download_directory = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
+    #     os.makedirs(download_directory, exist_ok=True)
+    #     for file_info in files:
+    #         filename = file_info['name']
+    #         download_url = f"{self.URI}/api/v1/packages/{project_id}/latest/files/{filename}"
+    #         local_path = os.path.join(download_directory, os.path.basename(filename))            
+    #         print(f"Downloading {filename} to {local_path}...")
+    #         self.utils.downloadFile(download_url, local_path)
+    #     print("All files have been downloaded.")
+    def downloadProject(self, project_id):
         url = f"{self.URI}/api/v1/packages/{project_id}/latest/"
         response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)  
-        response.raise_for_status()  # Zkontrolujeme, zda byla žádost úspěšná
+        response.raise_for_status() 
         print(response.content)
         data = response.json()
-        files = data.get("files", [])      
+        files = data.get("files", [])        
         download_directory = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
-        os.makedirs(download_directory, exist_ok=True)
+        os.makedirs(download_directory, exist_ok=True)        
+        dcim_directory = os.path.join(download_directory, 'DCIM')
+        os.makedirs(dcim_directory, exist_ok=True)        
         for file_info in files:
             filename = file_info['name']
-            download_url = f"{self.URI}/api/v1/packages/{project_id}/latest/files/{filename}"
-            local_path = os.path.join(download_directory, os.path.basename(filename))            
+            download_url = f"{self.URI}/api/v1/packages/{project_id}/latest/files/{filename}"            
+            if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+                local_path = os.path.join(dcim_directory, os.path.basename(filename))
+            else:
+                local_path = os.path.join(download_directory, os.path.basename(filename))                
             print(f"Downloading {filename} to {local_path}...")
-            self.utils.downloadFile(download_url, local_path)
+            self.utils.downloadFile(download_url, local_path)    
         print("All files have been downloaded.")
-
+        return download_directory
     def qfieldPermissionsJunction(self, project_id, users_write, users_read, laymanUsername):        
         def transform_user_or_role(user_or_role):
             if user_or_role.isupper():  

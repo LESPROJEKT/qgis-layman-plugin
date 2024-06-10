@@ -1014,7 +1014,18 @@ QPushButton::indicator {
             with open(local_filename, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk) 
+    def openQgisProject(self, project_path):        
+        project = QgsProject.instance()
+        project_path = self.findQgisProject(project_path)
+        project.read(project_path)   
 
+    def findQgisProject(self, directory):
+        """Najde první .qgz nebo .qgs soubor v zadaném adresáři."""
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                if file.endswith('.qgz') or file.endswith('.qgs'):
+                    return os.path.join(root, file)
+        return None
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:
