@@ -266,7 +266,7 @@ class Qfield:
         for file_info in files:
             filename = file_info['name']
             download_url = f"{self.URI}/api/v1/packages/{project_id}/latest/files/{filename}"            
-            if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+            if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.mp4', '.avi', '.mov',  '.mkv', '.webm', '.m4v', '.3gp', '.mpg', '.mpeg')):
                 local_path = os.path.join(dcim_directory, os.path.basename(filename))
             else:
                 local_path = os.path.join(download_directory, os.path.basename(filename))                
