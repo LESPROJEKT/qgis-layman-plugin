@@ -47,7 +47,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     loadComposition = pyqtSignal(str,str,str)
     permissionInfo = pyqtSignal(bool,list, int)
     readCompositionFailed = pyqtSignal()
-    
+    addTreeItem = pyqtSignal(QTreeWidgetItem)
+    setIcon = pyqtSignal(QTreeWidgetItem, QIcon)
+    clearTree = pyqtSignal()
+    showQgisBar = pyqtSignal(list, int)
     def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(AddMapDialog, self).__init__(parent)
@@ -63,6 +66,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setupUi(self)      
         self.globalRead = {}
         self.globalWrite = {}  
+        self.addTreeItem.connect(self.treeWidget.addTopLevelItem)
+        self.setIcon.connect(self.set_item_icon)
+        self.clearTree.connect(self.treeWidget.clear)
+        self.showQgisBar.connect(self.utils.showQgisBar)
         self.qfield = Qfield(self.utils)
         self.setUi()
         
@@ -130,11 +137,15 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         asyncio.run(self.loadMapsThread(checked))     
 
     def qfieldSync(self):
+        try:
+            self.layman.disconnectProjectRead()
+        except:
+            ("read project is already disconnected")  
         name = self.treeWidget.selectedItems()[0].text(0)
         project_id = self.qfield.getProjectByName(name)
         path = self.qfield.downloadProject(project_id)
         self.utils.openQgisProject(path)
-
+        self.layman.connectProjectRead()   
 
     def updateUserLists(self, users_write, users_read, server_response):
         users_write_set = set(users_write)
@@ -610,58 +621,132 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 return True  
         return False        
     
-    async def loadMapsThread(self, onlyOwn):        
-        self.treeWidget.clear()        
-        icon = QIcon(os.path.join(self.layman.plugin_dir, 'icons', 'qfield.png')) 
+    # async def loadMapsThread(self, onlyOwn):        
+    #     self.treeWidget.clear()        
+    #     icon = QIcon(os.path.join(self.layman.plugin_dir, 'icons', 'qfield.png')) 
+    #     if self.layman.qfieldReady:
+    #         qProjects = self.qfield.getProjects()        
+    #         qProjects = qProjects.json()   
+    #     names = self.utils.getUserScreenNames()       
+    #     url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title' 
+    #     r = await (self.utils.asyncRequestWrapper("GET", url))
+    #     try:
+    #         data = self.utils.fromByteToJson(r)    
+    #     except:
+    #         self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
+    #         return            
+    #     if onlyOwn and self.isAuthorized:
+    #         for row in range(0, len(data)):       
+    #             item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", data[row]['native_crs']])
+    #             if self.layman.qfieldReady:
+    #                 qfieldExists = self.matchQfield(data[row]['title'], names[data[row]['workspace']], qProjects)              
+    #                 if qfieldExists:
+    #                     item.setIcon(0, icon)    
+    #             self.treeWidget.addTopLevelItem(item)   
+    #         self.progressDone.emit()
+    #     elif not self.isAuthorized:
+    #         url = self.URI+'/rest/maps?order_by=title'
+    #         r = self.utils.asyncRequestWrapper("GET", url)  
+    #         try:     
+    #             dataAll = self.utils.fromByteToJson(r) 
+    #         except:
+    #             self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
+    #             return                  
+    #         permissions = ""
+    #         for row in range(0, len(dataAll)):
+    #             if "native_crs" in dataAll[row]:
+    #                 item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read", dataAll[row]['native_crs']])
+    #                 if self.layman.qfieldReady:
+    #                     qfieldExists = self.matchQfield(dataAll[row]['title'], names[dataAll[row]['workspace']], qProjects)
+    #                     if qfieldExists:
+    #                         item.setIcon(0, icon) 
+    #             else:
+    #                 item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read"])
+    #             self.treeWidget.addTopLevelItem(item)
+    #     else:
+    #         url = self.URI+'/rest/maps?order_by=title'     
+    #         r =  await (self.utils.asyncRequestWrapper("GET", url))
+    #         try:  
+    #             dataAll = self.utils.fromByteToJson(r) 
+    #         except:
+    #             self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
+    #             return                 
+    #         permissions = ""
+    #         for row in range(0, len(dataAll)):
+    #             if self.laymanUsername in dataAll[row]['access_rights']['read'] or "EVERYONE" in dataAll[row]['access_rights']['read']:
+    #                 permissions = "read"
+    #             if self.laymanUsername in dataAll[row]['access_rights']['write'] or "EVERYONE" in dataAll[row]['access_rights']['write']:
+    #                 permissions = "write"
+    #             if dataAll[row] in data:
+    #                 permissions = "own"
+    #             if permissions != "":
+    #                 if "native_crs" in dataAll[row]:
+    #                     item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions, dataAll[row]['native_crs']])
+    #                     if self.layman.qfieldReady:
+    #                         qfieldExists = self.matchQfield(dataAll[row]['title'], names[dataAll[row]['workspace']], qProjects)
+    #                         if qfieldExists:
+    #                             item.setIcon(0, icon) 
+    #                 else:
+    #                     item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])                    
+    #                 self.treeWidget.addTopLevelItem(item)   
+    #     self.progressDone.emit()    
+    async def loadMapsThread(self, onlyOwn):
+        self.clearTree.emit()
+        icon = QIcon(os.path.join(self.layman.plugin_dir, 'icons', 'qfield.png'))
+
+        qProjects = []
         if self.layman.qfieldReady:
-            qProjects = self.qfield.getProjects()        
-            qProjects = qProjects.json()   
-        names = self.utils.getUserScreenNames()       
-        url = self.URI+'/rest/'+self.laymanUsername+'/maps?order_by=title' 
-        r = await (self.utils.asyncRequestWrapper("GET", url))
+            qProjects = self.qfield.getProjects()
+            qProjects = qProjects.json()
+
+        names = self.utils.getUserScreenNames()
+        url = self.URI + '/rest/' + self.laymanUsername + '/maps?order_by=title'
+        r = await self.utils.asyncRequestWrapper("GET", url)
         try:
-            data = self.utils.fromByteToJson(r)    
-        except:
-            self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
-            return            
+            data = self.utils.fromByteToJson(r)
+        except Exception as e:
+            self.showQgisBar.emit(["Layman server neodpověděl", "Layman server was not responding"], Qgis.Warning)
+            return
+
         if onlyOwn and self.isAuthorized:
-            for row in range(0, len(data)):       
-                item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own", data[row]['native_crs']])
+            for row in range(len(data)):
+                item = QTreeWidgetItem([data[row]['title'], data[row]['workspace'], "own", data[row]['native_crs']])
                 if self.layman.qfieldReady:
-                    qfieldExists = self.matchQfield(data[row]['title'], names[data[row]['workspace']], qProjects)              
+                    qfieldExists = self.matchQfield(data[row]['title'], names[data[row]['workspace']], qProjects)
                     if qfieldExists:
-                        item.setIcon(0, icon)    
-                self.treeWidget.addTopLevelItem(item)   
+                        self.setIcon.emit(item, icon)
+                self.addTreeItem.emit(item)
             self.progressDone.emit()
         elif not self.isAuthorized:
-            url = self.URI+'/rest/maps?order_by=title'
-            r = self.utils.asyncRequestWrapper("GET", url)  
-            try:     
-                dataAll = self.utils.fromByteToJson(r) 
-            except:
-                self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
-                return                  
-            permissions = ""
-            for row in range(0, len(dataAll)):
+            url = self.URI + '/rest/maps?order_by=title'
+            r = await self.utils.asyncRequestWrapper("GET", url)
+            try:
+                dataAll = self.utils.fromByteToJson(r)
+            except Exception as e:
+                self.showQgisBar.emit(["Layman server neodpověděl", "Layman server was not responding"], Qgis.Warning)
+                return
+
+            for row in range(len(dataAll)):
                 if "native_crs" in dataAll[row]:
-                    item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read", dataAll[row]['native_crs']])
+                    item = QTreeWidgetItem([dataAll[row]['title'], dataAll[row]['workspace'], "read", dataAll[row]['native_crs']])
                     if self.layman.qfieldReady:
                         qfieldExists = self.matchQfield(dataAll[row]['title'], names[dataAll[row]['workspace']], qProjects)
                         if qfieldExists:
-                            item.setIcon(0, icon) 
+                            self.setIcon.emit(item, icon)
                 else:
-                    item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],"read"])
-                self.treeWidget.addTopLevelItem(item)
+                    item = QTreeWidgetItem([dataAll[row]['title'], dataAll[row]['workspace'], "read"])
+                self.addTreeItem.emit(item)
         else:
-            url = self.URI+'/rest/maps?order_by=title'     
-            r =  await (self.utils.asyncRequestWrapper("GET", url))
-            try:  
-                dataAll = self.utils.fromByteToJson(r) 
-            except:
-                self.utils.showQgisBar(["Layman server neodpověděl","Layman server was not responding"], Qgis.Warning)   
-                return                 
-            permissions = ""
-            for row in range(0, len(dataAll)):
+            url = self.URI + '/rest/maps?order_by=title'
+            r = await self.utils.asyncRequestWrapper("GET", url)
+            try:
+                dataAll = self.utils.fromByteToJson(r)
+            except Exception as e:
+                self.showQgisBar.emit(["Layman server neodpověděl", "Layman server was not responding"], Qgis.Warning)
+                return
+
+            for row in range(len(dataAll)):
+                permissions = ""
                 if self.laymanUsername in dataAll[row]['access_rights']['read'] or "EVERYONE" in dataAll[row]['access_rights']['read']:
                     permissions = "read"
                 if self.laymanUsername in dataAll[row]['access_rights']['write'] or "EVERYONE" in dataAll[row]['access_rights']['write']:
@@ -670,15 +755,17 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     permissions = "own"
                 if permissions != "":
                     if "native_crs" in dataAll[row]:
-                        item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions, dataAll[row]['native_crs']])
+                        item = QTreeWidgetItem([dataAll[row]['title'], dataAll[row]['workspace'], permissions, dataAll[row]['native_crs']])
                         if self.layman.qfieldReady:
                             qfieldExists = self.matchQfield(dataAll[row]['title'], names[dataAll[row]['workspace']], qProjects)
                             if qfieldExists:
-                                item.setIcon(0, icon) 
+                                self.setIcon.emit(item, icon)
                     else:
-                        item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])                    
-                    self.treeWidget.addTopLevelItem(item)   
-        self.progressDone.emit()            
+                        item = QTreeWidgetItem([dataAll[row]['title'], dataAll[row]['workspace'], permissions])
+                    self.addTreeItem.emit(item)
+        self.progressDone.emit()
+    def set_item_icon(self, item, icon):
+        item.setIcon(0, icon)               
     def rememberValueMap(self, value): 
         if value == 2:
             self.utils.appendIniItem("mapCheckbox", "1")
