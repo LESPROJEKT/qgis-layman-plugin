@@ -207,10 +207,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.utils.updateLayerAccessRights(self.utils.filterTitlesByAccessRights(layersToUpdate))
                 self.utils.removeAuthcfg(layersToUpdate)        
         self.utils.saveUnsavedLayers()   
-        try:
-            self.layman.disconnectProjectRead()
-        except:
-            ("read project is already disconnected")         
+        self.layman.qfieldWorking = True         
         try:
             QgsProject.instance().layerWasAdded.disconnect()
         except TypeError as e:
@@ -240,7 +237,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)  
-        self.layman.connectProjectRead()           
+        self.layman.qfieldWorking = False           
         self.progressDone.emit()   
   
     def syncFiles(self, local_files_hashes, server_files_hashes, layers_to_post, layers_to_delete, project_id):      

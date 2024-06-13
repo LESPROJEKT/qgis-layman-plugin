@@ -172,7 +172,8 @@ class Layman(QObject):
         self.writeState(0)   
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt" 
         self.dependencies = True
-        self.firstLogin = True        
+        self.firstLogin = True   
+        self.qfieldWorking = False    
         self.resamplingMethods = {
             "Není vybrán": "No value",
             "Nejbližší": "nearest",
@@ -433,7 +434,9 @@ class Layman(QObject):
         
         self.current = None
                          
-    def projectReaded(self, afterLogged = False):      
+    def projectReaded(self, afterLogged = False):   
+        if self.qfieldWorking:
+            return   
         proj = QgsProject.instance()
         server, type_conversion_ok = proj.readEntry("Layman", "Server","")
         name, type_conversion_ok = proj.readEntry("Layman", "Name","")    
@@ -458,6 +461,8 @@ class Layman(QObject):
                 else:
                     self.current = None
             else:
+                if self.laymanUsername !="":
+                    return
                 if afterLogged == False:                    
                     msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("This project includes link to Layman server. Do you want login?"))                               
                     msgbox.addButton(QMessageBox.Yes)
@@ -2763,7 +2768,7 @@ class Layman(QObject):
                     dimension = elt.text
                     check = False
                     return dimension
-    def postRequest(self, layer_name, auto=False, thread=False, bulk = False, resamplingMethod = "Není vybrán"):
+    def postRequest(self, layer_name, auto=False, thread=False, bulk = False, resamplingMethod = "Není vybrán", noInfo = False):
         nameCheck = True
         validExtent = True
         layers = QgsProject.instance().mapLayersByName(layer_name)    
@@ -2795,7 +2800,8 @@ class Layman(QObject):
                              reply = QMessageBox.Yes                           
                         if (reply == QMessageBox.Yes):
                             self.dlg.progressBar.show()
-                            self.dlg.label_import.show()
+                            if not noInfo:
+                                self.dlg.label_import.show()
                             q = self.setProcessingItem(layer_name)
                             if (isinstance(layers[0], QgsVectorLayer)):
                                 if layers[0].crs().authid() in self.supportedEPSG:
@@ -2844,7 +2850,8 @@ class Layman(QObject):
                     self.layerName = layer_name 
                     if not auto:
                         self.dlg.progressBar.show()
-                        self.dlg.label_import.show()
+                        if not noInfo:
+                            self.dlg.label_import.show()
                     if auto:
                         read = self.instance.getAllPermissions()['read']
                         write = self.instance.getAllPermissions()['write']

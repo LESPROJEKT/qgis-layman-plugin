@@ -997,7 +997,12 @@ QPushButton::indicator {
                 else:
                     print(f"Informace: Vrstva s názvem '{base_name1}' nebyla nalezena ve druhém seznamu.")
 
-  
+    def getLayersFromCanvas(self):
+        project = QgsProject.instance()
+        layers = project.mapLayers().values()
+        layer_names = [layer.name() for layer in layers]
+        return layer_names
+
     def getLayersFromComposition(self, name):
         url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file'                
         r = self.utils.requestWrapper("GET", url, payload = None, files = None)

@@ -51,6 +51,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     setIcon = pyqtSignal(QTreeWidgetItem, QIcon)
     clearTree = pyqtSignal()
     showQgisBar = pyqtSignal(list, int)
+    updateButtonsSignal = pyqtSignal(bool)
     def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(AddMapDialog, self).__init__(parent)
@@ -65,11 +66,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setStyle(proxy_style)
         self.setupUi(self)      
         self.globalRead = {}
-        self.globalWrite = {}  
-        self.addTreeItem.connect(self.treeWidget.addTopLevelItem)
-        self.setIcon.connect(self.set_item_icon)
-        self.clearTree.connect(self.treeWidget.clear)
-        self.showQgisBar.connect(self.utils.showQgisBar)
+        self.globalWrite = {}     
         self.qfield = Qfield(self.utils)
         self.setUi()
         
@@ -79,6 +76,11 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.loadComposition.connect(self.readMapJsonThread)
         self.permissionInfo.connect(self.afterPermissionDone)
         self.readCompositionFailed.connect(self._onReadCompositionFailed)
+        self.updateButtonsSignal.connect(self.updateButtons)
+        self.addTreeItem.connect(self.treeWidget.addTopLevelItem)
+        self.setIcon.connect(self.set_item_icon)
+        self.clearTree.connect(self.treeWidget.clear)
+        self.showQgisBar.connect(self.utils.showQgisBar)
     def setPermissionsWidget(self, option):        
         self.page1.setVisible(not option)
         self.page2.setVisible(option)
@@ -95,13 +97,20 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnailMap(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), self.treeWidget.selectedItems()[0].text(1)  ) ).start())
         self.treeWidget.itemClicked.connect(self.enableLoadMapButtons) 
         self.treeWidget.itemClicked.connect(self.setPermissionsButton)
+        self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=self.setQfieldButtons).start())
         self.treeWidget.setColumnWidth(0, 300)
         self.treeWidget.setColumnWidth(2, 80)
         self.label_noUser.hide()
         delegate = IconQfieldDelegate()
         self.treeWidget.setItemDelegate(delegate)  
-        self.pushButton_map.clicked.connect(lambda: self.progressBar_loader.show())
+        self.pushButton_map.clicked.connect(lambda: self.progressBar.show())        
+        self.pushButton_qfieldSync.setEnabled(False)
+        self.pushButton_laymanSync.setEnabled(False)
+        self.pushButton_laymanSync.clicked.connect(lambda:  self.progressBar.show())  
+        self.pushButton_qfieldSync.clicked.connect(lambda:  self.progressBar.show()) 
         self.pushButton_qfieldSync.clicked.connect(self.qfieldSync)
+        self.pushButton_laymanSync.clicked.connect(self.laymanSync)
+         
         self.pushButton_map.clicked.connect(lambda: self.readMapJson(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), 'WFS', self.treeWidget.selectedItems()[0].text(1)))        
         if not self.isAuthorized:
             self.checkBox_own.setEnabled(False)
@@ -119,7 +128,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.mapDeletedSuccessfully.emit()
         self.show()
         self.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl(True))
-        self.progressBar_loader.show()
+        self.progressBar.show()
         self.label_loading.show()
         if not self.isAuthorized:
             self.label_noUser.show()
@@ -137,16 +146,21 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         asyncio.run(self.loadMapsThread(checked))     
 
     def qfieldSync(self):
-        try:
-            self.layman.disconnectProjectRead()
-        except:
-            ("read project is already disconnected")  
+        self.utils.showMessageBar([" Načítám Qfield projekt"," Loading qfield project"],Qgis.Success)
+        self.layman.qfieldWorking = True  
         name = self.treeWidget.selectedItems()[0].text(0)
         project_id = self.qfield.getProjectByName(name)
         path = self.qfield.downloadProject(project_id)
-        self.utils.openQgisProject(path)
-        self.layman.connectProjectRead()   
+        self.utils.openQgisProject(path)      
+        self.progressDone.emit()  
+        self.layman.qfieldWorking = False 
 
+    def laymanSync(self):
+        layers = self.utils.getLayersFromCanvas()
+        for layer in layers:
+            self.layman.postRequest(layer, noInfo = True)
+        self.progressDone.emit()              
+        
     def updateUserLists(self, users_write, users_read, server_response):
         users_write_set = set(users_write)
         users_read_set = set(users_read)    
@@ -561,7 +575,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.radioButton_writePublic.toggled.connect(lambda: self.updatePermissions('write', self.radioButton_writePublic.isChecked()))   
         if not self.permissionsConnected: 
             self.pushButton_close.clicked.connect(lambda: self.close())                    
-            self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())      
+            self.pushButton_save.clicked.connect(lambda:  self.progressBar.show())      
             self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, mapName)).start())                  
             self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.updateQfieldPermissions, args=(self.tabWidget, mapName)).start())                  
             self.permissionsConnected = True
@@ -597,8 +611,25 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_delete.setEnabled(False)
         else:
             self.pushButton_setPermissions.setEnabled(True)
-            self.pushButton_delete.setEnabled(True)       
-            
+            self.pushButton_delete.setEnabled(True)      
+       
+    def setQfieldButtons(self):
+        if self.layman.qfieldReady:        
+            qProjects = self.qfield.getProjects()
+            qProjects = qProjects.json()
+            names = self.utils.getUserScreenNames()
+            qfieldExists = self.matchQfield(self.treeWidget.selectedItems()[0].text(0), names[self.treeWidget.selectedItems()[0].text(1)], qProjects)
+            self.updateButtonsSignal.emit(qfieldExists)
+        else:   
+            self.updateButtonsSignal.emit(False)
+
+    def updateButtons(self, qfieldExists):
+        if qfieldExists:
+            self.pushButton_qfieldSync.setEnabled(True)
+            self.pushButton_laymanSync.setEnabled(True)
+        else:
+            self.pushButton_qfieldSync.setEnabled(False)
+            self.pushButton_laymanSync.setEnabled(False)        
     def disableButtonsAddMap(self):
         self.pushButton_setPermissions.setEnabled(False)
         self.pushButton_delete.setEnabled(False)            
@@ -813,7 +844,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.label_thumbnail.setText(' ')  
             self.setPermissionsWidget(False)
     def _onProgressDone(self):
-        self.progressBar_loader.hide()
+        self.progressBar.hide()
         
     def copyCompositionUrl(self, composition=None):  
         if not composition:
@@ -1167,7 +1198,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         item.setData(Qt.UserRole, hidden_item)                       
     def afterPermissionDone(self, success, failed, info):
         if self.objectName() == "AddMapDialog":
-            self.progressBar_loader.hide()             
+            self.progressBar.hide()             
             if success:
                 self.utils.emitMessageBox.emit(["Práva byla úspěšně uložena.", "Permissions was saved successfully."])                    
             else:
@@ -1202,4 +1233,4 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def _onReadCompositionFailed(self):
         self.utils.showQgisBar(["Špatný formát kompozice.","Wrong format of composition"], Qgis.Warning)   
         if self.objectName() == "AddMapDialog":
-            self.progressBar_loader.hide()                    
+            self.progressBar.hide()                    
