@@ -900,30 +900,27 @@ QPushButton::indicator {
             if user['username_display'] in usernames_set:
                 common_users.append(user['username_display'])
         return common_users      
-    # def filterTitlesByAccessRights(self, layers):  
-    #     url = self.URI+'/rest/'+self.laymanUsername+'/layers'
-    #     response = requests.get(url, headers = self.getAuthHeader(self.authCfg))         
-    #     titles = [] 
-    #     for layer in response.json():            
-    #         read_rights = layer.get('access_rights', {}).get('read', [])
-    #         write_rights = layer.get('access_rights', {}).get('write', [])     
-    #         if "EVERYONE" not in read_rights and "EVERYONE" not in write_rights:              
-    #             if layer['title'] in layers:
-    #                 titles.append(layer['title'])          
-    #     return titles
+    def isWmsOrWfs(self, layer):
+        return layer.providerType() in ['wms', 'wfs']
+    
+    def containsWmsOrWfs(self):
+        project = QgsProject.instance()     
+        layers = project.mapLayers().values()
+        for layer in layers:
+            if self.isWmsOrWfs(layer):            
+                return True
+        return False
+    
     def filterTitlesByAccessRights(self, layers):
         url = self.URI + '/rest/' + self.laymanUsername + '/layers'
-        response = requests.get(url, headers=self.getAuthHeader(self.authCfg))
-        
-        filtered_layers = []  # Seznam pro uložení vrstev jako slovníky s názvem a přístupovými právy
-
+        response = requests.get(url, headers=self.getAuthHeader(self.authCfg))        
+        filtered_layers = []  
         for layer in response.json():
             read_rights = layer.get('access_rights', {}).get('read', [])
             write_rights = layer.get('access_rights', {}).get('write', [])
             
             if "EVERYONE" not in read_rights and "EVERYONE" not in write_rights:
-                if layer['title'] in layers:
-                    # Přidání slovníku s názvem vrstvy a jejími právy
+                if layer['title'] in layers:                    
                     filtered_layers.append({
                         'title': layer['title'],
                         'access_rights': {

@@ -192,22 +192,25 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         result = self.exec_()  
     
     def exportToQfield(self):   
-        self.progressStart.emit() 
-        ## check layers permissions##
+        self.progressStart.emit()  
+        self.layman.qfieldWorking = True       
         myLayers = self.layman.instance.getOnlyMyLayers()
-        layersToUpdate = self.utils.filterTitlesByAccessRights(myLayers)
+        if self.utils.containsWmsOrWfs():
+            layersToUpdate = self.utils.filterTitlesByAccessRights(myLayers)
+        else:
+            layersToUpdate = None           
         if layersToUpdate:   
             msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("QField does not support private layers. Would you like to set these layers as public?"))
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
+            msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
             reply = msgbox.exec()                                                 
             if (reply == QMessageBox.Yes):
                 print(layersToUpdate)
                 self.utils.updateLayerAccessRights(self.utils.filterTitlesByAccessRights(layersToUpdate))
                 self.utils.removeAuthcfg(layersToUpdate)        
-        self.utils.saveUnsavedLayers()   
-        self.layman.qfieldWorking = True         
+        self.utils.saveUnsavedLayers()  
         try:
             QgsProject.instance().layerWasAdded.disconnect()
         except TypeError as e:

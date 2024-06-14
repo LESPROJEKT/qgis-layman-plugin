@@ -435,6 +435,7 @@ class Layman(QObject):
         self.current = None
                          
     def projectReaded(self, afterLogged = False):   
+        print(self.qfieldWorking)
         if self.qfieldWorking:
             return   
         proj = QgsProject.instance()
