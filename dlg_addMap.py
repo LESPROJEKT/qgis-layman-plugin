@@ -614,11 +614,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_delete.setEnabled(True)      
        
     def setQfieldButtons(self):
-        if self.layman.qfieldReady:        
-            qProjects = self.qfield.getProjects()
-            qProjects = qProjects.json()
+        if self.layman.qfieldReady:       
             names = self.utils.getUserScreenNames()
-            qfieldExists = self.matchQfield(self.treeWidget.selectedItems()[0].text(0), names[self.treeWidget.selectedItems()[0].text(1)], qProjects)
+            qfieldExists = self.matchQfield(self.treeWidget.selectedItems()[0].text(0), names[self.treeWidget.selectedItems()[0].text(1)], self.qProjects)
             self.updateButtonsSignal.emit(qfieldExists)
         else:   
             self.updateButtonsSignal.emit(False)
@@ -725,10 +723,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.clearTree.emit()
         icon = QIcon(os.path.join(self.layman.plugin_dir, 'icons', 'qfield.png'))
 
-        qProjects = []
+        self.qProjects = []
         if self.layman.qfieldReady:
-            qProjects = self.qfield.getProjects()
-            qProjects = qProjects.json()
+            self.qProjects = self.qfield.getProjects()
+            self.qProjects = self.qProjects.json()
 
         names = self.utils.getUserScreenNames()
         url = self.URI + '/rest/' + self.laymanUsername + '/maps?order_by=title'
@@ -743,7 +741,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             for row in range(len(data)):
                 item = QTreeWidgetItem([data[row]['title'], data[row]['workspace'], "own", data[row]['native_crs']])
                 if self.layman.qfieldReady:
-                    qfieldExists = self.matchQfield(data[row]['title'], names[data[row]['workspace']], qProjects)
+                    qfieldExists = self.matchQfield(data[row]['title'], names[data[row]['workspace']], self.qProjects)
                     if qfieldExists:
                         self.setIcon.emit(item, icon)
                 self.addTreeItem.emit(item)
@@ -761,7 +759,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 if "native_crs" in dataAll[row]:
                     item = QTreeWidgetItem([dataAll[row]['title'], dataAll[row]['workspace'], "read", dataAll[row]['native_crs']])
                     if self.layman.qfieldReady:
-                        qfieldExists = self.matchQfield(dataAll[row]['title'], names[dataAll[row]['workspace']], qProjects)
+                        qfieldExists = self.matchQfield(dataAll[row]['title'], names[dataAll[row]['workspace']], self.qProjects)
                         if qfieldExists:
                             self.setIcon.emit(item, icon)
                 else:
@@ -788,7 +786,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     if "native_crs" in dataAll[row]:
                         item = QTreeWidgetItem([dataAll[row]['title'], dataAll[row]['workspace'], permissions, dataAll[row]['native_crs']])
                         if self.layman.qfieldReady:
-                            qfieldExists = self.matchQfield(dataAll[row]['title'], names[dataAll[row]['workspace']], qProjects)
+                            qfieldExists = self.matchQfield(dataAll[row]['title'], names[dataAll[row]['workspace']], self.qProjects)
                             if qfieldExists:
                                 self.setIcon.emit(item, icon)
                     else:
