@@ -255,6 +255,7 @@ class Qfield:
     def downloadProject(self, project_id):
         url = f"{self.URI}/api/v1/packages/{project_id}/latest/"
         response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)  
+        print(response.content)
         response.raise_for_status() 
         print(response.content)
         data = response.json()

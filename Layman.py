@@ -2048,7 +2048,6 @@ class Layman(QObject):
 
         layerType = layer.type()
         if layerType == QgsMapLayer.VectorLayer:
-
             renderer = layer.renderer()
             hasIcon = False
             if isinstance(renderer, QgsSingleSymbolRenderer):
@@ -2074,18 +2073,21 @@ class Layman(QObject):
             sld_filename = filePath.replace("geojson", "sld").lower()
             qml_filename = filePath.replace("geojson", "qml").lower()
             if os.path.exists(sld_filename):
-                os.remove(sld_filename)        
-            if os.path.exists(qml_filename):
-                os.remove(qml_filename)       
-            result3 = False
+                os.remove(sld_filename)      
             layer.saveSldStyle(sld_filename)
-            self.insertPictureToQML(layer)
-            layer.saveNamedStyle(qml_filename)
-            self.insertBinaryToQml(layer, qml_filename)      
-            ## QML fix for layman server            
-            self.QmlCompatibility(qml_filename)     
-            self.insertSvgToQMLInLabel(qml_filename)
+            self.saveQml(qml_filename, layer)         
             return True
+    def saveQml(self, qml_filename, layer):
+        if os.path.exists(qml_filename):
+            os.remove(qml_filename)   
+        self.insertPictureToQML(layer)    
+        layer.saveNamedStyle(qml_filename)     
+        self.insertBinaryToQml(layer, qml_filename)      
+        ## QML fix for layman server            
+        self.QmlCompatibility(qml_filename)     
+        self.insertSvgToQMLInLabel(qml_filename)        
+        return qml_filename
+    
     def insertSvgToQMLInLabel(self, qml_filename): 
         with open(qml_filename, 'r') as file:
             xml_data = file.read()      
@@ -4091,8 +4093,8 @@ class Layman(QObject):
     def postPostreLayer(self, layer, username, password):
         uri = self.preparePostgresUri(layer, username, password)      
         layer_name = layer.name()        
-        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
-        layer.saveNamedStyle(stylePath)       
+        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")      
+        self.saveQml(stylePath, layer)      
         payload = {                
                 'external_table_uri': uri,
                 'title': layer_name,                

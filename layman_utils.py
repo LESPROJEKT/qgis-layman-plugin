@@ -872,7 +872,7 @@ QPushButton::indicator {
         res = self.fromByteToJson(r.content)  
         user_screen_names = {}    
         for user in res:   
-            user_screen_names[user['username']] = user['screen_name']
+            user_screen_names[user['username']] = user['screen_name']           
         return user_screen_names
     def saveUnsavedLayers(self):    
         project = QgsProject.instance()   

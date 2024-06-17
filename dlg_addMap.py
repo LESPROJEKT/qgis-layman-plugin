@@ -149,7 +149,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.utils.showMessageBar([" Načítám Qfield projekt"," Loading qfield project"],Qgis.Success)
         self.layman.qfieldWorking = True  
         name = self.treeWidget.selectedItems()[0].text(0)
-        project_id = self.qfield.getProjectByName(name)
+        project_id = self.qfield.getProjectByName(self.utils.removeUnacceptableChars(name))
         path = self.qfield.downloadProject(project_id)
         self.utils.openQgisProject(path)      
         self.progressDone.emit()  
@@ -616,7 +616,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def setQfieldButtons(self):
         if self.layman.qfieldReady:       
             names = self.utils.getUserScreenNames()
-            qfieldExists = self.matchQfield(self.treeWidget.selectedItems()[0].text(0), names[self.treeWidget.selectedItems()[0].text(1)], self.qProjects)
+            qfieldExists = self.matchQfield(self.utils.removeUnacceptableChars(self.treeWidget.selectedItems()[0].text(0)), names[self.treeWidget.selectedItems()[0].text(1)], self.qProjects)
             self.updateButtonsSignal.emit(qfieldExists)
         else:   
             self.updateButtonsSignal.emit(False)
@@ -642,6 +642,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 item.setHidden(False)
             iterator +=1   
     def matchQfield(self, name, owner, server_response):   
+        name = self.utils.removeUnacceptableChars(name)
         if 'code' in server_response:
             if server_response['code'] == 'unknown_error':
                 return False
