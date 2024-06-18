@@ -234,30 +234,9 @@ class Qfield:
         for project in project_list:
             if project['name'] == name:
                 return project['id']
-        return None 
-    
+        return None     
    
-    # def downloadProject(self, project_id):
-    #     url = f"{self.URI}/api/v1/packages/{project_id}/latest/"
-    #     response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)         
-    #     response.raise_for_status()       
-    #     data = response.json()
-    #     files = data.get("files", [])        
-    #     download_directory = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
-    #     os.makedirs(download_directory, exist_ok=True)        
-    #     dcim_directory = os.path.join(download_directory, 'DCIM')
-    #     os.makedirs(dcim_directory, exist_ok=True)        
-    #     for file_info in files:
-    #         filename = file_info['name']
-    #         download_url = f"{self.URI}/api/v1/packages/{project_id}/latest/files/{filename}"            
-    #         if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.mp4', '.avi', '.mov',  '.mkv', '.webm', '.m4v', '.3gp', '.mpg', '.mpeg')):
-    #             local_path = os.path.join(dcim_directory, os.path.basename(filename))
-    #         else:
-    #             local_path = os.path.join(download_directory, os.path.basename(filename))                
-    #         print(f"Downloading {filename} to {local_path}...")
-    #         self.utils.downloadFile(download_url, local_path)    
-    #     print("All files have been downloaded.")
-    #     return download_directory
+   
     def downloadProject(self, project_id):
         url = f"{self.URI}/api/v1/packages/{project_id}/latest/"
         try:
