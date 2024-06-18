@@ -477,25 +477,16 @@
     <rect>
      <x>670</x>
      <y>411</y>
-     <width>88</width>
-     <height>25</height>
+     <width>201</width>
+     <height>31</height>
     </rect>
    </property>
    <property name="text">
     <string>Qfield sync</string>
    </property>
-  </widget>
-  <widget class="QPushButton" name="pushButton_laymanSync">
-   <property name="geometry">
-    <rect>
-     <x>782</x>
-     <y>411</y>
-     <width>88</width>
-     <height>25</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Layman sync</string>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/qfield.png</normaloff>icons/qfield.png</iconset>
    </property>
   </widget>
  </widget>

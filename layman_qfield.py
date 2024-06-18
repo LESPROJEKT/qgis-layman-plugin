@@ -4,7 +4,7 @@ import os
 from qgis.core import QgsProject
 from .qfield.cloud_converter import CloudConverter
 import json
-import urllib.parse
+import requests
 
 class Qfield:
     def __init__(self, utils): 
@@ -236,45 +236,72 @@ class Qfield:
                 return project['id']
         return None 
     
-    # def downloadProject(self, project_id):        
+   
+    # def downloadProject(self, project_id):
     #     url = f"{self.URI}/api/v1/packages/{project_id}/latest/"
-    #     response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)  
-    #     response.raise_for_status() 
-    #     print(response.content)
+    #     response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)         
+    #     response.raise_for_status()       
     #     data = response.json()
-    #     files = data.get("files", [])      
+    #     files = data.get("files", [])        
     #     download_directory = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
-    #     os.makedirs(download_directory, exist_ok=True)
+    #     os.makedirs(download_directory, exist_ok=True)        
+    #     dcim_directory = os.path.join(download_directory, 'DCIM')
+    #     os.makedirs(dcim_directory, exist_ok=True)        
     #     for file_info in files:
     #         filename = file_info['name']
-    #         download_url = f"{self.URI}/api/v1/packages/{project_id}/latest/files/{filename}"
-    #         local_path = os.path.join(download_directory, os.path.basename(filename))            
+    #         download_url = f"{self.URI}/api/v1/packages/{project_id}/latest/files/{filename}"            
+    #         if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.mp4', '.avi', '.mov',  '.mkv', '.webm', '.m4v', '.3gp', '.mpg', '.mpeg')):
+    #             local_path = os.path.join(dcim_directory, os.path.basename(filename))
+    #         else:
+    #             local_path = os.path.join(download_directory, os.path.basename(filename))                
     #         print(f"Downloading {filename} to {local_path}...")
-    #         self.utils.downloadFile(download_url, local_path)
+    #         self.utils.downloadFile(download_url, local_path)    
     #     print("All files have been downloaded.")
+    #     return download_directory
     def downloadProject(self, project_id):
         url = f"{self.URI}/api/v1/packages/{project_id}/latest/"
-        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)  
-        print(response.content)
-        response.raise_for_status() 
-        print(response.content)
-        data = response.json()
-        files = data.get("files", [])        
-        download_directory = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
-        os.makedirs(download_directory, exist_ok=True)        
-        dcim_directory = os.path.join(download_directory, 'DCIM')
-        os.makedirs(dcim_directory, exist_ok=True)        
-        for file_info in files:
-            filename = file_info['name']
-            download_url = f"{self.URI}/api/v1/packages/{project_id}/latest/files/{filename}"            
-            if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.mp4', '.avi', '.mov',  '.mkv', '.webm', '.m4v', '.3gp', '.mpg', '.mpeg')):
-                local_path = os.path.join(dcim_directory, os.path.basename(filename))
+        try:
+            response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as http_err:
+            if response.status_code == 400:
+                print(f"HTTP error 400: Bad Request - {http_err}")
+                return 400  
+            elif response.status_code == 401:
+                print(f"HTTP error 401: Unauthorized - {http_err}")
+                return 401  
             else:
-                local_path = os.path.join(download_directory, os.path.basename(filename))                
-            print(f"Downloading {filename} to {local_path}...")
-            self.utils.downloadFile(download_url, local_path)    
-        print("All files have been downloaded.")
-        return download_directory
+                print(f"HTTP error occurred: {http_err}")
+                return response.status_code  
+        except Exception as err:
+            print(f"Other error occurred: {err}")
+            return 500 
+
+        try:
+            data = response.json()
+            files = data.get("files", [])
+            download_directory = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
+            os.makedirs(download_directory, exist_ok=True)
+            dcim_directory = os.path.join(download_directory, 'DCIM')
+            os.makedirs(dcim_directory, exist_ok=True)
+
+            for file_info in files:
+                filename = file_info['name']
+                download_url = f"{self.URI}/api/v1/packages/{project_id}/latest/files/{filename}"
+                if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.mp4', '.avi', '.mov',  '.mkv', '.webm', '.m4v', '.3gp', '.mpg', '.mpeg')):
+                    local_path = os.path.join(dcim_directory, os.path.basename(filename))
+                else:
+                    local_path = os.path.join(download_directory, os.path.basename(filename))
+
+                print(f"Downloading {filename} to {local_path}...")
+                self.utils.downloadFile(download_url, local_path)
+                
+            print("All files have been downloaded.")
+            return download_directory 
+        
+        except Exception as err:
+            print(f"Failed to process download: {err}")
+            return 500  
     def qfieldPermissionsJunction(self, project_id, users_write, users_read, laymanUsername):        
         def transform_user_or_role(user_or_role):
             if user_or_role.isupper():  
