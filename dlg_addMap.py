@@ -143,8 +143,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def qfieldSync(self):
         self.layman.qfieldWorking = True 
-        self.utils.showMessageBar([" Načítám Qfield projekt"," Loading qfield project"],Qgis.Success)
-        self.laymanSync()         
+        self.utils.showMessageBar([" Načítám Qfield projekt"," Loading qfield project"],Qgis.Success)                
         name = self.treeWidget.selectedItems()[0].text(0)
         project_id = self.qfield.getProjectByName(self.utils.removeUnacceptableChars(name))
         path = self.qfield.downloadProjectPackage(project_id)
@@ -154,15 +153,19 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.progressDone.emit() 
             self.utils.showMessageBar([" Nemáte práva k synchronizaci tohoho projektu"," You do not have access right to sync this project"],Qgis.Warning)
             return
-        self.utils.openQgisProject(path)      
-        self.progressDone.emit()  
+        self.utils.openQgisProject(path)   
+        if self.treeWidget.selectedItems()[0].text(0) == "own":   
+            self.laymanSync()            
+        self.layman.current = name
+        self.layman.instance = CurrentComposition(self.URI, name, self.treeWidget.selectedItems()[0].text(1), self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
+        self.progressDone.emit()          
         self.layman.qfieldWorking = False 
 
     def laymanSync(self):
         layers = self.utils.getLayersFromCanvas()
         for layer in layers:
-            self.layman.postRequest(layer, noInfo = True)
-        # self.progressDone.emit()              
+            self.layman.postRequest(layer, auto = True, noInfo = True)
+                  
         
     def updateUserLists(self, users_write, users_read, server_response):
         users_write_set = set(users_write)

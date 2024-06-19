@@ -243,14 +243,11 @@ class Qfield:
             response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)
             response.raise_for_status()
         except requests.exceptions.HTTPError as http_err:
-            if response.status_code == 400:
-                print(f"HTTP error 400: Bad Request - {http_err}")
+            if response.status_code == 400:             
                 return 400  
-            elif response.status_code == 401:
-                print(f"HTTP error 401: Unauthorized - {http_err}")
+            elif response.status_code == 401:          
                 return 401  
-            else:
-                print(f"HTTP error occurred: {http_err}")
+            else:             
                 return response.status_code  
         except Exception as err:
             print(f"Other error occurred: {err}")

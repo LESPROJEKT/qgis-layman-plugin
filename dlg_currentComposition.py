@@ -153,7 +153,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_log.hide()        
         self.label_raster.hide()
         self.treeWidget_layers.header().resizeSection(0,230)  
-        self.pushButton_qfield.clicked.connect(self.exportToQfield)  
+        self.pushButton_qfield.clicked.connect(self.exportToQfield)       
         if self.layman.current != None:
             self.layman.instance.refreshComposition()
             composition = self.layman.instance.getComposition()        
@@ -277,7 +277,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_save.setEnabled(False)
             self.pushButton_copyUrl.setEnabled(True) 
             if self.layman.qfieldReady:  
-                self.pushButton_qfield.setEnabled(True)
+                self.pushButton_qfield.setEnabled(False)
             self.pushButton_new.setEnabled(True)
             self.label_readonly.show()
             self.pushButton_new.show()   
@@ -311,6 +311,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.pushButton_save.setEnabled(False)
                     self.pushButton_delete.setEnabled(False)
                     self.pushButton_setPermissions.setEnabled(False)
+                    self.pushButton_qfield.setEnabled(False) 
                     self.label_readonly.show()  
             else:   
                 self.label_readonly.hide()                 
