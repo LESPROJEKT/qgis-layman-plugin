@@ -108,6 +108,7 @@ class Layman(QObject):
     getLayers = pyqtSignal(bool)
     layerDeletedSuccessfully = pyqtSignal()
     mapDeletedSuccessfully = pyqtSignal()
+    enableMapButton = pyqtSignal()
 
     def __init__(self, iface):
         """Constructor.
@@ -282,6 +283,7 @@ class Layman(QObject):
         self.showExportInfo.connect(self.showExportedCompositionInfo)
         self.cleanTemp.connect(self._cleanTemp)
         self.project.crsChanged.connect(self.crsChanged)
+        self.enableMapButton.connect(self.enableMapMenu)
 
         
     def initGui(self):
@@ -628,7 +630,8 @@ class Layman(QObject):
                     composition['projection'] = str(crs.authid()).lower()   
                     self.patchMap2(True)
                
-
+    def enableMapMenu(self):
+        self.menu_AddMapDialog.setEnabled(True)
     def set_project_crs(self):
         # Set CRS to EPSG:4326
         QApplication.instance().processEvents()        
@@ -3851,7 +3854,7 @@ class Layman(QObject):
         self.menu_ImportLayerDialog.setEnabled(True)
         self.menu_AddMickaDialog.setEnabled(True)
         self.menu_AddLayerDialog.setEnabled(True)
-        self.menu_AddMapDialog.setEnabled(True)
+        self.menu_AddMapDialog.setEnabled(False)
         self.menu_ImportLayerDialog.setEnabled(True)
         self.menu_UserInfoDialog.setEnabled(True)
         self.menu_CurrentCompositionDialog.setEnabled(True)  
@@ -4004,6 +4007,7 @@ class Layman(QObject):
         else:                   
             print("qfield did not respond")    
             self.qfieldReady = False
+        self.enableMapButton.emit()
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
         with open(save_path, 'wb') as fd:
