@@ -237,7 +237,7 @@ class Qfield:
         return None     
    
    
-    def downloadProject(self, project_id):
+    def downloadProjectPackage(self, project_id):
         url = f"{self.URI}/api/v1/packages/{project_id}/latest/"
         try:
             response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)
@@ -281,6 +281,29 @@ class Qfield:
         except Exception as err:
             print(f"Failed to process download: {err}")
             return 500  
+        
+    def downloadProject(self, project_id):
+        url = f"{self.URI}/api/v1/files/{project_id}/"   
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)
+        response.raise_for_status()
+        data = response.json()
+        download_directory = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
+        dcim_directory = os.path.join(download_directory, 'DCIM')
+        os.makedirs(dcim_directory, exist_ok=True)
+
+        for file_info in data:
+            filename = file_info['name']
+            download_url = f"{self.URI}/api/v1/files/{project_id}/{filename}/"
+            if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.mp4', '.avi', '.mov',  '.mkv', '.webm', '.m4v', '.3gp', '.mpg', '.mpeg')):
+                local_path = os.path.join(dcim_directory, os.path.basename(filename))
+            else:
+                local_path = os.path.join(download_directory, os.path.basename(filename))
+
+            print(f"Downloading {filename} to {local_path}...")
+            self.utils.downloadFile(download_url, local_path)                
+        print("All files have been downloaded.")
+        return download_directory        
+    
     def qfieldPermissionsJunction(self, project_id, users_write, users_read, laymanUsername):        
         def transform_user_or_role(user_or_role):
             if user_or_role.isupper():  

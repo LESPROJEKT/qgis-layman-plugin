@@ -147,11 +147,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.laymanSync()         
         name = self.treeWidget.selectedItems()[0].text(0)
         project_id = self.qfield.getProjectByName(self.utils.removeUnacceptableChars(name))
-        path = self.qfield.downloadProject(project_id)
+        path = self.qfield.downloadProjectPackage(project_id)
         if path == 400:
-            self.progressDone.emit() 
-            self.utils.showMessageBar([" Projekt nebyl zpracován v Qfield"," Project was not processed in qfield"],Qgis.Warning)
-            return
+            path = self.qfield.downloadProject(project_id)
         if path == 401:
             self.progressDone.emit() 
             self.utils.showMessageBar([" Nemáte práva k synchronizaci tohoho projektu"," You do not have access right to sync this project"],Qgis.Warning)
