@@ -82,6 +82,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.globalRead = {}
         self.globalWrite = {}  
         self.qfield = Qfield(self.utils)
+        self.qfieldWorking = True
         self.setUi()
     
         
@@ -1648,6 +1649,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         global dialog_running 
         dialog_running = False      
         self.layman.currentOpened = False
+        self.qfieldWorking = False
         self.onRefreshCurrentForm.disconnect() 
         try:
             QgsProject.instance().layerWasAdded.disconnect()  

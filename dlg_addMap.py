@@ -67,6 +67,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setupUi(self)      
         self.globalRead = {}
         self.globalWrite = {}     
+        self.qfieldWorking = True
         self.qfield = Qfield(self.utils)
         self.setUi()
         
@@ -818,7 +819,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_map.setEnabled(False) 
         self.loadComposition.emit(name, service, workspace)
       
-    def readMapJsonThread(self,name, service, workspace=""):    
+    def readMapJsonThread(self,name, service, workspace=""):            
         self.unloadedLayers = list()
         self.processingRequest = True   
         old_loaded = self.layman.current         
@@ -1169,3 +1170,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.utils.showQgisBar(["Špatný formát kompozice.","Wrong format of composition"], Qgis.Warning)   
         if self.objectName() == "AddMapDialog":
             self.progressBar.hide()                    
+    def reject(self):
+        super().reject()   
+        global dialog_running 
+        dialog_running = False    
+        self.qfieldWorking = False
+        
