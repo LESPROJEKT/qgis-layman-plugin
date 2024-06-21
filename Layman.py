@@ -2328,13 +2328,29 @@ class Layman(QObject):
                 os.remove(qml_filename)       
             result3 = False
             layer.saveSldStyle(sld_filename)
-            self.insertPictureToQML(layer)
-            layer.saveNamedStyle(qml_filename)
+            symbolTypes = self.insertPictureToQML(layer)
+            layer.saveNamedStyle(qml_filename)        
             self.insertBinaryToQml(layer, qml_filename)      
             ## QML fix for layman server            
-            self.QmlCompatibility(qml_filename)     
-            self.insertSvgToQMLInLabel(qml_filename)            
+            self.QmlCompatibility(qml_filename)   
+            ## QML fix for hs layers    
+            self.updateQmlFile(qml_filename, symbolTypes)
+            self.insertSvgToQMLInLabel(qml_filename)                     
             return True
+        
+    def updateQmlFile(self, file_path, base64_mappings):        
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+        for mapping in base64_mappings:
+            for mime_type, base64_string in mapping.items():
+                old_base64_string = base64_string.split(":")[1]  
+                new_string = f'source="{mime_type};" value="base64:{old_base64_string}"'
+                new_prop_string = f'<prop source="{mime_type};" v="base64:{old_base64_string}"'
+                content = content.replace(f'value="base64:{old_base64_string}"', new_string)
+                content = content.replace(f'<prop v="base64:{old_base64_string}"', new_prop_string)               
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.write(content)        
+
     def insertSvgToQMLInLabel(self, qml_filename): 
         with open(qml_filename, 'r') as file:
             xml_data = file.read()      
@@ -2459,7 +2475,7 @@ class Layman(QObject):
                             path2 = i.symbol().symbolLayer(0).path()
                             pathRelative = path2.split("svg/")[1] if len(path2.split("svg/"))>1 else ""
                             decoded =   encoded_string.decode("utf-8")
-                            path3 = ("base64:"  + decoded)                          
+                            path3 = ("base64:"  + decoded)      
                             with open(stylePath, 'r') as file :
                                 filedata = file.read() 
                             if pathRelative != "":
@@ -2492,7 +2508,7 @@ class Layman(QObject):
                             file.write(filedata)
     def insertPictureToQML(self, layer):
         single_symbol_renderer = layer.renderer()
-
+        symbolTypes = []
         if isinstance(single_symbol_renderer, QgsCategorizedSymbolRenderer):
             symbol  = layer.renderer().categories()
             for i in symbol:
@@ -2500,16 +2516,19 @@ class Layman(QObject):
 
                 if isinstance(i.symbol().symbolLayer(0), QgsSvgMarkerSymbolLayer) or isinstance(i.symbol().symbolLayer(0), QgsRasterMarkerSymbolLayer):
                     path = i.symbol().symbolLayer(0).path()
-                    try:
-                        if os.path.exists(path):
-                            with open(path, "rb") as image_file:
-                                encoded_string = base64.b64encode(image_file.read())                              
-                            decoded =   encoded_string.decode("utf-8")
+                   
+                    if os.path.exists(path):
+                        with open(path, "rb") as image_file:
+                            encoded_string = base64.b64encode(image_file.read())                              
+                        decoded =   encoded_string.decode("utf-8")
                         
-                            i.symbol().symbolLayer(0).setPath("base64:"  + decoded)
-                           
-                    except:
+                        i.symbol().symbolLayer(0).setPath("base64:"  + decoded)
+                        mime_type = self.utils.extractFileTypeFromBaseImage("base64:"  + decoded)          
+                        symbolTypes.append({mime_type: "base64:" + decoded})   
+                    else:
                         print("binary path")
+                        mime_type = self.utils.extractFileTypeFromBaseImage(path)
+                        symbolTypes.append({mime_type: path})
         elif isinstance(single_symbol_renderer, QgsRuleBasedRenderer):            
             symbol  = layer.renderer().rootRule().children()
             for i in symbol:                
@@ -2522,7 +2541,13 @@ class Layman(QObject):
                             encoded_string = base64.b64encode(image_file.read())
                     
                         decoded =   encoded_string.decode("utf-8")                    
-                        i.symbol().symbolLayer(0).setPath("base64:"  + decoded)                        
+                        i.symbol().symbolLayer(0).setPath("base64:"  + decoded)       
+                        mime_type = self.utils.extractFileTypeFromBaseImage("base64:"  + decoded)          
+                        symbolTypes.append({mime_type: "base64:" + decoded})  
+                    else:
+                        print("binary path")
+                        mime_type = self.utils.extractFileTypeFromBaseImage(path)
+                        symbolTypes.append({mime_type: path})                                       
         elif isinstance(single_symbol_renderer, QgsSingleSymbolRenderer) or isinstance(single_symbol_renderer, QgsLineSymbol)  or isinstance(single_symbol_renderer, QgsFillSymbol):
             try:
                 symbols = single_symbol_renderer.symbol()
@@ -2531,49 +2556,61 @@ class Layman(QObject):
                 return
             for symbol in symbols:
                 if isinstance(symbol, QgsSvgMarkerSymbolLayer) or isinstance(symbol, QgsRasterMarkerSymbolLayer) or isinstance(symbol, QgsRasterLineSymbolLayer): 
-                    path = symbol.path()                    
-                    try:
-                        if os.path.exists(path):
-                            with open(path, "rb") as image_file:
-                                encoded_string = base64.b64encode(image_file.read())                                
-                            decoded =   encoded_string.decode("utf-8")                            
-                            symbol.setPath("base64:"  + decoded)                            
-                    except:
+                    path = symbol.path() 
+                    if os.path.exists(path):
+                        with open(path, "rb") as image_file:
+                            encoded_string = base64.b64encode(image_file.read())                                
+                        decoded =   encoded_string.decode("utf-8")                            
+                        symbol.setPath("base64:"  + decoded)       
+                        mime_type = self.utils.extractFileTypeFromBaseImage("base64:"  + decoded)          
+                        symbolTypes.append({mime_type: "base64:" + decoded})           
+                    else:                       
                         print("binary path")
+                        mime_type = self.utils.extractFileTypeFromBaseImage(path)
+                        symbolTypes.append({mime_type: path}) 
                 if isinstance(symbol, QgsRasterFillSymbolLayer):
-                    path = symbol.imageFilePath()
-                    try:
-                        if os.path.exists(path):
-                            with open(path, "rb") as image_file:
-                                encoded_string = base64.b64encode(image_file.read())                                
-                            decoded =   encoded_string.decode("utf-8")                            
-                            symbol.setImageFilePath("base64:"  + decoded)                            
-                    except:
+                    path = symbol.imageFilePath()                    
+                    if os.path.exists(path):
+                        with open(path, "rb") as image_file:
+                            encoded_string = base64.b64encode(image_file.read())                                
+                        decoded =   encoded_string.decode("utf-8")                            
+                        symbol.setImageFilePath("base64:"  + decoded)     
+                        mime_type = self.utils.extractFileTypeFromBaseImage("base64:"  + decoded)          
+                        symbolTypes.append({mime_type: "base64:" + decoded})                        
+                    else:
                         print("binary path")
+                        mime_type = self.utils.extractFileTypeFromBaseImage(path)
+                        symbolTypes.append({mime_type: path}) 
                 if  isinstance(symbol, QgsMarkerLineSymbolLayer):
                     symbols2 = symbol.subSymbol()
                     for symbol2 in symbols2:
                         if isinstance(symbol2, QgsRasterMarkerSymbolLayer) or isinstance(symbol2, QgsSvgMarkerSymbolLayer):
-                            path = symbol2.path()                    
-                            try:
-                                if os.path.exists(path):
-                                    with open(path, "rb") as image_file:
-                                        encoded_string = base64.b64encode(image_file.read())                                    
-                                    decoded =   encoded_string.decode("utf-8")                            
-                                    symbol2.setPath("base64:"  + decoded)                            
-                            except:
-                                print("binary path")
-                if  isinstance(symbol, QgsSVGFillSymbolLayer):             
-                        path = symbol.svgFilePath()                    
-                        try:
+                            path = symbol2.path()    
                             if os.path.exists(path):
                                 with open(path, "rb") as image_file:
                                     encoded_string = base64.b64encode(image_file.read())                                    
                                 decoded =   encoded_string.decode("utf-8")                            
-                                symbol.setSvgFilePath("base64:"  + decoded)                            
-                        except:
-                            print("binary path")                                
-                        
+                                symbol2.setPath("base64:"  + decoded)          
+                                mime_type = self.utils.extractFileTypeFromBaseImage("base64:"  + decoded)          
+                                symbolTypes.append({mime_type: "base64:" + decoded})                   
+                            else:
+                                print("binary path")
+                                mime_type = self.utils.extractFileTypeFromBaseImage(path)
+                                symbolTypes.append({mime_type: path}) 
+                if  isinstance(symbol, QgsSVGFillSymbolLayer):             
+                        path = symbol.svgFilePath()  
+                        if os.path.exists(path):
+                            with open(path, "rb") as image_file:
+                                encoded_string = base64.b64encode(image_file.read())                                    
+                            decoded =   encoded_string.decode("utf-8")                            
+                            symbol.setSvgFilePath("base64:"  + decoded)  
+                            mime_type = self.utils.extractFileTypeFromBaseImage("base64:"  + decoded)          
+                            symbolTypes.append({mime_type: "base64:" + decoded})                           
+                        else:
+                            print("binary path")  
+                            mime_type = self.utils.extractFileTypeFromBaseImage(path)
+                            symbolTypes.append({mime_type: path})                               
+        return symbolTypes                
     def mergeGeojsons(self, paths, output, layerName):
         feats = list()      
         top = '''
