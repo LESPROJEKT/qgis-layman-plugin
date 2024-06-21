@@ -2281,6 +2281,62 @@ class Layman(QObject):
                 layer.saveSldStyle(sld_filename)
                 layer.saveNamedStyle(qml_filename)
 
+    # def json_export(self, layer_name, id=None):
+
+    #     filePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name).lower())
+    #     ogr_driver_name = "GeoJSON"
+    #     project = QgsProject.instance()
+    #     fileNames = []
+    #     if id != None:
+    #         layers = QgsProject.instance().mapLayersByName(layer_name)            
+    #         for lay in layers:
+    #             if lay.id() == id:
+    #                 layer = lay                    
+    #     else:
+    #         layer = QgsProject.instance().mapLayersByName(layer_name)[0]
+
+    #     layerType = layer.type()
+    #     if layerType == QgsMapLayer.VectorLayer:
+
+    #         renderer = layer.renderer()
+    #         hasIcon = False
+    #         if isinstance(renderer, QgsSingleSymbolRenderer):
+    #             self.copySymbols(renderer.symbol(), tempfile.gettempdir(), fileNames)
+    #             hasIcon = True         
+    #         layerCrs = layer.crs().authid()
+    #         crs = QgsCoordinateReferenceSystem(layerCrs)# původně bylo
+    #         layer_filename = filePath          
+    #         if os.path.exists(layer_filename):
+    #             try:
+    #                 os.remove(layer_filename)        
+    #             except PermissionError as e:         
+    #                 print(f"PermissionError exception: {e}")          
+    #         epsg = layer.crs().authid()
+    #         if not epsg in self.supportedEPSG:
+    #             epsg = QgsProject.instance().crs().authid()
+    #         parameter = {'INPUT': layer, 'TARGET_CRS': epsg, 'OUTPUT': layer_filename}
+    #         try:
+    #             processing.run('qgis:reprojectlayer', parameter)
+    #         except:
+    #             print("wrong reprojection")
+    #             return False   
+    #         sld_filename = filePath.replace("geojson", "sld").lower()
+    #         qml_filename = filePath.replace("geojson", "qml").lower()
+    #         if os.path.exists(sld_filename):
+    #             os.remove(sld_filename)        
+    #         if os.path.exists(qml_filename):
+    #             os.remove(qml_filename)       
+    #         result3 = False
+    #         layer.saveSldStyle(sld_filename)
+    #         symbolTypes = self.insertPictureToQML(layer)
+    #         layer.saveNamedStyle(qml_filename)        
+    #         self.insertBinaryToQml(layer, qml_filename)      
+    #         ## QML fix for layman server            
+    #         self.QmlCompatibility(qml_filename)   
+    #         ## QML fix for hs layers    
+    #         self.updateQmlFile(qml_filename, symbolTypes)
+    #         self.insertSvgToQMLInLabel(qml_filename)                     
+    #         return True
     def json_export(self, layer_name, id=None):
 
         filePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name).lower())
@@ -2297,7 +2353,6 @@ class Layman(QObject):
 
         layerType = layer.type()
         if layerType == QgsMapLayer.VectorLayer:
-
             renderer = layer.renderer()
             hasIcon = False
             if isinstance(renderer, QgsSingleSymbolRenderer):
@@ -2323,21 +2378,10 @@ class Layman(QObject):
             sld_filename = filePath.replace("geojson", "sld").lower()
             qml_filename = filePath.replace("geojson", "qml").lower()
             if os.path.exists(sld_filename):
-                os.remove(sld_filename)        
-            if os.path.exists(qml_filename):
-                os.remove(qml_filename)       
-            result3 = False
+                os.remove(sld_filename)      
             layer.saveSldStyle(sld_filename)
-            symbolTypes = self.insertPictureToQML(layer)
-            layer.saveNamedStyle(qml_filename)        
-            self.insertBinaryToQml(layer, qml_filename)      
-            ## QML fix for layman server            
-            self.QmlCompatibility(qml_filename)   
-            ## QML fix for hs layers    
-            self.updateQmlFile(qml_filename, symbolTypes)
-            self.insertSvgToQMLInLabel(qml_filename)                     
-            return True
-        
+            self.saveQml(qml_filename, layer)         
+            return True          
     def updateQmlFile(self, file_path, base64_mappings):        
         with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
@@ -2349,8 +2393,21 @@ class Layman(QObject):
                 content = content.replace(f'value="base64:{old_base64_string}"', new_string)
                 content = content.replace(f'<prop v="base64:{old_base64_string}"', new_prop_string)               
         with open(file_path, 'w', encoding='utf-8') as file:
-            file.write(content)        
+            file.write(content)       
 
+    def saveQml(self, qml_filename, layer):
+        if os.path.exists(qml_filename):
+            os.remove(qml_filename)   
+        symbolTypes = self.insertPictureToQML(layer)    
+        layer.saveNamedStyle(qml_filename)     
+        self.insertBinaryToQml(layer, qml_filename)      
+        ## QML fix for layman server            
+        self.QmlCompatibility(qml_filename)     
+        ## QML fix for hs layers    
+        self.updateQmlFile(qml_filename, symbolTypes)
+        self.insertSvgToQMLInLabel(qml_filename)        
+        return qml_filename
+    
     def insertSvgToQMLInLabel(self, qml_filename): 
         with open(qml_filename, 'r') as file:
             xml_data = file.read()      
@@ -4396,8 +4453,8 @@ class Layman(QObject):
     def postPostreLayer(self, layer, username, password):
         uri = self.preparePostgresUri(layer, username, password)      
         layer_name = layer.name()        
-        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")
-        layer.saveNamedStyle(stylePath)       
+        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")      
+        self.saveQml(stylePath, layer)      
         payload = {                
                 'external_table_uri': uri,
                 'title': layer_name,                
@@ -4422,7 +4479,7 @@ class Layman(QObject):
                     self.utils.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)   
             else:                     
                 self.utils.showErr.emit(["Požadavek nebyl úspěšný", "Request was not successfull"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)       
-        layer.afterCommitChanges.connect(self.patchPostreLayer)
+        layer.afterCommitChanges.connect(self.patchPostreLayer)    
         
         
     def patchPostreLayer(self):  
