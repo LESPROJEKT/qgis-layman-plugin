@@ -18,6 +18,9 @@ import http.client
 import asyncio
 import ssl
 import urllib.parse
+import base64
+import imghdr
+import io
 
 class LaymanUtils(QObject): 
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)  
@@ -839,6 +842,23 @@ QPushButton::indicator {
     def decode_url(self, encoded_url):
         decoded_url = urllib.parse.unquote(encoded_url)
         return decoded_url
+    def extractFileTypeFromBaseImage(self, base64_image):
+        base64_image = base64_image.replace("base64:","")
+        image_data = base64.b64decode(base64_image)        
+        if b'<svg' in image_data[:1000]:
+            mime_type = "data:image/svg+xml"
+        else:            
+            file_type = imghdr.what(io.BytesIO(image_data))       
+            mime_type_mapping = {
+                "jpeg": "data:image/jpeg",
+                "png": "data:image/png",
+                "gif": "data:image/gif",
+                "bmp": "data:image/bmp",
+                "tiff": "data:image/tiff"
+            }            
+            mime_type = mime_type_mapping.get(file_type, "data:unknown")
+        return mime_type   
+    
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:
