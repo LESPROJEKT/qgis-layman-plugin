@@ -41,8 +41,10 @@ class CurrentComposition(object):
                 print(layerName , layer['className'])
                 print(layer['className'] == "HSLayers.Layer.WMS")
                 return layer['className']
-            
-            
+    def getDescription(self):
+        return self.composition["abstract"]  
+    def getName(self):            
+        return self.composition["name"]            
     def isLayerId(self, id):
         if id in self.layerIds:
             return True
@@ -112,6 +114,13 @@ class CurrentComposition(object):
         data = r.json()
         print(data)
         return data['access_rights']
+    def getOnlyMyLayers(self):  
+        layers = self.getLayerList()
+        titles = []    
+        for layer in layers:     
+            if 'workspace' in layer and layer['workspace'] == self.workspace:       
+                titles.append(layer['title'])    
+        return titles
     def removeUnacceptableChars(self, input):
         input = input.lower()
         input = input.replace("ř","r")

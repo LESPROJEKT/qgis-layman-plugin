@@ -176,15 +176,8 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
     def logout(self):
         self.layman.loggedThrowProject = False
         self.layman.disableEnvironment()      
-        self.layman.current = None            
-        # if self.layman.laymanUsername != "browser":
-        #     userEndpoint = self.layman.URI+ "/rest/current-user"
-        #     r = self.utils.requestWrapper("DELETE", userEndpoint, payload = None, files = None)
-        #     QgsApplication.authManager().clearCachedConfig(self.layman.authCfg)         
-        ## flush variables   
-        # else:
-        self.layman.laymanUsername = ""       
-    
+        self.layman.current = None   
+        self.layman.laymanUsername = ""  
         self.layman.textbox.setText("Layman")
         self.close() 
         self.pushButton_NoLogin.setEnabled(True)

@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>900</width>
-    <height>485</height>
+    <height>550</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -22,13 +22,13 @@
   <property name="minimumSize">
    <size>
     <width>900</width>
-    <height>480</height>
+    <height>550</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>900</width>
-    <height>485</height>
+    <height>550</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -51,7 +51,7 @@
    <property name="geometry">
     <rect>
      <x>671</x>
-     <y>443</y>
+     <y>501</y>
      <width>201</width>
      <height>28</height>
     </rect>
@@ -128,14 +128,14 @@
     <string>Loading data</string>
    </property>
   </widget>
-  <widget class="QProgressBar" name="progressBar_loader">
+  <widget class="QProgressBar" name="progressBar">
    <property name="enabled">
     <bool>true</bool>
    </property>
    <property name="geometry">
     <rect>
      <x>671</x>
-     <y>410</y>
+     <y>461</y>
      <width>201</width>
      <height>23</height>
     </rect>
@@ -240,7 +240,7 @@
      <x>20</x>
      <y>10</y>
      <width>651</width>
-     <height>461</height>
+     <height>521</height>
     </rect>
    </property>
    <property name="currentIndex">
@@ -267,8 +267,8 @@
     <widget class="QPushButton" name="pushButton_save">
      <property name="geometry">
       <rect>
-       <x>9</x>
-       <y>434</y>
+       <x>10</x>
+       <y>490</y>
        <width>151</width>
        <height>27</height>
       </rect>
@@ -287,7 +287,7 @@
        <x>10</x>
        <y>130</y>
        <width>611</width>
-       <height>291</height>
+       <height>341</height>
       </rect>
      </property>
      <property name="currentIndex">
@@ -378,6 +378,15 @@
       <string>Public</string>
      </property>
     </widget>
+    <zorder>pushButton_back</zorder>
+    <zorder>tabWidget</zorder>
+    <zorder>radioButton_writePrivate</zorder>
+    <zorder>label_7</zorder>
+    <zorder>radioButton_readPrivate</zorder>
+    <zorder>radioButton_readPublic</zorder>
+    <zorder>label_8</zorder>
+    <zorder>radioButton_writePublic</zorder>
+    <zorder>pushButton_save</zorder>
    </widget>
    <widget class="QWidget" name="page1">
     <widget class="QTreeWidget" name="treeWidget">
@@ -386,7 +395,7 @@
        <x>0</x>
        <y>60</y>
        <width>631</width>
-       <height>401</height>
+       <height>461</height>
       </rect>
      </property>
      <column>
@@ -406,7 +415,7 @@
      </column>
      <column>
       <property name="text">
-       <string>CRS</string>
+       <string>Qfield</string>
       </property>
      </column>
     </widget>
@@ -462,6 +471,23 @@
      </property>
     </widget>
    </widget>
+  </widget>
+  <widget class="QPushButton" name="pushButton_qfieldSync">
+   <property name="geometry">
+    <rect>
+     <x>670</x>
+     <y>411</y>
+     <width>201</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Qfield sync</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/qfield.png</normaloff>icons/qfield.png</iconset>
+   </property>
   </widget>
  </widget>
  <customwidgets>
