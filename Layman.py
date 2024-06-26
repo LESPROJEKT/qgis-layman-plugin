@@ -1883,8 +1883,11 @@ class Layman(QObject):
         for i in range(symbol.symbolLayerCount()):
             sl = symbol.symbolLayer(i)
             if isinstance(sl, QgsSvgMarkerSymbolLayer):
-                symbolPath = sl.path();
-                shutil.copy(symbolPath, tempPath)
+                symbolPath = sl.path()
+                try:
+                    shutil.copy(symbolPath, tempPath)
+                except:
+                    continue                    
                 print("Copying " + str(sl.path()))
                 fileNames.append(tempPath + os.sep + os.path.basename(symbolPath))
             else:
@@ -1957,8 +1960,6 @@ class Layman(QObject):
                 fileName = dialog.getOpenFileName(None,"Načíst soubor", "","GeoJson Files (*.geojson);;Json Files (*.json)", options=options)
             else:
                 fileName = dialog.getOpenFileName(None,"Load file", "","GeoJson Files (*.geojson);;Json Files (*.json)", options=options)
-
-            print ("načítám json ze souboru:" + fileName[0])
             if (fileName[0] != ""):
                 self.loadJsonLayer(fileName[0])
         except:
@@ -1987,8 +1988,7 @@ class Layman(QObject):
 
             self.json_export_local(layer_name[0], layer)
 
-    def json_export_local(self, layer_name, lay):
-        import shutil
+    def json_export_local(self, layer_name, lay):       
         filePath = self.getTempPath(layer_name)
         ogr_driver_name = "GeoJSON"
         project = QgsProject.instance()
@@ -2001,11 +2001,7 @@ class Layman(QObject):
             renderer = layer.renderer()
             hasIcon = False
             if isinstance(renderer, QgsSingleSymbolRenderer):
-
-                self.copySymbols(renderer.symbol(), tempfile.gettempdir(), fileNames)
-                hasIcon = True
-
-
+                self.copySymbols(renderer.symbol(), tempfile.gettempdir(), fileNames)                
             layerCrs = qgis.utils.iface.activeLayer().crs().authid()
             crs = QgsCoordinateReferenceSystem(layerCrs)
             result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(layer, layer_name, "utf-8", crs, ogr_driver_name) # export jsonu do souboru
@@ -2036,7 +2032,6 @@ class Layman(QObject):
                 layer.saveNamedStyle(qml_filename)
 
     def json_export(self, layer_name, id=None):
-
         filePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name).lower())
         ogr_driver_name = "GeoJSON"
         project = QgsProject.instance()
