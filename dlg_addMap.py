@@ -68,6 +68,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setStyle(proxy_style)
         self.setupUi(self)      
         self.globalRead = {}
+        self.page2.setGeometry(0, 0, 651, 531)
         self.globalWrite = {}     
         self.qfieldWorking = True
         self.qfield = Qfield(self.utils)

@@ -240,13 +240,30 @@
      <x>20</x>
      <y>10</y>
      <width>651</width>
-     <height>521</height>
+     <height>531</height>
     </rect>
    </property>
    <property name="currentIndex">
     <number>1</number>
    </property>
    <widget class="QWidget" name="page2">
+    <widget class="QPushButton" name="pushButton_save_permissions">
+     <property name="geometry">
+      <rect>
+       <x>680</x>
+       <y>370</y>
+       <width>201</width>
+       <height>28</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Save Permissions</string>
+     </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>icons/save_permissions.png</normaloff>icons/save_permissions.png</iconset>
+     </property>
+    </widget>
     <widget class="QPushButton" name="pushButton_back">
      <property name="geometry">
       <rect>
@@ -287,7 +304,7 @@
        <x>10</x>
        <y>130</y>
        <width>611</width>
-       <height>341</height>
+       <height>301</height>
       </rect>
      </property>
      <property name="currentIndex">
@@ -378,6 +395,7 @@
       <string>Public</string>
      </property>
     </widget>
+    <zorder>pushButton_save_permissions</zorder>
     <zorder>pushButton_back</zorder>
     <zorder>tabWidget</zorder>
     <zorder>radioButton_writePrivate</zorder>
@@ -489,6 +507,21 @@
      <normaloff>icons/qfield.png</normaloff>icons/qfield.png</iconset>
    </property>
   </widget>
+  <zorder>stackedWidget</zorder>
+  <zorder>pushButton</zorder>
+  <zorder>pushButton_close</zorder>
+  <zorder>label_thumbnail</zorder>
+  <zorder>label_2</zorder>
+  <zorder>label_info</zorder>
+  <zorder>pushButton_mapWFS</zorder>
+  <zorder>label_loading</zorder>
+  <zorder>progressBar</zorder>
+  <zorder>pushButton_map</zorder>
+  <zorder>pushButton_delete</zorder>
+  <zorder>pushButton_setPermissions</zorder>
+  <zorder>pushButton_copyUrl</zorder>
+  <zorder>checkBox_thumbnail</zorder>
+  <zorder>pushButton_qfieldSync</zorder>
  </widget>
  <customwidgets>
   <customwidget>
