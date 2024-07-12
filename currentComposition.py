@@ -12,7 +12,7 @@ class CurrentComposition(object):
         self.user = user
         self.layerIds = list()
         self.layers = list()
-
+        self.refreshComposition()
 
     def getComposition(self):
         return self.composition
@@ -74,11 +74,14 @@ class CurrentComposition(object):
     def setComposition(self, json):
         self.composition = json
 
-    def getComposition(self):
+    def getComposition(self):        
         return self.composition    
+    
     def refreshComposition(self):      
         url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name+'/file'     
+        print(self.name)
         r = requests.get(url = url, headers = self.header)
+        print(r.json())
         data = r.json()
         self.composition = data
     def getPermissions(self): 

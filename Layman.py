@@ -3306,7 +3306,7 @@ class Layman(QObject):
 
     def showProgressBar(self, bar):
         bar = QProgressBar()
-        bar.setRange(0,0) ## range 0,0 je nekonečný
+        bar.setRange(0,0) 
         self.showProgressBar(bar)
         bar.show()
         iface.mainWindow().statusBar().addWidget(bar)   
@@ -3317,18 +3317,15 @@ class Layman(QObject):
     def patchMap2(self, noInfo = False):
         if not noInfo:            
             self.showExportInfo.emit(self.tr("Saving composition"))
-        composition = self.instance.getComposition()       
-       
+        composition = self.instance.getComposition()     
         tempFile = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
         with open(tempFile, 'w') as outfile:
             json.dump(composition, outfile)
         jsonPath = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "compsite.json"
         with open(jsonPath, 'rb') as f:
-            d = json.load(f)
-        
+            d = json.load(f)        
         files = {'file': (jsonPath, open(jsonPath, 'rb')),}       
         data = { 'name' :  composition['name'], 'title' : composition['title'], 'description' : composition['abstract']}
-
         read = self.instance.getAllPermissions()['read']
         write = self.instance.getAllPermissions()['write']
         data['access_rights.read'] =  self.listToString(read)

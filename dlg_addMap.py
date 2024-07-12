@@ -157,18 +157,24 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.progressDone.emit() 
             self.utils.showMessageBar([" Nemáte práva k synchronizaci tohoho projektu"," You do not have access right to sync this project"],Qgis.Warning)
             return
-        self.utils.openQgisProject(path)   
-        if self.treeWidget.selectedItems()[0].text(0) == "own":   
-            self.laymanSync()            
+        self.utils.openQgisProject(path)  
         self.layman.current = name
-        self.layman.instance = CurrentComposition(self.URI, name, self.treeWidget.selectedItems()[0].text(1), self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
+        self.layman.instance = CurrentComposition(self.URI, self.utils.removeUnacceptableChars(name), self.treeWidget.selectedItems()[0].text(1), self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
+        if self.treeWidget.selectedItems()[0].text(2) == "own":   
+            self.laymanSync()
+            self.layman.patchMap2(True)
         self.progressDone.emit()          
         self.layman.qfieldWorking = False 
 
     def laymanSync(self):
         layers = self.utils.getLayersFromCanvas()
-        for layer in layers:
-            self.layman.postRequest(layer, auto = True, noInfo = True)
+        for layer_name in layers:
+            layer = QgsProject.instance().mapLayersByName(layer_name)
+            if layer:
+                layer = layer[0]
+                provider_type = layer.dataProvider().name()   
+                if provider_type not in ['wms', 'wfs']:
+                    self.layman.postRequest(layer_name, auto = True, noInfo = True)
                   
         
     def updateUserLists(self, users_write, users_read, server_response):
