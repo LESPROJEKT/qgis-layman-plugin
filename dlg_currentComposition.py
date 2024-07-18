@@ -193,8 +193,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.show()
         result = self.exec_()  
     
-    def exportToQfield(self):   
-        self.progressStart.emit()  
+    def exportToQfield(self):            
+        self.updateComposition(thread = False)
+        self.progressStart.emit() 
         self.layman.qfieldWorking = True       
         myLayers = self.layman.instance.getOnlyMyLayers()
         if self.utils.containsWmsOrWfs():
@@ -234,10 +235,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.showQgisBar([" Aktualizuji project QField."," Update QField project"], Qgis.Success)          
             project_id = self.qfield.getProjectByName(name)              
             qfieldFiles = self.qfield.getProjectFiles(project_id).json()        
-            layersToDelete = self.qfield.findLayersToDelete(self.layman.instance.getLayerList(), qfieldFiles)
+            # layersToDelete = self.qfield.findLayersToDelete(self.layman.instance.getLayerList(), qfieldFiles)
+            # layersToDelete = self.qfield.findLayersToDelete(self.qfield.selectedLayers, qfieldFiles)
+            layersToDelete = self.qfield.selectedLayers
             layersToPost = self.qfield.findLayersToPost(self.layman.instance.getLayerList(), qfieldFiles)                        
             filesToCheck = self.qfield.filesToCheck(qfieldFiles)         
-            local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)               
+            local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)        
+            print("converted path")   
+            print(convertedProjectPath)
+            self.qfield.postMultipleFiles(project_id, convertedProjectPath)    
             self.syncFiles(local_hashes,filesToCheck, layersToPost, layersToDelete, project_id)                              
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
@@ -255,11 +261,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.qfield.postProjectFile(project_id, fullpath)   
             elif filename in layers_to_post:                             
                 self.qfield.postProjectFile(project_id, fullpath)
-            elif filename in layers_to_delete:
-                self.qfield.deleteProjectFile(project_id, fullpath)                                       
-            else:
-                print(f"File {filename} is up to date.")
-            
+            # self.qfield.postProjectFile(project_id, fullpath)                
+            # elif filename in layers_to_delete:
+            #     self.qfield.deleteProjectFile(project_id, fullpath)                                       
+    
+        for file in layers_to_delete:
+            self.qfield.deleteProjectFile(project_id, file+".gpkg") 
     def setVisibilityForCurrent(self, visible):           
         if self.layman.instance is None:
             self.pushButton_editMeta.setEnabled(False)   
@@ -448,8 +455,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         checkedLayers = []      
         iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
         while iterator.value():
-            item = iterator.value()          
-            if item.checkState(0) == Qt.Checked:             
+            item = iterator.value()     
+            if item.checkState(0) == 0:             
                 checkedLayers.append(item.text(0))
             iterator += 1
         return checkedLayers     
@@ -526,7 +533,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         except:
             print("neni v canvasu")                        
             
-    def updateComposition(self, checkD = True):       
+    def updateComposition(self, checkD = True, thread = True):       
         self.currentSet = list()
         iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
         try:
@@ -551,7 +558,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 lay = QgsProject.instance().mapLayersByName(item.text(0))[0]
                 lay.styleChanged.connect(self.layman.layerStyleToUpdate)
             iterator +=1
-        threading.Thread(target=lambda: self.updateCompositionThread()).start()
+        if thread:            
+            threading.Thread(target=lambda: self.updateCompositionThread()).start()
+        else:  
+            self.updateCompositionThread()          
         self.progressBar_loader.show()
         self.pushButton_save.setEnabled(False)            
         

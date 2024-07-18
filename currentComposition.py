@@ -78,10 +78,8 @@ class CurrentComposition(object):
         return self.composition    
     
     def refreshComposition(self):      
-        url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name+'/file'     
-        print(self.name)
+        url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name+'/file'             
         r = requests.get(url = url, headers = self.header)
-        print(r.json())
         data = r.json()
         self.composition = data
     def getPermissions(self): 
@@ -114,8 +112,7 @@ class CurrentComposition(object):
     def getAllPermissions(self):
         url = self.URI+'/rest/'+self.workspace+'/maps/'+self.name     
         r = requests.get(url = url, headers = self.header)
-        data = r.json()
-        print(data)
+        data = r.json()       
         return data['access_rights']
     def getOnlyMyLayers(self):  
         layers = self.getLayerList()

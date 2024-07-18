@@ -66,9 +66,13 @@ class CloudConverter(QObject):
         """
 
         original_project_path = self.project.fileName()
-        project_path = self.export_dirname.joinpath(
-            f"{self.project.baseName()}_cloud.qgs"
-        )
+        # project_path = self.export_dirname.joinpath(
+        #     f"{self.project.baseName()}_cloud.qgs"
+        # )
+        project_name = self.project.baseName()
+        if not project_name.endswith("_cloud"):
+            project_name += "_cloud"
+        project_path = self.export_dirname.joinpath(f"{project_name}.qgs")
         backup_project_path = make_temp_qgis_file(self.project)
         print(backup_project_path)
         is_converted = False
@@ -85,8 +89,8 @@ class CloudConverter(QObject):
             self.total_progress_updated.emit(0, 100, self.trUtf8("Converting project…"))
             self.__layers = list(self.project.mapLayers().values())           
             # Loop through all layers and copy them to the destination folder
-            for current_layer_index, layer in enumerate(self.__layers):
-                if not layer.name() in self.selectedLayers:
+            for current_layer_index, layer in enumerate(self.__layers):      
+                if layer.name() in self.selectedLayers:
                     continue
                 self.total_progress_updated.emit(
                     current_layer_index,

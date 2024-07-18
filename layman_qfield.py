@@ -5,6 +5,7 @@ from qgis.core import QgsProject
 from .qfield.cloud_converter import CloudConverter
 import json
 import requests
+import shutil
 
 class Qfield:
     def __init__(self, utils): 
@@ -12,6 +13,7 @@ class Qfield:
         self.URI = "https://qfield.lesprojekt.cz"
         #self.URI = "http://localhost:8011"
         self.selectedLayers = []
+        self.path = ""
 
     def createQProject(self, name, description, private):       
         url = self.URI + "/api/v1/projects/" 
@@ -29,9 +31,15 @@ class Qfield:
         
         
     def convertQProject(self): 
+        self.removeEntry()
+        # self.deleteLayersFromProjekt(self.selectedLayers)
+        # qpath = tempfile.mkdtemp(prefix="qgis_", dir=tempfile.gettempdir())
+        project = self.deleteLayersFromProjekt(self.selectedLayers)
         path = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
+        self.path = path
         cloud_convertor = CloudConverter(QgsProject.instance(), path, self.selectedLayers)
-        cloud_convertor.convert()
+        # cloud_convertor = CloudConverter(project, path, self.selectedLayers)
+        cloud_convertor.convert()        
         return path
 
     def uploadQFiles(self, project_id, path):
@@ -39,10 +47,42 @@ class Qfield:
         if len(layers) == 0:
             self.utils.emitMessageBox(["Nejsou vrstvy k exportu!", "No layers to export!"])
             return
-        mypath = self.convertQProject()        
-        threading.Thread(target=lambda: self.postMultipleFiles(project_id, mypath)).start()
+        path = self.convertQProject()   
+        threading.Thread(target=lambda: self.postMultipleFiles(project_id, path)).start()
              
-    
+    def deleteLayersFromProjekt(self,layers_to_remove):     
+        project = QgsProject.instance()      
+        for layer_name in layers_to_remove:
+            layers = project.mapLayersByName(layer_name)
+            if layers:              
+                project.removeMapLayer(layers[0])         
+    def removeEntry(self):
+        project = QgsProject.instance() 
+        project.writeEntry("Layman", "Server", "")
+        project.writeEntry("Layman", "Name", "")
+        project.writeEntry("Layman", "Workspace", "")
+        project.write()
+    # def deleteLayersFromProjekt(self, path, layers_to_remove):
+    #     project_path = path + os.sep + "_cloud.qgs"
+    #     backup_path = project_path + "~"        
+    #     temp_project = QgsProject()
+    #     temp_project.read(project_path)    
+    #     for layer_name in layers_to_remove:
+    #         layers = temp_project.mapLayersByName(layer_name)
+    #         if layers:
+    #             temp_project.removeMapLayer(layers[0])
+    #     temp_project.write(project_path)    
+    #     shutil.copyfile(project_path, backup_path)        
+    #     print(f"Project saved to {project_path} and backup created at {backup_path}") 
+    #     return temp_project
+    # def deleteLayersFromProjekt(self, path, layers_to_remove):
+    #     temp_project = QgsProject().instance()  
+    #     for layer_name in layers_to_remove:
+    #         layers = temp_project.mapLayersByName(layer_name)
+    #         if layers:
+    #             temp_project.removeMapLayer(layers[0])
+    #     temp_project.write(path)   
+    #     return temp_project
 
     def postMultipleFiles(self, project_id, directory_path):
         url = f"{self.URI}/api/v1/files/{project_id}/"
@@ -180,9 +220,11 @@ class Qfield:
         response = self.utils.requestWrapper("POST", url, payload=None, files=files, emitErr=False)         
         return response 
     
-    def deleteProjectFile(self, project_id, filename):      
+    def deleteProjectFile(self, project_id, filename):    
+        print(filename)  
         url = f"{self.URI}/api/v1/files/{project_id}/{filename}/"  
-        response = self.utils.requestWrapper("DELETE", url, payload=None, files=None, emitErr=False)       
+        response = self.utils.requestWrapper("DELETE", url, payload=None, files=None, emitErr=False)  
+        print(response.content)     
         return response 
     def deleteProject(self, project_id):
         url = f"{self.URI}/api/v1/projects/{project_id}/"  
@@ -205,16 +247,34 @@ class Qfield:
         layers_to_upload = [layer["title"] for layer in local_layers if layer['title'] not in server_layer_names]
         return layers_to_upload
 
-    def findLayersToDelete(self, local_layers, server_layers):       
-        server_layer_names = {layer['name'] for layer in server_layers}
-        layers_to_delete = [layer["title"] for layer in server_layer_names if layer not in local_layers]
-        return layers_to_delete  
+    # def findLayersToDelete(self, local_layers, server_layers):       
+    #     server_layer_names = {layer['name'] for layer in server_layers}
+    #     layers_to_delete = [layer["title"] for layer in server_layer_names if layer not in local_layers]
+    #     print(server_layer_names, layers_to_delete)
+    #     return layers_to_delete  
     
     def findLayersToDelete(self, local_layers, server_layers):   
-        local_layer_titles = {layer['title'] for layer in local_layers}   
-        layers_to_delete = [layer['name'] for layer in server_layers if layer['name'] not in local_layer_titles]        
+        # local_layer_titles = {layer['title'] for layer in local_layers} 
+        local_layer_titles = local_layers  
+        layers_to_delete = [layer['name'] for layer in server_layers if layer['name'] not in local_layer_titles]   
+        layers_to_delete = [
+            layer['name'] for layer in server_layers 
+            if os.path.splitext(layer['name'])[0] not in local_layer_titles
+        ] 
+        print(local_layer_titles, layers_to_delete)     
         return layers_to_delete
-
+    # def findLayersToDelete(self, local_layers, server_layers):
+    #     # Odstranění přípon u lokálních vrstev
+    #     local_layer_titles = {os.path.splitext(layer['title'])[0] for layer in local_layers}        
+    #     # Odstranění přípon u serverových vrstev a kontrola, zda nejsou v lokálních vrstvách
+    #     layers_to_delete = [
+    #         layer['name'] for layer in server_layers 
+    #         if os.path.splitext(layer['name'])[0] not in local_layer_titles
+    #     ]        
+    #     print(local_layers, server_layers)
+    #     print(local_layer_titles, layers_to_delete)
+    #     return layers_to_delete
+    
     def findLayersToCheck(local_layers, server_layers):  
         server_gpkg_layers = {layer['name'] for layer in server_layers if layer['name'].endswith('.gpkg')}  
         gpkg_layers_to_check = [layer for layer in local_layers if layer.endswith('.gpkg') and layer in server_gpkg_layers]    

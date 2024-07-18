@@ -174,6 +174,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 layer = layer[0]
                 provider_type = layer.dataProvider().name()   
                 if provider_type not in ['wms', 'wfs']:
+                    print("update layer" + layer_name)
                     self.layman.postRequest(layer_name, auto = True, noInfo = True)
                   
         
