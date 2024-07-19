@@ -248,7 +248,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)  
-        self.layman.qfieldWorking = False           
+        self.layman.qfieldWorking = False  
+        self.layman.stylesToUpdate = set()  
+        self.onRefreshCurrentForm.emit()       
         self.progressDone.emit()   
   
     def syncFiles(self, local_files_hashes, server_files_hashes, layers_to_post, layers_to_delete, project_id):      
