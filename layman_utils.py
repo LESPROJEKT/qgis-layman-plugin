@@ -30,6 +30,7 @@ class LaymanUtils(QObject):
     loadStyle = pyqtSignal(QgsMapLayer)
     emitMessageBox = pyqtSignal(list)
     showQBar = pyqtSignal(list,Qgis.MessageLevel)
+    showMessageSignal = pyqtSignal(list, int)
       
     def __init__(self, iface, locale,laymanUsername,  parent=None):
         super(LaymanUtils, self).__init__(parent=parent)
@@ -40,6 +41,7 @@ class LaymanUtils(QObject):
         self.iface = iface
         self.laymanUsername = laymanUsername
         self.currentLayer = []
+        self.showMessageSignal.connect(self.showQgisBar)
         self.connectEvents()
     def connectEvents(self):         
         self.showErr.connect(self.showMessageError)
