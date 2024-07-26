@@ -116,7 +116,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.checkBox_own.setEnabled(False)
         else:
             self.checkBox_own.setEnabled(True)
-        self.pushButton_delete.clicked.connect(lambda: self.deleteMap(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))))
+        self.pushButton_delete.clicked.connect(lambda: self.deleteMap(self.treeWidget.selectedItems()[0]))
         
         self.filter.valueChanged.connect(self.filterResults)
         self.filter.valueChanged.connect(self.disableButtonsAddMap)
@@ -753,19 +753,21 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         project_id = self.qfield.getProjectByName(name)  
         if project_id is not None:
             self.qfield.deleteProject(project_id)            
-    def deleteMap(self,name):          
+    def deleteMap(self,item): 
+        name = self.layman.getNameByTitle(item.text(0))         
         msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete map"), self.tr("Do you want really delete composition ")+name+"?")
         msgbox.addButton(QMessageBox.Yes)
         msgbox.addButton(QMessageBox.No)
         msgbox.setDefaultButton(QMessageBox.No)
         reply = msgbox.exec()
         if (reply == QMessageBox.Yes):
-            name = self.utils.removeUnacceptableChars(name)
-            self.deleteQfieldProject(name)
+            name = self.utils.removeUnacceptableChars(name)         
+            threading.Thread(target=self.deleteQfieldProject, args=(name,)).start()
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
             response = requests.delete(url, headers = self.utils.getAuthHeader(self.utils.authCfg))           
             if (response.status_code == 200):
                 self.utils.showQgisBar([" Kompozice  " + name + " byla úspešně smazána."," Composition  " + name + " was sucessfully deleted."], Qgis.Success)        
+                self.deleteSelectedItem(item)
             else:
                 self.utils.showQgisBar([" Kompozice  " + name + " nebyla smazána."," Composition  " + name + " was not sucessfully deleted."], Qgis.Warning)    
             self.mapDeletedSuccessfully.emit()
@@ -779,9 +781,14 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             if checked == "0":
                 checked = False
             if checked == "1":
-                checked = True            
-            asyncio.run(self.loadMapsThread(checked))                       
+                checked = True  
+
             
+            # asyncio.run(self.loadMapsThread(checked))                       
+    def deleteSelectedItem(self, item): 
+        root = self.treeWidget.invisibleRootItem()
+        (item.parent() or root).removeChild(item)     
+
     def _onMapDeletedSuccessfully(self):
         if self.objectName() == "AddMapDialog":
             self.pushButton_delete.setEnabled(False)
