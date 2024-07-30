@@ -145,27 +145,51 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadMapsThread(state)))    
         asyncio.run(self.loadMapsThread(checked))     
 
+    # def qfieldSync(self):
+    #     self.layman.qfieldWorking = True 
+    #     self.utils.showMessageBar([" Načítám Qfield projekt"," Loading qfield project"],Qgis.Success)                
+    #     name = self.treeWidget.selectedItems()[0].text(0)
+    #     project_id = self.qfield.getProjectByName(self.utils.removeUnacceptableChars(name))
+    #     # path = self.qfield.downloadProjectPackage(project_id)
+    #     # if path == 400:
+    #     path = self.qfield.downloadProject(project_id)
+    #     if path == 401:
+    #         self.progressDone.emit() 
+    #         self.utils.showMessageBar([" Nemáte práva k synchronizaci tohoho projektu"," You do not have access right to sync this project"],Qgis.Warning)
+    #         return
+    #     self.utils.openQgisProject(path)  
+    #     self.layman.current = name
+    #     self.layman.instance = CurrentComposition(self.URI, self.utils.removeUnacceptableChars(name), self.treeWidget.selectedItems()[0].text(1), self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
+    #     if self.treeWidget.selectedItems()[0].text(2) == "own": 
+    #         threading.Thread(target=self.laymanSync, args=()).start()  
+    #         threading.Thread(target=self.layman.patchMap2, args=(True)).start()  
+    #         # self.laymanSync()            
+    #         # self.layman.patchMap2(True)
+    #     self.progressDone.emit()          
+    #     self.layman.qfieldWorking = False 
     def qfieldSync(self):
-        self.layman.qfieldWorking = True 
-        self.utils.showMessageBar([" Načítám Qfield projekt"," Loading qfield project"],Qgis.Success)                
-        name = self.treeWidget.selectedItems()[0].text(0)
-        project_id = self.qfield.getProjectByName(self.utils.removeUnacceptableChars(name))
-        # path = self.qfield.downloadProjectPackage(project_id)
-        # if path == 400:
-        path = self.qfield.downloadProject(project_id)
-        if path == 401:
-            self.progressDone.emit() 
-            self.utils.showMessageBar([" Nemáte práva k synchronizaci tohoho projektu"," You do not have access right to sync this project"],Qgis.Warning)
-            return
-        self.utils.openQgisProject(path)  
-        self.layman.current = name
-        self.layman.instance = CurrentComposition(self.URI, self.utils.removeUnacceptableChars(name), self.treeWidget.selectedItems()[0].text(1), self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
-        if self.treeWidget.selectedItems()[0].text(2) == "own":   
-            self.laymanSync()
-            self.layman.patchMap2(True)
-        self.progressDone.emit()          
-        self.layman.qfieldWorking = False 
+        self.download_thread = DownloadThread(self.qfield, self.utils, self.treeWidget, self.layman, self.URI, self.laymanUsername)
+        self.download_thread.progressDone.connect(self.on_progress_done)
+        self.download_thread.showMessageBar.connect(self.on_show_message_bar)
+        self.download_thread.openQgisProject.connect(self.on_open_qgis_project)
+        self.download_thread.laymanSync.connect(self.laymanSync)
+        self.download_thread.patchMap2.connect(self.layman.patchMap2)
+        self.download_thread.start()
 
+    def on_progress_done(self):
+        self.progressDone.emit() 
+
+    def on_show_message_bar(self, message, level):       
+        self.utils.showMessageBar(message, level)
+
+    def on_open_qgis_project(self, path):        
+        self.utils.openQgisProject(path)
+
+    def laymanSync(self):
+        threading.Thread(target=self.laymanSync, args=()).start()
+
+    def patchMap2(self, arg):
+        threading.Thread(target=self.layman.patchMap2, args=(arg,)).start()
     def laymanSync(self):
         layers = self.utils.getLayersFromCanvas()
         for layer_name in layers:
@@ -174,7 +198,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 layer = layer[0]
                 provider_type = layer.dataProvider().name()   
                 if provider_type not in ['wms', 'wfs']:
-                    print("update layer" + layer_name)
+                    print("update layer " + layer_name)
                     self.layman.postRequest(layer_name, auto = True, noInfo = True)
                   
         
@@ -1195,4 +1219,45 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         global dialog_running 
         dialog_running = False    
         self.qfieldWorking = False
+from PyQt5.QtCore import QThread, pyqtSignal
+import threading
+
+class DownloadThread(QThread):
+    progressDone = pyqtSignal()
+    showMessageBar = pyqtSignal(list, int)
+    openQgisProject = pyqtSignal(str)
+    laymanSync = pyqtSignal()
+    patchMap2 = pyqtSignal(bool)
+
+    def __init__(self, qfield, utils, treeWidget, layman, URI, laymanUsername):
+        QThread.__init__(self)
+        self.qfield = qfield
+        self.utils = utils
+        self.treeWidget = treeWidget
+        self.layman = layman
+        self.URI = URI
+        self.laymanUsername = laymanUsername
+
+    def run(self):
+        self.layman.qfieldWorking = True 
+        self.showMessageBar.emit([" Načítám Qfield projekt", " Loading qfield project"], Qgis.Success)
         
+        name = self.treeWidget.selectedItems()[0].text(0)
+        project_id = self.qfield.getProjectByName(self.utils.removeUnacceptableChars(name))
+        
+        path = self.qfield.downloadProject(project_id)
+        if path == 401:
+            self.progressDone.emit() 
+            self.showMessageBar.emit([" Nemáte práva k synchronizaci tohoho projektu", " You do not have access right to sync this project"], Qgis.Warning)
+            return
+        
+        self.openQgisProject.emit(path)  
+        self.layman.current = name
+        self.layman.instance = CurrentComposition(self.URI, self.utils.removeUnacceptableChars(name), self.treeWidget.selectedItems()[0].text(1), self.utils.getAuthHeader(self.utils.authCfg), self.laymanUsername)
+        
+        if self.treeWidget.selectedItems()[0].text(2) == "own": 
+            self.laymanSync.emit()  
+            self.patchMap2.emit(True)
+        
+        self.progressDone.emit()          
+        self.layman.qfieldWorking = False        
