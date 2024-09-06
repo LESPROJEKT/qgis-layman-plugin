@@ -548,6 +548,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         return root.layerOrder()                
     def addAvailableServices(self, layersArr, iterator, notActive):
         urlServer = self.URI.replace("/client", "")
+        data = self.utils.getLayers()
         while iterator.value():
             item = iterator.value()                
             cell = QComboBox()         
@@ -576,16 +577,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:
                     cell.addItems(['No change','Remove'])                        
             else:
-                if self.utils.checkExistingLayers(item.text(0)) and self.utils.checkExistingLayer(item.text(0)):           
+                if self.utils.checkExistingLayers(item.text(0), data): ##and self.utils.checkExistingLayer(item.text(0)):           
                     if self.layman.locale == "cs":
                         cell.addItems(['Beze změny','Přidat ze serveru','Přidat a přepsat'])
                     else:
                         cell.addItems(['No change','Add from server','Add and overwrite' ])
-                elif self.utils.checkExistingLayers(item.text(0)):
-                    if self.layman.locale == "cs":
-                        cell.addItems(['Beze změny','Přidat ze serveru'])
-                    else:
-                        cell.addItems(['No change','Add from server'])                       
+                # elif self.utils.checkExistingLayers(item.text(0), data):
+                #     if self.layman.locale == "cs":
+                #         cell.addItems(['Beze změny','Přidat ze serveru'])
+                #     else:
+                #         cell.addItems(['No change','Add from server'])                       
                 else:
                     if self.layman.locale == "cs":
                         cell.addItems(['Beze změny','Přidat'])
@@ -593,7 +594,6 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         cell.addItems(['No change','Add'])
 
             self.treeWidget_layers.setItemWidget(item,2, cell)
-
             self.treeWidget_layers.setItemWidget(item,1, cellServices)        
                                             
             if self.layman.instance.getServiceForLayer(item.text(0)) in (["HSLayers.Layer.WMS", "WMS", "XYZ"]):
@@ -726,13 +726,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     except:
                         print("neni v poli")
         
-        self.layman.updateLayerPropsInComposition()       
-        self.layman.syncOrder2(self.getLayersOrder())    
-        self.layman.patchMap2()        
+        self.layman.updateLayerPropsInComposition() 
+        self.layman.syncOrder2(self.getLayersOrder())          
+        self.layman.patchMap2()                
         self.layman.writeValuesToProject(self.URI, composition['name'])  
-        self.layman.showExportInfo.emit("F")
+        self.layman.showExportInfo.emit("F")        
         self.onRefreshCurrentForm.emit()    
-        self.progressDone.emit()   
+        self.progressDone.emit()           
         if qfield:
             self.qfieldUpdate.emit()            
     def saveMapLayers(self):
@@ -754,7 +754,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         while iterator.value():
             item = iterator.value()         
             if item.checkState(0) == 2 and  self.utils.removeUnacceptableChars(item.text(0)) not in layerList:           
-                if not self.layman.checkLayerInCurrentCompositon(item.text(0)):              
+                if not self.layman.checkLayerInCurrentCompositon(item.text(0)):  
                     layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
                     if (isinstance(layer, QgsVectorLayer)): 
                         layers.append(layer)                        
@@ -762,13 +762,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         layers.append(layer)          
 
             elif item.checkState(0) == 2 and  self.utils.removeUnacceptableChars(item.text(0))  in layerList:
-                for it in self.currentSet:                    
+                for it in self.currentSet:                                 
                     if (it[2] =='Overwrite geometry'  or it[2] == "Přepsat data") and it[0] == item.text(0):
                         layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
                         if layer.type() == QgsMapLayer.VectorLayer:
                             self.layman.postRequest(layer.name(), True)
             elif item.checkState(0) == 0 and item.text(0) not in layerCheckedList and self.treeWidget_layers.itemWidget(item,2).currentText() in ("Smazat", "Remove"):  ## může být zaškrnut i jinde, pak nemažem                                        
-                pom = 0
+                pom = 0             
                 for i in range (0, len(composition['layers'])):
                     i = i - pom
                                       

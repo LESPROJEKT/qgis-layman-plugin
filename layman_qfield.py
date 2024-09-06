@@ -6,15 +6,29 @@ from .qfield.cloud_converter import CloudConverter
 import json
 import requests
 import shutil
+from enum import Enum
+
+class URLMapping(Enum):
+    SERVER1 = ("https://atlas2.kraj-lbc.cz/client", "https://atlas2.kraj-lbc.cz/qfcloud")
+    SERVER2 = ("https://watlas.lesprojekt.cz/client", "https://qfield.lesprojekt.cz")
+ 
 
 class Qfield:
     def __init__(self, utils): 
         self.utils = utils
-        self.URI = "https://qfield.lesprojekt.cz"
+      
+        
+        #self.URI = "https://qfield.lesprojekt.cz"
+        self.URI = "https://atlas2.kraj-lbc.cz/qfcloud"
         #self.URI = "http://localhost:8011"
+        self.URI = ""
         self.selectedLayers = []
         self.path = ""
-
+    def setURI(self, URI):
+        for server in URLMapping:        
+            if URI == server.value[0]:
+                self.URI =  server.value[1]      
+   
     def createQProject(self, name, description, private):       
         url = self.URI + "/api/v1/projects/" 
         payload = {
@@ -62,27 +76,7 @@ class Qfield:
         project.writeEntry("Layman", "Name", "")
         project.writeEntry("Layman", "Workspace", "")
         project.write()
-    # def deleteLayersFromProjekt(self, path, layers_to_remove):
-    #     project_path = path + os.sep + "_cloud.qgs"
-    #     backup_path = project_path + "~"        
-    #     temp_project = QgsProject()
-    #     temp_project.read(project_path)    
-    #     for layer_name in layers_to_remove:
-    #         layers = temp_project.mapLayersByName(layer_name)
-    #         if layers:
-    #             temp_project.removeMapLayer(layers[0])
-    #     temp_project.write(project_path)    
-    #     shutil.copyfile(project_path, backup_path)        
-    #     print(f"Project saved to {project_path} and backup created at {backup_path}") 
-    #     return temp_project
-    # def deleteLayersFromProjekt(self, path, layers_to_remove):
-    #     temp_project = QgsProject().instance()  
-    #     for layer_name in layers_to_remove:
-    #         layers = temp_project.mapLayersByName(layer_name)
-    #         if layers:
-    #             temp_project.removeMapLayer(layers[0])
-    #     temp_project.write(path)   
-    #     return temp_project
+
 
     def postMultipleFiles(self, project_id, directory_path):
         url = f"{self.URI}/api/v1/files/{project_id}/"
@@ -142,7 +136,9 @@ class Qfield:
         
     def getUserInfo(self):    
         url = f"{self.URI}/api/v1/auth/user/"          
-        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)                
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)        
+        print(self.URI)      
+        print(response.content)
         return response        
 
     def getProjects(self):

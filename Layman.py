@@ -2609,7 +2609,7 @@ class Layman(QObject):
                 files = {'file': (zipPath, open(zipPath, 'rb')),'style': open(stylePath, 'rb')}
             data['crs'] = 'EPSG:4326'
             response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)         
-            res = self.utils.fromByteToJson(response.content)            
+            res = self.utils.fromByteToJson(response.content)              
             try:
                 if res['code'] == 4:
                     self.utils.showQgisBar(["Nepodporované CRS souboru","Unsupported CRS of data file"], Qgis.Warning)              
@@ -2621,7 +2621,10 @@ class Layman(QObject):
             QgsMessageLog.logMessage("resetProgressbar")            
             self.dlg.label_progress.setText(self.tr("Sucessfully exported: ") +  str(1) + " / " + str(1) )
         else:
-            self.uploaded = self.uploaded + 1
+            try:
+                self.uploaded = self.uploaded + 1
+            except:
+                pass                
             self.exportLayerSuccessful.emit(layer_name)
         QgsMessageLog.logMessage("export")
         QgsMessageLog.logMessage("disableProgress")
@@ -3997,10 +4000,11 @@ class Layman(QObject):
         else:
             if self.dlg.objectName() == "ConnectionManagerDialog":
                 self.dlg.refreshAfterFailedLogin()
-        ### check Qfield ##
+        ### check Qfield ##        
         threading.Thread(target=lambda: self.qfieldCheck()).start()      
-    def qfieldCheck(self):                     
-        user_info = self.qfield.getUserInfo()   
+    def qfieldCheck(self):   
+        self.qfield.setURI(self.URI)                           
+        user_info = self.qfield.getUserInfo()          
         if user_info is not None and user_info.status_code == 200:         
             print("qfield ready") 
             self.qfieldReady = True

@@ -621,18 +621,20 @@ class LaymanUtils(QObject):
             return True
         else:
             return False
-    def checkExistingLayers(self, layerName):
-        layerName = self.removeUnacceptableChars(layerName)
+    def getLayers(self):   
         url = self.URI+'/rest/layers'
         r = self.requestWrapper("GET", url, payload = None, files = None)      
         if not r:
             return
-        data = r.json()
-
+        data = r.json()     
+        return data
+        
+    def checkExistingLayers(self, layerName, data):
+        layerName = self.removeUnacceptableChars(layerName)        
         pom = set()
         for x in range(len(data)):
             pom.add((data[x]['name']))
-        layerName = layerName.replace(" ", "_").lower()     
+        layerName = layerName.replace(" ", "_").lower()         
         if (layerName in pom):
             return True
         else:
