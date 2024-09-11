@@ -84,6 +84,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.globalRead = {}
         self.globalWrite = {}  
         self.qfield = Qfield(self.utils)
+        self.qfield.setURI(self.URI) 
         self.qfieldWorking = True
         self.setUi()
     

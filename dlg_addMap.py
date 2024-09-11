@@ -72,6 +72,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.globalWrite = {}     
         self.qfieldWorking = True
         self.qfield = Qfield(self.utils)
+        self.qfield.setURI(self.URI) 
         self.setUi()
         
     def connectEvents(self):

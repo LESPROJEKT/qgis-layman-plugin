@@ -19,9 +19,8 @@ class Qfield:
       
         
         #self.URI = "https://qfield.lesprojekt.cz"
-        self.URI = "https://atlas2.kraj-lbc.cz/qfcloud"
-        #self.URI = "http://localhost:8011"
-        self.URI = ""
+        #self.URI = "https://atlas2.kraj-lbc.cz/qfcloud"
+        #self.URI = "http://localhost:8011"      
         self.selectedLayers = []
         self.path = ""
     def setURI(self, URI):
@@ -38,6 +37,8 @@ class Qfield:
             "is_public": private
         }   
         response = self.utils.requestWrapper("POST", url, payload = payload, files = None, emitErr = False)
+        print(url)
+        print(response.content)
         res = response.json()        
         if response.status_code == 201:
             self.uploadQFiles(res['id'], "")
@@ -48,7 +49,7 @@ class Qfield:
         self.removeEntry()
         # self.deleteLayersFromProjekt(self.selectedLayers)
         # qpath = tempfile.mkdtemp(prefix="qgis_", dir=tempfile.gettempdir())
-        project = self.deleteLayersFromProjekt(self.selectedLayers)
+        # project = self.deleteLayersFromProjekt(self.selectedLayers)
         path = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
         self.path = path
         cloud_convertor = CloudConverter(QgsProject.instance(), path, self.selectedLayers)
