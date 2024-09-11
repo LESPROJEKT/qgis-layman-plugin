@@ -252,60 +252,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressDone.emit()   
     def exportToQfield(self):            
         self.updateComposition(qfield = True)
-        # self.progressStart.emit() 
-        # self.layman.qfieldWorking = True       
-        # myLayers = self.layman.instance.getOnlyMyLayers()
-        # if self.utils.containsWmsOrWfs():
-        #     layersToUpdate = self.utils.filterTitlesByAccessRights(myLayers)
-        # else:
-        #     layersToUpdate = None           
-        # if layersToUpdate:   
-        #     msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("QField does not support private layers. Would you like to set these layers as public?"))
-        #     msgbox.addButton(QMessageBox.Yes)
-        #     msgbox.addButton(QMessageBox.No)
-        #     msgbox.setDefaultButton(QMessageBox.No)
-        #     msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
-        #     reply = msgbox.exec()                                                 
-        #     if (reply == QMessageBox.Yes):
-        #         print(layersToUpdate)
-        #         self.utils.updateLayerAccessRights(self.utils.filterTitlesByAccessRights(layersToUpdate))
-        #         self.utils.removeAuthcfg(layersToUpdate)        
-        # self.utils.saveUnsavedLayers()  
-        # try:
-        #     QgsProject.instance().layerWasAdded.disconnect()
-        # except TypeError as e:
-        #     print(f"Chyba při odpojování on_layers_added: {e}")
-        # try:
-        #     QgsProject.instance().layerRemoved.disconnect()
-        # except TypeError as e:
-        #     print(f"Chyba při odpojování on_layers_added: {e}")        
-        # threading.Thread(target=self.qfieldThread).start()        
-        # name = self.layman.current            
-        # self.qfield.selectedLayers = self.getCheckedLayerNames()
-        # permissions = self.layman.instance.getAllPermissions()
-        # permission = "true" if 'EVERYONE' in permissions['read'] else "false"   
-        # response = self.qfield.createQProject(self.layman.instance.getName(), self.layman.instance.getDescription(), permission)
-        # res = response.json()
-        # if response.status_code == 201:
-        #     self.utils.showQgisBar([" Projekt by úspěšně vytvořen."," Project was successfully created."], Qgis.Success)    
-        # elif 'code' in res and res['code'] == 'project_already_exists':            
-        #     convertedProjectPath = self.qfield.convertQProject()            
-        #     self.utils.showQgisBar([" Aktualizuji project QField."," Update QField project"], Qgis.Success)          
-        #     project_id = self.qfield.getProjectByName(name)              
-        #     qfieldFiles = self.qfield.getProjectFiles(project_id).json()  
-        #     layersToDelete = self.qfield.selectedLayers
-        #     layersToPost = self.qfield.findLayersToPost(self.layman.instance.getLayerList(), qfieldFiles)                        
-        #     filesToCheck = self.qfield.filesToCheck(qfieldFiles)         
-        #     local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)               
-        #     self.qfield.postMultipleFiles(project_id, convertedProjectPath)    
-        #     self.syncFiles(local_hashes,filesToCheck, layersToPost, layersToDelete, project_id)                              
-        # self.layman.current = name
-        # QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
-        # QgsProject.instance().layerRemoved.connect(self.on_layers_removed)  
-        # self.layman.qfieldWorking = False  
-        # self.layman.stylesToUpdate = set()  
-        # self.onRefreshCurrentForm.emit()       
-        # self.progressDone.emit()   
+       
     def qfieldThread(self):
         name = self.layman.current            
         self.qfield.selectedLayers = self.getCheckedLayerNames()

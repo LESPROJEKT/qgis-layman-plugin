@@ -59,8 +59,8 @@ class Qfield:
 
     def uploadQFiles(self, project_id, path):
         layers = QgsProject.instance().mapLayers().values()
-        if len(layers) == 0:
-            self.utils.emitMessageBox(["Nejsou vrstvy k exportu!", "No layers to export!"])
+        if len(layers) == 0:       
+            self.utils.showMessageSignal.emit([["Nejsou vrstvy k exportu!", "No layers to export!"]], Qgis.Warning)   
             return
         path = self.convertQProject()   
         threading.Thread(target=lambda: self.postMultipleFiles(project_id, path)).start()
