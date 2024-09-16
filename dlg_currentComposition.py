@@ -1447,11 +1447,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_2.textEdited.connect(self.checkForChars)
         projectPath = QgsProject.instance().fileName()
         if projectPath != "":
-            projectName = os.path.basename(projectPath).split(".")[0]
-            if projectName[0] in ["0","1","2","3","4","5","6","7","8","9"]:                
-                self.showInfoDialogOnTop(self.tr("Number in first character of title is not allowed! Title can not be prefilled."))
-            else:
-                self.lineEdit_2.setText(projectName)
+            projectName = os.path.basename(projectPath).split(".")[0]           
+            self.lineEdit_2.setText(projectName)
         self.lineEdit_3.setText(str(ext.xMinimum()))
         self.lineEdit_4.setText(str(ext.xMaximum()))
         self.lineEdit_5.setText(str(ext.yMinimum()))
