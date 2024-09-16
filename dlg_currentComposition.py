@@ -77,7 +77,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         dialog_rect.moveTopLeft(screen_rect.topLeft() + QPoint(x-100, y))
         self.move(dialog_rect.topLeft())
         # set to top flag
-        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)        
+        #self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)        
         proxy_style = ProxyStyle(app.style())
         self.setStyle(proxy_style)
         self.setupUi(self)
