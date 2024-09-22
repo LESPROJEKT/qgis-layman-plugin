@@ -22,7 +22,14 @@
  ***************************************************************************/
  This script initializes the plugin, making it known to QGIS.
 """
+import os
+import pathlib
+import sys
+src_dir = pathlib.Path(__file__).parent.resolve()
 
+libqfieldsync_whl = src_dir / "libqfieldsync.whl"
+if libqfieldsync_whl.exists():
+    sys.path.append(str(libqfieldsync_whl))
 
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name

@@ -172,7 +172,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
             if table_widget:
                 self.collectAccessFromTable(table_widget, read_access, "read")
-            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):    
                 role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
                 if role_table_widget:
                     self.collectAccessFromTable(role_table_widget, read_access, "read")
@@ -421,6 +421,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     if item:
                         role_widget.setRowHidden(row, role_filter_text not in item.text().lower())
      
+
     def updatePermissions(self, permissionType, isPublic):
         user_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by user"))
         if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
@@ -681,8 +682,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             data = self.utils.fromByteToJson(r) 
             if onlyOwn:
                 for row in range(0, len(data)):
-                    if "native_crs" in data[row] and 'wfs_wms_status' in data[row]:                        
-                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])                        
+                    if "native_crs" in data[row] and 'wfs_wms_status' in data[row]:   
+                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
                         status = data[row]['wfs_wms_status']
                         icon = self.getStatusIcon(status)                        
                         item.setIcon(4, icon)                         
@@ -706,7 +707,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     if dataAll[row] in data:
                         permissions = "own"
                     if permissions != "":
-                        if "native_crs" in dataAll[row]  and 'wfs_wms_status' in dataAll[row]:                            
+                        if "native_crs" in dataAll[row]  and 'wfs_wms_status' in dataAll[row]:  
                             item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs']])
                             status = dataAll[row]['wfs_wms_status']
                             icon = self.getStatusIcon(status)
@@ -729,7 +730,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     permissions = "read"
                 if "EVERYONE" in data[row]['access_rights']['write']:
                     permissions = "write"
-                if "native_crs" in data[row]  and 'wfs_wms_status' in data[row]:                 
+                if "native_crs" in data[row]  and 'wfs_wms_status' in data[row]:       
                     item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs']])
                     status = data[row]['wfs_wms_status']
                     icon = self.getStatusIcon(status)
@@ -783,6 +784,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_delete.setEnabled(False)  
+
     def setButtons(self, item):
         if item.text(2) != "own":
             self.pushButton_setPermissions.setEnabled(False)

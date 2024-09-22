@@ -21,6 +21,8 @@ import urllib.parse
 import base64
 import imghdr
 import io
+import hashlib
+from datetime import datetime, timedelta
 
 class LaymanUtils(QObject): 
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)  
@@ -28,6 +30,7 @@ class LaymanUtils(QObject):
     loadStyle = pyqtSignal(QgsMapLayer)
     emitMessageBox = pyqtSignal(list)
     showQBar = pyqtSignal(list,Qgis.MessageLevel)
+    showMessageSignal = pyqtSignal(list, int)
       
     def __init__(self, iface, locale,laymanUsername,  parent=None):
         super(LaymanUtils, self).__init__(parent=parent)
@@ -38,6 +41,7 @@ class LaymanUtils(QObject):
         self.iface = iface
         self.laymanUsername = laymanUsername
         self.currentLayer = []
+        self.showMessageSignal.connect(self.showQgisBar)
         self.connectEvents()
     def connectEvents(self):         
         self.showErr.connect(self.showMessageError)
@@ -201,7 +205,7 @@ class LaymanUtils(QObject):
                 header = (req.rawHeader(QByteArray(b"Authorization")))  
                 authHeader ={
                   "Authorization": str(header, 'utf-8'),
-                  "X-Client": "LAYMAN",
+                  "X-Client": "LAYMAN",                  
                 }
                 return authHeader
             else:
@@ -280,8 +284,7 @@ class LaymanUtils(QObject):
             if timeDimension != {}:  
                 if 'values' in timeDimension['time']:           
                     print("wmst")             
-                    quri.setParam("type", "wmst")
-                      #quri.setParam("timeDimensionExtent", "1995-01-01/2021-12-31/PT5M")                        
+                    quri.setParam("type", "wmst")                                     
                     quri.setParam("timeDimensionExtent", str(timeDimension['time']['values']))
                     quri.setParam("allowTemporalUpdates", "true")
                     quri.setParam("temporalSource", "provider")
@@ -315,7 +318,7 @@ class LaymanUtils(QObject):
             rlayer.setMaximumScale(self.resolutionToScale(minRes))
             rlayer.setScaleBasedVisibility(True)
         if (groupName != '' or subgroupName != ''):                        
-            self.addWmsToGroup(subgroupName,rlayer, "") ## vymena zrusena groupa v nazvu kompozice, nyni se nacita pouze vrstva s parametrem path            
+            self.addWmsToGroup(subgroupName,rlayer, "")           
                               
         else:             
             self.loadLayer(rlayer, workspace)  
@@ -544,10 +547,8 @@ class LaymanUtils(QObject):
             self.saveExternalStyle(style, layer_name)     
             return 200, suffix.replace(".","")
         if self.selectedWorkspace:
-            response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))
-            #response = self.requestWrapper("GET", self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
-        else:
-            #response = self.requestWrapper("GET", self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', payload = None, files = None)
+            response = requests.get(self.URI+'/rest/'+self.selectedWorkspace+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))           
+        else:            
             response = requests.get(self.URI+'/rest/'+self.laymanUsername+'/layers/' + self.removeUnacceptableChars(layer_name)+ '/style', headers = self.getAuthHeader(self.authCfg))      
         res = response.content
         res = res.decode("utf-8")
@@ -620,18 +621,20 @@ class LaymanUtils(QObject):
             return True
         else:
             return False
-    def checkExistingLayers(self, layerName):
-        layerName = self.removeUnacceptableChars(layerName)
+    def getLayers(self):   
         url = self.URI+'/rest/layers'
         r = self.requestWrapper("GET", url, payload = None, files = None)      
         if not r:
             return
-        data = r.json()
-
+        data = r.json()     
+        return data
+        
+    def checkExistingLayers(self, layerName, data):
+        layerName = self.removeUnacceptableChars(layerName)        
         pom = set()
         for x in range(len(data)):
             pom.add((data[x]['name']))
-        layerName = layerName.replace(" ", "_").lower()     
+        layerName = layerName.replace(" ", "_").lower()         
         if (layerName in pom):
             return True
         else:
@@ -859,6 +862,196 @@ QPushButton::indicator {
             mime_type = mime_type_mapping.get(file_type, "data:unknown")
         return mime_type   
     
+    def generate_md5(self, filename):
+        hash_md5 = hashlib.md5()
+        with open(filename, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+    def generate_sha256(self, filename):
+        hash_sha256 = hashlib.sha256()
+        with open(filename, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_sha256.update(chunk)
+        return hash_sha256.hexdigest()
+    def create_local_files_hash_dict(self, directory):        
+        files_hashes = {}
+        for filename in os.listdir(directory):
+            full_path = os.path.join(directory, filename)
+            if os.path.isfile(full_path):
+                files_hashes[full_path] = self.generate_md5(full_path)
+        return files_hashes
+    
+    def get_filename_with_extension(self, full_path):
+        filename_with_extension = os.path.basename(full_path)       
+        return filename_with_extension
+    
+    def get_filename_without_extension(self, full_path):
+        filename_with_extension = os.path.basename(full_path)
+        filename_without_extension, _ = os.path.splitext(filename_with_extension)
+        return filename_without_extension
+    def getUserScreenNames(self):       
+        usersEndpoint = self.URI + "/rest/users"   
+        r = self.requestWrapper("GET", usersEndpoint, payload=None, files=None)   
+        res = self.fromByteToJson(r.content)  
+        user_screen_names = {}    
+        for user in res:   
+            user_screen_names[user['username']] = user['screen_name']           
+        return user_screen_names
+    def saveUnsavedLayers(self):    
+        project = QgsProject.instance()   
+        for layer in project.mapLayers().values():        
+            if layer.type() == QgsMapLayer.VectorLayer and layer.isModified():           
+                if layer.commitChanges():
+                    print(f"Changes saved for layer: {layer.name()}")
+                else:
+                    print(f"Failed to save changes for layer: {layer.name()}")
+            else:            
+                print(f"No changes to save or not a vector layer: {layer.name()}")
+    def transformUsernames(self, search_names):        
+        user_screen_names = self.getUserScreenNames()
+        result = []
+        for name in search_names:
+            if name.isupper():               
+                result.append(name)
+            else:                
+                result.append(user_screen_names.get(name, name))
+        return result
+    def findCommonUsers(self, usernames, qfield_users): 
+        usernames_set = set(usernames)      
+        common_users = []
+        for user in qfield_users:
+            if user['username_display'] in usernames_set:
+                common_users.append(user['username_display'])
+        return common_users      
+    def isWmsOrWfs(self, layer):
+        return layer.providerType() in ['wms', 'wfs']
+    
+    def containsWmsOrWfs(self):
+        project = QgsProject.instance()     
+        layers = project.mapLayers().values()
+        for layer in layers:
+            if self.isWmsOrWfs(layer):            
+                return True
+        return False
+    
+    def filterTitlesByAccessRights(self, layers):
+        url = self.URI + '/rest/' + self.laymanUsername + '/layers'
+        response = requests.get(url, headers=self.getAuthHeader(self.authCfg))        
+        filtered_layers = []  
+        for layer in response.json():
+            read_rights = layer.get('access_rights', {}).get('read', [])
+            write_rights = layer.get('access_rights', {}).get('write', [])
+            
+            if "EVERYONE" not in read_rights and "EVERYONE" not in write_rights:
+                if layer['title'] in layers:                    
+                    filtered_layers.append({
+                        'title': layer['title'],
+                        'access_rights': {
+                            'read': read_rights,
+                            'write': write_rights
+                        }
+                    })
+        
+        return filtered_layers
+    def updateLayerAccessRights(self, filtered_layers):       
+        for layer in filtered_layers:
+            title = layer['title']            
+            title = self.removeUnacceptableChars(title)         
+            url = f"{self.URI}/rest/{self.laymanUsername}/layers/{title}"         
+            read_access = layer['access_rights']['read'] + ['EVERYONE']
+            write_access = layer['access_rights']['write'] + ['EVERYONE']           
+            data = {
+                'access_rights.read': self.listToString(read_access),
+                'access_rights.write': self.listToString(write_access)
+            }        
+            response = requests.patch(url, data=data, headers=self.getAuthHeader(self.authCfg))
+            print(f"Update for layer '{title}': {response.status_code}, Response: {response.text}")
+
+    def removeAuthcfg(self, json_layers):               
+        layer_data = json.loads(json_layers) if isinstance(json_layers, str) else json_layers  
+        layers_to_update = [layer['title'] for layer in layer_data]
+        project = QgsProject.instance()    
+        for layer in project.mapLayers().values():           
+            if layer.name() in layers_to_update:          
+                original_url = layer.source()               
+                parts = original_url.split("&")               
+                filtered_parts = [part for part in parts if not part.startswith("authcfg=")]              
+                new_url = "&".join(filtered_parts)              
+                layer.setDataSource(new_url, layer.name(), layer.providerType())
+
+    def compareUpdates(self, qfieldUpdate, laymanUpdate):      
+        json_obj1 = json.loads(qfieldUpdate)
+        json_obj2 = json.loads(laymanUpdate)        
+        created_at1 = datetime.fromisoformat(json_obj1['created_at'])
+        updated_at1 = datetime.fromisoformat(json_obj1['updated_at'])
+        updated_at2 = datetime.fromisoformat(json_obj2['updated_at'])        
+        if updated_at1 != created_at1:         
+            time_difference = updated_at2 - updated_at1
+            if time_difference >= timedelta(minutes=3):
+                return "Informace: První updated_at je starší nebo rovno 3 minutám oproti druhému updated_at."
+            else:
+                return "Informace: První updated_at není starší než 3 minuty oproti druhému updated_at."
+        else:
+            return "Informace: updated_at a created_at v prvním JSON objektu jsou stejné."       
+
+
+    def compareLayers(qfieldFiles, laymanLayers, layersInProject):       
+        qfieldFiles = json.loads(qfieldFiles)
+        laymanLayers = json.loads(laymanLayers)    
+        layer_dict2 = {layer['title']: layer for layer in laymanLayers if layer['title'] in layersInProject}   
+        for layer1 in qfieldFiles:
+            name1 = layer1['name']       
+            if name1.endswith('.gpkg'):
+                base_name1 = name1.rsplit('.', 1)[0]  
+                last_modified1_str = layer1['last_modified']
+                last_modified1 = datetime.strptime(last_modified1_str, "%d.%m.%Y %H:%M:%S UTC")               
+                if base_name1 in layer_dict2:
+                    layer2 = layer_dict2[base_name1]
+                    updated_at2_str = layer2['updated_at']
+                    updated_at2 = datetime.fromisoformat(updated_at2_str.replace("Z", "+00:00"))              
+                    time_difference = updated_at2 - last_modified1
+                    if time_difference >= timedelta(minutes=3):
+                        print(f"Informace: last_modified vrstvy '{name1}' je starší nebo rovno 3 minutám oproti updated_at vrstvy '{base_name1}'.")
+                    else:
+                        print(f"Informace: last_modified vrstvy '{name1}' není starší než 3 minuty oproti updated_at vrstvy '{base_name1}'.")
+                else:
+                    print(f"Informace: Vrstva s názvem '{base_name1}' nebyla nalezena ve druhém seznamu.")
+
+    def getLayersFromCanvas(self):
+        project = QgsProject.instance()
+        layers = project.mapLayers().values()
+        layer_names = [layer.name() for layer in layers]
+        return layer_names
+
+    def getLayersFromComposition(self, name):
+        url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name+'/file'                
+        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        if r is not None:
+            data = r.json()
+            layers = [layer['title'] for layer in data.get('layers', [])]
+            return layers
+        else:
+            return []   
+    def downloadFile(self, url, local_filename):
+        headers = self.getAuthHeader(self.authCfg)
+        with requests.get(url, headers=headers, stream=True) as r:
+            r.raise_for_status()
+            with open(local_filename, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk) 
+    def openQgisProject(self, project_path):        
+        project = QgsProject.instance()
+        project_path = self.findQgisProject(project_path)
+        project.read(project_path)   
+
+    def findQgisProject(self, directory):
+        """Najde první .qgz nebo .qgs soubor v zadaném adresáři."""
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                if file.endswith('.qgz') or file.endswith('.qgs'):
+                    return os.path.join(root, file)
+        return None
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:

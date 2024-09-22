@@ -68,6 +68,10 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
         self.comboBox_port.addItem("7071")
         self.comboBox_port.addItem("7072")
         port = self.utils.getConfigItem("port") 
+        if self.layman.qfieldReady:
+            self.label_qfield_server.setText("Ready")
+        else:
+            self.label_qfield_server.setText("Not available")           
         if not port:
             self.comboBox_port.setCurrentIndex(0)
             self.layman.port = "7070"
