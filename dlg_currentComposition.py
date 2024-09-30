@@ -139,7 +139,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.page5.setVisible(True)
             self.setLayerPropertiesUI()     
                                        
-            
+    def writeProjectValues(self):
+        self.layman.writeValuesToProject(self.URI, self.layman.current)        
+        projekt = QgsProject.instance()
+        cesta_k_projektu = projekt.fileName()  
+        print(cesta_k_projektu)    
     def setUi(self):    
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)  
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)     
@@ -157,7 +161,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_log.hide()        
         self.label_raster.hide()
         self.treeWidget_layers.header().resizeSection(0,230)  
-        self.pushButton_qfield.clicked.connect(self.exportToQfield)       
+        self.pushButton_qfield.clicked.connect(self.writeProjectValues) 
+        self.pushButton_qfield.clicked.connect(self.exportToQfield)      
         if self.layman.current != None:
             self.layman.instance.refreshComposition()
             composition = self.layman.instance.getComposition()        
@@ -198,22 +203,22 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def UpdateQfield(self):
         self.progressStart.emit() 
         self.layman.qfieldWorking = True       
-        myLayers = self.layman.instance.getOnlyMyLayers()
-        if self.utils.containsWmsOrWfs():
-            layersToUpdate = self.utils.filterTitlesByAccessRights(myLayers)
-        else:
-            layersToUpdate = None           
-        if layersToUpdate:   
-            msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("QField does not support private layers. Would you like to set these layers as public?"))
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
-            reply = msgbox.exec()                                                 
-            if (reply == QMessageBox.Yes):
-                print(layersToUpdate)
-                self.utils.updateLayerAccessRights(self.utils.filterTitlesByAccessRights(layersToUpdate))
-                self.utils.removeAuthcfg(layersToUpdate)        
+        # myLayers = self.layman.instance.getOnlyMyLayers()
+        # if self.utils.containsWmsOrWfs():
+        #     layersToUpdate = self.utils.filterTitlesByAccessRights(myLayers)
+        # else:
+        #     layersToUpdate = None           
+        # if layersToUpdate:   
+        #     msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("QField does not support private layers. Would you like to set these layers as public?"))
+        #     msgbox.addButton(QMessageBox.Yes)
+        #     msgbox.addButton(QMessageBox.No)
+        #     msgbox.setDefaultButton(QMessageBox.No)
+        #     msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
+        #     reply = msgbox.exec()                                                 
+        #     if (reply == QMessageBox.Yes):
+        #         print(layersToUpdate)
+        #         self.utils.updateLayerAccessRights(self.utils.filterTitlesByAccessRights(layersToUpdate))
+        #         self.utils.removeAuthcfg(layersToUpdate)        
         self.utils.saveUnsavedLayers()  
         try:
             QgsProject.instance().layerWasAdded.disconnect()
@@ -248,6 +253,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         QgsProject.instance().layerRemoved.connect(self.on_layers_removed)  
         self.layman.qfieldWorking = False  
         self.layman.stylesToUpdate = set()  
+        self.layman.writeValuesToProject(self.URI, name)  
         self.onRefreshCurrentForm.emit()       
         self.progressDone.emit()   
     def exportToQfield(self):            
@@ -332,10 +338,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.pushButton_qfield.setEnabled(visible)
             self.checkBox_all.setEnabled(visible)
     def refreshCurrentForm(self, layerAdded = None):
+        print(self.layman.current)
         self.pushButton_new.show()  
         if self.layman.instance == None:
             return
         composition = self.layman.instance.getComposition()
+        print(composition)
         if self.layman.current != None:           
             try:
                 writePermissions = self.layman.instance.getAllPermissions()['write']
@@ -445,10 +453,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             item.setToolTip(0,self.tr("This layer does not appear in the QGIS map window, but is included in the composition."))     
             self.treeWidget_layers.addTopLevelItem(item)
             self.layersWasModified()           
-        self.addAvailableServices(layersArr,iterator, notActive)
-                
-    def qfieldLogin(self):
-        self.layman.run_QfieldLoginDialog()
+        self.addAvailableServices(layersArr,iterator, notActive)               
         
     def checkAllLayers(self, checked):
         if checked:
@@ -562,7 +567,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         except:
             print("neni v canvasu")                        
             
-    def updateComposition(self, checkD = True, thread = True, qfield = False):   
+    def updateComposition(self, checkD = True, thread = True, qfield = False):  
+        self.writeProjectValues()
         self.progressStart.emit()     
         self.currentSet = list()
         iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
@@ -1526,7 +1532,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.pushButton_CreateComposition.setEnabled(True)                      
             
-    def createComposition(self,  title, abstract, setCurrent = False):         
+    def createComposition(self,  title, abstract, setCurrent = False):           
         self.compositionDict = self.utils.fillCompositionDict()
         if QgsProject.instance().crs().authid() not in self.layman.supportedEPSG:            
             self.showInfoDialogOnTop(self.tr("Project EPSG is not supported."))

@@ -46,7 +46,7 @@ class Qfield:
         
         
     def convertQProject(self): 
-        self.removeEntry()
+        # self.removeEntry()
         # self.deleteLayersFromProjekt(self.selectedLayers)
         # qpath = tempfile.mkdtemp(prefix="qgis_", dir=tempfile.gettempdir())
         # project = self.deleteLayersFromProjekt(self.selectedLayers)
@@ -71,7 +71,7 @@ class Qfield:
             layers = project.mapLayersByName(layer_name)
             if layers:              
                 project.removeMapLayer(layers[0])         
-    def removeEntry(self):
+    def removeEntry(self):        
         project = QgsProject.instance() 
         project.writeEntry("Layman", "Server", "")
         project.writeEntry("Layman", "Name", "")

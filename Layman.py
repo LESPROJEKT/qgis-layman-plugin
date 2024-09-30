@@ -1293,8 +1293,7 @@ class Layman(QObject):
         
         self.updateLayerPropsInComposition()       
         self.syncOrder2(self.getLayersOrder())    
-        self.patchMap2()        
-        self.writeValuesToProject(self.URI, composition['name'])   
+        self.patchMap2()                
         QgsMessageLog.logMessage("updateMapDone")
         QgsMessageLog.logMessage("layersUploaded")
         self.showExportInfo.emit("F")
