@@ -146,7 +146,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadMapsThread(state)))    
         asyncio.run(self.loadMapsThread(checked))     
 
-    def qfieldSync(self):
+    def qfieldSync(self):        
         self.layman.qfieldWorking = True 
         self.utils.showMessageBar([" Načítám Qfield projekt"," Loading qfield project"],Qgis.Success)                
         name = self.treeWidget.selectedItems()[0].text(0)
@@ -168,6 +168,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             # self.layman.patchMap2(True)
         self.progressDone.emit()          
         self.layman.qfieldWorking = False 
+        self.layman.instance.qfieldPatchPossibility = True
     # def qfieldSync(self):
     #     self.download_thread = DownloadThread(self.qfield, self.utils, self.treeWidget, self.layman, self.URI, self.laymanUsername)
     #     self.download_thread.progressDone.connect(self.on_progress_done)

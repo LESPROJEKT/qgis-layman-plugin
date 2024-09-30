@@ -46,15 +46,25 @@ class Qfield:
         
         
     def convertQProject(self): 
-        # self.removeEntry()
+        original_project_path = QgsProject.instance().fileName()
+        project = QgsProject.instance()        
+        original_server = project.readEntry("Layman", "Server", "")[0]
+        original_name = project.readEntry("Layman", "Name", "")[0]
+        original_workspace = project.readEntry("Layman", "Workspace", "")[0]
+        self.removeEntry()
         # self.deleteLayersFromProjekt(self.selectedLayers)
         # qpath = tempfile.mkdtemp(prefix="qgis_", dir=tempfile.gettempdir())
         # project = self.deleteLayersFromProjekt(self.selectedLayers)
         path = tempfile.mkdtemp(prefix="qfield_", dir=tempfile.gettempdir())
         self.path = path
-        cloud_convertor = CloudConverter(QgsProject.instance(), path, self.selectedLayers)
-        # cloud_convertor = CloudConverter(project, path, self.selectedLayers)
-        cloud_convertor.convert()        
+        cloud_convertor = CloudConverter(QgsProject.instance(), path, self.selectedLayers)   
+        cloud_convertor.convert()   
+        project = QgsProject.instance()
+        project.read(original_project_path)
+        project.writeEntry("Layman", "Server", original_server)
+        project.writeEntry("Layman", "Name", original_name)
+        project.writeEntry("Layman", "Workspace", original_workspace)
+        project.write()     
         return path
 
     def uploadQFiles(self, project_id, path):
