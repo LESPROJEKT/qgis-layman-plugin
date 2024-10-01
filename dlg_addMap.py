@@ -168,7 +168,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             # self.layman.patchMap2(True)
         self.progressDone.emit()          
         self.layman.qfieldWorking = False 
-        self.layman.instance.qfieldPatchPossibility = True
+      
     # def qfieldSync(self):
     #     self.download_thread = DownloadThread(self.qfield, self.utils, self.treeWidget, self.layman, self.URI, self.laymanUsername)
     #     self.download_thread.progressDone.connect(self.on_progress_done)

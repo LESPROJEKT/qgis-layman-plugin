@@ -11,8 +11,7 @@ class CurrentComposition(object):
         self.header = header
         self.user = user
         self.layerIds = list()
-        self.layers = list()
-        self.qfieldPatchPossibility = False
+        self.layers = list()      
         self.refreshComposition()
 
     def getComposition(self):

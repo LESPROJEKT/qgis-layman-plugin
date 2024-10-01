@@ -242,6 +242,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.utils.showQgisBar([" Aktualizuji project QField."," Update QField project"], Qgis.Success)          
             project_id = self.qfield.getProjectByName(name)              
             qfieldFiles = self.qfield.getProjectFiles(project_id).json()  
+            if self.utils.hasMatchingLayer(self.utils.getWmsOrWfsLayers(),qfieldFiles):
+                self.utils.showQgisBar([" Není zachován původní poskytoval dat pro Qfield."," Different layer provider."], Qgis.Warning) 
+                self.progressDone.emit()   
+                return
             layersToDelete = self.qfield.selectedLayers
             layersToPost = self.qfield.findLayersToPost(self.layman.instance.getLayerList(), qfieldFiles)                        
             filesToCheck = self.qfield.filesToCheck(qfieldFiles)         
@@ -256,6 +260,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.writeValuesToProject(self.URI, name)  
         self.onRefreshCurrentForm.emit()       
         self.progressDone.emit()   
+
     def exportToQfield(self):            
         self.updateComposition(qfield = True)
        
