@@ -934,6 +934,19 @@ QPushButton::indicator {
             if self.isWmsOrWfs(layer):            
                 return True
         return False
+    def getWmsOrWfsLayers(self):        
+        project = QgsProject.instance()
+        layers = project.mapLayers().values()   
+        wms_wfs_layers = [layer for layer in layers if self.isWmsOrWfs(layer)]        
+        return wms_wfs_layers
+    
+    def hasMatchingLayer(self, wms_wfs_layers, response_data):          
+        layer_names = [layer.name() for layer in wms_wfs_layers]
+        for item in response_data:
+            item_name_without_extension = os.path.splitext(item["name"])[0]         
+            if item_name_without_extension in layer_names:
+                return True
+        return False
     
     def filterTitlesByAccessRights(self, layers):
         url = self.URI + '/rest/' + self.laymanUsername + '/layers'
