@@ -26,7 +26,9 @@ class Qfield:
     def setURI(self, URI):
         for server in URLMapping:        
             if URI == server.value[0]:
-                self.URI =  server.value[1]      
+                self.URI =  server.value[1]  
+                return True
+        return False                
    
     def createQProject(self, name, description, private):       
         url = self.URI + "/api/v1/projects/" 

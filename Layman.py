@@ -4002,7 +4002,10 @@ class Layman(QObject):
         ### check Qfield ##        
         threading.Thread(target=lambda: self.qfieldCheck()).start()      
     def qfieldCheck(self):   
-        self.qfield.setURI(self.URI)                           
+        urlFound = self.qfield.setURI(self.URI)                           
+        if not urlFound:
+            self.enableMapButton.emit()
+            return                          
         user_info = self.qfield.getUserInfo()          
         if user_info is not None and user_info.status_code == 200:         
             print("qfield ready") 
