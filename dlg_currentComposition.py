@@ -39,7 +39,9 @@ from .layman_utils import ProxyStyle
 from distutils.version import LooseVersion
 from .layman_qfield import Qfield   
 from distutils.version import LooseVersion  
-
+import tempfile   
+from qgis.PyQt.QtGui import QImage
+from qgis.PyQt.QtCore import QSize
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -200,7 +202,72 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_qfield.setEnabled(False)
         self.show()
         result = self.exec_()  
+
+ 
+    def export_layer_to_tiff(self, layer, output_file, dpi=300):      
+        canvas = self.layman.iface.mapCanvas()
+        extent = canvas.extent()
+        map_settings = QgsMapSettings()
+        map_settings.setLayers([layer])
+        map_settings.setExtent(extent)
+        map_settings.setOutputDpi(dpi) 
+        canvas_size = canvas.size()
+        image_width = canvas_size.width()
+        image_height = canvas_size.height()
+        map_settings.setOutputSize(QSize(image_width, image_height))     
+        renderer = QgsMapRendererParallelJob(map_settings)
+        renderer.start()
+        renderer.waitForFinished()
+        image = renderer.renderedImage()       
+        success = image.save(output_file, "tif")
+        if success:
+            print(f"TIFF pro vrstvu {layer.name()} byl uložen do {output_file}")
+            return True
+        else:
+            print(f"Chyba při ukládání TIFF pro vrstvu {layer.name()}")
+            return False
+
+    def replace_wms_xyz_layers_with_tiff(self):    
+        project = QgsProject.instance()
+        layers = project.mapLayers().values()     
+        temp_dir = tempfile.mkdtemp()
+        print(f"Dočasný adresář pro TIFF soubory: {temp_dir}")
+
+        layers_to_remove = []
+        layers_to_add = []
+
+        for layer in layers:     
+            if isinstance(layer, QgsRasterLayer):
+                provider_type = layer.providerType()
+                if provider_type in ["wms", "wmsprovider", "wms_client", "xyz"]:
+                    print(f"Zpracovávám vrstvu: {layer.name()} ({provider_type})")                 
+                    output_file = os.path.join(temp_dir, f"{layer.name()}.tif")    
+                    success = self.export_layer_to_tiff(layer, output_file)
+                    if success:             
+                        layers_to_remove.append(layer.id())                 
+                        tiff_layer = QgsRasterLayer(output_file, layer.name())                 
+                        if tiff_layer.isValid():                          
+                            layers_to_add.append(tiff_layer)
+                        else:
+                            print(f"Chyba při vytváření vrstvy z TIFF pro {layer.name()}")
+                    else:
+                        print(f"Chyba při exportu vrstvy {layer.name()} do TIFF")
+                else:
+                    print(f"Přeskakuji vrstvu {layer.name()} (poskytovatel: {provider_type})")
+            else:
+                print(f"Přeskakuji nerastrovou vrstvu {layer.name()}")
+
+     
+        for layer_id in layers_to_remove:
+            layer = project.mapLayer(layer_id)
+            project.removeMapLayer(layer)         
+
+      
+        for tiff_layer in layers_to_add:
+            project.addMapLayer(tiff_layer)
+              
     def UpdateQfield(self):
+        # self.replace_wms_xyz_layers_with_tiff()
         self.progressStart.emit() 
         self.layman.qfieldWorking = True       
         # myLayers = self.layman.instance.getOnlyMyLayers()
@@ -261,7 +328,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.onRefreshCurrentForm.emit()       
         self.progressDone.emit()   
 
-    def exportToQfield(self):            
+    def exportToQfield(self):  
+        # self.qfieldUpdate.emit()          
         self.updateComposition(qfield = True)
        
     def qfieldThread(self):

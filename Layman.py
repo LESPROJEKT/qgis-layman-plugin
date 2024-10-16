@@ -2518,83 +2518,97 @@ class Layman(QObject):
             with open(stylePath, 'w') as file:
                 file.write(updated_sld_style)
     
-    def postRasterThread(self, layers,data, q,progress, patch, resamplingMethod = "Není vybrán"):        
-        resamplingMethod = self.resamplingMethods[resamplingMethod]        
+    def postRasterThread(self, layers, data, q, progress, patch, resamplingMethod="Není vybrán"):
+        resamplingMethod = self.resamplingMethods.get(resamplingMethod, "")       
+      
         for lay in layers:
             if lay.dataProvider().name() != 'wms':
                 layer = lay
+            elif "mbtiles" in lay.dataProvider().dataSourceUri():
+                # Layman nepodporuje mbtiles
+                return           
+
         if resamplingMethod == "No value" or resamplingMethod == "Není vybrán":
             resamplingMethod = ""
-        QgsMessageLog.logMessage("enableProgress")
-        data['crs'] = layer.crs().authid()        
+
+        data['crs'] = layer.crs().authid()
         stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer.name())).replace("geojson", "sld")
         layer.saveSldStyle(stylePath)
         self.removeUnsupportedLaymanTag(stylePath, layer)
-        self.replaceInfiniteInSLD(stylePath)
+        self.replaceInfiniteInSLD(stylePath)    
         layer_name = layer.name()
         title = layer_name
         path = layer.dataProvider().dataSourceUri()
         basename = os.path.basename(path)
+
         if basename == 'OUTPUT.tif':
             name = self.utils.removeUnacceptableChars(layer_name)
-            newPath = path.replace(basename, name+ ".tif")
+            newPath = path.replace(basename, name + ".tif")
             shutil.copy2(path, newPath)
             path = newPath
-        ext = (layer.dataProvider().dataSourceUri()[-4:])
-        if (r'/vsizip/') in layer.source():
-            path = layer.source().replace("/"+os.path.basename(layer.source()),"").replace(r'/vsizip/','')
-            
-        files = {'file': (path, open(path, 'rb')),'style': open(stylePath, 'rb')}
+
+        ext = os.path.splitext(path)[1]
+
+        if r'/vsizip/' in layer.source():
+            path = layer.source().replace("/" + os.path.basename(layer.source()), "").replace(r'/vsizip/', '')
+
+
         if os.path.getsize(path) > 800000000:
             self.checkFileSizeLimit(os.path.getsize(path))
             self.setChunkSizeBigger()
-        externalFile = self.returnPathIfFileExists(path,ext)       
-        if (os.path.getsize(path) > self.CHUNK_SIZE):
-            if patch:           
-                url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.utils.removeUnacceptableChars(layer_name)
-                r = requests.delete(url,headers = self.utils.getAuthHeader(self.authCfg)) 
-            url = self.URI + "/rest/"+self.laymanUsername+"/layers"
-            name = self.utils.removeUnacceptableChars(layer_name)           
+
+        externalFile = self.returnPathIfFileExists(path, ext)    
+        if os.path.getsize(path) > self.CHUNK_SIZE:         
+            if patch:
+                url = f"{self.URI}/rest/{self.laymanUsername}/layers/{self.utils.removeUnacceptableChars(layer_name)}"
+                response = requests.delete(url, headers=self.utils.getAuthHeader(self.authCfg))
+                if response.status_code != 200 and response.status_code != 404:
+                    print(f"Failed to delete existing layer: {response.status_code}, {response.text}")
+                    return       
+            url = f"{self.URI}/rest/{self.laymanUsername}/layers"
+            name = self.utils.removeUnacceptableChars(layer_name)      
             if externalFile:
-                payload = {     
-                'file': [name.lower()+ext,name.lower() + self.returnPathIfFileExists(path,ext, True)],
-                'title': title,
-                'crs': str(layer.crs().authid()),
-                'style': open(stylePath, 'rb'),
-                'overview_resampling': resamplingMethod
+                payload = {
+                    'file': [name.lower() + ext, name.lower() + self.returnPathIfFileExists(path, ext, True)],
+                    'title': title,
+                    'crs': str(layer.crs().authid()),
+                    'style': open(stylePath, 'rb'),
+                    'overview_resampling': resamplingMethod
                 }
             else:
                 payload = {
-                'file': name.lower()+ext,
-                'title': title,
-                'crs': str(layer.crs().authid()),
-                'overview_resampling': resamplingMethod
+                    'file': name.lower() + ext,
+                    'title': title,
+                    'crs': str(layer.crs().authid()),
+                    'overview_resampling': resamplingMethod
                 }
-            files = {'style': open(stylePath, 'rb')}    
-            response = self.utils.requestWrapper("POST", url, payload, files)          
-            layer_name = self.utils.removeUnacceptableChars(layer_name)
-            filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) ## chunky se ukládají do adresáře v tempu
-            if not (os.path.exists(filePath)):
-                os.mkdir(filePath)           
-            if externalFile:       
-                f = open(externalFile, 'rb')
-                externalExt = externalFile[-4:]
-                arr = []
+            with open(stylePath, 'rb') as style_file:
+                files = {'style': style_file}
+                response = self.utils.requestWrapper("POST", url, payload, files)
+                print(response.content)
+                if response.status_code != 200:
+                    print(f"Failed to register layer: {response.status_code}, {response.text}")
+                    return          
+            filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks")
+            if not os.path.exists(filePath):
+                os.mkdir(filePath)
+            if externalFile:
+                with open(externalFile, 'rb') as f:
+                    externalExt = os.path.splitext(externalFile)[1]
+                    arr = [piece for piece in self.read_in_chunks(f)]
 
-                for piece in self.read_in_chunks(f):
-                    arr.append(piece)
-                resumableFilename = layer_name+ externalExt
+                resumableFilename = layer_name + externalExt
                 layman_original_parameter = "file"
-                resumableTotalChunks = len(arr)   
-                self.processChunks(arr, resumableFilename, layman_original_parameter,resumableTotalChunks, layer_name,filePath,externalExt)          
-            f = open(path, 'rb')
-            arr = []
-            for piece in self.read_in_chunks(f):
-                arr.append(piece) 
-            resumableFilename = layer_name+ ext
+                resumableTotalChunks = len(arr)
+                self.processChunks(arr, resumableFilename, layman_original_parameter, resumableTotalChunks, layer_name, filePath, externalExt)
+      
+            with open(path, 'rb') as f:
+                arr = [piece for piece in self.read_in_chunks(f)]
+
+            resumableFilename = layer_name + ext
             layman_original_parameter = "file"
-            resumableTotalChunks = len(arr)  
-            self.processChunks(arr, resumableFilename, layman_original_parameter,resumableTotalChunks, layer_name,filePath,ext)    
+            resumableTotalChunks = len(arr)
+            self.processChunks(arr, resumableFilename, layman_original_parameter, resumableTotalChunks, layer_name, filePath, ext)
         else:        
             if patch:
                 url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+self.utils.removeUnacceptableChars(layer_name)         
@@ -2629,44 +2643,53 @@ class Layman(QObject):
         QgsMessageLog.logMessage("disableProgress")
 
         
-    def processChunks(self, arr, resumableFilename, layman_original_parameter,resumableTotalChunks, layer_name,filePath,ext ):
-        for i in range (1, len(arr)+1):  ##chunky jsou počítané od 1 proto +1
+    def processChunks(self, arr, resumableFilename, layman_original_parameter, resumableTotalChunks, layer_name, filePath, ext):
+        for i in range(1, len(arr) + 1):
             failedRequest = -1
-            print("chunk" + str(i))
-            file = arr[i-1] # rozsekaná část souboru
-            resumableChunkNumber = i  # cislo casti
+            print("Processing chunk" + str(i))
+            chunk_filename = f"chunk{str(i)}{ext}"
+            chunk_file_path = os.path.join(filePath, chunk_filename)    
+            with open(chunk_file_path, "wb") as f:
+                f.write(bytearray(arr[i - 1]))           
+            
             payload = {
-            'file' : "chunk"+str(i)+ ext,
-            'resumableFilename': resumableFilename,
-            'layman_original_parameter': layman_original_parameter,
-            'resumableChunkNumber': i,
-            'resumableTotalChunks': resumableTotalChunks
-            }
-            url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+layer_name+'/chunk'
-            f = open(filePath + os.sep+"chunk"+str(i)+ ext, "wb")
-            f.write(bytearray(arr[i-1]))
-            f.close()
-            files = {'file': (layer_name.lower().replace(" ", "_")+ext, open(filePath +os.sep+ "chunk"+str(i)+ext, 'rb')),}         
-            while failedRequest != 0:
-                QgsMessageLog.logMessage("enableProgress")
-                try:
-                    failedRequest = 0                   
-                    response = self.utils.requestWrapper("POST", url, payload, files)
-                    
-                except:
-                    failedRequest = failedRequest + 1
-                    if failedRequest == 3:
-                        QgsMessageLog.logMessage("errorConnection")
-                        QgsMessageLog.logMessage("resetProgressbar")                        
-                        self.dlg.label_progress.setText(self.tr("Sucessfully exported: ") +  str(0) + " / " + str(1) )
-                        return
+                'file': chunk_filename,
+                'resumableFilename': resumableFilename.lower(),
+                'layman_original_parameter': layman_original_parameter,
+                'resumableChunkNumber': i,
+                'resumableTotalChunks': resumableTotalChunks,
+                'resumableChunkSize': self.CHUNK_SIZE,
+                'resumableType': "application/zip"
+            }        
+            
+            url = f"{self.URI}/rest/{self.laymanUsername}/layers/{self.utils.removeUnacceptableChars(layer_name)}/chunk"
+            
+            with open(chunk_file_path, 'rb') as f:
+                files = {'file': (chunk_filename, f)}
+                
+                while failedRequest != 0:
+                    QgsMessageLog.logMessage("enableProgress")
+                    try:
+                        failedRequest = 0
+                        response = requests.post(url, data=payload, files=files, headers=self.utils.getAuthHeader(self.authCfg))
+                        if response.status_code != 200:
+                            print(f"Failed to upload chunk {i}: {response.status_code}, {response.text}")
+                            return
+                    except Exception as e:
+                        failedRequest += 1
+                        if failedRequest == 3:
+                            QgsMessageLog.logMessage("errorConnection")
+                            QgsMessageLog.logMessage("resetProgressbar")
+                            self.dlg.label_progress.setText(self.tr("Successfully exported: ") + str(0) + " / " + str(1))
+                            return
 
             try:
                 if self.layersToUpload == 1:
-                    self.processingRaster.emit(i,resumableTotalChunks)                    
+                    self.processingRaster.emit(i, resumableTotalChunks)
             except:
                 pass
         QgsMessageLog.logMessage("export")
+
     def postThread(self, layer_name,data, q,progress):
         if layer_name in self.mixedLayers:
             layers = QgsProject.instance().mapLayersByName(layer_name)
@@ -3933,18 +3956,18 @@ class Layman(QObject):
         self.server = None
         self.compositeList = []
     def setSchemaVersion(self):
-        if False:# LooseVersion(self.laymanVersion) >= LooseVersion("1.21.1"):  
-            self.vectorService = "Vector"
-            self.rasterService = "WMS"    
-            self.schemaVersion = "3.0.0"   
-            self.vectorProtocol = "WFS"    
-            self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/3.0.0/schema.json"    
-        else:           
-            self.schemaVersion = "2.0.0"
-            self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"   
-            self.rasterService = "HSLayers.Layer.WMS"  
-            self.vectorService = "OpenLayers.Layer.Vector"   
-            self.vectorProtocol = "hs.format.WFS"
+        # if False:# LooseVersion(self.laymanVersion) >= LooseVersion("1.21.1"):  
+        self.vectorService = "Vector"
+        self.rasterService = "WMS"    
+        self.schemaVersion = "3.0.0"   
+        self.vectorProtocol = "WFS"    
+        self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/3.0.0/schema.json"    
+        # else:           
+        #     self.schemaVersion = "2.0.0"
+        #     self.schemaURl= "https://raw.githubusercontent.com/hslayers/map-compositions/2.0.0/schema.json"   
+        #     self.rasterService = "HSLayers.Layer.WMS"  
+        #     self.vectorService = "OpenLayers.Layer.Vector"   
+        #     self.vectorProtocol = "hs.format.WFS"
     def openAuthLiferayUrl2(self, load="", autoLog = False):         
         if hasattr(self, 'dlg'):            
             if isinstance(self.dlg, ConnectionManagerDialog):

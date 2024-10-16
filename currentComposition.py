@@ -27,6 +27,7 @@ class CurrentComposition(object):
         return layerList
     def isLayerInComposition(self, layerName):
         pom = False
+        print(self.composition)
         for layer in self.composition['layers']:
             if self.removeUnacceptableChars(layer['title']) == layerName:
                 pom = True

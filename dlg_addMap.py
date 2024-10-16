@@ -321,7 +321,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 tab_widget.removeTab(index)
             else:
                 index += 1  
-    def populatePermissionsWidget(self, tab_widget, user_dict, read_access, write_access):     
+    def populatePermissionsWidget(self, tab_widget, user_dict, read_access, write_access):  
         self.removeTabByTitle(tab_widget, self.tr("Permissions by user"))
         if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
             self.removeTabByTitle(tab_widget, self.tr("Permissions by role"))
