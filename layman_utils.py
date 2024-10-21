@@ -23,6 +23,7 @@ import imghdr
 import io
 import hashlib
 from datetime import datetime, timedelta
+import math
 
 class LaymanUtils(QObject): 
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)  
@@ -702,7 +703,7 @@ class LaymanUtils(QObject):
         power = len(str(rounded)) - 1
         first_digit = int(str(rounded)[0])
         return first_digit * 10**power        
-    def showQgisBar(self, msg, type):   
+    def showQgisBar(self, msg, type): 
         if self.locale == "cs":
             self.iface.messageBar().pushWidget(self.iface.messageBar().createMessage("Layman:", msg[0]), type, duration=3)
         else:
@@ -1065,6 +1066,40 @@ QPushButton::indicator {
                 if file.endswith('.qgz') or file.endswith('.qgs'):
                     return os.path.join(root, file)
         return None
+    
+    def estimateMbtilesSizeWmsLayer(self, active_layer, min_zoom=14, max_zoom=16, avg_tile_size_kb=10, dpi=96): 
+        extent = self.iface.mapCanvas().extent()
+        dpi_adjustment_factor = dpi / 96.0       
+        tile_size = 256 * dpi_adjustment_factor  
+        total_tiles = 0       
+        for zoom in range(min_zoom, max_zoom + 1):            
+            tile_count_x = math.ceil(extent.width() / (tile_size / (2 ** zoom)))
+            tile_count_y = math.ceil(extent.height() / (tile_size / (2 ** zoom)))
+            total_tiles += tile_count_x * tile_count_y       
+        compression_factor = 0.1  
+        estimated_size_MB = total_tiles * avg_tile_size_kb * compression_factor / 1024
+        return estimated_size_MB
+    
+    def estimateSizeFromScale(self, scale, base_scale=1885, base_size_mb=1.8, scale_multiplier=3):    
+        scale_factor = scale / base_scale
+        zoom_levels_away = math.log(scale_factor, 2)   
+        estimated_size = base_size_mb * (scale_multiplier ** zoom_levels_away)
+        return estimated_size
+
+    def checkLayerSize(self, size_threshold_mb=100):
+        project = QgsProject.instance()
+        layers = project.mapLayers().values() 
+        found_large_layer = False 
+        for layer in layers:
+            if isinstance(layer, QgsRasterLayer):
+                if layer.providerType() in ['wms', 'xyz']:     
+                    scale = self.iface.mapCanvas().scale()
+                    estimated_size = self.estimateSizeFromScale(scale)
+                    if estimated_size > size_threshold_mb:
+                        print(f"Vrstva '{layer.name()}' má odhadovanou velikost {estimated_size:.2f} MB, což přesahuje limit {size_threshold_mb} MB.")
+                        found_large_layer = True  
+        return found_large_layer
+ 
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:

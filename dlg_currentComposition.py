@@ -42,6 +42,7 @@ from distutils.version import LooseVersion
 import tempfile   
 from qgis.PyQt.QtGui import QImage
 from qgis.PyQt.QtCore import QSize
+import processing
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -227,47 +228,80 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             print(f"Chyba při ukládání TIFF pro vrstvu {layer.name()}")
             return False
 
-    def replace_wms_xyz_layers_with_tiff(self):    
+    def export_layer_to_mbtiles(self, layer, output_directory, file_name, min_zoom=14, max_zoom=16, dpi=100):   
+        extent = self.layman.iface.mapCanvas().extent()  
+        output_file = os.path.join(output_directory, f"{file_name}.mbtiles")
+        
+        params = {
+            'LAYERS': [layer.id()],
+            'EXTENT': extent,
+            'ZOOM_MIN': min_zoom,
+            'ZOOM_MAX': max_zoom,
+            'DPI': dpi,
+            'BACKGROUND_COLOR': 'transparent',
+            'TILE_FORMAT': 0,
+            'QUALITY': 80,
+            'METATILESIZE': 4,
+            'TITLE': f'MBTiles Layer {layer.name()}',
+            'TMS_CONVENTION': False,
+            'OUTPUT_FILE': output_file
+        }
+        
+        processing.run('qgis:tilesxyzmbtiles', params)
+        print(f"MBTiles soubor pro vrstvu {layer.name()} byl uložen na: {output_file}")
+        return output_file
+    def replace_wms_xyz_layers(self, output_format='tiff'):    
         project = QgsProject.instance()
         layers = project.mapLayers().values()     
-        temp_dir = tempfile.mkdtemp()
-        print(f"Dočasný adresář pro TIFF soubory: {temp_dir}")
-
+        temp_dir = tempfile.mkdtemp()      
         layers_to_remove = []
         layers_to_add = []
 
         for layer in layers:     
             if isinstance(layer, QgsRasterLayer):
                 provider_type = layer.providerType()
-                if provider_type in ["wms", "wmsprovider", "wms_client", "xyz"]:
-                    print(f"Zpracovávám vrstvu: {layer.name()} ({provider_type})")                 
-                    output_file = os.path.join(temp_dir, f"{layer.name()}.tif")    
-                    success = self.export_layer_to_tiff(layer, output_file)
-                    if success:             
-                        layers_to_remove.append(layer.id())                 
-                        tiff_layer = QgsRasterLayer(output_file, layer.name())                 
-                        if tiff_layer.isValid():                          
-                            layers_to_add.append(tiff_layer)
-                        else:
-                            print(f"Chyba při vytváření vrstvy z TIFF pro {layer.name()}")
+                if provider_type in ["wms", "wmsprovider", "wms_client", "xyz"]:   
+                    file_name = layer.name().replace(" ", "_")                    
+                    if output_format == 'tiff':
+                        output_file = os.path.join(temp_dir, f"{file_name}.tif")
+                        success = self.export_layer_to_tiff(layer, output_file)
+                    elif output_format == 'mbtiles':
+                        output_file = self.export_layer_to_mbtiles(layer, temp_dir, file_name)
+                        print(output_file)                      
+                        success = True if output_file else False
+                    
+                    if success:
+                        layers_to_remove.append(layer.id())
+                        if output_format == 'tiff':
+                            tiff_layer = QgsRasterLayer(output_file, layer.name())
+                            if tiff_layer.isValid():
+                                layers_to_add.append(tiff_layer)
+                            else:
+                                print(f"Chyba při vytváření vrstvy z TIFF pro {layer.name()}")
+                        elif output_format == 'mbtiles':                          
+                            mbtiles_layer = QgsRasterLayer(output_file, layer.name())
+                            if mbtiles_layer.isValid():
+                                layers_to_add.append(mbtiles_layer)
+                            else:
+                                print(f"Chyba při načítání MBTiles vrstvy pro {layer.name()}")
                     else:
-                        print(f"Chyba při exportu vrstvy {layer.name()} do TIFF")
+                        print(f"Chyba při exportu vrstvy {layer.name()} do {output_format.upper()}")
                 else:
                     print(f"Přeskakuji vrstvu {layer.name()} (poskytovatel: {provider_type})")
             else:
-                print(f"Přeskakuji nerastrovou vrstvu {layer.name()}")
-
-     
+                print(f"Přeskakuji nerastrovou vrstvu {layer.name()}")       
+ 
         for layer_id in layers_to_remove:
             layer = project.mapLayer(layer_id)
-            project.removeMapLayer(layer)         
+            project.removeMapLayer(layer)
 
-      
-        for tiff_layer in layers_to_add:
-            project.addMapLayer(tiff_layer)
+       
+        for new_layer in layers_to_add:
+            project.addMapLayer(new_layer)
               
     def UpdateQfield(self):
-        # self.replace_wms_xyz_layers_with_tiff()
+        if self.qfield.offineRaster:
+            self.replace_wms_xyz_layers("mbtiles")
         self.progressStart.emit() 
         self.layman.qfieldWorking = True       
         # myLayers = self.layman.instance.getOnlyMyLayers()
@@ -301,7 +335,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         permissions = self.layman.instance.getAllPermissions()
         permission = "true" if 'EVERYONE' in permissions['read'] else "false"   
         response = self.qfield.createQProject(self.layman.instance.getName(), self.layman.instance.getDescription(), permission)
-        res = response.json()
+        res = response.json()       
         if response.status_code == 201:
             self.utils.showQgisBar([" Projekt by úspěšně vytvořen."," Project was successfully created."], Qgis.Success)    
         elif 'code' in res and res['code'] == 'project_already_exists':            
@@ -328,10 +362,35 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.onRefreshCurrentForm.emit()       
         self.progressDone.emit()   
 
+    def hasOnlineLayers(self):
+        project = QgsProject.instance()
+        layers = project.mapLayers().values()    
+        for layer in layers:
+            if isinstance(layer, QgsRasterLayer):
+                if layer.providerType() == 'wms' or layer.providerType() == 'xyz':
+                    return True
+        return False
+
+  
+      
     def exportToQfield(self):  
-        # self.qfieldUpdate.emit()          
+        self.qfield.offineRaster = False
+        if self.hasOnlineLayers() and not self.utils.checkLayerSize():
+            response = QMessageBox.question(
+                None, 'Převod do offline formátu',
+                'Projekt obsahuje online vrstvy. Chcete je převést do offline formátu dle aktuální výřezu projektu?',
+                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel
+            )
+            if response == QMessageBox.Yes:
+                self.qfield.offineRaster = True
+            elif response == QMessageBox.No:
+                self.qfield.offineRaster = False
+            else:
+                return
+        # self.qfieldUpdate.emit()       
         self.updateComposition(qfield = True)
-       
+     
+    
     def qfieldThread(self):
         name = self.layman.current            
         self.qfield.selectedLayers = self.getCheckedLayerNames()
