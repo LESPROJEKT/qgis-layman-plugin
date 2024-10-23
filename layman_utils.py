@@ -23,6 +23,11 @@ import imghdr
 import io
 import hashlib
 from datetime import datetime, timedelta
+import math
+from qgis.PyQt.QtGui import QImage
+from qgis.PyQt.QtCore import QSize
+import processing
+
 
 class LaymanUtils(QObject): 
     showErr = pyqtSignal(list,str,str,Qgis.MessageLevel, str)  
@@ -702,7 +707,7 @@ class LaymanUtils(QObject):
         power = len(str(rounded)) - 1
         first_digit = int(str(rounded)[0])
         return first_digit * 10**power        
-    def showQgisBar(self, msg, type):   
+    def showQgisBar(self, msg, type): 
         if self.locale == "cs":
             self.iface.messageBar().pushWidget(self.iface.messageBar().createMessage("Layman:", msg[0]), type, duration=3)
         else:
@@ -1065,6 +1070,133 @@ QPushButton::indicator {
                 if file.endswith('.qgz') or file.endswith('.qgs'):
                     return os.path.join(root, file)
         return None
+    
+    def estimateMbtilesSizeWmsLayer(self, active_layer, min_zoom=14, max_zoom=16, avg_tile_size_kb=10, dpi=96): 
+        extent = self.iface.mapCanvas().extent()
+        dpi_adjustment_factor = dpi / 96.0       
+        tile_size = 256 * dpi_adjustment_factor  
+        total_tiles = 0       
+        for zoom in range(min_zoom, max_zoom + 1):            
+            tile_count_x = math.ceil(extent.width() / (tile_size / (2 ** zoom)))
+            tile_count_y = math.ceil(extent.height() / (tile_size / (2 ** zoom)))
+            total_tiles += tile_count_x * tile_count_y       
+        compression_factor = 0.1  
+        estimated_size_MB = total_tiles * avg_tile_size_kb * compression_factor / 1024
+        return estimated_size_MB
+    
+    def estimateSizeFromScale(self, scale, base_scale=1885, base_size_mb=1.8, scale_multiplier=3):    
+        scale_factor = scale / base_scale
+        zoom_levels_away = math.log(scale_factor, 2)   
+        estimated_size = base_size_mb * (scale_multiplier ** zoom_levels_away)
+        return estimated_size
+
+    def checkLayerSize(self, size_threshold_mb=100):
+        project = QgsProject.instance()
+        layers = project.mapLayers().values() 
+        found_large_layer = False 
+        for layer in layers:
+            if isinstance(layer, QgsRasterLayer):
+                if layer.providerType() in ['wms', 'xyz']:     
+                    scale = self.iface.mapCanvas().scale()
+                    estimated_size = self.estimateSizeFromScale(scale)
+                    if estimated_size > size_threshold_mb:
+                        print(f"Vrstva '{layer.name()}' má odhadovanou velikost {estimated_size:.2f} MB, což přesahuje limit {size_threshold_mb} MB.")
+                        found_large_layer = True  
+        return found_large_layer
+    
+    def export_layer_to_tiff(self, layer, output_file, dpi=300):      
+        canvas = self.iface.mapCanvas()
+        extent = canvas.extent()
+        map_settings = QgsMapSettings()
+        map_settings.setLayers([layer])
+        map_settings.setExtent(extent)
+        map_settings.setOutputDpi(dpi) 
+        canvas_size = canvas.size()
+        image_width = canvas_size.width()
+        image_height = canvas_size.height()
+        map_settings.setOutputSize(QSize(image_width, image_height))     
+        renderer = QgsMapRendererParallelJob(map_settings)
+        renderer.start()
+        renderer.waitForFinished()
+        image = renderer.renderedImage()       
+        success = image.save(output_file, "tif")
+        if success:
+            print(f"TIFF pro vrstvu {layer.name()} byl uložen do {output_file}")
+            return True
+        else:
+            print(f"Chyba při ukládání TIFF pro vrstvu {layer.name()}")
+            return False
+
+    def export_layer_to_mbtiles(self, layer, output_directory, file_name, min_zoom=14, max_zoom=16, dpi=100):   
+        extent = self.iface.mapCanvas().extent()  
+        output_file = os.path.join(output_directory, f"{file_name}.mbtiles")
+        
+        params = {
+            'LAYERS': [layer.id()],
+            'EXTENT': extent,
+            'ZOOM_MIN': min_zoom,
+            'ZOOM_MAX': max_zoom,
+            'DPI': dpi,
+            'BACKGROUND_COLOR': 'transparent',
+            'TILE_FORMAT': 0,
+            'QUALITY': 80,
+            'METATILESIZE': 4,
+            'TITLE': f'MBTiles Layer {layer.name()}',
+            'TMS_CONVENTION': False,
+            'OUTPUT_FILE': output_file
+        }
+        
+        processing.run('qgis:tilesxyzmbtiles', params)
+        print(f"MBTiles soubor pro vrstvu {layer.name()} byl uložen na: {output_file}")
+        return output_file
+    def replace_wms_xyz_layers(self, output_format='tiff'):    
+        project = QgsProject.instance()
+        layers = project.mapLayers().values()     
+        temp_dir = tempfile.mkdtemp()      
+        layers_to_remove = []
+        layers_to_add = []
+
+        for layer in layers:     
+            if isinstance(layer, QgsRasterLayer):
+                provider_type = layer.providerType()
+                if provider_type in ["wms", "wmsprovider", "wms_client", "xyz"]:   
+                    file_name = layer.name().replace(" ", "_")                    
+                    if output_format == 'tiff':
+                        output_file = os.path.join(temp_dir, f"{file_name}.tif")
+                        success = self.export_layer_to_tiff(layer, output_file)
+                    elif output_format == 'mbtiles':
+                        output_file = self.export_layer_to_mbtiles(layer, temp_dir, file_name)
+                        print(output_file)                      
+                        success = True if output_file else False
+                    
+                    if success:
+                        layers_to_remove.append(layer.id())
+                        if output_format == 'tiff':
+                            tiff_layer = QgsRasterLayer(output_file, layer.name())
+                            if tiff_layer.isValid():
+                                layers_to_add.append(tiff_layer)
+                            else:
+                                print(f"Chyba při vytváření vrstvy z TIFF pro {layer.name()}")
+                        elif output_format == 'mbtiles':                          
+                            mbtiles_layer = QgsRasterLayer(output_file, layer.name())
+                            if mbtiles_layer.isValid():
+                                layers_to_add.append(mbtiles_layer)
+                            else:
+                                print(f"Chyba při načítání MBTiles vrstvy pro {layer.name()}")
+                    else:
+                        print(f"Chyba při exportu vrstvy {layer.name()} do {output_format.upper()}")
+                else:
+                    print(f"Přeskakuji vrstvu {layer.name()} (poskytovatel: {provider_type})")
+            else:
+                print(f"Přeskakuji nerastrovou vrstvu {layer.name()}")       
+ 
+        for layer_id in layers_to_remove:
+            layer = project.mapLayer(layer_id)
+            project.removeMapLayer(layer)
+
+       
+        for new_layer in layers_to_add:
+            project.addMapLayer(new_layer)
 class ProxyStyle(QtWidgets.QProxyStyle):    
     def drawControl(self, element, option, painter, widget=None):
         if element == QtWidgets.QStyle.CE_PushButtonLabel:
@@ -1151,8 +1283,6 @@ class IconQfieldRightDelegate(QtWidgets.QStyledItemDelegate):
             painter.save()
             icon.paint(painter, icon_rect, QtCore.Qt.AlignCenter)
             painter.restore()
-
-
 
 
 class CenterIconDelegate(QStyledItemDelegate):

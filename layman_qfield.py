@@ -6,6 +6,7 @@ from .qfield.cloud_converter import CloudConverter
 import json
 import requests
 import shutil
+from qgis.core import Qgis
 from enum import Enum
 
 class URLMapping(Enum):
@@ -23,6 +24,8 @@ class Qfield:
         #self.URI = "http://localhost:8011"      
         self.selectedLayers = []
         self.path = ""
+        self.offineRaster = False
+
     def setURI(self, URI):
         for server in URLMapping:        
             if URI == server.value[0]:
