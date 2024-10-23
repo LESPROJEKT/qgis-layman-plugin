@@ -40,8 +40,7 @@ from distutils.version import LooseVersion
 from .layman_qfield import Qfield   
 from distutils.version import LooseVersion  
 import tempfile   
-from qgis.PyQt.QtGui import QImage
-from qgis.PyQt.QtCore import QSize
+
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -202,90 +201,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_qfield.setEnabled(False)
         self.show()
         result = self.exec_()  
-
- 
-    def export_layer_to_tiff(self, layer, output_file, dpi=300):      
-        canvas = self.layman.iface.mapCanvas()
-        extent = canvas.extent()
-        map_settings = QgsMapSettings()
-        map_settings.setLayers([layer])
-        map_settings.setExtent(extent)
-        map_settings.setOutputDpi(dpi) 
-        canvas_size = canvas.size()
-        image_width = canvas_size.width()
-        image_height = canvas_size.height()
-        map_settings.setOutputSize(QSize(image_width, image_height))     
-        renderer = QgsMapRendererParallelJob(map_settings)
-        renderer.start()
-        renderer.waitForFinished()
-        image = renderer.renderedImage()       
-        success = image.save(output_file, "tif")
-        if success:
-            print(f"TIFF pro vrstvu {layer.name()} byl uložen do {output_file}")
-            return True
-        else:
-            print(f"Chyba při ukládání TIFF pro vrstvu {layer.name()}")
-            return False
-
-    def replace_wms_xyz_layers_with_tiff(self):    
-        project = QgsProject.instance()
-        layers = project.mapLayers().values()     
-        temp_dir = tempfile.mkdtemp()
-        print(f"Dočasný adresář pro TIFF soubory: {temp_dir}")
-
-        layers_to_remove = []
-        layers_to_add = []
-
-        for layer in layers:     
-            if isinstance(layer, QgsRasterLayer):
-                provider_type = layer.providerType()
-                if provider_type in ["wms", "wmsprovider", "wms_client", "xyz"]:
-                    print(f"Zpracovávám vrstvu: {layer.name()} ({provider_type})")                 
-                    output_file = os.path.join(temp_dir, f"{layer.name()}.tif")    
-                    success = self.export_layer_to_tiff(layer, output_file)
-                    if success:             
-                        layers_to_remove.append(layer.id())                 
-                        tiff_layer = QgsRasterLayer(output_file, layer.name())                 
-                        if tiff_layer.isValid():                          
-                            layers_to_add.append(tiff_layer)
-                        else:
-                            print(f"Chyba při vytváření vrstvy z TIFF pro {layer.name()}")
-                    else:
-                        print(f"Chyba při exportu vrstvy {layer.name()} do TIFF")
-                else:
-                    print(f"Přeskakuji vrstvu {layer.name()} (poskytovatel: {provider_type})")
-            else:
-                print(f"Přeskakuji nerastrovou vrstvu {layer.name()}")
-
-     
-        for layer_id in layers_to_remove:
-            layer = project.mapLayer(layer_id)
-            project.removeMapLayer(layer)         
-
-      
-        for tiff_layer in layers_to_add:
-            project.addMapLayer(tiff_layer)
               
     def UpdateQfield(self):
-        # self.replace_wms_xyz_layers_with_tiff()
+        if self.qfield.offineRaster:
+            self.utils.replace_wms_xyz_layers("mbtiles")
         self.progressStart.emit() 
-        self.layman.qfieldWorking = True       
-        # myLayers = self.layman.instance.getOnlyMyLayers()
-        # if self.utils.containsWmsOrWfs():
-        #     layersToUpdate = self.utils.filterTitlesByAccessRights(myLayers)
-        # else:
-        #     layersToUpdate = None           
-        # if layersToUpdate:   
-        #     msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("QField does not support private layers. Would you like to set these layers as public?"))
-        #     msgbox.addButton(QMessageBox.Yes)
-        #     msgbox.addButton(QMessageBox.No)
-        #     msgbox.setDefaultButton(QMessageBox.No)
-        #     msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
-        #     reply = msgbox.exec()                                                 
-        #     if (reply == QMessageBox.Yes):
-        #         print(layersToUpdate)
-        #         self.utils.updateLayerAccessRights(self.utils.filterTitlesByAccessRights(layersToUpdate))
-        #         self.utils.removeAuthcfg(layersToUpdate)        
+        self.layman.qfieldWorking = True                
         self.utils.saveUnsavedLayers()  
         try:
             QgsProject.instance().layerWasAdded.disconnect()
@@ -294,14 +215,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         try:
             QgsProject.instance().layerRemoved.disconnect()
         except TypeError as e:
-            print(f"Chyba při odpojování on_layers_added: {e}")        
-        # threading.Thread(target=self.qfieldThread).start()        
+            print(f"Chyba při odpojování on_layers_added: {e}")      
         name = self.layman.current            
         self.qfield.selectedLayers = self.getCheckedLayerNames()
         permissions = self.layman.instance.getAllPermissions()
         permission = "true" if 'EVERYONE' in permissions['read'] else "false"   
         response = self.qfield.createQProject(self.layman.instance.getName(), self.layman.instance.getDescription(), permission)
-        res = response.json()
+        res = response.json()       
         if response.status_code == 201:
             self.utils.showQgisBar([" Projekt by úspěšně vytvořen."," Project was successfully created."], Qgis.Success)    
         elif 'code' in res and res['code'] == 'project_already_exists':            
@@ -328,10 +248,35 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.onRefreshCurrentForm.emit()       
         self.progressDone.emit()   
 
+    def hasOnlineLayers(self):
+        project = QgsProject.instance()
+        layers = project.mapLayers().values()    
+        for layer in layers:
+            if isinstance(layer, QgsRasterLayer):
+                if layer.providerType() == 'wms' or layer.providerType() == 'xyz':
+                    return True
+        return False
+
+  
+      
     def exportToQfield(self):  
-        # self.qfieldUpdate.emit()          
+        self.qfield.offineRaster = False
+        if self.hasOnlineLayers() and not self.utils.checkLayerSize():
+            response = QMessageBox.question(
+                None, self.tr('Převod do offline formátu'),
+                self.tr('Projekt obsahuje online vrstvy. Chcete je převést do offline formátu dle aktuální výřezu projektu?'),
+                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel
+            )
+            if response == QMessageBox.Yes:
+                self.qfield.offineRaster = True
+            elif response == QMessageBox.No:
+                self.qfield.offineRaster = False
+            else:
+                return
+        # self.qfieldUpdate.emit()       
         self.updateComposition(qfield = True)
-       
+     
+    
     def qfieldThread(self):
         name = self.layman.current            
         self.qfield.selectedLayers = self.getCheckedLayerNames()
