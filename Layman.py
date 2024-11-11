@@ -3301,10 +3301,12 @@ class Layman(QObject):
         r = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)
         return r   
 
-    def getTempPath(self, name):
+    def getTempPath(self, name, ext = True):
         if type(name) is tuple:
             return (name[0] +  name[1])
         else:
+            if ext == False:
+                return tempfile.gettempdir() + os.sep + name
             tempFile = tempfile.gettempdir() + os.sep + name +'.geojson'
             return tempFile
     def getExistingLayers(self):
@@ -4124,12 +4126,11 @@ class Layman(QObject):
     def postPostreLayer(self, layer, username, password):
         uri = self.preparePostgresUri(layer, username, password)      
         layer_name = layer.name()        
-        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)).replace("geojson", "qml")      
+        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)) + ".qml"
         self.saveQml(stylePath, layer)      
         payload = {                
                 'external_table_uri': uri,
-                'title': layer_name,                
-                'style': open(stylePath, 'rb'),
+                'title': layer_name,      
                 'name': self.utils.removeUnacceptableChars(layer_name)
                 }
         files = {'style': open(stylePath, 'rb')}
