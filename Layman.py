@@ -78,8 +78,6 @@ from .dlg_errMsg import ErrMsgDialog
 from .dlg_GetLayers import GetLayersDialog
 from .dlg_importLayer import ImportLayerDialog
 from .dlg_layerDecision import LayerDecisionDialog
-from .dlg_LoginQfield import LoginQfieldDialog
-from .dlg_showQProject import ShowQProjectDialog
 from .dlg_userInfo import UserInfoDialog
 from .layman_utils import LaymanUtils
 from .layman_qfield import Qfield   
