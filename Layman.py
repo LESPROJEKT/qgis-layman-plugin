@@ -4126,7 +4126,7 @@ class Layman(QObject):
     def postPostreLayer(self, layer, username, password):
         uri = self.preparePostgresUri(layer, username, password)      
         layer_name = layer.name()        
-        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name)) + ".qml"
+        stylePath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name), False) + ".qml"       
         self.saveQml(stylePath, layer)      
         payload = {                
                 'external_table_uri': uri,
