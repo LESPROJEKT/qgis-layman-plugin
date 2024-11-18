@@ -936,8 +936,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                             provider = layer.dataProvider()
                             provider.reloadData()
                             self.progressDone.emit()    
-                        return                        
-              
+                        return    
         self.loadLayer(data,service, name)        
     def loadLayer(self, data, service, groupName = ''):    
         if not 'layers' in data:       
@@ -987,7 +986,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.readCompositionFailed.emit()
                 print("wrong format of composition")
                 return
-
+            print(self.layman.checkLayerOnLayman(layerName))
+            print(layerName)
             if self.layman.checkLayerOnLayman(layerName):              
 
                 if className == 'HSLayers.Layer.WMS' or className == 'WMS':                 
@@ -1087,7 +1087,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                                     repairUrl = repairUrl.replace("hsl-layman", "") + data['workspace'] + "wfs"                                
                                 self.layman.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)                                
                         if "format" in data['layers'][x]['protocol']:    
-                            if (data['layers'][x]['protocol']['format'] == "hs.format.externalWFS"): 
+                            if (data['layers'][x]['protocol']['format'] in ("hs.format.externalWFS", "externalWFS")):                                 
                                 self.layman.loadWfsExternal(data['layers'][x],epsg, groupName)
                             if (data['layers'][x]['protocol']['format'] == "hs.format.WFS" or data['layers'][x]['protocol']['format'] == "WFS"):
                                 if 'workspace' in data['layers'][x]:                                    
