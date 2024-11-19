@@ -3419,7 +3419,8 @@ class Layman(QObject):
         else:
             return layerString
     def loadArcGisRest(self, url, layerName,  groupName = '', subgroupName = '', timeDimension='', visibility='', everyone=False, minRes= None, maxRes=0, greyscale = False):       
-        url = self.utils.decode_url(url + "?f=json")      
+        urlwithoutjson=self.utils.decode_url(url)
+        url = self.utils.decode_url(url + "?f=json")     
         r = requests.get(url)        
         res = json.loads(r.content)
         id = 0   
@@ -3432,7 +3433,7 @@ class Layman(QObject):
                 print(layer, res['layers'])
                 if layer['name'] == layerName:
                     id = layer['id']        
-        rlayer = QgsRasterLayer("url="+url+" layer='"+str(id)+"'", layerName, "arcgismapserver")   
+        rlayer = QgsRasterLayer("url="+urlwithoutjson+" layer='"+str(id)+"'", layerName, "arcgismapserver")   
         if (rlayer.isValid()):
             if minRes != None and maxRes != None:
                 rlayer.setMinimumScale(self.utils.resolutionToScale(maxRes))

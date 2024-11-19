@@ -430,18 +430,20 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     item.setText(1, "XYZ")
                 item.setCheckState(0,2)                
                 item.setToolTip(0,self.tr("This layer is displayed and is part of the loaded composition."))                           
-            else:
+            else:                
                 item.setCheckState(0,0)     
                 item.setToolTip(0,self.tr("This layer is not part of the composition."))
             
                
-            
+               
                 if isinstance(layer, QgsRasterLayer):
                     item.setText(1, "WMS")
                 if isinstance(layer, QgsVectorLayer):                
                     item.setText(1, "WMS")
                 if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
                     item.setText(1, "WFS") 
+                if layer.dataProvider().name() == 'arcgismapserver':          
+                    item.setText(1, "ArcGIS REST")                              
                 self.setGuiForItem(item)
                 if layerType == QgsMapLayer.VectorLayer:
                     try:
@@ -528,10 +530,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 if self.utils.removeUnacceptableChars(layer.name()) == self.utils.removeUnacceptableChars(item.text(0)) and cellServices.count() == 0:
                     if isinstance(layer, QgsRasterLayer) and "geoserver" in layer.dataProvider().dataSourceUri():
                         cellServices.addItems(['WMS','WFS'])
+                    elif layer.dataProvider().name() == 'arcgismapserver':
+                         cellServices.addItems(['ArcGIS REST'])     
                     elif isinstance(layer, QgsRasterLayer) and "geoserver" not  in layer.dataProvider().dataSourceUri():
                         cellServices.addItems(['WMS'])
                     elif isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() != 'WFS':
-                        cellServices.addItems(['WMS','WFS'])
+                        cellServices.addItems(['WMS','WFS'])                                         
                     elif isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer not in layer.dataProvider().uri().uri():
                         cellServices.addItems(['WFS'])         
                     elif isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'WFS' and urlServer in layer.dataProvider().uri().uri():
