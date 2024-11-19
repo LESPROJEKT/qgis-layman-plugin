@@ -176,7 +176,8 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
     def logout(self):
         self.layman.loggedThrowProject = False
         self.layman.disableEnvironment()      
-        self.layman.current = None   
+        self.layman.current = None  
+        self.layman.qfieldReady = False 
         self.layman.laymanUsername = ""  
         self.layman.textbox.setText("Layman")
         self.close() 
