@@ -107,6 +107,7 @@ class Layman(QObject):
     layerDeletedSuccessfully = pyqtSignal()
     mapDeletedSuccessfully = pyqtSignal()
     enableMapButton = pyqtSignal()
+    progressUpdated = pyqtSignal(int)
 
     def __init__(self, iface):
         """Constructor.
@@ -282,6 +283,7 @@ class Layman(QObject):
         self.cleanTemp.connect(self._cleanTemp)
         self.project.crsChanged.connect(self.crsChanged)
         self.enableMapButton.connect(self.enableMapMenu)
+        self.progressUpdated.connect(self.updateInfo)
 
         
     def initGui(self):
@@ -624,6 +626,12 @@ class Layman(QObject):
                
     def enableMapMenu(self):
         self.menu_AddMapDialog.setEnabled(True)
+    def updateInfo(self, value):       
+        # self.dlg.progressBar.setValue(value)  
+        try: 
+            self.dlg.label_progress.setText(self.tr("Sucessfully exported: ") +  str(value) + "%") 
+        except:
+            pass    
     def set_project_crs(self):
         # Set CRS to EPSG:4326
         QApplication.instance().processEvents()        
@@ -837,8 +845,9 @@ class Layman(QObject):
         print(resumableTotalChunks)
         filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks" ) 
         self.layersToUpload = 1
-        self.processChunks(arr, resumableFilename, layman_original_parameter,resumableTotalChunks, name,filePath,".zip")
-        self.tsSuccess.emit()         
+        self.processChunks(arr, resumableFilename, layman_original_parameter,resumableTotalChunks, name,filePath,".zip", True)
+        self.tsSuccess.emit()    
+        QgsMessageLog.logMessage("export")     
     def run_ImportLayerDialog(self):       
         self.dlg = ImportLayerDialog(self.utils, self.isAuthorized, self.laymanUsername, self.URI, self)         
             
@@ -1512,7 +1521,11 @@ class Layman(QObject):
                 self.dlg.progressBar_loader.hide()
             except:
                 pass        
-        
+        if message == "enableProgressBar":
+            try:
+                self.dlg.progressBar.show()              
+            except:
+                pass
         if message == "resetProgressbar":
             try:                
                 self.dlg.progressBar.hide()
@@ -2516,7 +2529,7 @@ class Layman(QObject):
             with open(stylePath, 'w') as file:
                 file.write(updated_sld_style)
     
-    def postRasterThread(self, layers, data, q, progress, patch, resamplingMethod="Není vybrán"):
+    def postRasterThread(self, layers, data, q, progress, patch, resamplingMethod="Není vybrán"):        
         resamplingMethod = self.resamplingMethods.get(resamplingMethod, "")       
       
         for lay in layers:
@@ -2598,7 +2611,7 @@ class Layman(QObject):
                 resumableFilename = layer_name + externalExt
                 layman_original_parameter = "file"
                 resumableTotalChunks = len(arr)
-                self.processChunks(arr, resumableFilename, layman_original_parameter, resumableTotalChunks, layer_name, filePath, externalExt)
+                self.processChunks(arr, resumableFilename, layman_original_parameter, resumableTotalChunks, layer_name, filePath, externalExt, True)
       
             with open(path, 'rb') as f:
                 arr = [piece for piece in self.read_in_chunks(f)]
@@ -2641,15 +2654,20 @@ class Layman(QObject):
         QgsMessageLog.logMessage("disableProgress")
 
         
-    def processChunks(self, arr, resumableFilename, layman_original_parameter, resumableTotalChunks, layer_name, filePath, ext):
+   
+    def processChunks(self, arr, resumableFilename, layman_original_parameter, resumableTotalChunks, layer_name, filePath, ext, skip = False):        
         for i in range(1, len(arr) + 1):
-            failedRequest = -1
-            print("Processing chunk" + str(i))
+            max_retries = 3
+            attempt = 0
+            success = False
+
+            print("Processing chunk " + str(i) + " / "+ str(resumableTotalChunks))
             chunk_filename = f"chunk{str(i)}{ext}"
-            chunk_file_path = os.path.join(filePath, chunk_filename)    
+            chunk_file_path = os.path.join(filePath, chunk_filename)
+          
             with open(chunk_file_path, "wb") as f:
-                f.write(bytearray(arr[i - 1]))           
-            
+                f.write(bytearray(arr[i - 1]))
+
             payload = {
                 'file': chunk_filename,
                 'resumableFilename': resumableFilename.lower(),
@@ -2658,35 +2676,37 @@ class Layman(QObject):
                 'resumableTotalChunks': resumableTotalChunks,
                 'resumableChunkSize': self.CHUNK_SIZE,
                 'resumableType': "application/zip"
-            }        
-            
-            url = f"{self.URI}/rest/{self.laymanUsername}/layers/{self.utils.removeUnacceptableChars(layer_name)}/chunk"
-            
-            with open(chunk_file_path, 'rb') as f:
-                files = {'file': (chunk_filename, f)}
-                
-                while failedRequest != 0:
-                    QgsMessageLog.logMessage("enableProgress")
-                    try:
-                        failedRequest = 0
-                        response = requests.post(url, data=payload, files=files, headers=self.utils.getAuthHeader(self.authCfg))
-                        if response.status_code != 200:
-                            print(f"Failed to upload chunk {i}: {response.status_code}, {response.text}")
-                            return
-                    except Exception as e:
-                        failedRequest += 1
-                        if failedRequest == 3:
-                            QgsMessageLog.logMessage("errorConnection")
-                            QgsMessageLog.logMessage("resetProgressbar")
-                            self.dlg.label_progress.setText(self.tr("Successfully exported: ") + str(0) + " / " + str(1))
-                            return
+            }
 
-            try:
-                if self.layersToUpload == 1:
-                    self.processingRaster.emit(i, resumableTotalChunks)
-            except:
-                pass
-        QgsMessageLog.logMessage("export")
+            url = f"{self.URI}/rest/{self.laymanUsername}/layers/{self.utils.removeUnacceptableChars(layer_name)}/chunk"
+
+            while attempt < max_retries and not success:
+                try:
+                    print(f"Uploading chunk {i}, attempt {attempt + 1}")
+                    with open(chunk_file_path, 'rb') as f:
+                        files = {'file': (chunk_filename, f)}
+                        response = requests.post(url, data=payload, files=files, headers=self.utils.getAuthHeader(self.authCfg))
+
+                        if response.status_code == 200:
+                            success = True
+                            print(f"Chunk {i} uploaded successfully.")
+                        else:
+                            attempt += 1
+                            print(f"Failed to upload chunk {i} (Attempt {attempt}): {response.status_code}, {response.text}")
+                except Exception as e:
+                    attempt += 1
+                    print(f"Exception occurred during upload of chunk {i} (Attempt {attempt}): {e}")           
+            if not success:
+                print(f"Chunk {i} failed after {max_retries} attempts. Aborting.")   
+                if not skip:             
+                    self.utils.emitMessageBox.emit(["Nahrávání rastrové vrstvy selhalo.", "Raster layer upload failed."]) 
+                return
+            if not skip:               
+                progress = int((i / resumableTotalChunks) * 100)
+                self.progressUpdated.emit(progress)
+        if not skip:
+            print("All chunks processed successfully.")            
+            QgsMessageLog.logMessage("export")
 
     def postThread(self, layer_name,data, q,progress):
         if layer_name in self.mixedLayers:
