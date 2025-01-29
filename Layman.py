@@ -2601,6 +2601,7 @@ class Layman(QObject):
                     print(f"Failed to register layer: {response.status_code}, {response.text}")
                     return          
             filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks")
+            prepaired_layer_name = self.utils.removeUnacceptableChars(layer_name)
             if not os.path.exists(filePath):
                 os.mkdir(filePath)
             if externalFile:
@@ -2608,7 +2609,7 @@ class Layman(QObject):
                     externalExt = os.path.splitext(externalFile)[1]
                     arr = [piece for piece in self.read_in_chunks(f)]
 
-                resumableFilename = layer_name + externalExt
+                resumableFilename = prepaired_layer_name + externalExt
                 layman_original_parameter = "file"
                 resumableTotalChunks = len(arr)
                 self.processChunks(arr, resumableFilename, layman_original_parameter, resumableTotalChunks, layer_name, filePath, externalExt, True)
@@ -2616,7 +2617,7 @@ class Layman(QObject):
             with open(path, 'rb') as f:
                 arr = [piece for piece in self.read_in_chunks(f)]
 
-            resumableFilename = layer_name + ext
+            resumableFilename = prepaired_layer_name + ext
             layman_original_parameter = "file"
             resumableTotalChunks = len(arr)
             self.processChunks(arr, resumableFilename, layman_original_parameter, resumableTotalChunks, layer_name, filePath, ext)
@@ -2667,7 +2668,7 @@ class Layman(QObject):
           
             with open(chunk_file_path, "wb") as f:
                 f.write(bytearray(arr[i - 1]))
-
+            
             payload = {
                 'file': chunk_filename,
                 'resumableFilename': resumableFilename.lower(),
@@ -2676,8 +2677,7 @@ class Layman(QObject):
                 'resumableTotalChunks': resumableTotalChunks,
                 'resumableChunkSize': self.CHUNK_SIZE,
                 'resumableType': "application/zip"
-            }
-
+            }            
             url = f"{self.URI}/rest/{self.laymanUsername}/layers/{self.utils.removeUnacceptableChars(layer_name)}/chunk"
 
             while attempt < max_retries and not success:
