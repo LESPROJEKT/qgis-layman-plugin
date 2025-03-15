@@ -26,7 +26,18 @@ from PyQt5 import QtWidgets
 import threading
 import requests
 from PyQt5.QtCore import QObject, pyqtSignal, Qt
-from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup, QLineEdit, QWidget, QVBoxLayout
+from PyQt5.QtWidgets import (
+    QMessageBox,
+    QTreeWidgetItemIterator,
+    QTreeWidgetItem,
+    QCheckBox,
+    QTableWidgetItem,
+    QTableWidget,
+    QButtonGroup,
+    QLineEdit,
+    QWidget,
+    QVBoxLayout,
+)
 from qgis.core import *
 from PyQt5.QtGui import QPixmap, QIcon
 from .currentComposition import CurrentComposition
@@ -34,27 +45,27 @@ import traceback
 from .layman_utils import ProxyStyle
 import asyncio
 from distutils.version import LooseVersion
-from .layman_qfield import Qfield  
-from .layman_utils import CenterIconDelegate,IconQfieldDelegate
+from .layman_qfield import Qfield
+from .layman_utils import CenterIconDelegate, IconQfieldDelegate
 from distutils.version import LooseVersion
+from .layman_api import LaymanAPI
 
-
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'dlg_addMap.ui'))
+FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), "dlg_addMap.ui"))
 
 
 class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     mapDeletedSuccessfully = pyqtSignal()
     progressDone = pyqtSignal()
-    loadComposition = pyqtSignal(str,str,str)
-    permissionInfo = pyqtSignal(bool,list, int)
+    loadComposition = pyqtSignal(str, str, str)
+    permissionInfo = pyqtSignal(bool, list, int)
     readCompositionFailed = pyqtSignal()
     addTreeItem = pyqtSignal(QTreeWidgetItem)
     setIcon = pyqtSignal(QTreeWidgetItem, QIcon)
     clearTree = pyqtSignal()
     showQgisBar = pyqtSignal(list, int)
     updateButtonsSignal = pyqtSignal(bool)
-    def __init__(self,utils, isAuthorized, laymanUsername, URI, layman, parent=None):
+
+    def __init__(self, utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(AddMapDialog, self).__init__(parent)
         self.setObjectName("AddMapDialog")
@@ -63,20 +74,21 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.laymanUsername = laymanUsername
         self.URI = URI
         self.layman = layman
-        app = QtWidgets.QApplication.instance()     
+        app = QtWidgets.QApplication.instance()
         proxy_style = ProxyStyle(app.style())
         self.setStyle(proxy_style)
-        self.setupUi(self)      
+        self.setupUi(self)
         self.globalRead = {}
         self.page2.setGeometry(0, 0, 651, 531)
-        self.globalWrite = {}     
+        self.globalWrite = {}
         self.qfieldWorking = True
         self.qfield = Qfield(self.utils)
-        self.qfield.setURI(self.URI) 
+        self.qfield.setURI(self.URI)
+        self.layman_api = LaymanAPI(URI)
         self.setUi()
-        
+
     def connectEvents(self):
-        self.mapDeletedSuccessfully.connect(self._onMapDeletedSuccessfully)  
+        self.mapDeletedSuccessfully.connect(self._onMapDeletedSuccessfully)
         self.progressDone.connect(self._onProgressDone)
         self.loadComposition.connect(self.readMapJsonThread)
         self.permissionInfo.connect(self.afterPermissionDone)
@@ -86,46 +98,73 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setIcon.connect(self.set_item_icon)
         self.clearTree.connect(self.treeWidget.clear)
         self.showQgisBar.connect(self.utils.showQgisBar)
-    def setPermissionsWidget(self, option):        
+
+    def setPermissionsWidget(self, option):
         self.page1.setVisible(not option)
         self.page2.setVisible(option)
         if option == True:
-            names = list() 
-            self.setPermissionsUI(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)))  
-    def setUi(self):        
+            names = list()
+            self.setPermissionsUI(
+                self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))
+            )
+
+    def setUi(self):
         self.connectEvents()
         self.permissionsConnected = False
-        self.pushButton_setPermissions.clicked.connect(lambda: self.setPermissionsWidget(True))
-        self.pushButton_back.clicked.connect(lambda: self.setPermissionsWidget(False))    
+        self.pushButton_setPermissions.clicked.connect(
+            lambda: self.setPermissionsWidget(True)
+        )
+        self.pushButton_back.clicked.connect(lambda: self.setPermissionsWidget(False))
         self.utils.recalculateDPI()
-        self.label_info.hide()     
-        self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnailMap(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), self.treeWidget.selectedItems()[0].text(1)  ) ).start())
-        self.treeWidget.itemClicked.connect(self.enableLoadMapButtons) 
+        self.label_info.hide()
+        self.treeWidget.itemClicked.connect(
+            lambda: threading.Thread(
+                target=lambda: self.showThumbnailMap(
+                    self.layman.getNameByTitle(
+                        self.treeWidget.selectedItems()[0].text(0)
+                    ),
+                    self.treeWidget.selectedItems()[0].text(1),
+                )
+            ).start()
+        )
+        self.treeWidget.itemClicked.connect(self.enableLoadMapButtons)
         self.treeWidget.itemClicked.connect(self.setPermissionsButton)
-        self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=self.setQfieldButtons).start())
+        self.treeWidget.itemClicked.connect(
+            lambda: threading.Thread(target=self.setQfieldButtons).start()
+        )
         self.treeWidget.setColumnWidth(0, 300)
         self.treeWidget.setColumnWidth(2, 80)
         self.label_noUser.hide()
         delegate = IconQfieldDelegate()
-        self.treeWidget.setItemDelegate(delegate)  
-        self.pushButton_map.clicked.connect(lambda: self.progressBar.show())        
-        self.pushButton_qfieldSync.setEnabled(False)     
-        self.pushButton_qfieldSync.clicked.connect(lambda:  self.progressBar.show()) 
-        self.pushButton_qfieldSync.clicked.connect(self.qfieldSync)  
-        self.pushButton_map.clicked.connect(lambda: self.readMapJson(self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)), 'WFS', self.treeWidget.selectedItems()[0].text(1)))        
+        self.treeWidget.setItemDelegate(delegate)
+        self.pushButton_map.clicked.connect(lambda: self.progressBar.show())
+        self.pushButton_qfieldSync.setEnabled(False)
+        self.pushButton_qfieldSync.clicked.connect(lambda: self.progressBar.show())
+        self.pushButton_qfieldSync.clicked.connect(self.qfieldSync)
+        self.pushButton_map.clicked.connect(
+            lambda: self.readMapJson(
+                self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)),
+                "WFS",
+                self.treeWidget.selectedItems()[0].text(1),
+            )
+        )
         if not self.isAuthorized:
             self.checkBox_own.setEnabled(False)
         else:
             self.checkBox_own.setEnabled(True)
-        self.pushButton_delete.clicked.connect(lambda: self.deleteMap(self.treeWidget.selectedItems()[0]))
-        
+        self.pushButton_delete.clicked.connect(
+            lambda: self.deleteMap(self.treeWidget.selectedItems()[0])
+        )
+
         self.filter.valueChanged.connect(self.filterResults)
         self.filter.valueChanged.connect(self.disableButtonsAddMap)
-        self.pushButton_close.clicked.connect(lambda: self.close())        
-        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")        
+        self.pushButton_close.clicked.connect(lambda: self.close())
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.checkBox_own.stateChanged.connect(self.disableButtonsAddMap)
         self.checkBox_own.stateChanged.connect(self.rememberValueMap)
-        self.checkBox_own.stateChanged.connect(lambda: self.filterResults(self.filter.text()))      
+        self.checkBox_own.stateChanged.connect(
+            lambda: self.filterResults(self.filter.text())
+        )
         self.mapDeletedSuccessfully.emit()
         self.show()
         self.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl(True))
@@ -134,7 +173,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if not self.isAuthorized:
             self.label_noUser.show()
         try:
-            checked = self.utils.getConfigItem("mapcheckbox")   
+            checked = self.utils.getConfigItem("mapcheckbox")
         except:
             checked = False
         if checked == "0":
@@ -143,32 +182,50 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if checked == "1":
             self.checkBox_own.setCheckState(2)
             checked = True
-        self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadMapsThread(state)))    
-        asyncio.run(self.loadMapsThread(checked))     
+        self.checkBox_own.stateChanged.connect(
+            lambda state: asyncio.run(self.loadMapsThread(state))
+        )
+        asyncio.run(self.loadMapsThread(checked))
 
-    def qfieldSync(self):        
-        self.layman.qfieldWorking = True 
-        self.utils.showMessageBar([" Načítám Qfield projekt"," Loading qfield project"],Qgis.Success)                
+    def qfieldSync(self):
+        self.layman.qfieldWorking = True
+        self.utils.showMessageBar(
+            [" Načítám Qfield projekt", " Loading qfield project"], Qgis.Success
+        )
         name = self.treeWidget.selectedItems()[0].text(0)
-        project_id = self.qfield.getProjectByName(self.utils.removeUnacceptableChars(name))
+        project_id = self.qfield.getProjectByName(
+            self.utils.removeUnacceptableChars(name)
+        )
         # path = self.qfield.downloadProjectPackage(project_id)
         # if path == 400:
         path = self.qfield.downloadProject(project_id)
         if path == 401:
-            self.progressDone.emit() 
-            self.utils.showMessageBar([" Nemáte práva k synchronizaci tohoho projektu"," You do not have access right to sync this project"],Qgis.Warning)
+            self.progressDone.emit()
+            self.utils.showMessageBar(
+                [
+                    " Nemáte práva k synchronizaci tohoho projektu",
+                    " You do not have access right to sync this project",
+                ],
+                Qgis.Warning,
+            )
             return
-        self.utils.openQgisProject(path)  
+        self.utils.openQgisProject(path)
         self.layman.current = name
-        self.layman.instance = CurrentComposition(self.URI, self.utils.removeUnacceptableChars(name), self.treeWidget.selectedItems()[0].text(1), self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
-        if self.treeWidget.selectedItems()[0].text(2) == "own": 
-            threading.Thread(target=self.laymanSync, args=()).start()  
-            threading.Thread(target=self.layman.patchMap2, args=(True)).start()  
-            # self.laymanSync()            
+        self.layman.instance = CurrentComposition(
+            self.URI,
+            self.utils.removeUnacceptableChars(name),
+            self.treeWidget.selectedItems()[0].text(1),
+            self.utils.getAuthHeader(self.utils.authCfg),
+            self.laymanUsername,
+        )
+        if self.treeWidget.selectedItems()[0].text(2) == "own":
+            threading.Thread(target=self.laymanSync, args=()).start()
+            threading.Thread(target=self.layman.patchMap2, args=(True)).start()
+            # self.laymanSync()
             # self.layman.patchMap2(True)
-        self.progressDone.emit()          
-        self.layman.qfieldWorking = False 
-      
+        self.progressDone.emit()
+        self.layman.qfieldWorking = False
+
     # def qfieldSync(self):
     #     self.download_thread = DownloadThread(self.qfield, self.utils, self.treeWidget, self.layman, self.URI, self.laymanUsername)
     #     self.download_thread.progressDone.connect(self.on_progress_done)
@@ -179,12 +236,12 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     #     self.download_thread.start()
 
     def on_progress_done(self):
-        self.progressDone.emit() 
+        self.progressDone.emit()
 
-    def on_show_message_bar(self, message, level):       
+    def on_show_message_bar(self, message, level):
         self.utils.showMessageBar(message, level)
 
-    def on_open_qgis_project(self, path):        
+    def on_open_qgis_project(self, path):
         self.utils.openQgisProject(path)
 
     def laymanSync(self):
@@ -192,220 +249,267 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def patchMap2(self, arg):
         threading.Thread(target=self.layman.patchMap2, args=(arg,)).start()
+
     def laymanSync(self):
         layers = self.utils.getLayersFromCanvas()
         for layer_name in layers:
             layer = QgsProject.instance().mapLayersByName(layer_name)
             if layer:
                 layer = layer[0]
-                provider_type = layer.dataProvider().name()   
-                if provider_type not in ['wms', 'wfs']:
+                provider_type = layer.dataProvider().name()
+                if provider_type not in ["wms", "wfs"]:
                     print("update layer " + layer_name)
-                    self.layman.postRequest(layer_name, auto = True, noInfo = True)
-                  
-        
+                    self.layman.postRequest(layer_name, auto=True, noInfo=True)
+
     def updateUserLists(self, users_write, users_read, server_response):
         users_write_set = set(users_write)
-        users_read_set = set(users_read)    
+        users_read_set = set(users_read)
         deleted_users_set = set()
         for entry in server_response:
-            collaborator = entry['collaborator']
-            role = entry['role']
-            if role == 'reader':               
+            collaborator = entry["collaborator"]
+            role = entry["role"]
+            if role == "reader":
                 if collaborator in users_write_set:
                     users_write_set.remove(collaborator)
-                    deleted_users_set.add(collaborator)                 
+                    deleted_users_set.add(collaborator)
                 if collaborator not in users_read_set:
-                    users_read_set.add(collaborator)            
-            elif role == 'editor':              
+                    users_read_set.add(collaborator)
+            elif role == "editor":
                 if collaborator in users_read_set:
                     users_read_set.remove(collaborator)
-                    deleted_users_set.add(collaborator)           
+                    deleted_users_set.add(collaborator)
                 if collaborator not in users_write_set:
-                    users_write_set.add(collaborator)   
-        return list(users_write_set), list(users_read_set), list(deleted_users_set)   
+                    users_write_set.add(collaborator)
+        return list(users_write_set), list(users_read_set), list(deleted_users_set)
 
-    def updateQfieldPermissions(self, tab_widget, map):        
+    def updateQfieldPermissions(self, tab_widget, map):
         if not self.layman.qfieldReady:
             return
-        read_access, write_access = self.getUserPermissions(tab_widget) 
-        read_access = self.utils.transformUsernames(read_access)   
-        write_access = self.utils.transformUsernames(write_access) 
-        existingUsers = self.qfield.getAllUsers().json()   
+        read_access, write_access = self.getUserPermissions(tab_widget)
+        read_access = self.utils.transformUsernames(read_access)
+        write_access = self.utils.transformUsernames(write_access)
+        existingUsers = self.qfield.getAllUsers().json()
         users_write = self.utils.findCommonUsers(write_access, existingUsers)
         users_read = self.utils.findCommonUsers(read_access, existingUsers)
-        users_write_set = set(users_write)  
-        users_read = [user for user in users_read if user not in users_write_set]        
-        self.qfield.qfieldPermissionsJunction(self.qfield.findProjectByName(map), users_write, users_read, self.laymanUsername)       
-        
-    def getUserPermissions(self, tab_widget):    
+        users_write_set = set(users_write)
+        users_read = [user for user in users_read if user not in users_write_set]
+        self.qfield.qfieldPermissionsJunction(
+            self.qfield.findProjectByName(map),
+            users_write,
+            users_read,
+            self.laymanUsername,
+        )
+
+    def getUserPermissions(self, tab_widget):
         read_access = []
         write_access = []
 
         if self.radioButton_readPublic.isChecked():
-            read_access = ['EVERYONE']
+            read_access = ["EVERYONE"]
         else:
-            table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
+            table_widget = self.getWidgetByTabName(
+                tab_widget, self.tr("Permissions by user")
+            )
             if table_widget:
                 self.collectAccessFromTable(table_widget, read_access, "read")
-            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):     
-                role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                role_table_widget = self.getWidgetByTabName(
+                    tab_widget, self.tr("Permissions by role")
+                )
                 if role_table_widget:
                     self.collectAccessFromTable(role_table_widget, read_access, "read")
 
         if self.radioButton_writePublic.isChecked():
-            write_access = ['EVERYONE']
+            write_access = ["EVERYONE"]
         else:
-            table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
+            table_widget = self.getWidgetByTabName(
+                tab_widget, self.tr("Permissions by user")
+            )
             if table_widget:
                 self.collectAccessFromTable(table_widget, write_access, "write")
-            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):     
-                role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                role_table_widget = self.getWidgetByTabName(
+                    tab_widget, self.tr("Permissions by role")
+                )
                 if role_table_widget:
-                    self.collectAccessFromTable(role_table_widget, write_access, "write")
+                    self.collectAccessFromTable(
+                        role_table_widget, write_access, "write"
+                    )
 
         if self.layman.laymanUsername not in write_access:
             write_access.append(self.layman.laymanUsername)
         if self.layman.laymanUsername not in read_access:
-            read_access.append(self.layman.laymanUsername)    
-        return  [read_access,write_access]         
+            read_access.append(self.layman.laymanUsername)
+        return [read_access, write_access]
+
     def collectPermissionsAndSave(self, tab_widget, map):
-        self.failed = []        
+        self.failed = []
         read_access, write_access = self.getUserPermissions(tab_widget)
         data = {
-            'access_rights.read': self.utils.listToString(read_access),
-            'access_rights.write': self.utils.listToString(write_access)
+            "access_rights.read": self.utils.listToString(read_access),
+            "access_rights.write": self.utils.listToString(write_access),
         }
-        
-        map = self.utils.removeUnacceptableChars(map)      
-        url = self.URI+'/rest/'+self.layman.laymanUsername+'/maps/'+map
-        response = requests.patch(url, data = data,  headers = self.utils.getAuthHeader(self.utils.authCfg))      
-        print(response.content)       
-        if (response.status_code != 200):
-            self.failed.append(map)          
-        if len(self.failed) == 0:       
-            self.permissionInfo.emit(True, self.failed, 0)                
+
+        map = self.utils.removeUnacceptableChars(map)
+        url = self.layman_api.get_map_url(self.layman.laymanUsername, map)
+        response = requests.patch(
+            url, data=data, headers=self.utils.getAuthHeader(self.utils.authCfg)
+        )
+        print(response.content)
+        if response.status_code != 200:
+            self.failed.append(map)
+        if len(self.failed) == 0:
+            self.permissionInfo.emit(True, self.failed, 0)
         else:
-            self.permissionInfo.emit(False, self.failed, 0)           
+            self.permissionInfo.emit(False, self.failed, 0)
+
     def getTableWidgetByTabName(self, tab_widget, tab_name):
-      
         for i in range(tab_widget.count()):
             if tab_widget.tabText(i) == tab_name:
                 return tab_widget.widget(i)
         return None
-                    
+
     def collectAccessFromTable(self, table_widget, access_list, type):
         for row in range(table_widget.rowCount()):
-            item = table_widget.item(row, 3)  
-            if item is not None:  
+            item = table_widget.item(row, 3)
+            if item is not None:
                 username = item.text()
                 if type == "read":
                     read_checkbox = table_widget.cellWidget(row, 1)
                     if read_checkbox.isChecked():
                         access_list.append(username)
 
-                if type == "write":                    
+                if type == "write":
                     write_checkbox = table_widget.cellWidget(row, 2)
                     if write_checkbox.isChecked():
-                        access_list.append(username)    
-                                                 
+                        access_list.append(username)
+
     def getRoles(self):
-        uri = self.URI + "/rest/roles"
-        r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
+        uri = self.layman_api.get_roles_url()
+        r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
         res = self.utils.fromByteToJson(r.content)
         return res
+
     def removeTabByTitle(self, tab_widget, title):
         index = 0
         while index < tab_widget.count():
             if tab_widget.tabText(index) == title:
                 tab_widget.removeTab(index)
             else:
-                index += 1  
-    def populatePermissionsWidget(self, tab_widget, user_dict, read_access, write_access):  
+                index += 1
+
+    def populatePermissionsWidget(
+        self, tab_widget, user_dict, read_access, write_access
+    ):
         self.removeTabByTitle(tab_widget, self.tr("Permissions by user"))
-        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
+        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
             self.removeTabByTitle(tab_widget, self.tr("Permissions by role"))
         if "EVERYONE" in user_dict:
             del user_dict["EVERYONE"]
-        self.setEveryonePermissionsRadiobuutons(True if "everyone" in [name.lower() for name in read_access] else False,True if "everyone" in [name.lower() for name in write_access] else False)        
+        self.setEveryonePermissionsRadiobuutons(
+            True if "everyone" in [name.lower() for name in read_access] else False,
+            True if "everyone" in [name.lower() for name in write_access] else False,
+        )
         user_widget = QTableWidget()
         user_widget.verticalHeader().setVisible(False)
         self.utils.setTableWidgetNotBorder(user_widget)
         self.globalRead.clear()
-        self.globalWrite.clear()       
-        for username in user_dict.keys():  
+        self.globalWrite.clear()
+        for username in user_dict.keys():
             self.globalRead[username] = username in read_access
             self.globalWrite[username] = username in write_access
-    ### add users
-       
-        num_columns = 4  
+        ### add users
+
+        num_columns = 4
         user_widget.setRowCount(len(user_dict))
-        user_widget.setColumnCount(num_columns)  
-        user_widget.setHorizontalHeaderLabels([self.tr('User'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
+        user_widget.setColumnCount(num_columns)
+        user_widget.setHorizontalHeaderLabels(
+            [self.tr("User"), self.tr("Read"), self.tr("Write"), self.tr("Nick")]
+        )
         everyone_read_checked = "everyone" in [name.lower() for name in read_access]
         everyone_write_checked = "everyone" in [name.lower() for name in write_access]
         for row, (username, full_name) in enumerate(user_dict.items()):
-            user_widget.setItem(row, 0, QTableWidgetItem(full_name + " ("+username+")"))            
+            user_widget.setItem(
+                row, 0, QTableWidgetItem(full_name + " (" + username + ")")
+            )
             read_checkbox = QCheckBox()
-            write_checkbox = QCheckBox() 
-            write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
-            read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")                 
-            write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(True) if state else rc.isChecked())
-            read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)               
+            write_checkbox = QCheckBox()
+            write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
+            read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
+            write_checkbox.stateChanged.connect(
+                lambda state, rc=read_checkbox: (
+                    rc.setChecked(True) if state else rc.isChecked()
+                )
+            )
+            read_checkbox.stateChanged.connect(
+                lambda state, wc=write_checkbox: (
+                    wc.setChecked(False) if state == 0 else None
+                )
+            )
             if username == self.layman.laymanUsername:
                 read_checkbox.setDisabled(True)
                 write_checkbox.setDisabled(True)
             user_widget.setCellWidget(row, 1, read_checkbox)
-            user_widget.setCellWidget(row, 2, write_checkbox)            
+            user_widget.setCellWidget(row, 2, write_checkbox)
             if username in write_access:
                 write_checkbox.setChecked(True)
                 read_checkbox.setChecked(True)
             else:
                 read_checkbox.setChecked(username in read_access)
-            if everyone_read_checked:                  
-                read_checkbox.setChecked(True)    
-                read_checkbox.setEnabled(False)  
-            if everyone_write_checked:                  
-                write_checkbox.setChecked(True) 
-                write_checkbox.setEnabled(False)                             
+            if everyone_read_checked:
+                read_checkbox.setChecked(True)
+                read_checkbox.setEnabled(False)
+            if everyone_write_checked:
+                write_checkbox.setChecked(True)
+                write_checkbox.setEnabled(False)
             user_widget.setItem(row, 3, QTableWidgetItem(username))
             user_widget.setColumnHidden(3, True)
             user_widget.resizeColumnToContents(0)
         self.userFilterLineEdit = QLineEdit()
         self.userFilterLineEdit.setPlaceholderText(self.tr("Filter users..."))
-        self.userFilterLineEdit.textChanged.connect(self.filterRecords)     
+        self.userFilterLineEdit.textChanged.connect(self.filterRecords)
         userTab = QWidget()
         userLayout = QVBoxLayout()
-        userLayout.addWidget(self.userFilterLineEdit)  
-        userLayout.addWidget(user_widget)  
-        userTab.setLayout(userLayout)    
+        userLayout.addWidget(self.userFilterLineEdit)
+        userLayout.addWidget(user_widget)
+        userTab.setLayout(userLayout)
         tab_widget.addTab(userTab, self.tr("Permissions by user"))
-    ### add roles
-        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-            num_columns = 4  
+        ### add roles
+        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+            num_columns = 4
             role_widget = QTableWidget()
             role_widget.verticalHeader().setVisible(False)
             self.utils.setTableWidgetNotBorder(role_widget)
             role_widget.setRowCount(len(user_dict))
-            role_widget.setColumnCount(num_columns)  
-            role_widget.setHorizontalHeaderLabels([self.tr('Role'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
+            role_widget.setColumnCount(num_columns)
+            role_widget.setHorizontalHeaderLabels(
+                [self.tr("Role"), self.tr("Read"), self.tr("Write"), self.tr("Nick")]
+            )
             roles = self.getRoles()
             self.roles = roles
             row = 0
-            for rolename in (roles):    
+            for rolename in roles:
                 if rolename == "EVERYONE":
                     continue
                 self.globalRead[rolename] = rolename in read_access
                 self.globalWrite[rolename] = rolename in write_access
-                role_widget.setItem(row, 0, QTableWidgetItem(rolename))   
+                role_widget.setItem(row, 0, QTableWidgetItem(rolename))
                 read_checkbox = QCheckBox()
-                write_checkbox = QCheckBox()  
-                write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
-                read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")   
-                write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(True) if state else None)
-                read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)
+                write_checkbox = QCheckBox()
+                write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
+                read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
+                write_checkbox.stateChanged.connect(
+                    lambda state, rc=read_checkbox: (
+                        rc.setChecked(True) if state else None
+                    )
+                )
+                read_checkbox.stateChanged.connect(
+                    lambda state, wc=write_checkbox: (
+                        wc.setChecked(False) if state == 0 else None
+                    )
+                )
                 role_widget.setCellWidget(row, 1, read_checkbox)
-                role_widget.setCellWidget(row, 2, write_checkbox) 
+                role_widget.setCellWidget(row, 2, write_checkbox)
                 if rolename in write_access:
                     write_checkbox.setChecked(True)
                     read_checkbox.setChecked(True)
@@ -413,14 +517,14 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:
                     if rolename in read_access:
                         self.globalRead[rolename] = True
-                    read_checkbox.setChecked(rolename in read_access)      
-                if everyone_read_checked:                  
-                    read_checkbox.setChecked(True)   
-                    read_checkbox.setEnabled(False)  
-                if everyone_write_checked:                  
-                    write_checkbox.setChecked(True)    
-                    write_checkbox.setEnabled(False)                        
-                role_widget.setItem(row, 3, QTableWidgetItem(rolename))         
+                    read_checkbox.setChecked(rolename in read_access)
+                if everyone_read_checked:
+                    read_checkbox.setChecked(True)
+                    read_checkbox.setEnabled(False)
+                if everyone_write_checked:
+                    write_checkbox.setChecked(True)
+                    write_checkbox.setEnabled(False)
+                role_widget.setItem(row, 3, QTableWidgetItem(rolename))
                 role_widget.setColumnHidden(3, True)
                 role_widget.resizeColumnToContents(0)
                 row = row + 1
@@ -428,252 +532,309 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             roleLayout = QVBoxLayout()
             self.roleFilterLineEdit = QLineEdit()
             self.roleFilterLineEdit.setPlaceholderText(self.tr("Filter roles..."))
-            self.roleFilterLineEdit.textChanged.connect(self.filterRecords)  
-            roleLayout.addWidget(self.roleFilterLineEdit)  
-            roleLayout.addWidget(role_widget)  
-            roleTab.setLayout(roleLayout)      
-            tab_widget.addTab(roleTab, self.tr("Permissions by role"))  
-  
-    def setEveryonePermissionsRadiobuutons(self, public_read, public_write):            
+            self.roleFilterLineEdit.textChanged.connect(self.filterRecords)
+            roleLayout.addWidget(self.roleFilterLineEdit)
+            roleLayout.addWidget(role_widget)
+            roleTab.setLayout(roleLayout)
+            tab_widget.addTab(roleTab, self.tr("Permissions by role"))
+
+    def setEveryonePermissionsRadiobuutons(self, public_read, public_write):
         self.radioButton_readPublic.setChecked(public_read)
-        self.radioButton_readPrivate.setChecked(not public_read)        
+        self.radioButton_readPrivate.setChecked(not public_read)
         self.radioButton_writePublic.setChecked(public_write)
-        self.radioButton_writePrivate.setChecked(not public_write)  
-           
+        self.radioButton_writePrivate.setChecked(not public_write)
 
     def getUserWidget(self):
-        user_tab_index = 0 
-        user_tab = self.tabWidget.widget(user_tab_index)  
-        if user_tab is not None and hasattr(user_tab, 'layout') and user_tab.layout() is not None:          
+        user_tab_index = 0
+        user_tab = self.tabWidget.widget(user_tab_index)
+        if (
+            user_tab is not None
+            and hasattr(user_tab, "layout")
+            and user_tab.layout() is not None
+        ):
             for i in range(user_tab.layout().count()):
-                widget = user_tab.layout().itemAt(i).widget()              
+                widget = user_tab.layout().itemAt(i).widget()
                 if isinstance(widget, QTableWidget):
                     return widget
         return None
+
     def getRoleWidget(self):
-        user_tab_index = 1  
-        user_tab = self.tabWidget.widget(user_tab_index)  
-        if user_tab is not None and hasattr(user_tab, 'layout') and user_tab.layout() is not None:          
+        user_tab_index = 1
+        user_tab = self.tabWidget.widget(user_tab_index)
+        if (
+            user_tab is not None
+            and hasattr(user_tab, "layout")
+            and user_tab.layout() is not None
+        ):
             for i in range(user_tab.layout().count()):
-                widget = user_tab.layout().itemAt(i).widget()       
+                widget = user_tab.layout().itemAt(i).widget()
                 if isinstance(widget, QTableWidget):
                     return widget
         return None
+
     def getWidgetByTabName(self, tab_widget, tab_name):
         for i in range(tab_widget.count()):
-            if tab_widget.tabText(i) == tab_name:               
-                container_widget = tab_widget.widget(i)               
-                if container_widget.layout() and container_widget.layout().count() > 0:             
-                    for j in range(container_widget.layout().count()):                  
-                        widget = container_widget.layout().itemAt(j).widget()                     
-                        if isinstance(widget, QTableWidget):                           
+            if tab_widget.tabText(i) == tab_name:
+                container_widget = tab_widget.widget(i)
+                if container_widget.layout() and container_widget.layout().count() > 0:
+                    for j in range(container_widget.layout().count()):
+                        widget = container_widget.layout().itemAt(j).widget()
+                        if isinstance(widget, QTableWidget):
                             return widget
         return None
+
     def filterRecords(self):
         user_filter_text = self.userFilterLineEdit.text().lower()
-        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
+        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
             role_filter_text = self.roleFilterLineEdit.text().lower()
 
         user_widget = self.getUserWidget()
-        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
+        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
             role_widget = self.getRoleWidget()
-       
+
         if isinstance(user_widget, QTableWidget):
             for row in range(user_widget.rowCount()):
                 item = user_widget.item(row, 0)
                 if item:
-                    user_widget.setRowHidden(row, user_filter_text not in item.text().lower())
-        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
+                    user_widget.setRowHidden(
+                        row, user_filter_text not in item.text().lower()
+                    )
+        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
             if isinstance(role_widget, QTableWidget):
                 for row in range(role_widget.rowCount()):
                     item = role_widget.item(row, 0)
                     if item:
-                        role_widget.setRowHidden(row, role_filter_text not in item.text().lower())
-     
+                        role_widget.setRowHidden(
+                            row, role_filter_text not in item.text().lower()
+                        )
+
     def updatePermissions(self, permissionType, isPublic):
-        user_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by user"))
-        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-            role_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by role"))       
-        if permissionType == 'read':
-            if isPublic:               
-                self.updateWidgetPermissions(user_widget, 'read', True)
-                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-                    self.updateWidgetPermissions(role_widget, 'read', True)
-            else:     
-                self.globalUpdateFromPermissions(user_widget, 'read', self.globalRead)
-                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-                    self.globalUpdateFromPermissions(role_widget, 'read', self.globalRead)          
+        user_widget = self.getWidgetByTabName(
+            self.tabWidget, self.tr("Permissions by user")
+        )
+        if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+            role_widget = self.getWidgetByTabName(
+                self.tabWidget, self.tr("Permissions by role")
+            )
+        if permissionType == "read":
+            if isPublic:
+                self.updateWidgetPermissions(user_widget, "read", True)
+                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                    self.updateWidgetPermissions(role_widget, "read", True)
+            else:
+                self.globalUpdateFromPermissions(user_widget, "read", self.globalRead)
+                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                    self.globalUpdateFromPermissions(
+                        role_widget, "read", self.globalRead
+                    )
                 if self.radioButton_writePublic.isChecked():
                     self.radioButton_writePrivate.setChecked(True)
 
-        elif permissionType == 'write':        
-            if isPublic:              
+        elif permissionType == "write":
+            if isPublic:
                 self.radioButton_readPublic.setChecked(True)
-                self.updateWidgetPermissions(user_widget, 'write', True)
-                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-                    self.updateWidgetPermissions(role_widget, 'write', True)               
-            else:              
-                self.globalUpdateFromPermissions(user_widget, 'write', self.globalWrite)
-                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"): 
-                    self.globalUpdateFromPermissions(role_widget, 'write', self.globalWrite)
+                self.updateWidgetPermissions(user_widget, "write", True)
+                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                    self.updateWidgetPermissions(role_widget, "write", True)
+            else:
+                self.globalUpdateFromPermissions(user_widget, "write", self.globalWrite)
+                if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                    self.globalUpdateFromPermissions(
+                        role_widget, "write", self.globalWrite
+                    )
 
-     
-        if self.radioButton_writePrivate.isChecked() and self.radioButton_readPublic.isChecked():
-            self.updateWidgetPermissions(user_widget, 'read', True)
+        if (
+            self.radioButton_writePrivate.isChecked()
+            and self.radioButton_readPublic.isChecked()
+        ):
+            self.updateWidgetPermissions(user_widget, "read", True)
             if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
-                self.updateWidgetPermissions(role_widget, 'read', True)               
-                         
+                self.updateWidgetPermissions(role_widget, "read", True)
+
     def alignCheckboxesInTable(self, table_widget, count):
         for row in range(count):
-            for col in [1, 2]:       
+            for col in [1, 2]:
                 checkbox = QCheckBox()
-                checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")  
+                checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
                 checkbox_item = QTableWidgetItem()
-                checkbox_item.setFlags(Qt.ItemIsEnabled)  
-                checkbox_item.setTextAlignment(Qt.AlignCenter) 
+                checkbox_item.setFlags(Qt.ItemIsEnabled)
+                checkbox_item.setTextAlignment(Qt.AlignCenter)
                 table_widget.setCellWidget(row, col, checkbox)
                 table_widget.setItem(row, col, checkbox_item)
+
     def updateWidgetPermissions(self, widget, permissionType, isPublic):
         if widget is None:
             return
         rowCount = widget.rowCount()
         for row in range(rowCount):
-            read_checkbox = widget.cellWidget(row, 1)  
-            write_checkbox = widget.cellWidget(row, 2)  
-            if permissionType == 'write' and isPublic:
-                if write_checkbox is not None:                   
-                    write_checkbox.setChecked(True) 
+            read_checkbox = widget.cellWidget(row, 1)
+            write_checkbox = widget.cellWidget(row, 2)
+            if permissionType == "write" and isPublic:
+                if write_checkbox is not None:
+                    write_checkbox.setChecked(True)
                     write_checkbox.setEnabled(False)
-                if read_checkbox is not None:
-                    read_checkbox.setChecked(True)  
-                    read_checkbox.setEnabled(False)
-
-         
-            elif permissionType == 'read' and isPublic:
                 if read_checkbox is not None:
                     read_checkbox.setChecked(True)
                     read_checkbox.setEnabled(False)
 
-        
+            elif permissionType == "read" and isPublic:
+                if read_checkbox is not None:
+                    read_checkbox.setChecked(True)
+                    read_checkbox.setEnabled(False)
+
             else:
-                if permissionType == 'write' and write_checkbox is not None:
-                    write_checkbox.setChecked(False)  
-                if permissionType == 'read' and read_checkbox is not None:
-                    read_checkbox.setChecked(False)                        
-  
+                if permissionType == "write" and write_checkbox is not None:
+                    write_checkbox.setChecked(False)
+                if permissionType == "read" and read_checkbox is not None:
+                    read_checkbox.setChecked(False)
 
     def globalUpdateFromPermissions(self, widget, permissionType, permissionsDict):
         if widget is None:
             return
-        rowCount = widget.rowCount()  
-        for row in range(rowCount):   
+        rowCount = widget.rowCount()
+        for row in range(rowCount):
             try:
-                user_or_role = widget.item(row, 3).text() 
+                user_or_role = widget.item(row, 3).text()
             except:
-                return          
-            checkbox = widget.cellWidget(row, 1 if permissionType == 'read' else 2)       
-            if checkbox is not None and user_or_role in permissionsDict:          
+                return
+            checkbox = widget.cellWidget(row, 1 if permissionType == "read" else 2)
+            if checkbox is not None and user_or_role in permissionsDict:
                 if user_or_role == self.layman.laymanUsername:
                     checkbox.setChecked(True)
                     checkbox.setEnabled(False)
-                else:     
+                else:
                     checkbox.setChecked(permissionsDict[user_or_role])
-                    checkbox.setEnabled(True) 
-            elif checkbox is not None and user_or_role in self.roles:                    
+                    checkbox.setEnabled(True)
+            elif checkbox is not None and user_or_role in self.roles:
                 checkbox.setChecked(False)
-                checkbox.setEnabled(True)         
-    def setPermissionsUI(self, mapName): 
+                checkbox.setEnabled(True)
+
+    def setPermissionsUI(self, mapName):
         group1 = QButtonGroup(self)
         group2 = QButtonGroup(self)
         group1.addButton(self.radioButton_readPublic)
         group1.addButton(self.radioButton_readPrivate)
         group2.addButton(self.radioButton_writePrivate)
-        group2.addButton(self.radioButton_writePublic)       
-        uri = self.URI + "/rest/users"
+        group2.addButton(self.radioButton_writePublic)
+        uri = self.layman_api.get_users_url()
         usersDict = dict()
         if self.layman.locale == "cs":
-            usersDict['EVERYONE'] = 'VŠICHNI'
+            usersDict["EVERYONE"] = "VŠICHNI"
         else:
-            usersDict['EVERYONE'] = 'EVERYONE'
+            usersDict["EVERYONE"] = "EVERYONE"
         usersDictReversed = dict()
         usernameList = list()
-        usernameList.append('EVERYONE')
+        usernameList.append("EVERYONE")
         if self.layman.locale == "cs":
-            usersDictReversed['EVERYONE'] = 'VŠICHNI'
+            usersDictReversed["EVERYONE"] = "VŠICHNI"
         else:
-            usersDictReversed['EVERYONE'] = 'EVERYONE'   
-        r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
+            usersDictReversed["EVERYONE"] = "EVERYONE"
+        r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
         res = self.utils.fromByteToJson(r.content)
-        userCount = len(res)   
-        for i in range (0, userCount):           
-            usersDict[res[i]['name'] if res[i]['name'] !="" else res[i]['username']] = res[i]['username']
-            usersDictReversed[res[i]['username']] = res[i]['name'] if res[i]['name'] !="" else res[i]['username']          
-            # self.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username']) 
-            usernameList.append(res[i]['username'])        
+        userCount = len(res)
+        for i in range(0, userCount):
+            usersDict[
+                res[i]["name"] if res[i]["name"] != "" else res[i]["username"]
+            ] = res[i]["username"]
+            usersDictReversed[res[i]["username"]] = (
+                res[i]["name"] if res[i]["name"] != "" else res[i]["username"]
+            )
+            # self.comboBox_users.addItem(res[i]['name'] if res[i]['name'] !="" else res[i]['username'])
+            usernameList.append(res[i]["username"])
         mapName = self.utils.removeUnacceptableChars(mapName)
-        uri = self.URI + "/rest/"+self.laymanUsername+"/maps/"+mapName        
-        r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
-        res = self.utils.fromByteToJson(r.content)              
-        self.populatePermissionsWidget(self.tabWidget, usersDictReversed, res['access_rights']['read'], res['access_rights']['write'])     
-        self.radioButton_readPublic.toggled.connect(lambda: self.updatePermissions('read', self.radioButton_readPublic.isChecked()))
-        self.radioButton_writePublic.toggled.connect(lambda: self.updatePermissions('write', self.radioButton_writePublic.isChecked()))   
-        if not self.permissionsConnected: 
-            self.pushButton_close.clicked.connect(lambda: self.close())                    
-            self.pushButton_save.clicked.connect(lambda:  self.progressBar.show())      
-            self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, mapName)).start())                  
-            self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.updateQfieldPermissions, args=(self.tabWidget, mapName)).start())                  
+        uri = self.layman_api.get_map_url(self.laymanUsername, mapName)
+        r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
+        res = self.utils.fromByteToJson(r.content)
+        self.populatePermissionsWidget(
+            self.tabWidget,
+            usersDictReversed,
+            res["access_rights"]["read"],
+            res["access_rights"]["write"],
+        )
+        self.radioButton_readPublic.toggled.connect(
+            lambda: self.updatePermissions(
+                "read", self.radioButton_readPublic.isChecked()
+            )
+        )
+        self.radioButton_writePublic.toggled.connect(
+            lambda: self.updatePermissions(
+                "write", self.radioButton_writePublic.isChecked()
+            )
+        )
+        if not self.permissionsConnected:
+            self.pushButton_close.clicked.connect(lambda: self.close())
+            self.pushButton_save.clicked.connect(lambda: self.progressBar.show())
+            self.pushButton_save.clicked.connect(
+                lambda: threading.Thread(
+                    target=self.collectPermissionsAndSave,
+                    args=(self.tabWidget, mapName),
+                ).start()
+            )
+            self.pushButton_save.clicked.connect(
+                lambda: threading.Thread(
+                    target=self.updateQfieldPermissions, args=(self.tabWidget, mapName)
+                ).start()
+            )
             self.permissionsConnected = True
-    def showThumbnailMap(self, it, workspace):        
-        map = it ##pro QTreeWidget
-        if self.checkBox_thumbnail.checkState() == 0:          
+
+    def showThumbnailMap(self, it, workspace):
+        map = it  ##pro QTreeWidget
+        if self.checkBox_thumbnail.checkState() == 0:
             map = self.utils.removeUnacceptableChars(str(map))
-            url = self.URI+'/rest/'+workspace+'/maps/'+str(map).lower()+'/thumbnail'            
-            r = requests.get(url, headers = self.utils.getAuthHeader(self.layman.authCfg))               
-            data = r.content          
+            url = self.layman_api.get_layer_thumbnail_url(workspace, str(map).lower())
+            r = requests.get(url, headers=self.utils.getAuthHeader(self.layman.authCfg))
+            data = r.content
             pixmap = QPixmap(200, 200)
             pixmap.loadFromData(data)
-            smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
-            self.label_thumbnail.setPixmap(smaller_pixmap)     
+            smaller_pixmap = pixmap.scaled(
+                200, 200, Qt.KeepAspectRatio, Qt.FastTransformation
+            )
+            self.label_thumbnail.setPixmap(smaller_pixmap)
 
-          
     def fillCompositionDict(self):
-        url = self.URI+'/rest/maps'
-        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
+        url = self.layman_api.get_get_all_maps_url()
+        r = requests.get(url=url, headers=self.utils.getAuthHeader(self.authCfg))
         dataAll = r.json()
         for row in range(0, len(dataAll)):
-            self.compositionDict[dataAll[row]['name']] = dataAll[row]['title']                    
-      
-        
+            self.compositionDict[dataAll[row]["name"]] = dataAll[row]["title"]
+
     def enableLoadMapButtons(self, item):
         self.pushButton_mapWFS.setEnabled(True)
-        self.pushButton_map.setEnabled(True) 
-        self.pushButton_copyUrl.setEnabled(True)           
-        
+        self.pushButton_map.setEnabled(True)
+        self.pushButton_copyUrl.setEnabled(True)
+
     def setPermissionsButton(self, item):
         if item.text(2) != "own":
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_delete.setEnabled(False)
         else:
             self.pushButton_setPermissions.setEnabled(True)
-            self.pushButton_delete.setEnabled(True)      
-       
+            self.pushButton_delete.setEnabled(True)
+
     def setQfieldButtons(self):
-        if self.layman.qfieldReady:       
+        if self.layman.qfieldReady:
             names = self.utils.getUserScreenNames()
-            qfieldExists = self.matchQfield(self.utils.removeUnacceptableChars(self.treeWidget.selectedItems()[0].text(0)), names[self.treeWidget.selectedItems()[0].text(1)], self.qProjects)
+            qfieldExists = self.matchQfield(
+                self.utils.removeUnacceptableChars(
+                    self.treeWidget.selectedItems()[0].text(0)
+                ),
+                names[self.treeWidget.selectedItems()[0].text(1)],
+                self.qProjects,
+            )
             self.updateButtonsSignal.emit(qfieldExists)
-        else:   
+        else:
             self.updateButtonsSignal.emit(False)
 
     def updateButtons(self, qfieldExists):
         if qfieldExists:
             self.pushButton_qfieldSync.setEnabled(True)
         else:
-            self.pushButton_qfieldSync.setEnabled(False)      
+            self.pushButton_qfieldSync.setEnabled(False)
+
     def disableButtonsAddMap(self):
         self.pushButton_setPermissions.setEnabled(False)
-        self.pushButton_delete.setEnabled(False)            
-             
+        self.pushButton_delete.setEnabled(False)
+
     def filterResults(self, value):
         iterator = QTreeWidgetItemIterator(self.treeWidget, QTreeWidgetItemIterator.All)
         while iterator.value():
@@ -682,122 +843,197 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 item.setHidden(True)
             else:
                 item.setHidden(False)
-            iterator +=1   
-    def matchQfield(self, name, owner, server_response):   
+            iterator += 1
+
+    def matchQfield(self, name, owner, server_response):
         name = self.utils.removeUnacceptableChars(name)
-        if 'code' in server_response:
-            if server_response['code'] == 'unknown_error':
+        if "code" in server_response:
+            if server_response["code"] == "unknown_error":
                 return False
-        for item in server_response:    
+        for item in server_response:
             if item["name"] == name and item["owner"] == owner:
-                return True  
-        return False        
-    
-    
+                return True
+        return False
+
     async def loadMapsThread(self, onlyOwn):
         self.clearTree.emit()
-        icon = QIcon(os.path.join(self.layman.plugin_dir, 'icons', 'qfield.png'))
-
+        icon = QIcon(os.path.join(self.layman.plugin_dir, "icons", "qfield.png"))
         self.qProjects = []
         if self.layman.qfieldReady:
             self.qProjects = self.qfield.getProjects()
             self.qProjects = self.qProjects.json()
 
         names = self.utils.getUserScreenNames()
-        url = self.URI + '/rest/' + self.laymanUsername + '/maps?order_by=title'
+        url = self.layman_api.get_maps_url(self.laymanUsername, order_by="title")
         r = await self.utils.asyncRequestWrapper("GET", url)
         try:
             data = self.utils.fromByteToJson(r)
         except Exception as e:
-            self.showQgisBar.emit(["Layman server neodpověděl", "Layman server was not responding"], Qgis.Warning)
+            self.showQgisBar.emit(
+                ["Layman server neodpověděl", "Layman server was not responding"],
+                Qgis.Warning,
+            )
             return
 
         if onlyOwn and self.isAuthorized:
             for row in range(len(data)):
-                item = QTreeWidgetItem([data[row]['title'], data[row]['workspace'], "own", data[row]['native_crs']])
+                item = QTreeWidgetItem(
+                    [
+                        data[row]["title"],
+                        data[row]["workspace"],
+                        "own",
+                        data[row]["native_crs"],
+                    ]
+                )
                 if self.layman.qfieldReady:
-                    qfieldExists = self.matchQfield(data[row]['title'], names[data[row]['workspace']], self.qProjects)
+                    qfieldExists = self.matchQfield(
+                        data[row]["title"],
+                        names[data[row]["workspace"]],
+                        self.qProjects,
+                    )
                     if qfieldExists:
                         self.setIcon.emit(item, icon)
                 self.addTreeItem.emit(item)
             self.progressDone.emit()
         elif not self.isAuthorized:
-            url = self.URI + '/rest/maps?order_by=title'
+            url = self.layman_api.get_get_all_maps_url(order_by="title")
             r = await self.utils.asyncRequestWrapper("GET", url)
             try:
                 dataAll = self.utils.fromByteToJson(r)
             except Exception as e:
-                self.showQgisBar.emit(["Layman server neodpověděl", "Layman server was not responding"], Qgis.Warning)
+                self.showQgisBar.emit(
+                    ["Layman server neodpověděl", "Layman server was not responding"],
+                    Qgis.Warning,
+                )
                 return
 
             for row in range(len(dataAll)):
                 if "native_crs" in dataAll[row]:
-                    item = QTreeWidgetItem([dataAll[row]['title'], dataAll[row]['workspace'], "read", dataAll[row]['native_crs']])
+                    item = QTreeWidgetItem(
+                        [
+                            dataAll[row]["title"],
+                            dataAll[row]["workspace"],
+                            "read",
+                            dataAll[row]["native_crs"],
+                        ]
+                    )
                     if self.layman.qfieldReady:
-                        qfieldExists = self.matchQfield(dataAll[row]['title'], names[dataAll[row]['workspace']], self.qProjects)
+                        qfieldExists = self.matchQfield(
+                            dataAll[row]["title"],
+                            names[dataAll[row]["workspace"]],
+                            self.qProjects,
+                        )
                         if qfieldExists:
                             self.setIcon.emit(item, icon)
                 else:
-                    item = QTreeWidgetItem([dataAll[row]['title'], dataAll[row]['workspace'], "read"])
+                    item = QTreeWidgetItem(
+                        [dataAll[row]["title"], dataAll[row]["workspace"], "read"]
+                    )
                 self.addTreeItem.emit(item)
         else:
-            url = self.URI + '/rest/maps?order_by=title'
+            url = self.layman_api.get_get_all_maps_url(order_by="title")
             r = await self.utils.asyncRequestWrapper("GET", url)
             try:
                 dataAll = self.utils.fromByteToJson(r)
             except Exception as e:
-                self.showQgisBar.emit(["Layman server neodpověděl", "Layman server was not responding"], Qgis.Warning)
+                self.showQgisBar.emit(
+                    ["Layman server neodpověděl", "Layman server was not responding"],
+                    Qgis.Warning,
+                )
                 return
 
             for row in range(len(dataAll)):
                 permissions = ""
-                if self.laymanUsername in dataAll[row]['access_rights']['read'] or "EVERYONE" in dataAll[row]['access_rights']['read']:
+                if (
+                    self.laymanUsername in dataAll[row]["access_rights"]["read"]
+                    or "EVERYONE" in dataAll[row]["access_rights"]["read"]
+                ):
                     permissions = "read"
-                if self.laymanUsername in dataAll[row]['access_rights']['write'] or "EVERYONE" in dataAll[row]['access_rights']['write']:
+                if (
+                    self.laymanUsername in dataAll[row]["access_rights"]["write"]
+                    or "EVERYONE" in dataAll[row]["access_rights"]["write"]
+                ):
                     permissions = "write"
                 if dataAll[row] in data:
                     permissions = "own"
                 if permissions != "":
                     if "native_crs" in dataAll[row]:
-                        item = QTreeWidgetItem([dataAll[row]['title'], dataAll[row]['workspace'], permissions, dataAll[row]['native_crs']])
+                        item = QTreeWidgetItem(
+                            [
+                                dataAll[row]["title"],
+                                dataAll[row]["workspace"],
+                                permissions,
+                                dataAll[row]["native_crs"],
+                            ]
+                        )
                         if self.layman.qfieldReady:
-                            qfieldExists = self.matchQfield(dataAll[row]['title'], names[dataAll[row]['workspace']], self.qProjects)
+                            qfieldExists = self.matchQfield(
+                                dataAll[row]["title"],
+                                names[dataAll[row]["workspace"]],
+                                self.qProjects,
+                            )
                             if qfieldExists:
                                 self.setIcon.emit(item, icon)
                     else:
-                        item = QTreeWidgetItem([dataAll[row]['title'], dataAll[row]['workspace'], permissions])
+                        item = QTreeWidgetItem(
+                            [
+                                dataAll[row]["title"],
+                                dataAll[row]["workspace"],
+                                permissions,
+                            ]
+                        )
                     self.addTreeItem.emit(item)
         self.progressDone.emit()
-    
-    
+
     def set_item_icon(self, item, icon):
-        item.setIcon(0, icon)               
-    def rememberValueMap(self, value): 
+        item.setIcon(0, icon)
+
+    def rememberValueMap(self, value):
         if value == 2:
             self.utils.appendIniItem("mapCheckbox", "1")
         if value == 0:
-            self.utils.appendIniItem("mapCheckbox", "0")  
+            self.utils.appendIniItem("mapCheckbox", "0")
+
     def deleteQfieldProject(self, name):
-        project_id = self.qfield.getProjectByName(name)  
+        project_id = self.qfield.getProjectByName(name)
         if project_id is not None:
-            self.qfield.deleteProject(project_id)            
-    def deleteMap(self,item): 
-        name = self.layman.getNameByTitle(item.text(0))         
-        msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete map"), self.tr("Do you want really delete composition ")+name+"?")
+            self.qfield.deleteProject(project_id)
+
+    def deleteMap(self, item):
+        name = self.layman.getNameByTitle(item.text(0))
+        msgbox = QMessageBox(
+            QMessageBox.Question,
+            self.tr("Delete map"),
+            self.tr("Do you want really delete composition ") + name + "?",
+        )
         msgbox.addButton(QMessageBox.Yes)
         msgbox.addButton(QMessageBox.No)
         msgbox.setDefaultButton(QMessageBox.No)
         reply = msgbox.exec()
-        if (reply == QMessageBox.Yes):
-            name = self.utils.removeUnacceptableChars(name)         
+        if reply == QMessageBox.Yes:
+            name = self.utils.removeUnacceptableChars(name)
             threading.Thread(target=self.deleteQfieldProject, args=(name,)).start()
-            url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
-            response = requests.delete(url, headers = self.utils.getAuthHeader(self.utils.authCfg))           
-            if (response.status_code == 200):
-                self.utils.showQgisBar([" Kompozice  " + name + " byla úspešně smazána."," Composition  " + name + " was sucessfully deleted."], Qgis.Success)        
+            url = self.layman_api.get_map_url(self.laymanUsername, name)
+            response = requests.delete(
+                url, headers=self.utils.getAuthHeader(self.utils.authCfg)
+            )
+            if response.status_code == 200:
+                self.utils.showQgisBar(
+                    [
+                        " Kompozice  " + name + " byla úspešně smazána.",
+                        " Composition  " + name + " was sucessfully deleted.",
+                    ],
+                    Qgis.Success,
+                )
                 self.deleteSelectedItem(item)
             else:
-                self.utils.showQgisBar([" Kompozice  " + name + " nebyla smazána."," Composition  " + name + " was not sucessfully deleted."], Qgis.Warning)    
+                self.utils.showQgisBar(
+                    [
+                        " Kompozice  " + name + " nebyla smazána.",
+                        " Composition  " + name + " was not sucessfully deleted.",
+                    ],
+                    Qgis.Warning,
+                )
             self.mapDeletedSuccessfully.emit()
             if self.layman.current == name:
                 self.layman.current = None
@@ -809,13 +1045,13 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             if checked == "0":
                 checked = False
             if checked == "1":
-                checked = True  
+                checked = True
 
-            
-            # asyncio.run(self.loadMapsThread(checked))                       
-    def deleteSelectedItem(self, item): 
+            # asyncio.run(self.loadMapsThread(checked))
+
+    def deleteSelectedItem(self, item):
         root = self.treeWidget.invisibleRootItem()
-        (item.parent() or root).removeChild(item)     
+        (item.parent() or root).removeChild(item)
 
     def _onMapDeletedSuccessfully(self):
         if self.objectName() == "AddMapDialog":
@@ -823,37 +1059,59 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_copyUrl.setEnabled(False)
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_map.setEnabled(False)
-            self.label_thumbnail.setText(' ')  
+            self.label_thumbnail.setText(" ")
             self.setPermissionsWidget(False)
+
     def _onProgressDone(self):
         self.progressBar.hide()
-        
-    def copyCompositionUrl(self, composition=None):  
+
+    def copyCompositionUrl(self, composition=None):
         if not composition:
             url = self.instance.getUrl()
         else:
-            if "client" in self.URI:
-                url = self.URI+'/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'
-            else:  
-                url = self.URI+'/client/rest/'+self.treeWidget.selectedItems()[0].text(1)+'/maps/'+self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))+'/file'            
-        try:   
+            url = self.layman_api.get_map_file_url(
+                self.treeWidget.selectedItems()[0].text(1),
+                self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)),
+            )
+
+        try:
             self.utils.copyToClipboard(url)
-            self.utils.showQgisBar([" URL uloženo do schránky."," URL saved to clipboard."], Qgis.Success)      
+            self.utils.showQgisBar(
+                [" URL uloženo do schránky.", " URL saved to clipboard."], Qgis.Success
+            )
         except Exception as e:
             info = str(e)
-            allInfo = traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__) 
-            print([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, allInfo)
-            self.utils.showErr.emit([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],info, str(allInfo), Qgis.Warning, "")
-    def readMapJson(self,name, service, workspace=""):       
-      
+            allInfo = traceback.format_exception(
+                etype=type(e), value=e, tb=e.__traceback__
+            )
+            print(
+                [
+                    " URL nebylo uloženo do schránky.",
+                    " URL was not saved to clipboard.",
+                ],
+                info,
+                allInfo,
+            )
+            self.utils.showErr.emit(
+                [
+                    " URL nebylo uloženo do schránky.",
+                    " URL was not saved to clipboard.",
+                ],
+                info,
+                str(allInfo),
+                Qgis.Warning,
+                "",
+            )
+
+    def readMapJson(self, name, service, workspace=""):
         self.layman.project.setTitle(name)
-        url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'       
-        
-        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-        data = r.json()    
-        projection = data['projection'].replace("epsg:","").replace("EPSG:","")
+        url = self.layman_api.get_map_file_url(workspace, name)
+
+        r = self.utils.requestWrapper("GET", url, payload=None, files=None)
+        data = r.json()
+        projection = data["projection"].replace("epsg:", "").replace("EPSG:", "")
         if projection != "":
-            crs=QgsCoordinateReferenceSystem(int(projection))
+            crs = QgsCoordinateReferenceSystem(int(projection))
             if self.layman.crsChangedConnect == False:
                 self.layman.project.setCrs(crs)
                 self.layman.project.crsChanged.connect(self.layman.crsChanged)
@@ -861,125 +1119,160 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 self.crsChangedConnect = False
                 self.layman.project.setCrs(crs)
-                self.crsChangedConnect = True      
-        self.pushButton_map.setEnabled(False) 
+                self.crsChangedConnect = True
+        self.pushButton_map.setEnabled(False)
         self.loadComposition.emit(name, service, workspace)
-      
-    def readMapJsonThread(self,name, service, workspace=""):            
+
+    def readMapJsonThread(self, name, service, workspace=""):
         self.unloadedLayers = list()
-        self.processingRequest = True   
-        old_loaded = self.layman.current         
+        self.processingRequest = True
+        old_loaded = self.layman.current
         if self.layman.instance != None:
-            old_composition = self.layman.instance.getComposition()       
+            old_composition = self.layman.instance.getComposition()
         self.layman.current = name
-        if workspace != "":                    
-            url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file' 
-            r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        if workspace != "":
+            url = self.layman_api.get_map_file_url(workspace, name)
+            r = self.utils.requestWrapper("GET", url, payload=None, files=None)
             data = r.json()
-            self.layman.instance = CurrentComposition(self.URI, name, workspace, self.utils.getAuthHeader(self.utils.authCfg),self.laymanUsername)
-            self.layman.instance.setComposition(data)           
-        else:                 
+            self.layman.instance = CurrentComposition(
+                self.URI,
+                name,
+                workspace,
+                self.utils.getAuthHeader(self.utils.authCfg),
+                self.laymanUsername,
+            )
+            self.layman.instance.setComposition(data)
+        else:
             workspace = self.getCompositionWorkspace(name)
             try:
-                url = self.URI+'/rest/'+workspace+'/maps/'+name+'/file'
+                url = self.layman_api.get_map_file_url(workspace, name)
             except:
                 QgsMessageLog.logMessage("compositionSchemaError")
-                return      
-            r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+                return
+            r = self.utils.requestWrapper("GET", url, payload=None, files=None)
             data = r.json()
-        name = self.utils.removeUnacceptableChars(name)          
+        name = self.utils.removeUnacceptableChars(name)
         layers = QgsProject.instance().mapLayers()
         if len(data["layers"]) == 0:
-            self.progressDone.emit()           
-            self.utils.showQgisBar(["Mapová kompozice je načtena, ale neobsahuje žádné vrstvy.","Map composition is loaded but not contains layers."], Qgis.Success)  
+            self.progressDone.emit()
+            self.utils.showQgisBar(
+                [
+                    "Mapová kompozice je načtena, ale neobsahuje žádné vrstvy.",
+                    "Map composition is loaded but not contains layers.",
+                ],
+                Qgis.Success,
+            )
             return
         if len(layers) > 0:
-            if name != old_loaded:  
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem."))                
+            if name != old_loaded:
+                msgbox = QMessageBox(
+                    QMessageBox.Question,
+                    "Layman",
+                    self.tr(
+                        "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem."
+                    ),
+                )
                 msgbox.addButton(QMessageBox.Yes)
                 msgbox.addButton(QMessageBox.No)
                 msgbox.setDefaultButton(QMessageBox.No)
                 reply = msgbox.exec()
-                if (reply == QMessageBox.Yes):
+                if reply == QMessageBox.Yes:
                     self.layman.iface.newProjectCreated.disconnect()
                     self.layman.iface.newProject()
-                    projection = data['projection'].replace("epsg:","").replace("EPSG:","")
-                    crs=QgsCoordinateReferenceSystem(int(projection))
+                    projection = (
+                        data["projection"].replace("epsg:", "").replace("EPSG:", "")
+                    )
+                    crs = QgsCoordinateReferenceSystem(int(projection))
                     self.crsChangedConnect = False
                     QgsProject.instance().setCrs(crs)
                     self.crsChangedConnect = True
-                    QgsProject.instance().setTitle(data['title'])   
-                    self.layman.iface.newProjectCreated.connect(self.layman.removeCurrent)                     
-            else: 
+                    QgsProject.instance().setTitle(data["title"])
+                    self.layman.iface.newProjectCreated.connect(
+                        self.layman.removeCurrent
+                    )
+            else:
                 if self.utils.compare_json_layers(data, old_composition):
                     self.layman.iface.newProjectCreated.disconnect()
                     self.layman.iface.newProject()
-                    self.layman.iface.newProjectCreated.connect(self.layman.removeCurrent) 
+                    self.layman.iface.newProjectCreated.connect(
+                        self.layman.removeCurrent
+                    )
                 else:
-                    if self.utils.checkIfNotLocalLayer():                  
-                        msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("Načítáte stejnou kompozici. Chcete ponechat původní lokální vrstvy?"))                        
+                    if self.utils.checkIfNotLocalLayer():
+                        msgbox = QMessageBox(
+                            QMessageBox.Question,
+                            "Layman",
+                            self.tr(
+                                "Načítáte stejnou kompozici. Chcete ponechat původní lokální vrstvy?"
+                            ),
+                        )
                         msgbox.addButton(QMessageBox.Yes)
                         msgbox.addButton(QMessageBox.No)
                         msgbox.setDefaultButton(QMessageBox.No)
                         reply = msgbox.exec()
-                        if (reply == QMessageBox.Yes):  
-                            self.utils.removeWmsWfsLayers()                            
-                        if (reply == QMessageBox.No):    
+                        if reply == QMessageBox.Yes:
+                            self.utils.removeWmsWfsLayers()
+                        if reply == QMessageBox.No:
                             self.layman.iface.newProjectCreated.disconnect()
                             self.layman.iface.newProject()
-                            self.layman.iface.newProjectCreated.connect(self.layman.removeCurrent)  
-                
-                    else:    
-                        project = QgsProject.instance()                       
+                            self.layman.iface.newProjectCreated.connect(
+                                self.layman.removeCurrent
+                            )
+
+                    else:
+                        project = QgsProject.instance()
                         for layer_id in project.mapLayers():
                             layer = project.mapLayer(layer_id)
                             provider = layer.dataProvider()
                             provider.reloadData()
-                            self.progressDone.emit()    
-                        return    
-        self.loadLayer(data,service, name)        
-    def loadLayer(self, data, service, groupName = ''):    
-        if not 'layers' in data:       
+                            self.progressDone.emit()
+                        return
+        self.loadLayer(data, service, name)
+
+    def loadLayer(self, data, service, groupName=""):
+        if not "layers" in data:
             print("corrupted composition")
-            self.utils.emitMessageBox.emit(["Kompozice je poškozena!", "Map composition is corrupted!"])
-            return      
-        groupName = ''
+            self.utils.emitMessageBox.emit(
+                ["Kompozice je poškozena!", "Map composition is corrupted!"]
+            )
+            return
+        groupName = ""
         threads = list()
-        i=1
+        i = 1
         groups = list()
         groupPositions = list()
         groupsSet = set()
-        for x in range(len(data['layers'])- 1, -1, -1): 
+        for x in range(len(data["layers"]) - 1, -1, -1):
             print("iteration")
             try:
-                subgroupName =  data['layers'][x]['path']
+                subgroupName = data["layers"][x]["path"]
             except:
                 print("path for layer not found")
                 subgroupName = ""
             try:
-                timeDimension = data['layers'][x]['dimensions']
+                timeDimension = data["layers"][x]["dimensions"]
             except:
                 print("time dimensions for layer not found")
                 timeDimension = ""
-            className = data['layers'][x]['className']
-            visibility = data['layers'][x]['visibility']            
-            if className == 'XYZ':
-                layerName = data['layers'][x]['title']               
-            if className == 'HSLayers.Layer.WMS' or className == 'WMS':
-                layerName = data['layers'][x]['params']['LAYERS']  
-            if className == 'OpenLayers.Layer.Vector' or className == 'Vector':                
+            className = data["layers"][x]["className"]
+            visibility = data["layers"][x]["visibility"]
+            if className == "XYZ":
+                layerName = data["layers"][x]["title"]
+            if className == "HSLayers.Layer.WMS" or className == "WMS":
+                layerName = data["layers"][x]["params"]["LAYERS"]
+            if className == "OpenLayers.Layer.Vector" or className == "Vector":
                 try:
-                    layerName = data['layers'][x]['name']
+                    layerName = data["layers"][x]["name"]
                 except:
                     try:
-                        layerName = data['layers'][x]['protocol']['LAYERS']
+                        layerName = data["layers"][x]["protocol"]["LAYERS"]
                     except:
                         QgsMessageLog.logMessage("compositionSchemaError")
                         self.instance = None
                         self.layman.current = None
-                        return            
-            if className == 'ArcGISRest':  
-                layerName = data['layers'][x]['title']              
+                        return
+            if className == "ArcGISRest":
+                layerName = data["layers"][x]["title"]
             try:
                 print(layerName)
             except:
@@ -988,130 +1281,211 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 return
             print(self.layman.checkLayerOnLayman(layerName))
             print(layerName)
-            if self.layman.checkLayerOnLayman(layerName):              
-
-                if className == 'HSLayers.Layer.WMS' or className == 'WMS':                 
-                    layerName = data['layers'][x]['params']['LAYERS']
-                    format = data['layers'][x]['params']['FORMAT']
-                    epsg = 'EPSG:4326'
-                    minRes = data['layers'][x]['minResolution']
-                    maxRes = data['layers'][x]['maxResolution']    
-                    if "greyscale" in data['layers'][x]:
-                        greyscale = data['layers'][x]['greyscale']
+            if self.layman.checkLayerOnLayman(layerName):
+                if className == "HSLayers.Layer.WMS" or className == "WMS":
+                    layerName = data["layers"][x]["params"]["LAYERS"]
+                    format = data["layers"][x]["params"]["FORMAT"]
+                    epsg = "EPSG:4326"
+                    minRes = data["layers"][x]["minResolution"]
+                    maxRes = data["layers"][x]["maxResolution"]
+                    if "greyscale" in data["layers"][x]:
+                        greyscale = data["layers"][x]["greyscale"]
                     else:
                         greyscale = False
 
                     try:
-                        groupName = data['layers'][x]['path']
+                        groupName = data["layers"][x]["path"]
                     except:
                         groupName = ""
-                    wmsName = data['layers'][x]['params']['LAYERS']
-                    layerNameTitle = data['layers'][x]['title']
-                    repairUrl = data['layers'][x]['url']
-                    repairUrl = self.utils.convertUrlFromHex(repairUrl)                    
+                    wmsName = data["layers"][x]["params"]["LAYERS"]
+                    layerNameTitle = data["layers"][x]["title"]
+                    repairUrl = data["layers"][x]["url"]
+                    repairUrl = self.utils.convertUrlFromHex(repairUrl)
                     everyone = False
-                    try:                        
-                        workspace =  repairUrl.split("geoserver/")[1].split("_wms")[0]
-                        r = requests.get(url = url, headers = self.utils.getAuthHeader(self.authCfg))
-                        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
-                        if 'EVERYONE' in r.json()['access_rights']['read']:
+                    try:
+                        workspace = repairUrl.split("geoserver/")[1].split("_wms")[0]
+                        r = requests.get(
+                            url=url, headers=self.utils.getAuthHeader(self.authCfg)
+                        )
+                        r = self.utils.requestWrapper(
+                            "GET", url, payload=None, files=None
+                        )
+                        if "EVERYONE" in r.json()["access_rights"]["read"]:
                             everyone = True
-                        if 'time' in r.json()['wms']:       
-                            timeDimension = r.json()['wms']                    
+                        if "time" in r.json()["wms"]:
+                            timeDimension = r.json()["wms"]
                     except:
                         print("permissions not found")
 
                     if groupName != "":
-                        groups.append([groupName, len(data['layers']) - i])
+                        groups.append([groupName, len(data["layers"]) - i])
                         groupsSet.add(groupName)
-                        groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
+                        groupPositions.append(
+                            [groupName, layerNameTitle, len(data["layers"]) - i]
+                        )
                     else:
-                        groups.append([layerNameTitle, len(data['layers']) - i]) 
-                    legends = "0"                        
-                    if "legends" in data['layers'][x]:
-                        legends = "1"                       
-                    self.layman.loadWms(repairUrl, layerName,layerNameTitle, format,epsg, groupName, subgroupName, timeDimension, visibility, everyone,minRes, maxRes, greyscale, legends)                  
-                if className == 'ArcGISRest':
-                   
-                    url = data['layers'][x]['url']
-                    layerNameTitle = data['layers'][x]['title']                  
+                        groups.append([layerNameTitle, len(data["layers"]) - i])
+                    legends = "0"
+                    if "legends" in data["layers"][x]:
+                        legends = "1"
+                    self.layman.loadWms(
+                        repairUrl,
+                        layerName,
+                        layerNameTitle,
+                        format,
+                        epsg,
+                        groupName,
+                        subgroupName,
+                        timeDimension,
+                        visibility,
+                        everyone,
+                        minRes,
+                        maxRes,
+                        greyscale,
+                        legends,
+                    )
+                if className == "ArcGISRest":
+                    url = data["layers"][x]["url"]
+                    layerNameTitle = data["layers"][x]["title"]
                     self.layman.loadArcGisRest(url, layerNameTitle)
-                    
-                if className == 'XYZ':                   
-                    layerName = data['layers'][x]['title']
-                    minRes = data['layers'][x]['minResolution']
-                    maxRes = data['layers'][x]['maxResolution']                  
+
+                if className == "XYZ":
+                    layerName = data["layers"][x]["title"]
+                    minRes = data["layers"][x]["minResolution"]
+                    maxRes = data["layers"][x]["maxResolution"]
                     try:
-                        groupName = data['layers'][x]['path']
+                        groupName = data["layers"][x]["path"]
                     except:
-                        groupName = ""             
+                        groupName = ""
                     format = "XYZ"
-                    epsg = 'EPSG:4326'
-                    layerNameTitle = data['layers'][x]['title']
-                    repairUrl = data['layers'][x]['url']
+                    epsg = "EPSG:4326"
+                    layerNameTitle = data["layers"][x]["title"]
+                    repairUrl = data["layers"][x]["url"]
                     repairUrl = self.utils.convertUrlFromHex(repairUrl)
                     if groupName != "":
-                        groups.append([groupName, len(data['layers']) -i])
+                        groups.append([groupName, len(data["layers"]) - i])
                         groupsSet.add(groupName)
-                        groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
+                        groupPositions.append(
+                            [groupName, layerNameTitle, len(data["layers"]) - i]
+                        )
                     else:
-                        groups.append([layerNameTitle, len(data['layers']) - i])                    
-                    self.layman.loadXYZ(data['layers'][x]['url'], layerName,layerNameTitle, format,epsg, groupName, subgroupName, visibility,-1,minRes, maxRes)
-                  
+                        groups.append([layerNameTitle, len(data["layers"]) - i])
+                    self.layman.loadXYZ(
+                        data["layers"][x]["url"],
+                        layerName,
+                        layerNameTitle,
+                        format,
+                        epsg,
+                        groupName,
+                        subgroupName,
+                        visibility,
+                        -1,
+                        minRes,
+                        maxRes,
+                    )
 
-                if className == 'OpenLayers.Layer.Vector' or className == 'Vector':
-                    epsg = 'EPSG:4326'
-                    minRes = data['layers'][x]['minResolution']
-                    maxRes = data['layers'][x]['maxResolution']                   
-                    layerNameTitle = data['layers'][x]['title']
-                    repairUrl = data['layers'][x]['protocol']['url']
+                if className == "OpenLayers.Layer.Vector" or className == "Vector":
+                    epsg = "EPSG:4326"
+                    minRes = data["layers"][x]["minResolution"]
+                    maxRes = data["layers"][x]["maxResolution"]
+                    layerNameTitle = data["layers"][x]["title"]
+                    repairUrl = data["layers"][x]["protocol"]["url"]
                     repairUrl = self.utils.convertUrlFromHex(repairUrl)
                     subgroupName = ""
-                    everyone = False               
-                 
-                    if "path" in  data['layers'][x]:
-                        groupName = data['layers'][x]['path']
+                    everyone = False
+
+                    if "path" in data["layers"][x]:
+                        groupName = data["layers"][x]["path"]
                     else:
                         groupName = ""
                     if groupName != "":
-                        groups.append([groupName, len(data['layers']) -i])
+                        groups.append([groupName, len(data["layers"]) - i])
                         groupsSet.add(groupName)
-                        groupPositions.append([groupName, layerNameTitle, len(data['layers']) -i])
+                        groupPositions.append(
+                            [groupName, layerNameTitle, len(data["layers"]) - i]
+                        )
                     else:
-                        groups.append([layerNameTitle, len(data['layers']) - i])
-                    try: ## nove rozdeleni
-                       
-                        if 'type' in data['layers'][x]['protocol']: ## old
-                            if (data['layers'][x]['protocol']['type'] == "hs.format.WFS" or data['layers'][x]['protocol']['type'] == "WFS" or data['layers'][x]['protocol']['type'] == "hs.format.externalWFS"):
-                                if 'workspace' in data:    
-                                    repairUrl = repairUrl.replace("hsl-layman", "") + data['workspace'] + "wfs"                                
-                                self.layman.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)                                
-                        if "format" in data['layers'][x]['protocol']:    
-                            if (data['layers'][x]['protocol']['format'] in ("hs.format.externalWFS", "externalWFS")):                                 
-                                self.layman.loadWfsExternal(data['layers'][x],epsg, groupName)
-                            if (data['layers'][x]['protocol']['format'] == "hs.format.WFS" or data['layers'][x]['protocol']['format'] == "WFS"):
-                                if 'workspace' in data['layers'][x]:                                    
-                                    repairUrl = repairUrl.replace("hsl-layman", "")                                
-                                self.layman.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)
-                   
-                    except:   
-                        self.layman.loadWfs(repairUrl, layerName,layerNameTitle, groupName, subgroupName, visibility,everyone, minRes, maxRes)                      
+                        groups.append([layerNameTitle, len(data["layers"]) - i])
+                    try:  ## nove rozdeleni
+                        if "type" in data["layers"][x]["protocol"]:  ## old
+                            if (
+                                data["layers"][x]["protocol"]["type"] == "hs.format.WFS"
+                                or data["layers"][x]["protocol"]["type"] == "WFS"
+                                or data["layers"][x]["protocol"]["type"]
+                                == "hs.format.externalWFS"
+                            ):
+                                if "workspace" in data:
+                                    repairUrl = (
+                                        repairUrl.replace("hsl-layman", "")
+                                        + data["workspace"]
+                                        + "wfs"
+                                    )
+                                self.layman.loadWfs(
+                                    repairUrl,
+                                    layerName,
+                                    layerNameTitle,
+                                    groupName,
+                                    subgroupName,
+                                    visibility,
+                                    everyone,
+                                    minRes,
+                                    maxRes,
+                                )
+                        if "format" in data["layers"][x]["protocol"]:
+                            if data["layers"][x]["protocol"]["format"] in (
+                                "hs.format.externalWFS",
+                                "externalWFS",
+                            ):
+                                self.layman.loadWfsExternal(
+                                    data["layers"][x], epsg, groupName
+                                )
+                            if (
+                                data["layers"][x]["protocol"]["format"]
+                                == "hs.format.WFS"
+                                or data["layers"][x]["protocol"]["format"] == "WFS"
+                            ):
+                                if "workspace" in data["layers"][x]:
+                                    repairUrl = repairUrl.replace("hsl-layman", "")
+                                self.layman.loadWfs(
+                                    repairUrl,
+                                    layerName,
+                                    layerNameTitle,
+                                    groupName,
+                                    subgroupName,
+                                    visibility,
+                                    everyone,
+                                    minRes,
+                                    maxRes,
+                                )
 
-                
+                    except:
+                        self.layman.loadWfs(
+                            repairUrl,
+                            layerName,
+                            layerNameTitle,
+                            groupName,
+                            subgroupName,
+                            visibility,
+                            everyone,
+                            minRes,
+                            maxRes,
+                        )
+
             else:
-                self.wrongLayers = True              
-            i = i + 1           
+                self.wrongLayers = True
+            i = i + 1
         self.layman.reorderGroups(groups, groupsSet, groupPositions)
-        self.layman.afterCompositionLoaded()         
-        self.progressDone.emit()       
+        self.layman.afterCompositionLoaded()
+        self.progressDone.emit()
+
     def getCompositionWorkspace(self, name):
-        url = self.URI+'/rest/maps'        
-        r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        url = url = self.layman_api.get_get_all_maps_url()
+        r = self.utils.requestWrapper("GET", url, payload=None, files=None)
         data = r.json()
         for row in range(0, len(data)):
-            if name == data[row]['name']:
-                return data[row]['workspace']        
-  
+            if name == data[row]["name"]:
+                return data[row]["workspace"]
+
     def checkPermissionButtons(self):
         name = self.utils.getUserName()
         try:
@@ -1129,100 +1503,155 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.pushButton_removeWrite.setEnabled(True)
         except:
             self.pushButton_removeWrite.setEnabled(False)
-            print("neni vybrana polozka")                    
-    def checkAddedItemDuplicity(self, type, usernameList):     
-        itemsTextListRead = [] 
+            print("neni vybrana polozka")
+
+    def checkAddedItemDuplicity(self, type, usernameList):
+        itemsTextListRead = []
         for i in range(self.listWidget_read.count()):
-            current_item = self.listWidget_read.item(i) 
-            hidden_item = current_item.data(Qt.UserRole) 
+            current_item = self.listWidget_read.item(i)
+            hidden_item = current_item.data(Qt.UserRole)
             if hidden_item is not None:
-                itemsTextListRead.append(hidden_item.text())    
-        itemsTextListWrite = [] 
+                itemsTextListRead.append(hidden_item.text())
+        itemsTextListWrite = []
         for i in range(self.listWidget_write.count()):
-            current_item = self.listWidget_write.item(i) 
-            hidden_item = current_item.data(Qt.UserRole) 
+            current_item = self.listWidget_write.item(i)
+            hidden_item = current_item.data(Qt.UserRole)
             if hidden_item is not None:
                 itemsTextListWrite.append(hidden_item.text())
-        allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]      
+        allItems = [
+            self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())
+        ]
         if self.comboBox_users.currentText() in allItems:
             if type == "read":
-              
-                if ((usernameList[self.comboBox_users.currentIndex()] not in itemsTextListRead)): 
-                    current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())                   
+                if (
+                    usernameList[self.comboBox_users.currentIndex()]
+                    not in itemsTextListRead
+                ):
+                    current_item = QtWidgets.QListWidgetItem(
+                        self.comboBox_users.currentText()
+                    )
                     self.listWidget_read.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)   
+                    self.setHiddenItem(current_item, hidden_text)
                     return True
                 else:
-                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])         
+                    self.utils.emitMessageBox.emit(
+                        [
+                            "Tento uživatel se již v seznamu vyskytuje!",
+                            "This user already exists in the list!",
+                        ]
+                    )
                     return False
-            else:          
-                print(itemsTextListWrite)    
+            else:
+                print(itemsTextListWrite)
                 print(usernameList[self.comboBox_users.currentIndex()])
-                if ((usernameList[self.comboBox_users.currentIndex()] not in itemsTextListWrite) and type == "write"):               
+                if (
+                    usernameList[self.comboBox_users.currentIndex()]
+                    not in itemsTextListWrite
+                ) and type == "write":
                     return True
-                else:                    
-                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])              
-                    return False                      
+                else:
+                    self.utils.emitMessageBox.emit(
+                        [
+                            "Tento uživatel se již v seznamu vyskytuje!",
+                            "This user already exists in the list!",
+                        ]
+                    )
+                    return False
+
     def removeWritePermissionList(self):
         self.deleteItem(self.listWidget_read.currentItem().text())
-        self.listWidget_read.removeItemWidget(self.listWidget_read.takeItem(self.listWidget_read.currentRow()))
+        self.listWidget_read.removeItemWidget(
+            self.listWidget_read.takeItem(self.listWidget_read.currentRow())
+        )
+
     def deleteItem(self, itemName):
         items_list = self.listWidget_write.findItems(itemName, Qt.MatchExactly)
         for item in items_list:
             r = self.listWidget_write.row(item)
-            self.listWidget_write.takeItem(r)                
-                       
-        
-    def setHiddenItem(self,item, hidden_text):     
+            self.listWidget_write.takeItem(r)
+
+    def setHiddenItem(self, item, hidden_text):
         hidden_item = QtWidgets.QListWidgetItem(hidden_text)
         hidden_item.setHidden(True)
-        item.setData(Qt.UserRole, hidden_item)                       
+        item.setData(Qt.UserRole, hidden_item)
+
     def afterPermissionDone(self, success, failed, info):
         if self.objectName() == "AddMapDialog":
-            self.progressBar.hide()             
+            self.progressBar.hide()
             if success:
-                self.utils.emitMessageBox.emit(["Práva byla úspěšně uložena.", "Permissions was saved successfully."])                    
+                self.utils.emitMessageBox.emit(
+                    [
+                        "Práva byla úspěšně uložena.",
+                        "Permissions was saved successfully.",
+                    ]
+                )
             else:
-                self.utils.emitMessageBox.emit(["Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""), "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]","")])                   
+                self.utils.emitMessageBox.emit(
+                    [
+                        "Práva nebyla uložena pro vrstvu: "
+                        + str(failed).replace("[", "").replace("]", ""),
+                        "Permissions was not saved for layer: "
+                        + str(failed).replace("[", "").replace("]", ""),
+                    ]
+                )
+
     def setWritePermissionList(self, usernameList):
-        allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]    
+        allItems = [
+            self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())
+        ]
         if self.comboBox_users.currentText() in allItems:
             if self.checkAddedItemDuplicity("write", usernameList):
-                itemsTextListRead = [] 
+                itemsTextListRead = []
                 for i in range(self.listWidget_read.count()):
-                    current_item = self.listWidget_read.item(i) 
-                    hidden_item = current_item.data(Qt.UserRole) 
+                    current_item = self.listWidget_read.item(i)
+                    hidden_item = current_item.data(Qt.UserRole)
                     if hidden_item is not None:
-                        itemsTextListRead.append(hidden_item.text())              
-                if (usernameList[self.comboBox_users.currentIndex()] in itemsTextListRead):
-                    current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())  
+                        itemsTextListRead.append(hidden_item.text())
+                if (
+                    usernameList[self.comboBox_users.currentIndex()]
+                    in itemsTextListRead
+                ):
+                    current_item = QtWidgets.QListWidgetItem(
+                        self.comboBox_users.currentText()
+                    )
                     self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)   
+                    self.setHiddenItem(current_item, hidden_text)
                     print("1")
-                else:  
-                    current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())
-                    self.listWidget_read.addItem(current_item)                    
+                else:
+                    current_item = QtWidgets.QListWidgetItem(
+                        self.comboBox_users.currentText()
+                    )
+                    self.listWidget_read.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)     
+                    self.setHiddenItem(current_item, hidden_text)
 
-                    current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())             
+                    current_item = QtWidgets.QListWidgetItem(
+                        self.comboBox_users.currentText()
+                    )
                     self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text) 
-                    print("2")    
+                    self.setHiddenItem(current_item, hidden_text)
+                    print("2")
+
     def _onReadCompositionFailed(self):
-        self.utils.showQgisBar(["Špatný formát kompozice.","Wrong format of composition"], Qgis.Warning)   
+        self.utils.showQgisBar(
+            ["Špatný formát kompozice.", "Wrong format of composition"], Qgis.Warning
+        )
         if self.objectName() == "AddMapDialog":
-            self.progressBar.hide()                    
+            self.progressBar.hide()
+
     def reject(self):
-        super().reject()   
-        global dialog_running 
-        dialog_running = False    
+        super().reject()
+        global dialog_running
+        dialog_running = False
         self.qfieldWorking = False
+
+
 from PyQt5.QtCore import QThread, pyqtSignal
 import threading
+
 
 class DownloadThread(QThread):
     progressDone = pyqtSignal()
@@ -1241,25 +1670,41 @@ class DownloadThread(QThread):
         self.laymanUsername = laymanUsername
 
     def run(self):
-        self.layman.qfieldWorking = True 
-        self.showMessageBar.emit([" Načítám Qfield projekt", " Loading qfield project"], Qgis.Success)
-        
+        self.layman.qfieldWorking = True
+        self.showMessageBar.emit(
+            [" Načítám Qfield projekt", " Loading qfield project"], Qgis.Success
+        )
+
         name = self.treeWidget.selectedItems()[0].text(0)
-        project_id = self.qfield.getProjectByName(self.utils.removeUnacceptableChars(name))
-        
+        project_id = self.qfield.getProjectByName(
+            self.utils.removeUnacceptableChars(name)
+        )
+
         path = self.qfield.downloadProject(project_id)
         if path == 401:
-            self.progressDone.emit() 
-            self.showMessageBar.emit([" Nemáte práva k synchronizaci tohoho projektu", " You do not have access right to sync this project"], Qgis.Warning)
+            self.progressDone.emit()
+            self.showMessageBar.emit(
+                [
+                    " Nemáte práva k synchronizaci tohoho projektu",
+                    " You do not have access right to sync this project",
+                ],
+                Qgis.Warning,
+            )
             return
-        
-        self.openQgisProject.emit(path)        
+
+        self.openQgisProject.emit(path)
         self.layman.current = name
-        self.layman.instance = CurrentComposition(self.URI, self.utils.removeUnacceptableChars(name), self.treeWidget.selectedItems()[0].text(1), self.utils.getAuthHeader(self.utils.authCfg), self.laymanUsername)
-        
-        if self.treeWidget.selectedItems()[0].text(2) == "own": 
-            self.laymanSync.emit()  
+        self.layman.instance = CurrentComposition(
+            self.URI,
+            self.utils.removeUnacceptableChars(name),
+            self.treeWidget.selectedItems()[0].text(1),
+            self.utils.getAuthHeader(self.utils.authCfg),
+            self.laymanUsername,
+        )
+
+        if self.treeWidget.selectedItems()[0].text(2) == "own":
+            self.laymanSync.emit()
             self.patchMap2.emit(True)
-        
-        self.progressDone.emit()          
-        self.layman.qfieldWorking = False        
+
+        self.progressDone.emit()
+        self.layman.qfieldWorking = False

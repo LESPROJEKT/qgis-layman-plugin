@@ -8,14 +8,13 @@
 
 """
 
-__author__ = 'vrobel.jan@seznam.cz'
-__date__ = '2019-02-15'
-__copyright__ = 'Copyright 2019, jan vrobel'
+__author__ = "vrobel.jan@seznam.cz"
+__date__ = "2019-02-15"
+__copyright__ = "Copyright 2019, jan vrobel"
 
 import unittest
 
 from PyQt5.QtGui import QIcon
-
 
 
 class AtlasDialogTest(unittest.TestCase):
@@ -31,14 +30,12 @@ class AtlasDialogTest(unittest.TestCase):
 
     def test_icon_png(self):
         """Test we can click OK."""
-        path = ':/plugins/Atlas/icon.png'
+        path = ":/plugins/Atlas/icon.png"
         icon = QIcon(path)
         self.assertFalse(icon.isNull())
+
 
 if __name__ == "__main__":
     suite = unittest.makeSuite(AtlasResourcesTest)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
-
-
-

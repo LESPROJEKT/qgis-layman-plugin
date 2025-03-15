@@ -24,7 +24,19 @@ import os
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRect
-from PyQt5.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup, QPushButton, QMessageBox, QWidget, QVBoxLayout, QLineEdit
+from PyQt5.QtWidgets import (
+    QTreeWidgetItem,
+    QTreeWidgetItemIterator,
+    QCheckBox,
+    QTableWidgetItem,
+    QTableWidget,
+    QButtonGroup,
+    QPushButton,
+    QMessageBox,
+    QWidget,
+    QVBoxLayout,
+    QLineEdit,
+)
 from PyQt5.QtGui import QPixmap, QIcon
 from qgis.core import *
 import threading
@@ -35,23 +47,23 @@ import tempfile
 import asyncio
 from .layman_utils import CenterIconDelegate
 from distutils.version import LooseVersion
+from .layman_api import LaymanAPI
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'dlg_addLayer.ui'))
+FORM_CLASS, _ = uic.loadUiType(
+    os.path.join(os.path.dirname(__file__), "dlg_addLayer.ui")
+)
 
 
 class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
-
     enableWfsButton = pyqtSignal(bool, QPushButton)
     getLayers = pyqtSignal(bool)
     postgisFound = pyqtSignal(bool)
     layerDeletedSuccessfully = pyqtSignal()
-    permissionInfo = pyqtSignal(bool,list, int)
+    permissionInfo = pyqtSignal(bool, list, int)
     progressDone = pyqtSignal()
-    
-    
+
     def __init__(self, utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(AddLayerDialog, self).__init__(parent)
@@ -64,10 +76,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setupUi(self)
         self.globalRead = {}
         self.globalWrite = {}
+        self.layman_api = LaymanAPI(URI)
         self.setUi()
-        
-
-
 
     def connectEvents(self):
         self.enableWfsButton.connect(self.onWfsButton)
@@ -77,22 +87,21 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layerDeletedSuccessfully.connect(self._onLayerDeletedSuccessfully)
         self.permissionInfo.connect(self.afterPermissionDone)
         self.progressDone.connect(self._onProgressDone)
-        
 
-
-    
-    def setPermissionsWidget(self, option):        
+    def setPermissionsWidget(self, option):
         self.page1.setVisible(option)
         self.page2.setVisible(not option)
-        self.page1.setFixedHeight(700) 
+        self.page1.setFixedHeight(700)
         if option == True:
             names = list()
-            for i in range (0, len(self.treeWidget.selectedItems())):
+            for i in range(0, len(self.treeWidget.selectedItems())):
                 names.append(self.treeWidget.selectedItems()[i].text(0))
             self.setPermissionsUI(names)
 
     def setUi(self):
-        self.pushButton_setPermissions.clicked.connect(lambda: self.setPermissionsWidget(True))
+        self.pushButton_setPermissions.clicked.connect(
+            lambda: self.setPermissionsWidget(True)
+        )
         self.pushButton_back.clicked.connect(lambda: self.setPermissionsWidget(False))
         self.permissionsConnected = False
         self.connectEvents()
@@ -105,11 +114,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_wfs.setEnabled(False)
         self.pushButton_delete.setEnabled(False)
         self.pushButton_setPermissions.setEnabled(False)
-        self.label_noUser.hide()        
-        self.pushButton_postgis.setEnabled(False)     
+        self.label_noUser.hide()
+        self.pushButton_postgis.setEnabled(False)
 
         delegate = CenterIconDelegate()
-        self.treeWidget.setItemDelegate(delegate)  
+        self.treeWidget.setItemDelegate(delegate)
         try:
             checked = self.utils.getConfigItem("layercheckbox")
         except:
@@ -121,45 +130,81 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.checkBox_own.setCheckState(2)
             checked = True
 
-        self.pushButton_delete.clicked.connect(lambda: self.callDeleteLayer(self.treeWidget.selectedItems(), self.layerNamesDict))
-        self.pushButton_layerRedirect.clicked.connect(lambda: self.layerInfoRedirect(self.treeWidget.selectedItems()[0].text(0)))
-        self.pushButton.clicked.connect(lambda: self.readLayerJson(self.treeWidget.selectedItems(), "WMS"))
-        self.pushButton_wfs.clicked.connect(lambda: self.readLayerJson(self.treeWidget.selectedItems(), "WFS"))
-        self.pushButton_postgis.clicked.connect(lambda: self.loadPostgisLayer(self.treeWidget.selectedItems()[0]))
-        self.pushButton_urlWms.clicked.connect(lambda: self.copyLayerUrl(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.selectedItems()[0].text(1),"wms"))
-        self.pushButton_urlWfs.clicked.connect(lambda: self.copyLayerUrl(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.selectedItems()[0].text(1),"wfs"))
+        self.pushButton_delete.clicked.connect(
+            lambda: self.callDeleteLayer(
+                self.treeWidget.selectedItems(), self.layerNamesDict
+            )
+        )
+        self.pushButton_layerRedirect.clicked.connect(
+            lambda: self.layerInfoRedirect(self.treeWidget.selectedItems()[0].text(0))
+        )
+        self.pushButton.clicked.connect(
+            lambda: self.readLayerJson(self.treeWidget.selectedItems(), "WMS")
+        )
+        self.pushButton_wfs.clicked.connect(
+            lambda: self.readLayerJson(self.treeWidget.selectedItems(), "WFS")
+        )
+        self.pushButton_postgis.clicked.connect(
+            lambda: self.loadPostgisLayer(self.treeWidget.selectedItems()[0])
+        )
+        self.pushButton_urlWms.clicked.connect(
+            lambda: self.copyLayerUrl(
+                self.treeWidget.selectedItems()[0].text(0),
+                self.treeWidget.selectedItems()[0].text(1),
+            )
+        )
+        self.pushButton_urlWfs.clicked.connect(
+            lambda: self.copyLayerUrl(
+                self.treeWidget.selectedItems()[0].text(0),
+                self.treeWidget.selectedItems()[0].text(1),
+            )
+        )
         if not self.isAuthorized:
             self.label_noUser.show()
             self.checkBox_own.setEnabled(False)
-        self.treeWidget.itemClicked.connect(lambda item, col: threading.Thread(target=lambda: self.enableButtons(item, col)).start())
+        self.treeWidget.itemClicked.connect(
+            lambda item, col: threading.Thread(
+                target=lambda: self.enableButtons(item, col)
+            ).start()
+        )
         self.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
         self.treeWidget.itemClicked.connect(self.setButtons)
-        self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.showThumbnail2(self.treeWidget.selectedItems()[0])).start())
-        self.treeWidget.itemClicked.connect(lambda: threading.Thread(target=lambda: self.checkIfPostgis(self.treeWidget.selectedItems()[0])).start())
+        self.treeWidget.itemClicked.connect(
+            lambda: threading.Thread(
+                target=lambda: self.showThumbnail2(self.treeWidget.selectedItems()[0])
+            ).start()
+        )
+        self.treeWidget.itemClicked.connect(
+            lambda: threading.Thread(
+                target=lambda: self.checkIfPostgis(self.treeWidget.selectedItems()[0])
+            ).start()
+        )
         self.filter.valueChanged.connect(self.filterResults)
         self.treeWidget.setColumnWidth(0, 250)
         self.treeWidget.setColumnWidth(1, 80)
         self.treeWidget.setColumnWidth(2, 80)
-        self.treeWidget.setColumnWidth(3, 100) 
-        self.treeWidget.setColumnWidth(4, 50) 
-    
+        self.treeWidget.setColumnWidth(3, 100)
+        self.treeWidget.setColumnWidth(4, 50)
+
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.checkBox_own.stateChanged.connect(self.rememberValueLayer)
-        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")       
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.progressBar_loader.show()
         asyncio.run(self.loadLayersThread(checked))
-        self.checkBox_own.stateChanged.connect(lambda state: asyncio.run(self.loadLayersThread(state)))  
-        self.checkBox_own.stateChanged.connect(lambda: self.filterResults(self.filter.text()))        
+        self.checkBox_own.stateChanged.connect(
+            lambda state: asyncio.run(self.loadLayersThread(state))
+        )
+        self.checkBox_own.stateChanged.connect(
+            lambda: self.filterResults(self.filter.text())
+        )
         if self.isAuthorized:
             self.checkBox_own.setEnabled(True)
         else:
             self.checkBox_own.setEnabled(False)
 
-        self.label_loading.show()       
+        self.label_loading.show()
         self.show()
         result = self.exec_()
-
-   
 
     def collectPermissionsAndSave(self, tab_widget, layerNames):
         self.failed = []
@@ -167,26 +212,36 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         write_access = []
 
         if self.radioButton_readPublic.isChecked():
-            read_access = ['EVERYONE']
+            read_access = ["EVERYONE"]
         else:
-            table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
+            table_widget = self.getWidgetByTabName(
+                tab_widget, self.tr("Permissions by user")
+            )
             if table_widget:
                 self.collectAccessFromTable(table_widget, read_access, "read")
-            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):    
-                role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                role_table_widget = self.getWidgetByTabName(
+                    tab_widget, self.tr("Permissions by role")
+                )
                 if role_table_widget:
                     self.collectAccessFromTable(role_table_widget, read_access, "read")
 
         if self.radioButton_writePublic.isChecked():
-            write_access = ['EVERYONE']
+            write_access = ["EVERYONE"]
         else:
-            table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by user"))
+            table_widget = self.getWidgetByTabName(
+                tab_widget, self.tr("Permissions by user")
+            )
             if table_widget:
                 self.collectAccessFromTable(table_widget, write_access, "write")
-            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):    
-                role_table_widget = self.getWidgetByTabName(tab_widget, self.tr("Permissions by role"))
+            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+                role_table_widget = self.getWidgetByTabName(
+                    tab_widget, self.tr("Permissions by role")
+                )
                 if role_table_widget:
-                    self.collectAccessFromTable(role_table_widget, write_access, "write")
+                    self.collectAccessFromTable(
+                        role_table_widget, write_access, "write"
+                    )
 
         if self.layman.laymanUsername not in write_access:
             write_access.append(self.layman.laymanUsername)
@@ -194,15 +249,17 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             read_access.append(self.layman.laymanUsername)
 
         data = {
-            'access_rights.read': self.utils.listToString(read_access),
-            'access_rights.write': self.utils.listToString(write_access)
+            "access_rights.read": self.utils.listToString(read_access),
+            "access_rights.write": self.utils.listToString(write_access),
         }
-     
+
         for layer in layerNames:
             layer = self.utils.removeUnacceptableChars(layer)
-            url = f"{self.URI}/rest/{self.layman.laymanUsername}/layers/{layer}"
-            response = requests.patch(url, data=data, headers=self.utils.getAuthHeader(self.utils.authCfg))
-            
+            url = self.layman_api.get_layer_url(self.layman.laymanUsername, layer)
+            response = requests.patch(
+                url, data=data, headers=self.utils.getAuthHeader(self.utils.authCfg)
+            )
+
             if response.status_code != 200:
                 self.failed.append(layer)
 
@@ -210,127 +267,154 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.permissionInfo.emit(True, self.failed, 0)
         else:
             self.permissionInfo.emit(False, self.failed, 0)
-            
+
     def getTableWidgetByTabName(self, tab_widget, tab_name):
-      
         for i in range(tab_widget.count()):
             if tab_widget.tabText(i) == tab_name:
                 return tab_widget.widget(i)
         return None
-                    
+
     def collectAccessFromTable(self, table_widget, access_list, type):
         for row in range(table_widget.rowCount()):
-            item = table_widget.item(row, 3)  
-            if item is not None:  
+            item = table_widget.item(row, 3)
+            if item is not None:
                 username = item.text()
                 if type == "read":
                     read_checkbox = table_widget.cellWidget(row, 1)
                     if read_checkbox.isChecked():
                         access_list.append(username)
 
-                if type == "write":                    
+                if type == "write":
                     write_checkbox = table_widget.cellWidget(row, 2)
                     if write_checkbox.isChecked():
-                        access_list.append(username)                       
-                                                 
+                        access_list.append(username)
+
     def getRoles(self):
-        uri = self.URI + "/rest/roles"
-        r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
+        url = self.layman_api.get_roles_url()
+        r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
         res = self.utils.fromByteToJson(r.content)
         return res
+
     def removeTabByTitle(self, tab_widget, title):
         index = 0
         while index < tab_widget.count():
             if tab_widget.tabText(index) == title:
                 tab_widget.removeTab(index)
             else:
-                index += 1  
-                    
-    def populatePermissionsWidget(self, tab_widget, user_dict, read_access, write_access):     
+                index += 1
+
+    def populatePermissionsWidget(
+        self, tab_widget, user_dict, read_access, write_access
+    ):
         self.removeTabByTitle(tab_widget, self.tr("Permissions by user"))
         if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
             self.removeTabByTitle(tab_widget, self.tr("Permissions by role"))
         if "EVERYONE" in user_dict:
             del user_dict["EVERYONE"]
-        self.setEveryonePermissionsRadiobuutons(True if "everyone" in [name.lower() for name in read_access] else False,True if "everyone" in [name.lower() for name in write_access] else False)        
+        self.setEveryonePermissionsRadiobuutons(
+            True if "everyone" in [name.lower() for name in read_access] else False,
+            True if "everyone" in [name.lower() for name in write_access] else False,
+        )
         user_widget = QTableWidget()
         user_widget.verticalHeader().setVisible(False)
         self.utils.setTableWidgetNotBorder(user_widget)
         self.globalRead.clear()
-        self.globalWrite.clear()       
-        for username in user_dict.keys():  
+        self.globalWrite.clear()
+        for username in user_dict.keys():
             self.globalRead[username] = username in read_access
             self.globalWrite[username] = username in write_access
-    ### add users
-       
-        num_columns = 4  
+        ### add users
+
+        num_columns = 4
         user_widget.setRowCount(len(user_dict))
-        user_widget.setColumnCount(num_columns)  
-        user_widget.setHorizontalHeaderLabels([self.tr('User'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
+        user_widget.setColumnCount(num_columns)
+        user_widget.setHorizontalHeaderLabels(
+            [self.tr("User"), self.tr("Read"), self.tr("Write"), self.tr("Nick")]
+        )
         everyone_read_checked = "everyone" in [name.lower() for name in read_access]
         everyone_write_checked = "everyone" in [name.lower() for name in write_access]
         for row, (username, full_name) in enumerate(user_dict.items()):
-            user_widget.setItem(row, 0, QTableWidgetItem(full_name + " ("+username+")"))            
+            user_widget.setItem(
+                row, 0, QTableWidgetItem(full_name + " (" + username + ")")
+            )
             read_checkbox = QCheckBox()
-            write_checkbox = QCheckBox() 
-            write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
-            read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")                 
-            write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(True) if state else rc.isChecked())
-            read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)               
+            write_checkbox = QCheckBox()
+            write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
+            read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
+            write_checkbox.stateChanged.connect(
+                lambda state, rc=read_checkbox: (
+                    rc.setChecked(True) if state else rc.isChecked()
+                )
+            )
+            read_checkbox.stateChanged.connect(
+                lambda state, wc=write_checkbox: (
+                    wc.setChecked(False) if state == 0 else None
+                )
+            )
             if username == self.layman.laymanUsername:
                 read_checkbox.setDisabled(True)
                 write_checkbox.setDisabled(True)
             user_widget.setCellWidget(row, 1, read_checkbox)
-            user_widget.setCellWidget(row, 2, write_checkbox)            
+            user_widget.setCellWidget(row, 2, write_checkbox)
             if username in write_access:
                 write_checkbox.setChecked(True)
                 read_checkbox.setChecked(True)
             else:
                 read_checkbox.setChecked(username in read_access)
-            if everyone_read_checked:                  
-                read_checkbox.setChecked(True)    
-                read_checkbox.setEnabled(False)  
-            if everyone_write_checked:                  
-                write_checkbox.setChecked(True) 
-                write_checkbox.setEnabled(False)                             
+            if everyone_read_checked:
+                read_checkbox.setChecked(True)
+                read_checkbox.setEnabled(False)
+            if everyone_write_checked:
+                write_checkbox.setChecked(True)
+                write_checkbox.setEnabled(False)
             user_widget.setItem(row, 3, QTableWidgetItem(username))
             user_widget.setColumnHidden(3, True)
             user_widget.resizeColumnToContents(0)
         self.userFilterLineEdit = QLineEdit()
         self.userFilterLineEdit.setPlaceholderText(self.tr("Filter users..."))
-        self.userFilterLineEdit.textChanged.connect(self.filterRecords)     
+        self.userFilterLineEdit.textChanged.connect(self.filterRecords)
         userTab = QWidget()
         userLayout = QVBoxLayout()
-        userLayout.addWidget(self.userFilterLineEdit)  
-        userLayout.addWidget(user_widget)  
-        userTab.setLayout(userLayout)    
+        userLayout.addWidget(self.userFilterLineEdit)
+        userLayout.addWidget(user_widget)
+        userTab.setLayout(userLayout)
         tab_widget.addTab(userTab, self.tr("Permissions by user"))
         if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
-        ### add roles
-            num_columns = 4  
+            ### add roles
+            num_columns = 4
             role_widget = QTableWidget()
             role_widget.verticalHeader().setVisible(False)
             self.utils.setTableWidgetNotBorder(role_widget)
             role_widget.setRowCount(len(user_dict))
-            role_widget.setColumnCount(num_columns)  
-            role_widget.setHorizontalHeaderLabels([self.tr('Role'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
+            role_widget.setColumnCount(num_columns)
+            role_widget.setHorizontalHeaderLabels(
+                [self.tr("Role"), self.tr("Read"), self.tr("Write"), self.tr("Nick")]
+            )
             roles = self.getRoles()
             self.roles = roles
             row = 0
-            for rolename in (roles):    
+            for rolename in roles:
                 if rolename == "EVERYONE":
                     continue
                 self.globalRead[rolename] = rolename in read_access
                 self.globalWrite[rolename] = rolename in write_access
-                role_widget.setItem(row, 0, QTableWidgetItem(rolename))   
+                role_widget.setItem(row, 0, QTableWidgetItem(rolename))
                 read_checkbox = QCheckBox()
-                write_checkbox = QCheckBox()  
-                write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
-                read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")   
-                write_checkbox.stateChanged.connect(lambda state, rc=read_checkbox: rc.setChecked(True) if state else None)
-                read_checkbox.stateChanged.connect(lambda state, wc=write_checkbox: wc.setChecked(False) if state == 0 else None)
+                write_checkbox = QCheckBox()
+                write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
+                read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
+                write_checkbox.stateChanged.connect(
+                    lambda state, rc=read_checkbox: (
+                        rc.setChecked(True) if state else None
+                    )
+                )
+                read_checkbox.stateChanged.connect(
+                    lambda state, wc=write_checkbox: (
+                        wc.setChecked(False) if state == 0 else None
+                    )
+                )
                 role_widget.setCellWidget(row, 1, read_checkbox)
-                role_widget.setCellWidget(row, 2, write_checkbox) 
+                role_widget.setCellWidget(row, 2, write_checkbox)
                 if rolename in write_access:
                     write_checkbox.setChecked(True)
                     read_checkbox.setChecked(True)
@@ -338,14 +422,14 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:
                     if rolename in read_access:
                         self.globalRead[rolename] = True
-                    read_checkbox.setChecked(rolename in read_access)      
-                if everyone_read_checked:                  
-                    read_checkbox.setChecked(True)   
-                    read_checkbox.setEnabled(False)  
-                if everyone_write_checked:                  
-                    write_checkbox.setChecked(True)    
-                    write_checkbox.setEnabled(False)                        
-                role_widget.setItem(row, 3, QTableWidgetItem(rolename))         
+                    read_checkbox.setChecked(rolename in read_access)
+                if everyone_read_checked:
+                    read_checkbox.setChecked(True)
+                    read_checkbox.setEnabled(False)
+                if everyone_write_checked:
+                    write_checkbox.setChecked(True)
+                    write_checkbox.setEnabled(False)
+                role_widget.setItem(row, 3, QTableWidgetItem(rolename))
                 role_widget.setColumnHidden(3, True)
                 role_widget.resizeColumnToContents(0)
                 row = row + 1
@@ -353,53 +437,61 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             roleLayout = QVBoxLayout()
             self.roleFilterLineEdit = QLineEdit()
             self.roleFilterLineEdit.setPlaceholderText(self.tr("Filter roles..."))
-            self.roleFilterLineEdit.textChanged.connect(self.filterRecords)  
-            roleLayout.addWidget(self.roleFilterLineEdit)  
-            roleLayout.addWidget(role_widget)  
-            roleTab.setLayout(roleLayout)      
-            tab_widget.addTab(roleTab, self.tr("Permissions by role"))   
+            self.roleFilterLineEdit.textChanged.connect(self.filterRecords)
+            roleLayout.addWidget(self.roleFilterLineEdit)
+            roleLayout.addWidget(role_widget)
+            roleTab.setLayout(roleLayout)
+            tab_widget.addTab(roleTab, self.tr("Permissions by role"))
+
     def onRadioButtonWritePrivateToggled(self, checked):
         if checked:
             self.radioButton_readPublic.setChecked(True)
-    def setEveryonePermissionsRadiobuutons(self, public_read, public_write):            
-        self.radioButton_readPublic.setChecked(public_read)
-        self.radioButton_readPrivate.setChecked(not public_read)        
-        self.radioButton_writePublic.setChecked(public_write)
-        self.radioButton_writePrivate.setChecked(not public_write)  
-           
 
-  
+    def setEveryonePermissionsRadiobuutons(self, public_read, public_write):
+        self.radioButton_readPublic.setChecked(public_read)
+        self.radioButton_readPrivate.setChecked(not public_read)
+        self.radioButton_writePublic.setChecked(public_write)
+        self.radioButton_writePrivate.setChecked(not public_write)
+
     def getUserWidget(self):
-        user_tab_index = 0 
-        user_tab = self.tabWidget.widget(user_tab_index)  
-        if user_tab is not None and hasattr(user_tab, 'layout') and user_tab.layout() is not None:          
+        user_tab_index = 0
+        user_tab = self.tabWidget.widget(user_tab_index)
+        if (
+            user_tab is not None
+            and hasattr(user_tab, "layout")
+            and user_tab.layout() is not None
+        ):
             for i in range(user_tab.layout().count()):
-                widget = user_tab.layout().itemAt(i).widget()              
+                widget = user_tab.layout().itemAt(i).widget()
                 if isinstance(widget, QTableWidget):
                     return widget
         return None
+
     def getRoleWidget(self):
-        user_tab_index = 1  
-        user_tab = self.tabWidget.widget(user_tab_index)  
-        if user_tab is not None and hasattr(user_tab, 'layout') and user_tab.layout() is not None:          
+        user_tab_index = 1
+        user_tab = self.tabWidget.widget(user_tab_index)
+        if (
+            user_tab is not None
+            and hasattr(user_tab, "layout")
+            and user_tab.layout() is not None
+        ):
             for i in range(user_tab.layout().count()):
-                widget = user_tab.layout().itemAt(i).widget()       
+                widget = user_tab.layout().itemAt(i).widget()
                 if isinstance(widget, QTableWidget):
                     return widget
         return None
-   
+
     def getWidgetByTabName(self, tab_widget, tab_name):
         for i in range(tab_widget.count()):
-            if tab_widget.tabText(i) == tab_name:               
-                container_widget = tab_widget.widget(i)               
-                if container_widget.layout() and container_widget.layout().count() > 0:             
-                    for j in range(container_widget.layout().count()):                  
-                        widget = container_widget.layout().itemAt(j).widget()                     
-                        if isinstance(widget, QTableWidget):                           
+            if tab_widget.tabText(i) == tab_name:
+                container_widget = tab_widget.widget(i)
+                if container_widget.layout() and container_widget.layout().count() > 0:
+                    for j in range(container_widget.layout().count()):
+                        widget = container_widget.layout().itemAt(j).widget()
+                        if isinstance(widget, QTableWidget):
                             return widget
         return None
 
-                             
     def filterRecords(self):
         user_filter_text = self.userFilterLineEdit.text().lower()
         if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
@@ -408,116 +500,126 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         user_widget = self.getUserWidget()
         if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
             role_widget = self.getRoleWidget()
-       
+
         if isinstance(user_widget, QTableWidget):
             for row in range(user_widget.rowCount()):
                 item = user_widget.item(row, 0)
                 if item:
-                    user_widget.setRowHidden(row, user_filter_text not in item.text().lower())
+                    user_widget.setRowHidden(
+                        row, user_filter_text not in item.text().lower()
+                    )
         if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
             if isinstance(role_widget, QTableWidget):
                 for row in range(role_widget.rowCount()):
                     item = role_widget.item(row, 0)
                     if item:
-                        role_widget.setRowHidden(row, role_filter_text not in item.text().lower())
-     
+                        role_widget.setRowHidden(
+                            row, role_filter_text not in item.text().lower()
+                        )
 
     def updatePermissions(self, permissionType, isPublic):
-        user_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by user"))
+        user_widget = self.getWidgetByTabName(
+            self.tabWidget, self.tr("Permissions by user")
+        )
         if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
-            role_widget = self.getWidgetByTabName(self.tabWidget, self.tr("Permissions by role"))       
-        if permissionType == 'read':
-            if isPublic:               
-                self.updateWidgetPermissions(user_widget, 'read', True)
+            role_widget = self.getWidgetByTabName(
+                self.tabWidget, self.tr("Permissions by role")
+            )
+        if permissionType == "read":
+            if isPublic:
+                self.updateWidgetPermissions(user_widget, "read", True)
                 if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
-                    self.updateWidgetPermissions(role_widget, 'read', True)
-            else:     
-                self.globalUpdateFromPermissions(user_widget, 'read', self.globalRead)
+                    self.updateWidgetPermissions(role_widget, "read", True)
+            else:
+                self.globalUpdateFromPermissions(user_widget, "read", self.globalRead)
                 if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
-                    self.globalUpdateFromPermissions(role_widget, 'read', self.globalRead)          
+                    self.globalUpdateFromPermissions(
+                        role_widget, "read", self.globalRead
+                    )
                 if self.radioButton_writePublic.isChecked():
                     self.radioButton_writePrivate.setChecked(True)
 
-        elif permissionType == 'write':        
-            if isPublic:              
+        elif permissionType == "write":
+            if isPublic:
                 self.radioButton_readPublic.setChecked(True)
-                self.updateWidgetPermissions(user_widget, 'write', True)
+                self.updateWidgetPermissions(user_widget, "write", True)
                 if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
-                    self.updateWidgetPermissions(role_widget, 'write', True)               
-            else:              
-                self.globalUpdateFromPermissions(user_widget, 'write', self.globalWrite)
+                    self.updateWidgetPermissions(role_widget, "write", True)
+            else:
+                self.globalUpdateFromPermissions(user_widget, "write", self.globalWrite)
                 if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
-                    self.globalUpdateFromPermissions(role_widget, 'write', self.globalWrite)
+                    self.globalUpdateFromPermissions(
+                        role_widget, "write", self.globalWrite
+                    )
 
-     
-        if self.radioButton_writePrivate.isChecked() and self.radioButton_readPublic.isChecked():
-            self.updateWidgetPermissions(user_widget, 'read', True)
+        if (
+            self.radioButton_writePrivate.isChecked()
+            and self.radioButton_readPublic.isChecked()
+        ):
+            self.updateWidgetPermissions(user_widget, "read", True)
             if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
-                self.updateWidgetPermissions(role_widget, 'read', True)             
-                         
+                self.updateWidgetPermissions(role_widget, "read", True)
+
     def alignCheckboxesInTable(self, table_widget, count):
         for row in range(count):
-            for col in [1, 2]:       
+            for col in [1, 2]:
                 checkbox = QCheckBox()
-                checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")  
+                checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
                 checkbox_item = QTableWidgetItem()
-                checkbox_item.setFlags(Qt.ItemIsEnabled)  
-                checkbox_item.setTextAlignment(Qt.AlignCenter) 
+                checkbox_item.setFlags(Qt.ItemIsEnabled)
+                checkbox_item.setTextAlignment(Qt.AlignCenter)
                 table_widget.setCellWidget(row, col, checkbox)
                 table_widget.setItem(row, col, checkbox_item)
+
     def updateWidgetPermissions(self, widget, permissionType, isPublic):
         if widget is None:
             return
         rowCount = widget.rowCount()
         for row in range(rowCount):
-            read_checkbox = widget.cellWidget(row, 1)  
-            write_checkbox = widget.cellWidget(row, 2)  
-            if permissionType == 'write' and isPublic:
-                if write_checkbox is not None:                   
-                    write_checkbox.setChecked(True) 
+            read_checkbox = widget.cellWidget(row, 1)
+            write_checkbox = widget.cellWidget(row, 2)
+            if permissionType == "write" and isPublic:
+                if write_checkbox is not None:
+                    write_checkbox.setChecked(True)
                     write_checkbox.setEnabled(False)
-                if read_checkbox is not None:
-                    read_checkbox.setChecked(True)  
-                    read_checkbox.setEnabled(False)
-
-         
-            elif permissionType == 'read' and isPublic:
                 if read_checkbox is not None:
                     read_checkbox.setChecked(True)
                     read_checkbox.setEnabled(False)
 
-        
-            else:
-                if permissionType == 'write' and write_checkbox is not None:
-                    write_checkbox.setChecked(False)  
-                if permissionType == 'read' and read_checkbox is not None:
-                    read_checkbox.setChecked(False)       
+            elif permissionType == "read" and isPublic:
+                if read_checkbox is not None:
+                    read_checkbox.setChecked(True)
+                    read_checkbox.setEnabled(False)
 
-    def globalUpdateFromPermissions(self, widget, permissionType, permissionsDict):  
-        print(widget)      
+            else:
+                if permissionType == "write" and write_checkbox is not None:
+                    write_checkbox.setChecked(False)
+                if permissionType == "read" and read_checkbox is not None:
+                    read_checkbox.setChecked(False)
+
+    def globalUpdateFromPermissions(self, widget, permissionType, permissionsDict):
+        print(widget)
         if widget is None:
             return
-        rowCount = widget.rowCount()  
-        for row in range(rowCount):   
+        rowCount = widget.rowCount()
+        for row in range(rowCount):
             try:
-                user_or_role = widget.item(row, 3).text() 
+                user_or_role = widget.item(row, 3).text()
             except:
-                return          
-            checkbox = widget.cellWidget(row, 1 if permissionType == 'read' else 2)       
-            if checkbox is not None and user_or_role in permissionsDict:          
+                return
+            checkbox = widget.cellWidget(row, 1 if permissionType == "read" else 2)
+            if checkbox is not None and user_or_role in permissionsDict:
                 if user_or_role == self.layman.laymanUsername:
                     checkbox.setChecked(True)
                     checkbox.setEnabled(False)
-                else:     
+                else:
                     checkbox.setChecked(permissionsDict[user_or_role])
-                    checkbox.setEnabled(True) 
-            elif checkbox is not None and user_or_role in self.roles:                    
+                    checkbox.setEnabled(True)
+            elif checkbox is not None and user_or_role in self.roles:
                 checkbox.setChecked(False)
                 checkbox.setEnabled(True)
 
-    
-                               
-    def setPermissionsUI(self, layerName):         
+    def setPermissionsUI(self, layerName):
         group1 = QButtonGroup(self)
         group2 = QButtonGroup(self)
         group1.addButton(self.radioButton_readPublic)
@@ -525,121 +627,201 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         group2.addButton(self.radioButton_writePrivate)
         group2.addButton(self.radioButton_writePublic)
         self.info = 0
-        self.pushButton_close.clicked.connect(lambda: self.close())   
-        uri = self.URI + "/rest/users"
+        self.pushButton_close.clicked.connect(lambda: self.close())
+        uri = self.layman_api.get_users_url()
         usersDict = dict()
         if self.layman.locale == "cs":
-            usersDict['EVERYONE'] = 'VŠICHNI'
+            usersDict["EVERYONE"] = "VŠICHNI"
         else:
-            usersDict['EVERYONE'] = 'EVERYONE'
+            usersDict["EVERYONE"] = "EVERYONE"
         usersDictReversed = dict()
         usernameList = list()
-        usernameList.append('EVERYONE')
+        usernameList.append("EVERYONE")
         if self.layman.locale == "cs":
-            usersDictReversed['EVERYONE'] = 'VŠICHNI'         
+            usersDictReversed["EVERYONE"] = "VŠICHNI"
         else:
-            usersDictReversed['EVERYONE'] = 'EVERYONE'  
-        r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
-        res = self.utils.fromByteToJson(r.content)        
-        userCount = len(res)   
-        for i in range (0, userCount):
-            usersDict[res[i]['name'] if res[i]['name'] !="" else res[i]['username']] = res[i]['username']
-            usersDictReversed[res[i]['username']] = res[i]['name'] if res[i]['name'] !="" else res[i]['username']
-            if (res[i]['name'] != self.laymanUsername):     
-                usernameList.append(res[i]['username'])        
-        if (len(layerName) == 1):
+            usersDictReversed["EVERYONE"] = "EVERYONE"
+        r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
+        res = self.utils.fromByteToJson(r.content)
+        userCount = len(res)
+        for i in range(0, userCount):
+            usersDict[
+                res[i]["name"] if res[i]["name"] != "" else res[i]["username"]
+            ] = res[i]["username"]
+            usersDictReversed[res[i]["username"]] = (
+                res[i]["name"] if res[i]["name"] != "" else res[i]["username"]
+            )
+            if res[i]["name"] != self.laymanUsername:
+                usernameList.append(res[i]["username"])
+        if len(layerName) == 1:
             layerName[0] = self.layerNamesDict[layerName[0]]
-            uri = self.URI + "/rest/"+self.laymanUsername+"/layers/"+layerName[0]
-            r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
-            res = self.utils.fromByteToJson(r.content)           
-            self.populatePermissionsWidget(self.tabWidget, usersDictReversed, res['access_rights']['read'], res['access_rights']['write'])   
+            uri = self.layman_api.get_layer_url(self.laymanUsername, layerName[0])
+            r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
+            res = self.utils.fromByteToJson(r.content)
+            self.populatePermissionsWidget(
+                self.tabWidget,
+                usersDictReversed,
+                res["access_rights"]["read"],
+                res["access_rights"]["write"],
+            )
         else:
-            name = self.utils.getUserFullName()                 
-            self.populatePermissionsWidget(self.tabWidget, usersDictReversed, [self.layman.laymanUsername], [self.layman.laymanUsername]) 
-        self.radioButton_readPublic.toggled.connect(lambda: self.updatePermissions('read', self.radioButton_readPublic.isChecked()))
-        self.radioButton_writePublic.toggled.connect(lambda: self.updatePermissions('write', self.radioButton_writePublic.isChecked()))  
-                     
-        if not self.permissionsConnected:    
-            self.pushButton_save.clicked.connect(lambda:  self.progressBar_loader.show())      
-            self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.collectPermissionsAndSave, args=(self.tabWidget, layerName)).start())
-            self.permissionsConnected = True        
+            name = self.utils.getUserFullName()
+            self.populatePermissionsWidget(
+                self.tabWidget,
+                usersDictReversed,
+                [self.layman.laymanUsername],
+                [self.layman.laymanUsername],
+            )
+        self.radioButton_readPublic.toggled.connect(
+            lambda: self.updatePermissions(
+                "read", self.radioButton_readPublic.isChecked()
+            )
+        )
+        self.radioButton_writePublic.toggled.connect(
+            lambda: self.updatePermissions(
+                "write", self.radioButton_writePublic.isChecked()
+            )
+        )
+
+        if not self.permissionsConnected:
+            self.pushButton_save.clicked.connect(lambda: self.progressBar_loader.show())
+            self.pushButton_save.clicked.connect(
+                lambda: threading.Thread(
+                    target=self.collectPermissionsAndSave,
+                    args=(self.tabWidget, layerName),
+                ).start()
+            )
+            self.permissionsConnected = True
+
+    def check_if_used_in_maps(self, layers):
+        if isinstance(layers, str):
+            layers = [layers]
+        used_layers = {}
+        if len(layers) == 1:
+            url = self.layman_api.get_layer_url(self.laymanUsername, layers[0])
+            response = self.utils.requestWrapper("GET", url, payload=None, files=None)
+            data = [response.json()]
+        else:
+            url = self.layman_api.get_layers_url(self.laymanUsername)
+            response = self.utils.requestWrapper("GET", url, payload=None, files=None)
+            data = response.json()
+        for layer_data in data:
+            layer_name = layer_data["name"]
+            if layer_name not in layers:
+                continue
+            used_in_maps = layer_data.get("used_in_maps", [])
+            if used_in_maps:
+                used_layers[layer_name] = [m["name"] for m in used_in_maps]
+        return used_layers
 
     def callDeleteLayer(self, layers, layerNames):
         items = list()
-        for i in range (0, len(layers)):
+        for i in range(0, len(layers)):
             items.append(layers[i].text(0))
+        used_layers = self.check_if_used_in_maps(items)
+        if used_layers:
+            warning_message = self.tr(
+                "Some layers are still used in maps and cannot be deleted:\n\n"
+            )
+            for layer, maps in used_layers.items():
+                warning_message += f"{layer}: {', '.join(maps)}\n"
+            msgbox = QMessageBox(
+                QMessageBox.Warning, self.tr("Layer in use"), warning_message
+            )
+            msgbox.addButton(QMessageBox.Ok)
+            msgbox.exec()
+            return
         question = True
-        if len(items) > 1:          
-            msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete layer"), self.tr("Do you want delete selected layers?"))
+        if len(items) > 1:
+            msgbox = QMessageBox(
+                QMessageBox.Question,
+                self.tr("Delete layer"),
+                self.tr("Do you want delete selected layers?"),
+            )
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
             reply = msgbox.exec()
-            if (reply == QMessageBox.Yes):
+            if reply == QMessageBox.Yes:
                 question = False
-        for j in range (0, len(items)):
+        for j in range(0, len(items)):
             self.layerDelete(items[j], layerNames, question)
-    def layerDelete(self, name,layerNames, question = True):
+
+    def layerDelete(self, name, layerNames, question=True):
         title = name
         name = layerNames[title]
-        if question:            
-            msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete layer"), self.tr("Do you want delete layer ")+str(name)+"?")
+        if question:
+            msgbox = QMessageBox(
+                QMessageBox.Question,
+                self.tr("Delete layer"),
+                self.tr("Do you want delete layer ") + str(name) + "?",
+            )
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
             reply = msgbox.exec()
         else:
             reply = QMessageBox.Yes
-        if (reply == QMessageBox.Yes):     
+        if reply == QMessageBox.Yes:
             name = self.utils.removeUnacceptableChars(name).lower()
             self.progressBar_loader.show()
-            threading.Thread(target=lambda: self.layerDeleteThread(name)).start()          
-
+            threading.Thread(target=lambda: self.layerDeleteThread(name)).start()
 
     def layerInfoRedirect(self, name):
-        url = self.URI+'/rest/'+self.laymanUsername+"/layers/" + name
-        response = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        url = self.layman_api.get_layer_url(self.laymanUsername, name)
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None)
         r = self.utils.fromByteToJson(response.content)
         try:
-            url = r['metadata']['record_url']
-            webbrowser.open(url, new=2) ## redirect na micku pro více info
+            url = r["metadata"]["record_url"]
+            webbrowser.open(url, new=2)  ## redirect na micku pro více info
         except:
-            self.utils.emitMessageBox.emit(["Odkaz není k dispozici.", "Link is unavailable."])
+            self.utils.emitMessageBox.emit(
+                ["Odkaz není k dispozici.", "Link is unavailable."]
+            )
 
-
-    def copyLayerUrl(self, name, workspace, service):
-        url = self.URI+'/rest/'+workspace+'/layers/'+self.utils.removeUnacceptableChars(name)
-        response = self.utils.requestWrapper("GET", url, payload = None, files = None)
+    def copyLayerUrl(self, name, workspace):
+        url = self.layman_api.get_layer_url(
+            workspace, self.utils.removeUnacceptableChars(name)
+        )
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None)
         res = self.utils.fromByteToJson(response.content)
         if res == None:
             return
         try:
             self.utils.copyToClipboard(url)
-            self.utils.showMessageBar([" URL uloženo do schránky."," URL saved to clipboard."],Qgis.Success)
+            self.utils.showMessageBar(
+                [" URL uloženo do schránky.", " URL saved to clipboard."], Qgis.Success
+            )
         except:
-            self.utils.showMessageBar([" URL nebylo uloženo do schránky."," URL was not saved to clipboard."],Qgis.Warning)
+            self.utils.showMessageBar(
+                [
+                    " URL nebylo uloženo do schránky.",
+                    " URL was not saved to clipboard.",
+                ],
+                Qgis.Warning,
+            )
 
     def showThumbnail2(self, it):
-        layer = it.text(0) 
+        layer = it.text(0)
         workspace = it.text(1)
         if self.checkBox_thumbnail.checkState() == 0:
-
             layer = self.layerNamesDict[layer]
-            url = self.URI+'/rest/' +workspace+'/layers/'+layer+'/thumbnail'
-
-            r = requests.get(url, headers = self.utils.getAuthHeader(self.utils.authCfg))
+            url = self.layman_api.get_layer_thumbnail_url(workspace, layer)
+            r = requests.get(url, headers=self.utils.getAuthHeader(self.utils.authCfg))
             data = r.content
             pixmap = QPixmap(200, 200)
             pixmap.loadFromData(data)
-            smaller_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.FastTransformation)
+            smaller_pixmap = pixmap.scaled(
+                200, 200, Qt.KeepAspectRatio, Qt.FastTransformation
+            )
             self.label_thumbnail.setPixmap(smaller_pixmap)
             self.label_thumbnail.setAlignment(Qt.AlignCenter)
 
     def checkIfPostgis(self, it):
         layer = self.utils.removeUnacceptableChars(it.text(0))
         workspace = it.text(1)
-        url = self.URI+'/rest/'+workspace+'/layers/'+str(layer).lower()      
-        r = requests.get(url, headers = self.utils.getAuthHeader(self.utils.authCfg))
+        url = self.layman_api.get_layer_url(workspace, str(layer).lower())
+        r = requests.get(url, headers=self.utils.getAuthHeader(self.utils.authCfg))
         if "db" in r.json():
             if "external_uri" in r.json()["db"]:
                 self.postgisFound.emit(True)
@@ -647,8 +829,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.postgisFound.emit(False)
         else:
             self.postgisFound.emit(False)
-    def filterResults(self, value):
 
+    def filterResults(self, value):
         iterator = QTreeWidgetItemIterator(self.treeWidget, QTreeWidgetItemIterator.All)
         while iterator.value():
             item = iterator.value()
@@ -656,109 +838,184 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 item.setHidden(True)
             else:
                 item.setHidden(False)
-            iterator +=1
+            iterator += 1
 
-    def rememberValueLayer(self, value):    
+    def rememberValueLayer(self, value):
         if value == 2:
             self.utils.appendIniItem("layerCheckbox", "1")
         if value == 0:
             self.utils.appendIniItem("layerCheckbox", "0")
-    def getStatusIcon(self, status):        
+
+    def getStatusIcon(self, status):
         icon_paths = {
-            'AVAILABLE': 'correct.png',
-            'PENDING': 'pending.png',
-            'FAILED': 'failed.png'
-        }      
-        icon_filename = icon_paths.get(status, 'failed.png')      
-        icon_path = os.path.join(self.layman.plugin_dir, 'icons', icon_filename) 
+            "AVAILABLE": "correct.png",
+            "PENDING": "pending.png",
+            "FAILED": "failed.png",
+        }
+        icon_filename = icon_paths.get(status, "failed.png")
+        icon_path = os.path.join(self.layman.plugin_dir, "icons", icon_filename)
         return QIcon(icon_path)
-    
+
     async def loadLayersThread(self, onlyOwn=False):
         self.layerNamesDict = dict()
-        self.treeWidget.clear()   
+        self.treeWidget.clear()
         if self.laymanUsername and self.isAuthorized:
-            url = self.URI+'/rest/'+self.laymanUsername+'/layers'        
-            r = await (self.utils.asyncRequestWrapper("GET", url))
-            data = self.utils.fromByteToJson(r) 
+            url = self.layman_api.get_layers_url(self.laymanUsername)
+            r = await self.utils.asyncRequestWrapper("GET", url)
+            data = self.utils.fromByteToJson(r)
             if onlyOwn:
                 for row in range(0, len(data)):
-                    if "native_crs" in data[row] and 'wfs_wms_status' in data[row]:   
-                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
-                        status = data[row]['wfs_wms_status']
-                        icon = self.getStatusIcon(status)                        
-                        item.setIcon(4, icon)                         
-                    elif "native_crs" in data[row]:                        
-                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own",data[row]['native_crs']])
+                    if "native_crs" in data[row] and "wfs_wms_status" in data[row]:
+                        item = QTreeWidgetItem(
+                            [
+                                data[row]["title"],
+                                data[row]["workspace"],
+                                "own",
+                                data[row]["native_crs"],
+                            ]
+                        )
+                        status = data[row]["wfs_wms_status"]
+                        icon = self.getStatusIcon(status)
+                        item.setIcon(4, icon)
+                    elif "native_crs" in data[row]:
+                        item = QTreeWidgetItem(
+                            [
+                                data[row]["title"],
+                                data[row]["workspace"],
+                                "own",
+                                data[row]["native_crs"],
+                            ]
+                        )
                     else:
-                        item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],"own"])
+                        item = QTreeWidgetItem(
+                            [data[row]["title"], data[row]["workspace"], "own"]
+                        )
                     self.treeWidget.addTopLevelItem(item)
-                    self.layerNamesDict[data[row]['title']] = data[row]['name']
+                    self.layerNamesDict[data[row]["title"]] = data[row]["name"]
                 QgsMessageLog.logMessage("layersLoaded")
             else:
-                url = self.URI+'/rest/layers'              
-                r = await (self.utils.asyncRequestWrapper("GET", url))
+                url = self.layman_api.get_get_all_layers_url()
+                r = await self.utils.asyncRequestWrapper("GET", url)
                 dataAll = self.utils.fromByteToJson(r)
                 permissions = ""
                 for row in range(0, len(dataAll)):
-                    if self.laymanUsername in dataAll[row]['access_rights']['read'] or "EVERYONE" in dataAll[row]['access_rights']['read']:
+                    if (
+                        self.laymanUsername in dataAll[row]["access_rights"]["read"]
+                        or "EVERYONE" in dataAll[row]["access_rights"]["read"]
+                    ):
                         permissions = "read"
-                    if self.laymanUsername in dataAll[row]['access_rights']['write'] or "EVERYONE" in dataAll[row]['access_rights']['write']:
+                    if (
+                        self.laymanUsername in dataAll[row]["access_rights"]["write"]
+                        or "EVERYONE" in dataAll[row]["access_rights"]["write"]
+                    ):
                         permissions = "write"
                     if dataAll[row] in data:
                         permissions = "own"
                     if permissions != "":
-                        if "native_crs" in dataAll[row]  and 'wfs_wms_status' in dataAll[row]:  
-                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs']])
-                            status = dataAll[row]['wfs_wms_status']
+                        if (
+                            "native_crs" in dataAll[row]
+                            and "wfs_wms_status" in dataAll[row]
+                        ):
+                            item = QTreeWidgetItem(
+                                [
+                                    dataAll[row]["title"],
+                                    dataAll[row]["workspace"],
+                                    permissions,
+                                    dataAll[row]["native_crs"],
+                                ]
+                            )
+                            status = dataAll[row]["wfs_wms_status"]
                             icon = self.getStatusIcon(status)
-                            item.setIcon(4, icon) 
-                        elif "native_crs" in dataAll[row]:                        
-                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions,dataAll[row]['native_crs']])
+                            item.setIcon(4, icon)
+                        elif "native_crs" in dataAll[row]:
+                            item = QTreeWidgetItem(
+                                [
+                                    dataAll[row]["title"],
+                                    dataAll[row]["workspace"],
+                                    permissions,
+                                    dataAll[row]["native_crs"],
+                                ]
+                            )
                         else:
-                            item = QTreeWidgetItem([dataAll[row]['title'],dataAll[row]['workspace'],permissions])
+                            item = QTreeWidgetItem(
+                                [
+                                    dataAll[row]["title"],
+                                    dataAll[row]["workspace"],
+                                    permissions,
+                                ]
+                            )
 
-                        self.layerNamesDict[dataAll[row]['title']] = dataAll[row]['name']
+                        self.layerNamesDict[dataAll[row]["title"]] = dataAll[row][
+                            "name"
+                        ]
                         self.treeWidget.addTopLevelItem(item)
 
                 QgsMessageLog.logMessage("layersLoaded")
         else:
-            url = self.URI+'/rest/layers'    
-            r = await (self.utils.asyncRequestWrapper("GET", url))
+            url = self.layman_api.get_get_all_layers_url()
+            r = await self.utils.asyncRequestWrapper("GET", url)
             data = self.utils.fromByteToJson(r)
             for row in range(0, len(data)):
-                if "EVERYONE" in data[row]['access_rights']['read']:
+                if "EVERYONE" in data[row]["access_rights"]["read"]:
                     permissions = "read"
-                if "EVERYONE" in data[row]['access_rights']['write']:
+                if "EVERYONE" in data[row]["access_rights"]["write"]:
                     permissions = "write"
-                if "native_crs" in data[row]  and 'wfs_wms_status' in data[row]:       
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs']])
-                    status = data[row]['wfs_wms_status']
+                if "native_crs" in data[row] and "wfs_wms_status" in data[row]:
+                    item = QTreeWidgetItem(
+                        [
+                            data[row]["title"],
+                            data[row]["workspace"],
+                            permissions,
+                            data[row]["native_crs"],
+                        ]
+                    )
+                    status = data[row]["wfs_wms_status"]
                     icon = self.getStatusIcon(status)
-                    item.setIcon(4, icon) 
-                elif "native_crs" in data[row]:                    
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions,data[row]['native_crs']])
+                    item.setIcon(4, icon)
+                elif "native_crs" in data[row]:
+                    item = QTreeWidgetItem(
+                        [
+                            data[row]["title"],
+                            data[row]["workspace"],
+                            permissions,
+                            data[row]["native_crs"],
+                        ]
+                    )
                 else:
-                    item = QTreeWidgetItem([data[row]['title'],data[row]['workspace'],permissions])
-                self.layerNamesDict[data[row]['title']] = data[row]['name']
+                    item = QTreeWidgetItem(
+                        [data[row]["title"], data[row]["workspace"], permissions]
+                    )
+                self.layerNamesDict[data[row]["title"]] = data[row]["name"]
                 self.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("layersLoaded")
         self.progressBar_loader.hide()
-        # self.treeWidget.resizeColumnToContents(3) 
-        # self.treeWidget.resizeColumnToContents(4) 
+
     def enableButtons(self, item, col):
         self.pushButton.setEnabled(True)
         self.pushButton_urlWfs.setEnabled(True)
         self.pushButton_urlWms.setEnabled(True)
-        self.pushButton_layerRedirect.setEnabled(True)  
+        self.pushButton_layerRedirect.setEnabled(True)
         self.checkSelectedCount()
         self.checkServiceButtons()
 
     def checkServiceButtons(self):
         if self.objectName() == "AddLayerDialog":
-            if self.checkFileType(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.selectedItems()[0].text(1)) == "vector":
-                if self.objectName() == "AddLayerDialog":                   
+            if (
+                self.checkFileType(
+                    self.treeWidget.selectedItems()[0].text(0),
+                    self.treeWidget.selectedItems()[0].text(1),
+                )
+                == "vector"
+            ):
+                if self.objectName() == "AddLayerDialog":
                     self.enableWfsButton.emit(True, self.pushButton_wfs)
-            elif self.checkFileType(self.treeWidget.selectedItems()[0].text(0),self.treeWidget.selectedItems()[0].text(1)) == "raster":
+            elif (
+                self.checkFileType(
+                    self.treeWidget.selectedItems()[0].text(0),
+                    self.treeWidget.selectedItems()[0].text(1),
+                )
+                == "raster"
+            ):
                 if self.objectName() == "AddLayerDialog":
                     self.enableWfsButton.emit(False, self.pushButton_wfs)
             else:
@@ -770,12 +1027,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             button.setEnabled(enable)
         except:
             pass
+
     def checkSelectedCount(self):
         selected_items = self.treeWidget.selectedItems()
-        all_conditions_met = all(
-            item.text(2) == "own"
-            for item in selected_items
-        )       
+        all_conditions_met = all(item.text(2) == "own" for item in selected_items)
         if (len(self.treeWidget.selectedItems()) > 1) and all_conditions_met:
             self.pushButton_setPermissions.setEnabled(True)
             self.pushButton_delete.setEnabled(True)
@@ -783,7 +1038,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.checkBox_thumbnail.setCheckState(2)
         else:
             self.pushButton_setPermissions.setEnabled(False)
-            self.pushButton_delete.setEnabled(False)  
+            self.pushButton_delete.setEnabled(False)
 
     def setButtons(self, item):
         if item.text(2) != "own":
@@ -795,11 +1050,13 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def checkFileType(self, name, workspace):
         name = self.layerNamesDict[name]
-        url = self.URI+'/rest/'+workspace+'/layers/'+self.utils.removeUnacceptableChars(name)
-        response = self.utils.requestWrapper("GET", url, payload = None, files = None)
+        url = self.layman_api.get_layer_url(
+            workspace, self.utils.removeUnacceptableChars(name)
+        )
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None)
         res = self.utils.fromByteToJson(response.content)
-        if "file" in res:
-            return res['file']['file_type']
+        if "geodata_type" in res:
+            return res["geodata_type"]
         else:
             return ""
 
@@ -810,72 +1067,129 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 self.pushButton_postgis.setEnabled(False)
 
-    def readLayerJson(self,layerName, service):
+    def readLayerJson(self, layerName, service):
         self.progressBar_loader.show()
-        for i in range (0, len(self.treeWidget.selectedItems())):
+        for i in range(0, len(self.treeWidget.selectedItems())):
             name = self.treeWidget.selectedItems()[i].text(0)
             workspace = self.treeWidget.selectedItems()[i].text(1)
             self.selectedWorkspace = workspace
-            threading.Thread(target=lambda: self.readLayerJsonThread(name,service, workspace)).start()
+            threading.Thread(
+                target=lambda: self.readLayerJsonThread(name, service, workspace)
+            ).start()
 
-    def readLayerJsonThread(self, layerName,service, workspace):
-        layerNameTitle =layerName
-        layerName = self.layerNamesDict[layerName]   
-        if self.utils.checkLayerOnLayman(layerName, self.selectedWorkspace, self.laymanUsername):
+    def readLayerJsonThread(self, layerName, service, workspace):
+        layerNameTitle = layerName
+        layerName = self.layerNamesDict[layerName]
+        if self.utils.checkLayerOnLayman(
+            layerName, self.selectedWorkspace, self.laymanUsername
+        ):
             layerName = self.utils.removeUnacceptableChars(layerName)
-            url = self.URI+'/rest/'+workspace+'/layers/'+layerName
-            r = self.utils.requestWrapper("GET", url, payload = None, files = None)
+            url = self.layman_api.get_layer_url(workspace, layerName)
+            r = self.utils.requestWrapper("GET", url, payload=None, files=None)
             try:
                 data = r.json()
             except:
-                self.utils.showErr.emit(["Vrstva není k dispozici!", "Layer is not available!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)
+                self.utils.showErr.emit(
+                    ["Vrstva není k dispozici!", "Layer is not available!"],
+                    "code: " + str(r.status_code),
+                    str(r.content),
+                    Qgis.Warning,
+                    url,
+                )
                 return
-            if (service == "WMS"):
+            if service == "WMS":
                 try:
-                    wmsUrl = data['wms']['url']
+                    wmsUrl = data["wms"]["url"]
                 except:
-                    self.utils.showErr.emit(["Vrstva není k dispozici!", "Layer is not available!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)
+                    self.utils.showErr.emit(
+                        ["Vrstva není k dispozici!", "Layer is not available!"],
+                        "code: " + str(r.status_code),
+                        str(r.content),
+                        Qgis.Warning,
+                        url,
+                    )
                     return
-                format = 'png'
-                epsg = 'EPSG:5514'
+                format = "png"
+                epsg = "EPSG:5514"
                 everyone = False
-                if 'EVERYONE' in data['access_rights']['read']:
+                if "EVERYONE" in data["access_rights"]["read"]:
                     everyone = True
                 timeDimension = {}
-                if 'time' in data['wms']:
-                    timeDimension = data['wms']
+                if "time" in data["wms"]:
+                    timeDimension = data["wms"]
 
-                groupName=""
-                subgroup=""
-                visibility = ''
-                success = self.utils.loadWms(wmsUrl, layerName,layerNameTitle, format, epsg, workspace, groupName,subgroup, timeDimension,visibility, everyone)
+                groupName = ""
+                subgroup = ""
+                visibility = ""
+                success = self.utils.loadWms(
+                    wmsUrl,
+                    layerName,
+                    layerNameTitle,
+                    format,
+                    epsg,
+                    workspace,
+                    groupName,
+                    subgroup,
+                    timeDimension,
+                    visibility,
+                    everyone,
+                )
                 if not success:
-                    self.utils.emitMessageBox.emit(["Vrstva: "+layerName + " je poškozena a nebude načtena.", "Layer: "+layerName + " is corrupted and will not be loaded."])
-                 
-            if (service == "WFS"):
+                    self.utils.emitMessageBox.emit(
+                        [
+                            "Vrstva: " + layerName + " je poškozena a nebude načtena.",
+                            "Layer: "
+                            + layerName
+                            + " is corrupted and will not be loaded.",
+                        ]
+                    )
+
+            if service == "WFS":
                 try:
-                    wfsUrl = data['wfs']['url']
+                    wfsUrl = data["wfs"]["url"]
                 except:
-                    self.utils.showErr.emit(["Vrstva není k dispozici!", "Layer is not available!"], "code: " + str(r.status_code), str(r.content), Qgis.Warning, url)
+                    self.utils.showErr.emit(
+                        ["Vrstva není k dispozici!", "Layer is not available!"],
+                        "code: " + str(r.status_code),
+                        str(r.content),
+                        Qgis.Warning,
+                        url,
+                    )
                     return
                 print("loading WFS")
-                success = self.utils.loadWfs(wfsUrl, layerName, layerNameTitle, workspace)
+                success = self.utils.loadWfs(
+                    wfsUrl, layerName, layerNameTitle, workspace
+                )
                 if not success:
-                    self.utils.emitMessageBox.emit(["Vrstva: "+layerName + " je poškozena a nebude načtena.", "Layer: "+layerName + " is corrupted and will not be loaded."])
-                   
+                    self.utils.emitMessageBox.emit(
+                        [
+                            "Vrstva: " + layerName + " je poškozena a nebude načtena.",
+                            "Layer: "
+                            + layerName
+                            + " is corrupted and will not be loaded.",
+                        ]
+                    )
+
             QgsMessageLog.logMessage("layersLoaded")
         else:
-            self.utils.emitMessageBox.emit(["Vrstva "+layerName+ " nelze nahrát","Something went wrong with layer: " + layerName])
+            self.utils.emitMessageBox.emit(
+                [
+                    "Vrstva " + layerName + " nelze nahrát",
+                    "Something went wrong with layer: " + layerName,
+                ]
+            )
             QgsMessageLog.logMessage("layersLoaded")
-    def write_log_message(self,message, tag, level):
-        if message == "layersLoaded":            
+
+    def write_log_message(self, message, tag, level):
+        if message == "layersLoaded":
             try:
                 self.progressBar_loader.hide()
             except:
                 pass
+
     def layerDeleteThread(self, name):
-        url = self.URI+'/rest/'+self.laymanUsername+'/layers/'+name
-        response = self.utils.requestWrapper("DELETE", url, payload = None, files = None)
+        url = self.layman_api.get_layer_url(self.laymanUsername, name)
+        response = self.utils.requestWrapper("DELETE", url, payload=None, files=None)
         try:
             checked = self.utils.getConfigItem("layercheckbox")
         except:
@@ -883,15 +1197,21 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if checked == "0":
             checked = False
         if checked == "1":
-            checked = True      
+            checked = True
         self.getLayers.emit(checked)
-    
 
-        if response.status_code == 200:        
+        if response.status_code == 200:
             self.layerDeletedSuccessfully.emit()
         else:
-            self.utils.showErr.emit(["Vrstva nebyla smazána!", "Layer was not deleted!"], "code: " + str(response.status_code), str(response.content), Qgis.Warning, url)
-    def _onLayerDeletedSuccessfully(self):   
+            self.utils.showErr.emit(
+                ["Vrstva nebyla smazána!", "Layer was not deleted!"],
+                "code: " + str(response.status_code),
+                str(response.content),
+                Qgis.Warning,
+                url,
+            )
+
+    def _onLayerDeletedSuccessfully(self):
         if self.objectName() == "AddLayerDialog":
             self.pushButton_postgis.setEnabled(False)
             self.pushButton_wfs.setEnabled(False)
@@ -901,133 +1221,231 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_urlWms.setEnabled(False)
             self.pushButton_urlWfs.setEnabled(False)
             self.progressBar_loader.hide()
-            self.label_thumbnail.setText(' ')
-    def checkAddedItemDuplicity(self, type, usernameList):       
-        itemsTextListRead = [] 
+            self.label_thumbnail.setText(" ")
+
+    def checkAddedItemDuplicity(self, type, usernameList):
+        itemsTextListRead = []
         for i in range(self.listWidget_read.count()):
-            current_item = self.listWidget_read.item(i) 
-            hidden_item = current_item.data(Qt.UserRole) 
+            current_item = self.listWidget_read.item(i)
+            hidden_item = current_item.data(Qt.UserRole)
             if hidden_item is not None:
-                itemsTextListRead.append(hidden_item.text())    
-        itemsTextListWrite = [] 
+                itemsTextListRead.append(hidden_item.text())
+        itemsTextListWrite = []
         for i in range(self.listWidget_write.count()):
-            current_item = self.listWidget_write.item(i) 
-            hidden_item = current_item.data(Qt.UserRole) 
+            current_item = self.listWidget_write.item(i)
+            hidden_item = current_item.data(Qt.UserRole)
             if hidden_item is not None:
                 itemsTextListWrite.append(hidden_item.text())
-        allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]      
+        allItems = [
+            self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())
+        ]
         if self.comboBox_users.currentText() in allItems:
             if type == "read":
-              
-                if ((usernameList[self.comboBox_users.currentIndex()] not in itemsTextListRead)): 
-                    current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())                   
+                if (
+                    usernameList[self.comboBox_users.currentIndex()]
+                    not in itemsTextListRead
+                ):
+                    current_item = QtWidgets.QListWidgetItem(
+                        self.comboBox_users.currentText()
+                    )
                     self.listWidget_read.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)   
+                    self.setHiddenItem(current_item, hidden_text)
                     return True
                 else:
-                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])         
+                    self.utils.emitMessageBox.emit(
+                        [
+                            "Tento uživatel se již v seznamu vyskytuje!",
+                            "This user already exists in the list!",
+                        ]
+                    )
                     return False
-            else:          
-                print(itemsTextListWrite)    
+            else:
+                print(itemsTextListWrite)
                 print(usernameList[self.comboBox_users.currentIndex()])
-                if ((usernameList[self.comboBox_users.currentIndex()] not in itemsTextListWrite) and type == "write"):               
+                if (
+                    usernameList[self.comboBox_users.currentIndex()]
+                    not in itemsTextListWrite
+                ) and type == "write":
                     return True
-                else:                    
-                    self.utils.emitMessageBox.emit(["Tento uživatel se již v seznamu vyskytuje!", "This user already exists in the list!"])              
+                else:
+                    self.utils.emitMessageBox.emit(
+                        [
+                            "Tento uživatel se již v seznamu vyskytuje!",
+                            "This user already exists in the list!",
+                        ]
+                    )
                     return False
-    def setWritePermissionList(self, usernameList):
-        allItems = [self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())]    
-        if self.comboBox_users.currentText() in allItems:
-            if self.checkAddedItemDuplicity("write", usernameList):             
-                itemsTextListRead = [] 
-                for i in range(self.listWidget_read.count()):
-                    current_item = self.listWidget_read.item(i) 
-                    hidden_item = current_item.data(Qt.UserRole) 
-                    if hidden_item is not None:
-                        itemsTextListRead.append(hidden_item.text())              
-                if (usernameList[self.comboBox_users.currentIndex()] in itemsTextListRead):
-                    current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())  
-                    self.listWidget_write.addItem(current_item)
-                    hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)        
-                else:  
-                    current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())
-                    self.listWidget_read.addItem(current_item)                    
-                    hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)     
 
-                    current_item = QtWidgets.QListWidgetItem(self.comboBox_users.currentText())             
+    def setWritePermissionList(self, usernameList):
+        allItems = [
+            self.comboBox_users.itemText(i) for i in range(self.comboBox_users.count())
+        ]
+        if self.comboBox_users.currentText() in allItems:
+            if self.checkAddedItemDuplicity("write", usernameList):
+                itemsTextListRead = []
+                for i in range(self.listWidget_read.count()):
+                    current_item = self.listWidget_read.item(i)
+                    hidden_item = current_item.data(Qt.UserRole)
+                    if hidden_item is not None:
+                        itemsTextListRead.append(hidden_item.text())
+                if (
+                    usernameList[self.comboBox_users.currentIndex()]
+                    in itemsTextListRead
+                ):
+                    current_item = QtWidgets.QListWidgetItem(
+                        self.comboBox_users.currentText()
+                    )
                     self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)             
-    def setHiddenItem(self,item, hidden_text):     
+                    self.setHiddenItem(current_item, hidden_text)
+                else:
+                    current_item = QtWidgets.QListWidgetItem(
+                        self.comboBox_users.currentText()
+                    )
+                    self.listWidget_read.addItem(current_item)
+                    hidden_text = usernameList[self.comboBox_users.currentIndex()]
+                    self.setHiddenItem(current_item, hidden_text)
+
+                    current_item = QtWidgets.QListWidgetItem(
+                        self.comboBox_users.currentText()
+                    )
+                    self.listWidget_write.addItem(current_item)
+                    hidden_text = usernameList[self.comboBox_users.currentIndex()]
+                    self.setHiddenItem(current_item, hidden_text)
+
+    def setHiddenItem(self, item, hidden_text):
         hidden_item = QtWidgets.QListWidgetItem(hidden_text)
         hidden_item.setHidden(True)
-        item.setData(Qt.UserRole, hidden_item)     
-            
-                
+        item.setData(Qt.UserRole, hidden_item)
+
     def afterPermissionDone(self, success, failed, info):
         if self.objectName() == "AddLayerDialog":
-            self.progressBar_loader.hide()             
+            self.progressBar_loader.hide()
             if success:
-                self.utils.emitMessageBox.emit(["Práva byla úspěšně uložena.", "Permissions was saved successfully."])                           
+                self.utils.emitMessageBox.emit(
+                    [
+                        "Práva byla úspěšně uložena.",
+                        "Permissions was saved successfully.",
+                    ]
+                )
             else:
-                self.utils.emitMessageBox.emit(["Práva nebyla uložena pro vrstvu: " + str(failed).replace("[","").replace("]",""), "Permissions was not saved for layer: " + str(failed).replace("[","").replace("]","")])                           
-                    
-    def removeReadPermissionList(self, usersDictReversed):       
-        if usersDictReversed[self.laymanUsername] == self.listWidget_read.currentItem().text() or usersDictReversed[self.laymanUsername] == self.listWidget_write.currentRow():
-            self.utils.showQgisBar(["Není možné odebrat aktuálního uživatele.","Unable to remove current user."], Qgis.Warning)
+                self.utils.emitMessageBox.emit(
+                    [
+                        "Práva nebyla uložena pro vrstvu: "
+                        + str(failed).replace("[", "").replace("]", ""),
+                        "Permissions was not saved for layer: "
+                        + str(failed).replace("[", "").replace("]", ""),
+                    ]
+                )
+
+    def removeReadPermissionList(self, usersDictReversed):
+        if (
+            usersDictReversed[self.laymanUsername]
+            == self.listWidget_read.currentItem().text()
+            or usersDictReversed[self.laymanUsername]
+            == self.listWidget_write.currentRow()
+        ):
+            self.utils.showQgisBar(
+                [
+                    "Není možné odebrat aktuálního uživatele.",
+                    "Unable to remove current user.",
+                ],
+                Qgis.Warning,
+            )
             return
         self.deleteItem(self.listWidget_read.currentItem().text())
-        self.listWidget_read.removeItemWidget(self.listWidget_read.takeItem(self.listWidget_read.currentRow()))
+        self.listWidget_read.removeItemWidget(
+            self.listWidget_read.takeItem(self.listWidget_read.currentRow())
+        )
+
     def removeWritePermissionList(self, usersDictReversed):
-        if usersDictReversed[self.laymanUsername] == self.listWidget_write.currentItem().text():
-            self.utils.showQgisBar(["Není možné odebrat aktuálního uživatele.","Unable to remove current user."], Qgis.Warning)
-            return        
-        self.listWidget_write.removeItemWidget(self.listWidget_write.takeItem(self.listWidget_write.currentRow()))
+        if (
+            usersDictReversed[self.laymanUsername]
+            == self.listWidget_write.currentItem().text()
+        ):
+            self.utils.showQgisBar(
+                [
+                    "Není možné odebrat aktuálního uživatele.",
+                    "Unable to remove current user.",
+                ],
+                Qgis.Warning,
+            )
+            return
+        self.listWidget_write.removeItemWidget(
+            self.listWidget_write.takeItem(self.listWidget_write.currentRow())
+        )
+
     def deleteItem(self, itemName):
         items_list = self.listWidget_write.findItems(itemName, Qt.MatchExactly)
         for item in items_list:
             r = self.listWidget_write.row(item)
-            self.listWidget_write.takeItem(r)       
+            self.listWidget_write.takeItem(r)
+
     def loadPostgisLayer(self, it):
-        layerName = self.utils.removeUnacceptableChars(it.text(0))        
+        layerName = self.utils.removeUnacceptableChars(it.text(0))
         workspace = it.text(1)
-        url = self.URI+'/rest/'+workspace+'/layers/'+str(layerName).lower() 
-        r = requests.get(url, headers = self.utils.getAuthHeader(self.utils.authCfg))
-        data = r.json()     
+        url = self.layman_api.get_layer_url(workspace, str(layerName).lower())
+        r = requests.get(url, headers=self.utils.getAuthHeader(self.utils.authCfg))
+        data = r.json()
         table = data["db"]["table"]
         schema = data["db"]["schema"]
-        geo_column = data["db"]["geo_column"]           
-        address = self.utils.find_substring(data["db"]["external_uri"], "@", "/" )
+        geo_column = data["db"]["geo_column"]
+        address = self.utils.find_substring(data["db"]["external_uri"], "@", "/")
         host = address.split(":")[0]
         port = address.split(":")[1]
         user = self.utils.find_substring(data["db"]["external_uri"], r"://", "@")
         srid = str(4326)
         dbname = data["db"]["external_uri"].split("/")[-1]
-        table = '"'+ schema +'"."'+ table + '" (' + geo_column + ') '          
-        if ("host.docker.internal" in host):
-            host = host.replace("host.docker.internal","localhost") 
-        uri = "dbname='"+dbname+"' host="+host+" port="+port+" user='"+user+"' table="+ table +" key='id' srid="+srid
-        style = self.layman.getStyle(layerName, None, workspace)      
-        layer = QgsVectorLayer(uri, it.text(0), 'postgres')  
+        table = '"' + schema + '"."' + table + '" (' + geo_column + ") "
+        if "host.docker.internal" in host:
+            host = host.replace("host.docker.internal", "localhost")
+        uri = (
+            "dbname='"
+            + dbname
+            + "' host="
+            + host
+            + " port="
+            + port
+            + " user='"
+            + user
+            + "' table="
+            + table
+            + " key='id' srid="
+            + srid
+        )
+        style = self.layman.getStyle(layerName, None, workspace)
+        layer = QgsVectorLayer(uri, it.text(0), "postgres")
         if not layer.isValid():
-            self.utils.showQgisBar(["Vrstva nebyla úspěšně načtena.","Layer was not successfully loaded."], Qgis.Warning)
-            print("Layer failed to load!")  
-        ## load style 
-        if (style[0] == 200):
-            if (style[1] == "sld"):
-                tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layerName)+ ".sld"
+            self.utils.showQgisBar(
+                [
+                    "Vrstva nebyla úspěšně načtena.",
+                    "Layer was not successfully loaded.",
+                ],
+                Qgis.Warning,
+            )
+            print("Layer failed to load!")
+        ## load style
+        if style[0] == 200:
+            if style[1] == "sld":
+                tempf = (
+                    tempfile.gettempdir()
+                    + os.sep
+                    + self.utils.removeUnacceptableChars(layerName)
+                    + ".sld"
+                )
                 layer.loadSldStyle(tempf)
-                   
-            if (style[1] == "qml"):
-                tempf = tempfile.gettempdir() + os.sep +self.utils.removeUnacceptableChars(layerName)+ ".qml"
+
+            if style[1] == "qml":
+                tempf = (
+                    tempfile.gettempdir()
+                    + os.sep
+                    + self.utils.removeUnacceptableChars(layerName)
+                    + ".qml"
+                )
                 layer.loadNamedStyle(tempf)
-        QgsProject.instance().addMapLayer(layer)     
-        layer.afterCommitChanges.connect(self.layman.patchPostreLayer)               
+        QgsProject.instance().addMapLayer(layer)
+        layer.afterCommitChanges.connect(self.layman.patchPostreLayer)
+
     def _onProgressDone(self):
-        self.progressBar_loader.hide()      
-
-
-      
+        self.progressBar_loader.hide()

@@ -8,9 +8,9 @@
 
 """
 
-__author__ = 'vrobel.jan@seznam.cz'
-__date__ = '2019-02-15'
-__copyright__ = 'Copyright 2019, jan vrobel'
+__author__ = "vrobel.jan@seznam.cz"
+__date__ = "2019-02-15"
+__copyright__ = "Copyright 2019, jan vrobel"
 
 import unittest
 
@@ -38,8 +38,8 @@ class AtlasDockWidgetTest(unittest.TestCase):
         """Test we can click OK."""
         pass
 
+
 if __name__ == "__main__":
     suite = unittest.makeSuite(AtlasDialogTest)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
-

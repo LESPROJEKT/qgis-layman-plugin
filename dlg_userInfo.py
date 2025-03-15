@@ -37,41 +37,55 @@ import shutil
 from PyQt5.QtWidgets import QMessageBox
 from zipfile import ZipFile
 from qgis.core import Qgis
+from .layman_api import LaymanAPI
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'dlg_userInfo.ui'))
+FORM_CLASS, _ = uic.loadUiType(
+    os.path.join(os.path.dirname(__file__), "dlg_userInfo.ui")
+)
 
 
 class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, utils, iface, isAuthorized, server, laymanUsername, URI,laymanVersion, layman, parent=None):
+    def __init__(
+        self,
+        utils,
+        iface,
+        isAuthorized,
+        server,
+        laymanUsername,
+        URI,
+        laymanVersion,
+        layman,
+        parent=None,
+    ):
         """Constructor."""
         super(UserInfoDialog, self).__init__(parent)
         self.setupUi(self)
         self.iface = iface
-        self.isAuthorized = isAuthorized        
+        self.isAuthorized = isAuthorized
         self.server = server
         self.laymanUsername = laymanUsername
         self.utils = utils
         self.URI = URI
         self.laymanVersion = laymanVersion
-        app = QtWidgets.QApplication.instance()     
+        app = QtWidgets.QApplication.instance()
         proxy_style = ProxyStyle(app.style())
         self.layman = layman
         self.setStyle(proxy_style)
+        self.layman_api = LaymanAPI(URI)
         self.setUi()
-    
+
     def setUi(self):
         self.utils.recalculateDPI()
-        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")        
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.comboBox_port.addItem("7070")
         self.comboBox_port.addItem("7071")
         self.comboBox_port.addItem("7072")
-        port = self.utils.getConfigItem("port") 
+        port = self.utils.getConfigItem("port")
         if self.layman.qfieldReady:
             self.label_qfield_server.setText("Ready")
         else:
-            self.label_qfield_server.setText("Not available")           
+            self.label_qfield_server.setText("Not available")
         if not port:
             self.comboBox_port.setCurrentIndex(0)
             self.layman.port = "7070"
@@ -81,88 +95,112 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.comboBox_port.setCurrentIndex(0)
             elif port == "7071":
                 self.layman.port = "7071"
-                self.comboBox_port.setCurrentIndex(1) 
+                self.comboBox_port.setCurrentIndex(1)
             elif port == "7072":
                 self.layman.port = "7072"
-                self.comboBox_port.setCurrentIndex(2) 
-        self.comboBox_port.currentIndexChanged.connect(self.utils.setPortValue)                                                        
+                self.comboBox_port.setCurrentIndex(2)
+        self.comboBox_port.currentIndexChanged.connect(self.utils.setPortValue)
         if self.server != None and self.laymanUsername != "":
-            userEndpoint = self.URI + "/rest/current-user"            
-            r = self.utils.requestWrapper("GET", userEndpoint, payload = None, files = None)          
+            userEndpoint = self.layman_api.get_current_user_url()
+            r = self.utils.requestWrapper("GET", userEndpoint, payload=None, files=None)
             res = r.text
             res = self.utils.fromByteToJson(r.content)
             versionCheck = self.utils.checkVersion()
-            self.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))            
-            if self.isAuthorized:    
-                self.label_layman.setText(res['username'])
-                self.label_agrihub.setText(res['claims']['email'])
+            self.pushButton_update.clicked.connect(
+                lambda: self.updatePlugin(versionCheck[1])
+            )
+            if self.isAuthorized:
+                self.label_layman.setText(res["username"])
+                self.label_agrihub.setText(res["claims"]["email"])
+                self.pushButton_delete_user.clicked.connect(self.delete_whole_user)
             else:
                 self.label_layman.setText("Anonymous")
             self.label_server.setText(self.server)
 
             self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
             self.label_version.setText(self.utils.getVersion())
-            self.label_versionLayman.setText(self.laymanVersion)            
+            self.label_versionLayman.setText(self.laymanVersion)
             self.pushButton_close.clicked.connect(lambda: self.close())
-                       
+
             self.label_avversion.setText(versionCheck[1])
-            if versionCheck[0] == True:                   
+            if versionCheck[0] == True:
                 self.pushButton_update.setEnabled(False)
         else:
             self.label_version.setText(self.utils.getVersion())
             versionCheck = self.utils.checkVersion()
             self.label_avversion.setText(versionCheck[1])
-            if versionCheck[0] == True:                          
+            if versionCheck[0] == True:
                 self.pushButton_update.setEnabled(False)
-            self.pushButton_update.clicked.connect(lambda: self.updatePlugin(versionCheck[1]))
-        self.pushButton_close.clicked.connect(lambda: self.close())    
-    
+            self.pushButton_update.clicked.connect(
+                lambda: self.updatePlugin(versionCheck[1])
+            )
+        self.pushButton_close.clicked.connect(lambda: self.close())
+
     def updatePlugin(self, version):
-        if (len(version.split(".")) > 2):
+        if len(version.split(".")) > 2:
             if self.layman.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Aktualizace pluginu", "Tato verze pluginu není v QGIS repozitáři a může obsahovat nové netestované funkcionality. Chcete opravdu instalovat tuto verzi?")
+                msgbox = QMessageBox(
+                    QMessageBox.Question,
+                    "Aktualizace pluginu",
+                    "Tato verze pluginu není v QGIS repozitáři a může obsahovat nové netestované funkcionality. Chcete opravdu instalovat tuto verzi?",
+                )
             else:
-                msgbox = QMessageBox(QMessageBox.Question, "Plugin update", "This version of the plugin is not included in the QGIS repository and may contain new untested functionalities. Do you really want to install this version?")
+                msgbox = QMessageBox(
+                    QMessageBox.Question,
+                    "Plugin update",
+                    "This version of the plugin is not included in the QGIS repository and may contain new untested functionalities. Do you really want to install this version?",
+                )
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
             reply = msgbox.exec()
-            if (reply == QMessageBox.No):
+            if reply == QMessageBox.No:
                 return
         url = "https://github.com/LESPROJEKT/qgis-layman-plugin/archive/master.zip"
-        if not self.checkQgisVersion():        
+        if not self.checkQgisVersion():
             if self.layman.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Aktualizace pluginu", "Plugin vyžaduje verzi QGIS 3.26 a vyšší. Chcete přesto pokračovat?")
+                msgbox = QMessageBox(
+                    QMessageBox.Question,
+                    "Aktualizace pluginu",
+                    "Plugin vyžaduje verzi QGIS 3.26 a vyšší. Chcete přesto pokračovat?",
+                )
             else:
-                msgbox = QMessageBox(QMessageBox.Question, "Plugin update", "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?")
+                msgbox = QMessageBox(
+                    QMessageBox.Question,
+                    "Plugin update",
+                    "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?",
+                )
             msgbox.addButton(QMessageBox.Yes)
             msgbox.addButton(QMessageBox.No)
             msgbox.setDefaultButton(QMessageBox.No)
             reply = msgbox.exec()
-            if (reply == QMessageBox.No):
+            if reply == QMessageBox.No:
                 return
         self.installPlugin(url)
+
     def installPlugin(self, url):
         save_path = tempfile.gettempdir() + os.sep + "layman.zip"
         self.download_url(url, save_path)
 
-        with ZipFile(save_path, 'r') as zipObj:
-           zipObj.extractall(tempfile.gettempdir())
+        with ZipFile(save_path, "r") as zipObj:
+            zipObj.extractall(tempfile.gettempdir())
         src = tempfile.gettempdir() + os.sep + "qgis-layman-plugin-master"
 
         self.copytree(src, self.layman.plugin_dir)
         self.close()
         self.layman.disableEnvironment()
-        QMessageBox.information(None, "Layman", "Layman plugin was updated. Please restart QGIS.")              
-     
-    
-                       
+        QMessageBox.information(
+            None, "Layman", "Layman plugin was updated. Please restart QGIS."
+        )
+
     def copytree(self, src, dst, symlinks=False, ignore=None):
         try:
             shutil.rmtree(dst)
             os.mkdir(dst)
         except:
-            self.utils.emitMessageBox.emit(["Plugin nebyl aktualizován!", "Plugin was not updated!"])              
+            self.utils.emitMessageBox.emit(
+                ["Plugin nebyl aktualizován!", "Plugin was not updated!"]
+            )
             return
         for item in os.listdir(src):
             s = os.path.join(src, item)
@@ -171,16 +209,75 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
                 shutil.copytree(s, d, symlinks, ignore)
             else:
                 shutil.copy2(s, d)
+
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
-        with open(save_path, 'wb') as fd:
+        with open(save_path, "wb") as fd:
             for chunk in r.iter_content(chunk_size=chunk_size):
-                fd.write(chunk)                        
+                fd.write(chunk)
+
     def checkQgisVersion(self):
         version = Qgis.QGIS_VERSION_INT
         major = version // 10000
-        minor = (version // 100) % 100      
+        minor = (version // 100) % 100
         if major > 3 or (major == 3 and minor >= 26):
             return True
         else:
-            return False                
+            return False
+
+    def delete_whole_user(self):
+        reply = QMessageBox.question(
+            None,
+            "Confirm Deletion",
+            "Are you sure you want to delete all your publications and your account?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+
+        if reply == QMessageBox.Yes:
+            url = self.layman_api.get_user_delete_url(self.laymanUsername)
+            response = requests.delete(url)
+            if response.status_code == 200:
+                QMessageBox.information(
+                    None,
+                    "Account Deleted",
+                    "Your account and all publications have been successfully deleted.",
+                )
+                return
+            else:
+                try:
+                    error_data = response.json()
+                    error_code = error_data.get("code", None)
+                    if error_code == 58:
+                        unable_delete = error_data.get(
+                            "unable_to_delete_publications", []
+                        )
+                        pub_list_str = "\n".join(
+                            f"- {pub.get('name')} (workspace: {pub.get('workspace')}, type: {pub.get('type')})"
+                            for pub in unable_delete
+                        )
+                        QMessageBox.warning(
+                            None,
+                            "Deletion Error",
+                            "Your account cannot be deleted because the following publications "
+                            "are shared with other readers:\n\n"
+                            f"{pub_list_str}\n\n"
+                            "Please remove or update permissions before deleting your account.",
+                        )
+                    else:
+                        QMessageBox.critical(
+                            None,
+                            "Deletion Error",
+                            f"An error occurred while deleting your account.\n\n"
+                            f"Server returned status code: {response.status_code}\n"
+                            f"Details: {error_data}",
+                        )
+
+                except ValueError:
+                    QMessageBox.critical(
+                        None,
+                        "Deletion Error",
+                        f"An unexpected error occurred. Response text:\n{response.text}",
+                    )
+        else:
+            print("User canceled deletion.")

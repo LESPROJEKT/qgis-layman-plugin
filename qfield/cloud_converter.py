@@ -27,13 +27,14 @@ from libqfieldsync.utils.qgis import get_qgis_files_within_dir, make_temp_qgis_f
 from qgis.core import QgsMapLayer, QgsProject, QgsVirtualLayerDefinition, QgsVectorLayer
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QUrl, pyqtSignal
 from qgis.utils import iface
+
 # from .qgis_utils import open_project
 from qgis.PyQt.QtXml import QDomDocument
 
 
 from qgis.core import QgsVectorFileWriter, QgsProject, QgsReadWriteContext
 import os
-from qgis.core import  QgsCoordinateTransformContext, QgsFields
+from qgis.core import QgsCoordinateTransformContext, QgsFields
 
 
 class CloudConverter(QObject):
@@ -47,7 +48,6 @@ class CloudConverter(QObject):
         export_dirname: str,
         selectedLayers: list,
     ):
-
         super(CloudConverter, self).__init__(parent=None)
         self.project = project
         self.__layers = list()
@@ -58,8 +58,6 @@ class CloudConverter(QObject):
         self.export_dirname = Path(export_dirname)
         self.selectedLayers = selectedLayers
 
-    
- 
     def convert(self) -> None:  # noqa: C901
         """
         Convert the project to a cloud project.
@@ -87,9 +85,9 @@ class CloudConverter(QObject):
                 )
 
             self.total_progress_updated.emit(0, 100, self.trUtf8("Converting project…"))
-            self.__layers = list(self.project.mapLayers().values())           
+            self.__layers = list(self.project.mapLayers().values())
             # Loop through all layers and copy them to the destination folder
-            for current_layer_index, layer in enumerate(self.__layers):      
+            for current_layer_index, layer in enumerate(self.__layers):
                 if layer.name() in self.selectedLayers:
                     continue
                 self.total_progress_updated.emit(
@@ -170,7 +168,7 @@ class CloudConverter(QObject):
             if is_converted:
                 pass
             else:
-                pass    
+                pass
             # open_project(original_project_path, backup_project_path)
 
         self.total_progress_updated.emit(100, 100, self.tr("Finished"))

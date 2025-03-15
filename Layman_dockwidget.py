@@ -27,12 +27,12 @@ import os
 from PyQt5 import QtGui, QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'Layman_dockwidget_base.ui'))
+FORM_CLASS, _ = uic.loadUiType(
+    os.path.join(os.path.dirname(__file__), "Layman_dockwidget_base.ui")
+)
 
 
 class LaymanDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
-
     closingPlugin = pyqtSignal()
 
     def __init__(self, parent=None):

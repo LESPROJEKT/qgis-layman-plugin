@@ -1,0 +1,26 @@
+name: Code Formatting Check
+
+on:
+  push:
+    branches:
+      - master      
+  pull_request:
+    types: [opened, synchronize, reopened]  
+
+jobs:
+  black:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'  
+
+      - name: Install black
+        run: pip install black
+
+      - name: Run black (check mode)
+        run: black --check .
