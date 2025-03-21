@@ -141,15 +141,21 @@ class LaymanUtils(QObject):
         context = ssl.create_default_context()
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
+        headers = self.getAuthHeader(self.authCfg)
         if type == "GET":
             conn = http.client.HTTPSConnection(host, port, context=context)
-            conn.request("GET", path, headers=self.getAuthHeader(self.authCfg))
+            if isinstance(headers, dict):
+                conn.request("GET", path, headers=headers)
+            else:
+                conn.request("GET", path)
         elif type == "POST":
             conn = http.client.HTTPSConnection(host, port, context=context)
-            conn.request(
-                "POST", path, body=payload, headers=self.getAuthHeader(self.authCfg)
-            )
-
+            if isinstance(headers, dict):
+                conn.request(
+                    "POST", path, body=payload, headers=self.getAuthHeader(self.authCfg)
+                )
+            else:
+                conn.request("POST", path, body=payload)
         response = await asyncio.to_thread(conn.getresponse)
         response_content = response.read()
         if emitErr and response.status != 200:
@@ -572,20 +578,7 @@ class LaymanUtils(QObject):
         minRes=0,
         maxRes=None,
     ):
-        layerName = self.removeUnacceptableChars(layerName)
         epsg = self.iface.mapCanvas().mapSettings().destinationCrs().authid()
-        uri = (
-            self.URI
-            + "/geoserver/"
-            + workspace
-            + "/ows?srsname="
-            + epsg
-            + "&typename="
-            + workspace
-            + ":"
-            + layerName
-            + "&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
-        )
         url = url.replace("%2F", "/").replace("%3A", ":").replace("/client", "")
         r = url.split("/")
         acc = r[len(r) - 2]
@@ -624,8 +617,6 @@ class LaymanUtils(QObject):
                     self.loadStyle.emit(vlayer)
                 else:
                     self.currentLayer.append(vlayer)
-                    # rand = random.randint(0,10000)
-                    # self.currentLayerDict[str(rand)] = vlayer
                     self.loadLayer(vlayer, workspace)
                     self.setVisibility.emit(vlayer)
 
@@ -692,7 +683,6 @@ class LaymanUtils(QObject):
             return True
         else:
             self.loadLayer(vlayer, workspace)
-            # QgsProject.instance().addMapLayer(vlayer)
             return False
 
     def getTypesOfGeom(self, vlayer):

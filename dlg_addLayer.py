@@ -858,6 +858,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
     async def loadLayersThread(self, onlyOwn=False):
         self.layerNamesDict = dict()
+        self.layer_uuid = dict()
         self.treeWidget.clear()
         if self.laymanUsername and self.isAuthorized:
             url = self.layman_api.get_layers_url(self.laymanUsername)
@@ -892,6 +893,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         )
                     self.treeWidget.addTopLevelItem(item)
                     self.layerNamesDict[data[row]["title"]] = data[row]["name"]
+                    self.layer_uuid[data[row]["title"]] = data[row]["uuid"]
                 QgsMessageLog.logMessage("layersLoaded")
             else:
                 url = self.layman_api.get_get_all_layers_url()
@@ -948,6 +950,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         self.layerNamesDict[dataAll[row]["title"]] = dataAll[row][
                             "name"
                         ]
+                        self.layer_uuid[dataAll[row]["title"]] = dataAll[row]["uuid"]
                         self.treeWidget.addTopLevelItem(item)
 
                 QgsMessageLog.logMessage("layersLoaded")
@@ -986,6 +989,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         [data[row]["title"], data[row]["workspace"], permissions]
                     )
                 self.layerNamesDict[data[row]["title"]] = data[row]["name"]
+                self.layer_uuid[data[row]["title"]] = data[row]["uuid"]
                 self.treeWidget.addTopLevelItem(item)
             QgsMessageLog.logMessage("layersLoaded")
         self.progressBar_loader.hide()
@@ -1079,7 +1083,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def readLayerJsonThread(self, layerName, service, workspace):
         layerNameTitle = layerName
-        layerName = self.layerNamesDict[layerName]
+        layerName = self.layerNamesDict[layerNameTitle]
+        layer_uuid = f"l_{self.layer_uuid[layerNameTitle]}"
         if self.utils.checkLayerOnLayman(
             layerName, self.selectedWorkspace, self.laymanUsername
         ):
@@ -1123,7 +1128,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 visibility = ""
                 success = self.utils.loadWms(
                     wmsUrl,
-                    layerName,
+                    layer_uuid,
                     layerNameTitle,
                     format,
                     epsg,
@@ -1158,7 +1163,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     return
                 print("loading WFS")
                 success = self.utils.loadWfs(
-                    wfsUrl, layerName, layerNameTitle, workspace
+                    wfsUrl, layer_uuid, layerNameTitle, workspace
                 )
                 if not success:
                     self.utils.emitMessageBox.emit(

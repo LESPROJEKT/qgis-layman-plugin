@@ -5044,20 +5044,8 @@ class Layman(QObject):
         minRes=0,
         maxRes=None,
     ):
-        layerName = self.utils.removeUnacceptableChars(layerName)
+        # layerName = self.utils.removeUnacceptableChars(layerName)
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()
-        uri = (
-            self.URI
-            + "/geoserver/"
-            + self.laymanUsername
-            + "/ows?srsname="
-            + epsg
-            + "&typename="
-            + self.laymanUsername
-            + ":"
-            + layerName
-            + "&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
-        )
         url = url.replace("%2F", "/").replace("%3A", ":").replace("/client", "")
         r = url.split("/")
         acc = r[len(r) - 2]
