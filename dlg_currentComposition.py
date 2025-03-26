@@ -1468,7 +1468,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         group1.addButton(self.radioButton_readPrivate)
         group2.addButton(self.radioButton_writePrivate)
         group2.addButton(self.radioButton_writePublic)
-        uri = self.layman_api.get_users_url
+        uri = self.layman_api.get_users_url()
         usersDict = dict()
         if self.layman.locale == "cs":
             usersDict["EVERYONE"] = "VŠICHNI"

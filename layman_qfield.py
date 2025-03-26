@@ -521,6 +521,7 @@ class Qfield:
                 for user in users_read_processed
                 if user not in users_write_processed
             ]
+        print(project_permissions)
         current_permissions = {
             perm["collaborator"]: perm["role"] for perm in project_permissions
         }
