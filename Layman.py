@@ -4374,12 +4374,7 @@ class Layman(QObject):
                             if self.isXYZ(layers[i].name()):
                                 self.saveXYZ(layers[i])
                             else:
-                                wmsUrl = (
-                                    uri
-                                    + "/geoserver/"
-                                    + self.laymanUsername
-                                    + "_wms/ows"
-                                )
+                                wmsUrl = uri + "/geoserver/" + "layman" + "_wms/ows"
                                 composition["layers"].append(
                                     {
                                         "metadata": {},
@@ -4412,7 +4407,7 @@ class Layman(QObject):
                                 )
 
                     elif service == "wfs":
-                        wmsUrl = uri + "/geoserver/" + self.laymanUsername + "/wfs"
+                        wmsUrl = uri + "/geoserver/layman/wfs"
                         styleUrl = self.layman_api.get_layer_style_url(
                             self.laymanUsername, layerName
                         )
@@ -4446,7 +4441,7 @@ class Layman(QObject):
                             }
                         )
                     else:
-                        wmsUrl = uri + "/geoserver/" + self.laymanUsername + "_wms/ows"
+                        wmsUrl = uri + "/geoserver/layman_wms/ows"
                         composition["layers"].append(
                             {
                                 "metadata": {},
@@ -4482,16 +4477,9 @@ class Layman(QObject):
 
                 for i in range(0, len(layers)):
                     inComposite = False
-                    layerName = self.utils.removeUnacceptableChars(
-                        layers[i].name()
-                    ).lower()
                     if self.checkExistingLayer(layers[i].name()) and inComposite:
-                        j = self.getLayerInCompositePosition(x)
                         if not self.isXYZ(layers[i].name()):
                             self.postRequest(layers[i].name(), True)
-                            layerName = self.utils.removeUnacceptableChars(
-                                layers[i].name()
-                            )
                     else:
                         if self.isXYZ(layers[i].name()):
                             pass

@@ -510,7 +510,11 @@ class Qfield:
 
         users_write_processed = process_user_list(users_write)
         users_read_processed = process_user_list(users_read)
-        project_permissions = self.getPermissionsForProject(project_id).json()
+        try:
+            project_permissions = self.getPermissionsForProject(project_id).json()
+        except:
+            print("qfield project not found - skipping setting permissions.")
+            return
         if "@roles/EVERYONE" in users_read_processed:
             users_read_processed = ["@roles/EVERYONE"]
         elif "@roles/EVERYONE" in users_write_processed:

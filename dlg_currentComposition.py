@@ -965,7 +965,6 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if len(layers) > 0:
                 newLayers = list()
                 for item in self.currentSet:
-                    layersFromServer = list()
                     if item[2] == "Add from server" or item[2] == "Přidat ze serveru":
                         for layer in layers:
                             if layer.name() == item[0]:
@@ -1062,6 +1061,45 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.permissionInfo.emit(True, self.failed, 0)
         else:
             self.permissionInfo.emit(False, self.failed, 0)
+        url = self.layman_api.get_map_file_url(self.layman.laymanUsername, map)
+        composition = requests.get(
+            url, data=data, headers=self.utils.getAuthHeader(self.utils.authCfg)
+        ).json()
+        layers_url = self.layman_api.get_layers_url(self.layman.laymanUsername)
+        headers = self.utils.getAuthHeader(self.utils.authCfg)
+        try:
+            response = requests.get(layers_url, headers=headers)
+            response.raise_for_status()
+            all_layers = response.json()
+        except Exception as e:
+            self.failed.append(f"ERROR: Failed to fetch layers: {e}")
+            self.permissionInfo.emit(False, self.failed, 0)
+            return
+
+        for layer in composition.get("layers", []):
+            params = layer.get("params", {})
+            layer_name = params.get("LAYERS")
+            if not layer_name:
+                continue
+
+            matching_layer = next(
+                (l for l in all_layers if l.get("name") == layer_name), None
+            )
+            if not matching_layer:
+                self.failed.append(layer_name)
+                continue
+
+            used_maps = matching_layer.get("used_in_maps", [])
+            is_used_in_map = any(
+                m.get("name") == map
+                and m.get("workspace") == self.layman.laymanUsername
+                for m in used_maps
+            )
+            # if not is_used_in_map:
+            #     continue
+
+            layer_url = matching_layer.get("url")
+            requests.patch(layer_url, data=data, headers=headers)
 
     def getTableWidgetByTabName(self, tab_widget, tab_name):
         for i in range(tab_widget.count()):
