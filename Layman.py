@@ -3279,7 +3279,6 @@ class Layman(QObject):
                 .replace(r"/vsizip/", "")
             )
 
-
         externalFile = self.returnPathIfFileExists(path, ext)
         if os.path.getsize(path) > self.CHUNK_SIZE:
             if patch:
@@ -3511,9 +3510,6 @@ class Layman(QObject):
             self.utils.removeUnacceptableChars(layer_name)
         ).replace("geojson", "qml")
         if os.path.getsize(geoPath) > self.CHUNK_SIZE:
-            if os.path.getsize(geoPath) > 800000000:
-                self.checkFileSizeLimit(os.path.getsize(geoPath))
-                self.setChunkSizeBigger()
             self.postInChunks(layer_name, "post")
         else:
             if os.path.isfile(stylePath):  ## existuje style?
