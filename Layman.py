@@ -1318,9 +1318,9 @@ class Layman(QObject):
             while iterator.value():
                 item = iterator.value()
                 item.setCheckState(0, 2)
-                self.layerServices[
-                    self.utils.removeUnacceptableChars(item.text(0))
-                ] = "HSLayers.Layer.WMS"
+                self.layerServices[self.utils.removeUnacceptableChars(item.text(0))] = (
+                    "HSLayers.Layer.WMS"
+                )
                 iterator += 1
 
         if not checked:
@@ -2315,12 +2315,12 @@ class Layman(QObject):
                 if self.utils.removeUnacceptableChars(
                     composition["layers"][i]["title"]
                 ) == self.utils.removeUnacceptableChars(layer.name()):
-                    composition["layers"][i][
-                        "maxResolution"
-                    ] = self.utils.scaleToResolution(layer.minimumScale())
-                    composition["layers"][i][
-                        "minResolution"
-                    ] = self.utils.scaleToResolution(layer.maximumScale())
+                    composition["layers"][i]["maxResolution"] = (
+                        self.utils.scaleToResolution(layer.minimumScale())
+                    )
+                    composition["layers"][i]["minResolution"] = (
+                        self.utils.scaleToResolution(layer.maximumScale())
+                    )
 
         else:
             for i in range(0, len(composition["layers"])):
@@ -3083,19 +3083,6 @@ class Layman(QObject):
         destLayer.dataProvider().addFeatures(feats)
         return destLayer
 
-    def setChunkSizeBigger(self):
-        self.CHUNK_SIZE = 2098152
-
-    def checkFileSizeLimit(self, size):
-        if size > 2000000000:
-            self.utils.showQgisBar(
-                [
-                    "Tato vrstva je větší než 2GB. Může být serverem odmítnuta.",
-                    "This layer is bigger than 2GB. It can be refused by server.",
-                ],
-                Qgis.Warning,
-            )
-
     def patchThread2(self, layer_name, data, id):
         for layer in QgsProject.instance().mapLayers().values():
             if layer.name() == layer_name:
@@ -3106,9 +3093,6 @@ class Layman(QObject):
         geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))
 
         if os.path.getsize(geoPath) > self.CHUNK_SIZE:
-            if os.path.getsize(geoPath) > 800000000:
-                self.checkFileSizeLimit(os.path.getsize(geoPath))
-                self.setChunkSizeBigger()
             self.postInChunks(layer_name, "patch")
         else:
             self.patchLayer(layer_name, data)
@@ -3136,9 +3120,6 @@ class Layman(QObject):
         geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))
 
         if os.path.getsize(geoPath) > self.CHUNK_SIZE:
-            if os.path.getsize(geoPath) > 800000000:
-                self.checkFileSizeLimit(os.path.getsize(geoPath))
-                self.setChunkSizeBigger()
             self.postInChunks(layer_name, "patch")
         else:
             response = self.patchLayer(layer_name, data)
@@ -3298,9 +3279,6 @@ class Layman(QObject):
                 .replace(r"/vsizip/", "")
             )
 
-        if os.path.getsize(path) > 800000000:
-            self.checkFileSizeLimit(os.path.getsize(path))
-            self.setChunkSizeBigger()
 
         externalFile = self.returnPathIfFileExists(path, ext)
         if os.path.getsize(path) > self.CHUNK_SIZE:
@@ -4286,6 +4264,16 @@ class Layman(QObject):
         else:
             return self.laymanUsername
 
+    def get_layer_uuids(self):
+        url = self.layman_api.get_layers_url(self.laymanUsername)
+        response = self.utils.requestWrapper("GET", url, payload=None, files=None)
+        layers = response.json()
+        return {
+            layer["name"]: layer.get("uuid")
+            for layer in layers
+            if "name" in layer and "uuid" in layer
+        }
+
     def addLayerToComposition(self, composition, layersList, currentSet):
         uri = self.URI.replace("/client", "")
         for layer in layersList:
@@ -4324,7 +4312,7 @@ class Layman(QObject):
                         "metadata": {},
                         "path": path,
                         "visibility": True,
-                        "workspace": self.laymanUsername,
+                        # "workspace": self.laymanUsername,
                         "opacity": layer.opacity(),
                         "title": layer.name(),
                         "className": self.vectorService,
@@ -4354,6 +4342,18 @@ class Layman(QObject):
                 if path == "root":
                     path = ""
                 for i in range(0, len(layers)):
+                    for i in range(0, len(layers)):
+                        inComposite = False
+                        if self.checkExistingLayer(layers[i].name()) and inComposite:
+                            if not self.isXYZ(layers[i].name()):
+                                self.postRequest(layers[i].name(), True)
+                        else:
+                            if self.isXYZ(layers[i].name()):
+                                pass
+                            else:
+                                self.postRequest(layers[i].name(), True)
+                    layer_uuids = self.get_layer_uuids()
+                    uuid = layer_uuids.get(layer.name())
                     for item in currentSet:
                         if self.utils.removeUnacceptableChars(
                             item[0]
@@ -4380,7 +4380,7 @@ class Layman(QObject):
                                         "metadata": {},
                                         "path": path,
                                         "visibility": True,
-                                        "workspace": self.laymanUsername,
+                                        # "workspace": self.laymanUsername,
                                         "opacity": layer.opacity(),
                                         "title": str(layers[i].name()),
                                         "className": self.rasterService,
@@ -4395,7 +4395,7 @@ class Layman(QObject):
                                         ),
                                         "url": wmsUrl,
                                         "params": {
-                                            "LAYERS": str(layerName),
+                                            "LAYERS": "l_" + str(uuid),
                                             "INFO_FORMAT": "application/vnd.ogc.gml",
                                             "FORMAT": "image/png",
                                             "VERSION": "1.3.0",
@@ -4416,7 +4416,7 @@ class Layman(QObject):
                                 "metadata": {},
                                 "path": path,
                                 "visibility": True,
-                                "workspace": self.laymanUsername,
+                                # "workspace": self.laymanUsername,
                                 "opacity": layer.opacity(),
                                 "title": str(layers[i].name()),
                                 "className": self.vectorService,
@@ -4430,7 +4430,7 @@ class Layman(QObject):
                                         layers[i].maximumScale()
                                     )
                                 ),
-                                "name": str(layerName),
+                                "name": "l_" + str(uuid),
                                 "protocol": {
                                     "format": self.vectorProtocol,
                                     "url": wmsUrl,
@@ -4447,7 +4447,7 @@ class Layman(QObject):
                                 "metadata": {},
                                 "path": path,
                                 "visibility": True,
-                                "workspace": self.laymanUsername,
+                                # "workspace": self.laymanUsername,
                                 "opacity": layer.opacity(),
                                 "title": str(layers[i].name()),
                                 "className": self.rasterService,
@@ -4462,7 +4462,7 @@ class Layman(QObject):
                                 ),
                                 "url": wmsUrl,
                                 "params": {
-                                    "LAYERS": str(layerName),
+                                    "LAYERS": str(uuid),
                                     "INFO_FORMAT": "application/vnd.ogc.gml",
                                     "FORMAT": "image/png",
                                     "VERSION": "1.3.0",
@@ -4474,17 +4474,6 @@ class Layman(QObject):
                         )
                     successful = successful + 1
                 print("saving layer records to composition")
-
-                for i in range(0, len(layers)):
-                    inComposite = False
-                    if self.checkExistingLayer(layers[i].name()) and inComposite:
-                        if not self.isXYZ(layers[i].name()):
-                            self.postRequest(layers[i].name(), True)
-                    else:
-                        if self.isXYZ(layers[i].name()):
-                            pass
-                        else:
-                            self.postRequest(layers[i].name(), True)
         self.processingRequest = False
 
     def getProgressBarStep(self, count):
@@ -5273,10 +5262,18 @@ class Layman(QObject):
             Qgis.Success,
         )
 
-    def read_in_chunks(
-        self, file_object
-    ):  ## cca 1MB chunk převzato z laymana test klienta
-        chunk_size = self.CHUNK_SIZE
+    def read_in_chunks(self, file_object):
+        file_object.seek(0, os.SEEK_END)
+        file_size = file_object.tell()
+        file_object.seek(0)
+
+        max_chunks = 999
+        default_chunk_size = self.CHUNK_SIZE
+
+        if file_size <= default_chunk_size * max_chunks:
+            chunk_size = default_chunk_size
+        else:
+            chunk_size = (file_size + max_chunks - 1) // max_chunks
         while True:
             data = file_object.read(chunk_size)
             if not data:

@@ -572,9 +572,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             while iterator.value():
                 item = iterator.value()
                 item.setCheckState(0, 2)
-                self.layerServices[
-                    self.utils.removeUnacceptableChars(item.text(0))
-                ] = self.layman.rasterService
+                self.layerServices[self.utils.removeUnacceptableChars(item.text(0))] = (
+                    self.layman.rasterService
+                )
                 iterator += 1
 
         if not checked:
@@ -853,13 +853,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         for item in self.currentSet:
             service = self.layman.instance.getServiceForLayer(item[0])
             if service in ("HSLayers.Layer.WMS", "WMS") and item[1] == "WFS":
-                self.layerServices[
-                    self.utils.removeUnacceptableChars(item[0])
-                ] = self.layman.wms_wfs3(item[0], i, item[1])
+                self.layerServices[self.utils.removeUnacceptableChars(item[0])] = (
+                    self.layman.wms_wfs3(item[0], i, item[1])
+                )
             if service in ("OpenLayers.Layer.Vector", "Vector") and item[1] == "WMS":
-                self.layerServices[
-                    self.utils.removeUnacceptableChars(item[0])
-                ] = self.layman.wms_wfs3(item[0], i, item[1])
+                self.layerServices[self.utils.removeUnacceptableChars(item[0])] = (
+                    self.layman.wms_wfs3(item[0], i, item[1])
+                )
             i = i + 1
 
         duplicityCheck = self.saveMapLayers()

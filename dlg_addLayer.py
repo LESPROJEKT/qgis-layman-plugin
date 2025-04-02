@@ -291,7 +291,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def getRoles(self):
         url = self.layman_api.get_roles_url()
-        r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
+        r = self.utils.requestWrapper("GET", url, payload=None, files=None)
         res = self.utils.fromByteToJson(r.content)
         return res
 
