@@ -4822,7 +4822,6 @@ class Layman(QObject):
         legend="0",
     ):
         layerName = self.parseWMSlayers(layerName)
-
         epsg = QgsProject.instance().crs().authid()
         url = url.replace("%2F", "/").replace("%3A", ":")
         quri = QgsDataSourceUri()
@@ -4896,7 +4895,6 @@ class Layman(QObject):
     ):
         layerName = self.utils.removeUnacceptableChars(layerName)
         print("XYZ")
-        epsg = "EPSG:4326"
         url = url.replace("%2F", "/").replace("%3A", ":")
         rlayer = QgsRasterLayer("type=xyz&url=" + url, layerNameTitle, "wms")
         print("xyz valid? " + str(rlayer.isValid()))
@@ -5017,7 +5015,6 @@ class Layman(QObject):
         minRes=0,
         maxRes=None,
     ):
-        # layerName = self.utils.removeUnacceptableChars(layerName)
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()
         url = url.replace("%2F", "/").replace("%3A", ":").replace("/client", "")
         r = url.split("/")
@@ -5363,7 +5360,6 @@ class Layman(QObject):
         r = requests.patch(
             url=userEndpoint, data=user, headers=self.utils.getAuthHeader(self.authCfg)
         )
-        res = r.text
         try:
             res = self.utils.fromByteToJson(r.content)
         except:
@@ -5436,7 +5432,6 @@ class Layman(QObject):
         print("connection lost")
         self.disableEnvironment()
         self.textbox.setText("Layman")
-        ## flush variables
         self.menu_UserInfoDialog.setEnabled(True)
         self.laymanUsername = ""
         self.isAuthorized = False

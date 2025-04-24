@@ -1236,8 +1236,6 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 ["Kompozice je poškozena!", "Map composition is corrupted!"]
             )
             return
-        groupName = ""
-        threads = list()
         i = 1
         groups = list()
         groupPositions = list()
@@ -1297,13 +1295,11 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         groupName = data["layers"][x]["path"]
                     except:
                         groupName = ""
-                    wmsName = data["layers"][x]["params"]["LAYERS"]
                     layerNameTitle = data["layers"][x]["title"]
                     repairUrl = data["layers"][x]["url"]
                     repairUrl = self.utils.convertUrlFromHex(repairUrl)
                     everyone = False
                     try:
-                        workspace = repairUrl.split("geoserver/")[1].split("_wms")[0]
                         r = requests.get(
                             url=url, headers=self.utils.getAuthHeader(self.authCfg)
                         )
@@ -1360,8 +1356,6 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     format = "XYZ"
                     epsg = "EPSG:4326"
                     layerNameTitle = data["layers"][x]["title"]
-                    repairUrl = data["layers"][x]["url"]
-                    repairUrl = self.utils.convertUrlFromHex(repairUrl)
                     if groupName != "":
                         groups.append([groupName, len(data["layers"]) - i])
                         groupsSet.add(groupName)
@@ -1479,7 +1473,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressDone.emit()
 
     def getCompositionWorkspace(self, name):
-        url = url = self.layman_api.get_get_all_maps_url()
+        url = self.layman_api.get_get_all_maps_url()
         r = self.utils.requestWrapper("GET", url, payload=None, files=None)
         data = r.json()
         for row in range(0, len(data)):

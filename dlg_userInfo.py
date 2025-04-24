@@ -72,7 +72,8 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
         proxy_style = ProxyStyle(app.style())
         self.layman = layman
         self.setStyle(proxy_style)
-        self.layman_api = LaymanAPI(URI)
+        if URI:
+            self.layman_api = LaymanAPI(URI)
         self.setUi()
 
     def setUi(self):
