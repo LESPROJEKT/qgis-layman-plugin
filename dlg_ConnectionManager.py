@@ -157,28 +157,34 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_NoLogin.clicked.connect(
             lambda: self.withoutLogin(servers, self.comboBox_server.currentIndex())
         )
-        self.pushButton_Continue.setEnabled(False)
-        registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
-        self.comboBox_server.currentTextChanged.connect(self.setReg)
+        from pathlib import Path
+        from PyQt5.QtCore import Qt
+
+        registerSuffix = "/accounts/signup/"
+
+        self.label_sign.setTextInteractionFlags(Qt.TextBrowserInteraction)
         self.label_sign.setOpenExternalLinks(True)
-        if self.layman.locale == "cs":
-            self.label_sign.setText(
-                '<a href="https://'
-                + self.comboBox_server.currentText()
-                .replace("https://", "")
-                .replace("home", "")
-                + registerSuffix
-                + '">Registrovat</a>'
-            )
-        else:
-            self.label_sign.setText(
-                '<a href="https://'
-                + self.comboBox_server.currentText()
-                .replace("https://", "")
-                .replace("home", "")
-                + registerSuffix
-                + '">Register</a>'
-            )
+
+        server_file = Path(__file__).with_name("server_list.txt")
+        self.servers = {}
+        with server_file.open(encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                parts = [p.strip() for p in line.split(",")]
+                url, alias = parts[0].rstrip("/"), parts[-1]
+                self.servers[alias] = url
+                self.comboBox_server.addItem(alias)
+
+        def setReg():
+            alias = self.comboBox_server.currentText()
+            base_url = self.servers.get(alias, alias)
+            full_url = f"{base_url}{registerSuffix}"
+            text = "Registrovat" if self.layman.locale == "cs" else "Register"
+            self.label_sign.setText(f'<a href="{full_url}">{text}</a>')
+
+        self.comboBox_server.currentTextChanged.connect(setReg)
+        setReg()
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.pushButton_logout.clicked.connect(lambda: self.logout())
 
