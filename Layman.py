@@ -1763,64 +1763,29 @@ class Layman(QObject):
                     return self.rasterService
 
     def setup_oauth(self, authcfg_id, authcfg_name):
-        if (
-            authcfg_id != "7f22y3f"
-            and authcfg_id != "7f22y3d"
-            and authcfg_id != "7f22y3e"
-            and authcfg_id != "7f22y3g"
-            and authcfg_id != "a67e5fc"
-            and authcfg_id != "7f22y3h"
-            and authcfg_id != "b89uuEf"
-            and authcfg_id != "c67effd"
-            and authcfg_id != "a67e5fe"
-        ):  ## prozatím pro test toto id ma wagtail
-            cfgjson = {
-                "accessMethod": 0,
-                "apiKey": "",
-                "clientId": self.client_id,
-                "clientSecret": self.client_secret,
-                "configType": 1,
-                "description": "",
-                "grantFlow": 0,
-                "name": "auth",
-                "objectName": "",
-                "password": "",
-                "persistToken": False,
-                "queryPairs": {},
-                "redirectPort": int(self.port),
-                "redirectUrl": "client/oauthn2-liferay/callback",
-                "refreshTokenUrl": "",
-                "requestTimeout": 6,
-                "requestUrl": self.server + "/o/oauth2/authorize",
-                "scope": "",
-                "tokenUrl": self.server + "/o/oauth2/token",
-                "username": "",
-                "version": 1,
-            }
-        else:
-            cfgjson = {
-                "accessMethod": 0,
-                "apiKey": "",
-                "clientId": self.client_id,
-                "clientSecret": self.client_secret,
-                "configType": 1,
-                "description": "",
-                "grantFlow": 0,
-                "name": "auth",
-                "objectName": "",
-                "password": "",
-                "persistToken": False,
-                "queryPairs": {},
-                "redirectPort": int(self.port),
-                "redirectUrl": "qgis/oauthn2/callback",
-                "refreshTokenUrl": "",
-                "requestTimeout": 6,
-                "requestUrl": self.server + "/o/authorize",
-                "scope": "",
-                "tokenUrl": self.server + "/o/token/",
-                "username": "",
-                "version": 1,
-            }
+        cfgjson = {
+            "accessMethod": 0,
+            "apiKey": "",
+            "clientId": self.client_id,
+            "clientSecret": self.client_secret,
+            "configType": 1,
+            "description": "",
+            "grantFlow": 0,
+            "name": "auth",
+            "objectName": "",
+            "password": "",
+            "persistToken": False,
+            "queryPairs": {},
+            "redirectPort": int(self.port),
+            "redirectUrl": "qgis/oauthn2/callback",
+            "refreshTokenUrl": "",
+            "requestTimeout": 6,
+            "requestUrl": self.server + "/o/authorize",
+            "scope": "",
+            "tokenUrl": self.server + "/o/token/",
+            "username": "",
+            "version": 1,
+        }
         if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
             authConfig = QgsAuthMethodConfig("OAuth2")
             authConfig.setId(authcfg_id)
