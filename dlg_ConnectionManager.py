@@ -28,6 +28,8 @@ from .layman_utils import ProxyStyle
 from qgis.core import QgsSettings, QgsApplication, QgsProject
 from PyQt5.QtWidgets import QPushButton
 import threading
+from PyQt5.QtWidgets import QDialog, QVBoxLayout
+from .dlg_server_form import ServerForm
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -60,6 +62,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             name, type_conversion_ok = proj.readEntry("Layman", "Name", "")
         self.utils.recalculateDPI()
         self.pushButton_Connect.setEnabled(False)
+        self.pushButton_Add.clicked.connect(self.open_server_form)
         path = self.layman.plugin_dir + os.sep + "server_list.txt"
         servers = self.utils.csvToArray(path)
 
@@ -272,3 +275,20 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.instance = None
         threading.Thread(target=lambda: self.layman.fillCompositionDict()).start()
         self.close()
+
+    def open_server_form(self):
+        self.server_form_dialog = ServerFormDialog(parent=self)
+        self.server_form_dialog.show()
+
+
+class ServerFormDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Manage Servers")
+        self.resize(400, 600)
+
+        layout = QVBoxLayout(self)
+        self.form = ServerForm(parent=self)
+        layout.addWidget(self.form)
+
+        self.setLayout(layout)

@@ -147,6 +147,19 @@
      <normaloff>icons/user_not_logged.png</normaloff>icons/user_not_logged.png</iconset>
    </property>
   </widget>
+  <widget class="QPushButton" name="pushButton_Add">
+   <property name="geometry">
+    <rect>
+     <x>552</x>
+     <y>32</y>
+     <width>88</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Add</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
