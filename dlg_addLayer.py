@@ -89,9 +89,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressDone.connect(self._onProgressDone)
 
     def setPermissionsWidget(self, option):
-        self.page1.setVisible(option)
-        self.page2.setVisible(not option)
-        self.page1.setFixedHeight(700)
+        if option:
+            self.stackedWidget.setCurrentWidget(self.page1)
+        else:
+            self.stackedWidget.setCurrentWidget(self.page2)
         if option == True:
             names = list()
             for i in range(0, len(self.treeWidget.selectedItems())):
@@ -106,8 +107,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.permissionsConnected = False
         self.connectEvents()
         self.utils.recalculateDPI()
-        self.pushButton_layerRedirect.hide()
-        self.pushButton_layerRedirect.setEnabled(False)
         self.pushButton_urlWfs.setEnabled(False)
         self.pushButton_urlWms.setEnabled(False)
         self.pushButton.setEnabled(False)
@@ -134,9 +133,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             lambda: self.callDeleteLayer(
                 self.treeWidget.selectedItems(), self.layerNamesDict
             )
-        )
-        self.pushButton_layerRedirect.clicked.connect(
-            lambda: self.layerInfoRedirect(self.treeWidget.selectedItems()[0].text(0))
         )
         self.pushButton.clicked.connect(
             lambda: self.readLayerJson(self.treeWidget.selectedItems(), "WMS")
@@ -201,8 +197,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.checkBox_own.setEnabled(True)
         else:
             self.checkBox_own.setEnabled(False)
-
-        self.label_loading.show()
         self.show()
         result = self.exec_()
 
@@ -767,18 +761,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.progressBar_loader.show()
             threading.Thread(target=lambda: self.layerDeleteThread(name)).start()
 
-    def layerInfoRedirect(self, name):
-        url = self.layman_api.get_layer_url(self.laymanUsername, name)
-        response = self.utils.requestWrapper("GET", url, payload=None, files=None)
-        r = self.utils.fromByteToJson(response.content)
-        try:
-            url = r["metadata"]["record_url"]
-            webbrowser.open(url, new=2)  ## redirect na micku pro více info
-        except:
-            self.utils.emitMessageBox.emit(
-                ["Odkaz není k dispozici.", "Link is unavailable."]
-            )
-
     def copyLayerUrl(self, name, workspace):
         url = self.layman_api.get_layer_url(
             workspace, self.utils.removeUnacceptableChars(name)
@@ -998,7 +980,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton.setEnabled(True)
         self.pushButton_urlWfs.setEnabled(True)
         self.pushButton_urlWms.setEnabled(True)
-        self.pushButton_layerRedirect.setEnabled(True)
         self.checkSelectedCount()
         self.checkServiceButtons()
 
