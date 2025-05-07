@@ -59,7 +59,7 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="page1">
         <property name="sizePolicy">
@@ -330,7 +330,7 @@
        </property>
        <property name="icon">
         <iconset>
-         <normaloff>../../../../../../../../../../../../../../../../.designer/backup/icons/share_FILL0_wght500_GRAD0_opsz24.png</normaloff>../../../../../../../../../../../../../../../../.designer/backup/icons/share_FILL0_wght500_GRAD0_opsz24.png</iconset>
+         <normaloff>icons/share_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/share_FILL0_wght500_GRAD0_opsz24.png</iconset>
        </property>
       </widget>
      </item>
@@ -341,7 +341,7 @@
        </property>
        <property name="icon">
         <iconset>
-         <normaloff>../../../../../../../../../../../../../../../../.designer/backup/icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>../../../../../../../../../../../../../../../../.designer/backup/icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
+         <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
        </property>
       </widget>
      </item>

@@ -100,8 +100,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.showQgisBar.connect(self.utils.showQgisBar)
 
     def setPermissionsWidget(self, option):
-        self.page1.setVisible(not option)
-        self.page2.setVisible(option)
+        if option:
+            self.stackedWidget.setCurrentWidget(self.page1)
+        else:
+            self.stackedWidget.setCurrentWidget(self.page2)
         if option == True:
             names = list()
             self.setPermissionsUI(
@@ -115,8 +117,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             lambda: self.setPermissionsWidget(True)
         )
         self.pushButton_back.clicked.connect(lambda: self.setPermissionsWidget(False))
-        self.utils.recalculateDPI()
-        self.label_info.hide()
+        self.utils.recalculateDPI() 
         self.treeWidget.itemClicked.connect(
             lambda: threading.Thread(
                 target=lambda: self.showThumbnailMap(
@@ -168,8 +169,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.mapDeletedSuccessfully.emit()
         self.show()
         self.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl(True))
-        self.progressBar.show()
-        self.label_loading.show()
+        self.progressBar.show()      
         if not self.isAuthorized:
             self.label_noUser.show()
         try:
@@ -788,8 +788,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         for row in range(0, len(dataAll)):
             self.compositionDict[dataAll[row]["name"]] = dataAll[row]["title"]
 
-    def enableLoadMapButtons(self, item):
-        self.pushButton_mapWFS.setEnabled(True)
+    def enableLoadMapButtons(self, item):  
         self.pushButton_map.setEnabled(True)
         self.pushButton_copyUrl.setEnabled(True)
 
