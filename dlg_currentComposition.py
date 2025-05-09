@@ -112,8 +112,36 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressStart.connect(self._onProgressStart)
         self.onRefreshCurrentForm.connect(self.on_layers_removed)
         self.qfieldUpdate.connect(self.UpdateQfield)
+    def setStackWidget(self, option: str, refresh: bool = True) -> None:
+   
+        page_map = {
+            "main":        self.page1,
+            "permissions": self.page2,
+            "metadata":    self.page4,
+            "new":         self.page3,
+            "props":       self.page5,
+        }
+        if option not in page_map:
+            QgsMessageLog.logMessage(f"setStackWidget: neznámá volba '{option}'",
+                                    "Layman-plugin", Qgis.Warning)
+            return       
+        self.stackedWidget.setCurrentWidget(page_map[option])   
+        if option == "main":
+            if refresh:
+                self.refreshCurrentForm()
+            else:
+                self.setVisibilityForCurrent(True)
+        elif option == "permissions":           
+            self.setPermissionsUI(self.layman.current)
+        elif option == "metadata":
+            self.setMetadataUI()
+        elif option == "new":
+            self.setNewUI()
+        elif option == "props":
+            self.setLayerPropertiesUI()
 
-    def setStackWidget(self, option, refresh=True):
+
+    def setStackWidget2(self, option, refresh=True):
         if option == "main":
             self.page1.setVisible(True)
             self.page2.setVisible(False)
