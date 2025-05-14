@@ -117,7 +117,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             lambda: self.setPermissionsWidget(True)
         )
         self.pushButton_back.clicked.connect(lambda: self.setPermissionsWidget(False))
-        self.utils.recalculateDPI() 
+        self.utils.recalculateDPI()
         self.treeWidget.itemClicked.connect(
             lambda: threading.Thread(
                 target=lambda: self.showThumbnailMap(
@@ -169,7 +169,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.mapDeletedSuccessfully.emit()
         self.show()
         self.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl(True))
-        self.progressBar.show()      
+        self.progressBar.show()
         if not self.isAuthorized:
             self.label_noUser.show()
         try:
@@ -788,7 +788,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         for row in range(0, len(dataAll)):
             self.compositionDict[dataAll[row]["name"]] = dataAll[row]["title"]
 
-    def enableLoadMapButtons(self, item):  
+    def enableLoadMapButtons(self, item):
         self.pushButton_map.setEnabled(True)
         self.pushButton_copyUrl.setEnabled(True)
 
