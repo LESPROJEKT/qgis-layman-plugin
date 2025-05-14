@@ -174,7 +174,6 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
                 parts = [p.strip() for p in line.split(",")]
                 url, alias = parts[0].rstrip("/"), parts[-1]
                 self.servers[alias] = url
-                self.comboBox_server.addItem(alias)
 
         def setReg():
             alias = self.comboBox_server.currentText()
