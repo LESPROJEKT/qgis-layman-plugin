@@ -1410,7 +1410,7 @@ class Layman(QObject):
                     return self.rasterService
     def setup_oauth(self, authcfg_id, authcfg_name):
       
-        if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e' and authcfg_id != '7f22y3g' and authcfg_id != 'a67e5fc' and authcfg_id != '7f22y3h' and authcfg_id !='b89uuEf' and authcfg_id!='c67effd' and authcfg_id!='a67e5fe': ## prozatím pro test toto id ma wagtail
+        if authcfg_id != '7f22y3f' and authcfg_id != '7f22y3d' and authcfg_id != '7f22y3e' and authcfg_id != '7f22y3g' and authcfg_id != 'a67e5fc' and authcfg_id != '7f22y3h' and authcfg_id !='b89uuEf' and authcfg_id!='c67effd' and authcfg_id!='a67e5fe' and authcfg_id!='a67e5ff': ## prozatím pro test toto id ma wagtail
             cfgjson = {
             "accessMethod": 0,
             "apiKey": "",
