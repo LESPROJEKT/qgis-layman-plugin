@@ -401,7 +401,7 @@ class LaymanUtils(QObject):
         layerName = self.removeUnacceptableChars(layerName)        
         epsg = self.iface.mapCanvas().mapSettings().destinationCrs().authid()       
         uri = self.URI+"/geoserver/"+workspace+"/ows?srsname="+epsg+"&typename="+workspace+":"+layerName+"&restrictToRequestBBOX=1&pagingEnabled=True&version=auto&request=GetFeature&service=WFS"
-        url = url.replace("%2F", "/").replace("%3A",":").replace("/client","")
+        url = url.replace("%2F", "/").replace("%3A",":")
         r = url.split("/")
         acc = (r[len(r)-2])
         quri = QgsDataSourceUri()
