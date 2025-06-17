@@ -68,7 +68,6 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman = layman
         self.pushButton_CreateCompositionConnected = False
         self.layerServices = {}
-        app = QtWidgets.QApplication.instance() 
         main_window = self.layman.iface.mainWindow() 
         desktop = QDesktopWidget()
         screen_rect = desktop.screenGeometry(main_window)
@@ -79,8 +78,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.move(dialog_rect.topLeft())
         # set to top flag
         #self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)        
-        proxy_style = ProxyStyle(app.style())
-        self.setStyle(proxy_style)
+        app = QtWidgets.QApplication.instance()
+        if app and app.style():
+            try:
+                proxy_style = ProxyStyle(app.style())
+                self.setStyle(proxy_style)
+            except Exception as e:
+                import sys
+                import traceback
+                print(f"[Layman] ProxyStyle was not set: {e}", file=sys.stderr)
+                traceback.print_exc()
         self.setupUi(self)
         self.globalRead = {}
         self.globalWrite = {}  

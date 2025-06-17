@@ -1197,49 +1197,61 @@ QPushButton::indicator {
        
         for new_layer in layers_to_add:
             project.addMapLayer(new_layer)
-class ProxyStyle(QtWidgets.QProxyStyle):    
+
+
+class ProxyStyle(QtWidgets.QProxyStyle):
     def drawControl(self, element, option, painter, widget=None):
+        icon = None
         if element == QtWidgets.QStyle.CE_PushButtonLabel:
-            icon = QtGui.QIcon(option.icon)
-            option.icon = QtGui.QIcon()     
-        super(ProxyStyle, self).drawControl(element, option, painter, widget)
-        if element == QtWidgets.QStyle.CE_PushButtonLabel:
-            if not icon.isNull():
+            try:
+                icon = QtGui.QIcon(option.icon) if option.icon else QtGui.QIcon()
+                option.icon = QtGui.QIcon()
+            except Exception:
+                icon = QtGui.QIcon()
+
+        try:
+            super().drawControl(element, option, painter, widget)
+        except Exception:
+            return  
+
+        if element == QtWidgets.QStyle.CE_PushButtonLabel and icon and not icon.isNull():
+            try:
                 iconSpacing = 4
-                mode = (
-                    QtGui.QIcon.Normal
-                    if option.state & QtWidgets.QStyle.State_Enabled
-                    else QtGui.QIcon.Disabled
-                )
-                if (
-                    mode == QtGui.QIcon.Normal
-                    and option.state & QtWidgets.QStyle.State_HasFocus
-                ):
+                mode = QtGui.QIcon.Normal if option.state & QtWidgets.QStyle.State_Enabled else QtGui.QIcon.Disabled
+                if mode == QtGui.QIcon.Normal and option.state & QtWidgets.QStyle.State_HasFocus:
                     mode = QtGui.QIcon.Active
-                state = QtGui.QIcon.Off
-                if option.state & QtWidgets.QStyle.State_On:
-                    state = QtGui.QIcon.On
-                window = widget.window().windowHandle() if widget is not None else None   
-                size = PyQt5.QtCore.QSize(15, 15)
+                state = QtGui.QIcon.On if option.state & QtWidgets.QStyle.State_On else QtGui.QIcon.Off
+
+                window = None
+                if widget and hasattr(widget, "window") and widget.window():
+                    windowHandle = widget.window().windowHandle()
+                    if windowHandle:
+                        window = windowHandle
+
+                size = QtCore.QSize(15, 15)
                 pixmap = icon.pixmap(window, size, mode, state)
-                pixmapWidth = pixmap.width() / pixmap.devicePixelRatio()
-                pixmapHeight = pixmap.height() / pixmap.devicePixelRatio()
-                iconRect = QtCore.QRect(
-                    QtCore.QPoint(), QtCore.QSize(int(pixmapWidth), int(pixmapHeight))
-                )
+                if pixmap.isNull():
+                    return
+
+                dpr = pixmap.devicePixelRatio() or 1.0
+                pixmapWidth = pixmap.width() / dpr
+                pixmapHeight = pixmap.height() / dpr
+
+                iconRect = QtCore.QRect(QtCore.QPoint(), QtCore.QSize(int(pixmapWidth), int(pixmapHeight)))
                 iconRect.moveCenter(option.rect.center())
                 iconRect.moveLeft(option.rect.left() + iconSpacing)
                 iconRect = self.visualRect(option.direction, option.rect, iconRect)
-                iconRect.translate(
-                    self.proxy().pixelMetric(
-                        QtWidgets.QStyle.PM_ButtonShiftHorizontal, option, widget
-                    ),
-                    self.proxy().pixelMetric(
-                        QtWidgets.QStyle.PM_ButtonShiftVertical, option, widget
-                    ),
-                )
-                painter.drawPixmap(iconRect, pixmap)  
-                              
+
+                dx = self.proxy().pixelMetric(QtWidgets.QStyle.PM_ButtonShiftHorizontal, option, widget) if self.proxy() else 0
+                dy = self.proxy().pixelMetric(QtWidgets.QStyle.PM_ButtonShiftVertical, option, widget) if self.proxy() else 0
+                iconRect.translate(dx, dy)
+
+                painter.drawPixmap(iconRect, pixmap)
+
+            except Exception:
+                return  
+
+
 
 class IconQfieldDelegate(QtWidgets.QStyledItemDelegate):
     def paint(self, painter, option, index):   

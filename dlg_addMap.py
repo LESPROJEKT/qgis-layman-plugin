@@ -63,9 +63,16 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.laymanUsername = laymanUsername
         self.URI = URI
         self.layman = layman
-        app = QtWidgets.QApplication.instance()     
-        proxy_style = ProxyStyle(app.style())
-        self.setStyle(proxy_style)
+        app = QtWidgets.QApplication.instance()
+        if app and app.style():
+            try:
+                proxy_style = ProxyStyle(app.style())
+                self.setStyle(proxy_style)
+            except Exception as e:
+                import sys
+                import traceback
+                print(f"[Layman] ProxyStyle was not set: {e}", file=sys.stderr)
+                traceback.print_exc()
         self.setupUi(self)      
         self.globalRead = {}
         self.page2.setGeometry(0, 0, 651, 531)
