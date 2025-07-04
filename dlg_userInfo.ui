@@ -159,6 +159,13 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="pushButton_upgrade_downgrade">
+       <property name="text">
+        <string>Upgrade/Downgrade</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="pushButton_delete_user">
        <property name="text">
         <string>Delete</string>

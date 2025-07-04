@@ -23,6 +23,8 @@
 """
 
 import os
+import io
+import configparser
 
 from PyQt5 import uic
 from PyQt5 import QtWidgets
@@ -46,6 +48,11 @@ FORM_CLASS, _ = uic.loadUiType(
 
 
 class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
+    MASTER_URL = "https://github.com/LESPROJEKT/qgis-layman-plugin/archive/master.zip"
+    BRANCH_3_0_URL = (
+        "https://github.com/LESPROJEKT/qgis-layman-plugin/archive/refs/heads/3.x.zip"
+    )
+
     def __init__(
         self,
         utils,
@@ -101,15 +108,43 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.layman.port = "7072"
                 self.comboBox_port.setCurrentIndex(2)
         self.comboBox_port.currentIndexChanged.connect(self.utils.setPortValue)
+
+        current_version = self.utils.getVersion()
+        version_parts = current_version.split(".")
+
+        if len(version_parts) >= 2 and int(version_parts[0]) >= 3:
+            self.pushButton_update.setText(self.tr("Update"))
+            self.pushButton_update.clicked.connect(
+                lambda: self.updatePlugin(self.BRANCH_3_0_URL)
+            )
+            self.pushButton_upgrade_downgrade.setText(self.tr("Downgrade"))
+            self.pushButton_upgrade_downgrade.clicked.connect(
+                lambda: self.upgradeDowngradePlugin(self.MASTER_URL, "downgrade")
+            )
+        else:
+            self.pushButton_update.setText(self.tr("Update"))
+            self.pushButton_update.clicked.connect(
+                lambda: self.updatePlugin(self.MASTER_URL)
+            )
+            self.pushButton_upgrade_downgrade.setText(self.tr("Upgrade"))
+            self.pushButton_upgrade_downgrade.clicked.connect(
+                lambda: self.upgradeDowngradePlugin(self.BRANCH_3_0_URL, "upgrade")
+            )
+
         if self.server != None and self.laymanUsername != "":
             userEndpoint = self.layman_api.get_current_user_url()
             r = self.utils.requestWrapper("GET", userEndpoint, payload=None, files=None)
             res = r.text
             res = self.utils.fromByteToJson(r.content)
-            versionCheck = self.utils.checkVersion()
-            self.pushButton_update.clicked.connect(
-                lambda: self.updatePlugin(versionCheck[1])
-            )
+
+            # Check version availability based on current plugin version
+            if len(version_parts) >= 2 and int(version_parts[0]) >= 3:
+                # For 3.x versions, check 3.x branch
+                versionCheck = self.checkVersionForBranch("3.x")
+            else:
+                # For 2.x versions, check master branch
+                versionCheck = self.checkVersionForBranch("master")
+
             if self.isAuthorized:
                 self.label_layman.setText(res["username"])
                 self.label_agrihub.setText(res["claims"]["email"])
@@ -128,81 +163,162 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.pushButton_update.setEnabled(False)
         else:
             self.label_version.setText(self.utils.getVersion())
-            versionCheck = self.utils.checkVersion()
+            if len(version_parts) >= 2 and int(version_parts[0]) >= 3:
+                versionCheck = self.checkVersionForBranch("3.x")
+            else:
+                versionCheck = self.checkVersionForBranch("master")
+
             self.label_avversion.setText(versionCheck[1])
             if versionCheck[0] == True:
                 self.pushButton_update.setEnabled(False)
-            self.pushButton_update.clicked.connect(
-                lambda: self.updatePlugin(versionCheck[1])
-            )
         self.pushButton_close.clicked.connect(lambda: self.close())
 
-    def updatePlugin(self, version):
-        if len(version.split(".")) > 2:
-            if self.layman.locale == "cs":
-                msgbox = QMessageBox(
-                    QMessageBox.Question,
-                    "Aktualizace pluginu",
-                    "Tato verze pluginu není v QGIS repozitáři a může obsahovat nové netestované funkcionality. Chcete opravdu instalovat tuto verzi?",
-                )
-            else:
-                msgbox = QMessageBox(
-                    QMessageBox.Question,
-                    "Plugin update",
-                    "This version of the plugin is not included in the QGIS repository and may contain new untested functionalities. Do you really want to install this version?",
-                )
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            reply = msgbox.exec()
-            if reply == QMessageBox.No:
-                return
-        url = "https://github.com/LESPROJEKT/qgis-layman-plugin/archive/master.zip"
-        if not self.checkQgisVersion():
-            if self.layman.locale == "cs":
-                msgbox = QMessageBox(
-                    QMessageBox.Question,
-                    "Aktualizace pluginu",
-                    "Plugin vyžaduje verzi QGIS 3.26 a vyšší. Chcete přesto pokračovat?",
-                )
-            else:
-                msgbox = QMessageBox(
-                    QMessageBox.Question,
-                    "Plugin update",
-                    "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?",
-                )
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
-            reply = msgbox.exec()
-            if reply == QMessageBox.No:
-                return
-        self.installPlugin(url)
+    def upgradeDowngradePlugin(self, url, action_type):
+        current_version = self.utils.getVersion()
+        version_parts = current_version.split(".")
 
-    def installPlugin(self, url):
+        if not self.checkQgisVersion():
+            msgbox = QMessageBox(
+                QMessageBox.Question,
+                self.tr("Plugin update"),
+                self.tr(
+                    "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?"
+                ),
+            )
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if reply == QMessageBox.No:
+                return
+
+        if action_type == "downgrade":
+            msgbox = QMessageBox(
+                QMessageBox.Question,
+                self.tr("Plugin downgrade"),
+                self.tr(
+                    f"Do you want to downgrade the plugin from version {current_version} to version 2.x?"
+                ),
+            )
+        else:
+            msgbox = QMessageBox(
+                QMessageBox.Question,
+                self.tr("Plugin upgrade"),
+                self.tr(
+                    f"Do you want to upgrade the plugin from version {current_version} to version 3.x?"
+                ),
+            )
+
+        msgbox.addButton(QMessageBox.Yes)
+        msgbox.addButton(QMessageBox.No)
+        msgbox.setDefaultButton(QMessageBox.No)
+        reply = msgbox.exec()
+        if reply == QMessageBox.No:
+            return
+
+        self.installPlugin(url, action_type)
+
+    def updatePlugin(self, url):
+        current_version = self.utils.getVersion()
+        version_parts = current_version.split(".")
+
+        if not self.checkQgisVersion():
+            msgbox = QMessageBox(
+                QMessageBox.Question,
+                self.tr("Plugin update"),
+                self.tr(
+                    "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?"
+                ),
+            )
+            msgbox.addButton(QMessageBox.Yes)
+            msgbox.addButton(QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.No)
+            reply = msgbox.exec()
+            if reply == QMessageBox.No:
+                return
+
+        if len(version_parts) >= 2 and int(version_parts[0]) >= 3:
+            msgbox = QMessageBox(
+                QMessageBox.Question,
+                self.tr("Plugin update"),
+                self.tr(
+                    f"Do you want to update the plugin version {current_version} (3.x)?"
+                ),
+            )
+        else:
+            msgbox = QMessageBox(
+                QMessageBox.Question,
+                self.tr("Plugin update"),
+                self.tr(
+                    f"Do you want to update the plugin version {current_version} (2.x)?"
+                ),
+            )
+
+        msgbox.addButton(QMessageBox.Yes)
+        msgbox.addButton(QMessageBox.No)
+        msgbox.setDefaultButton(QMessageBox.No)
+        reply = msgbox.exec()
+        if reply == QMessageBox.No:
+            return
+
+        self.installPlugin(url, "update")
+
+    def installPlugin(self, url, action_type="update"):
         save_path = tempfile.gettempdir() + os.sep + "layman.zip"
         self.download_url(url, save_path)
 
         with ZipFile(save_path, "r") as zipObj:
             zipObj.extractall(tempfile.gettempdir())
-        src = tempfile.gettempdir() + os.sep + "qgis-layman-plugin-master"
 
-        self.copytree(src, self.layman.plugin_dir)
+        if "master.zip" in url:
+            extracted_dir = "qgis-layman-plugin-master"
+        elif "3.x.zip" in url:
+            extracted_dir = "qgis-layman-plugin-3.x"
+        else:
+            temp_dir = tempfile.gettempdir()
+            for item in os.listdir(temp_dir):
+                if item.startswith("qgis-layman-plugin-"):
+                    extracted_dir = item
+                    break
+            else:
+                self.utils.emitMessageBox.emit(
+                    [
+                        self.tr("Plugin was not updated!"),
+                        self.tr("Could not find extracted plugin directory"),
+                    ]
+                )
+                return
+
+        src = tempfile.gettempdir() + os.sep + extracted_dir
+
+        if not self.copytree(src, self.layman.plugin_dir):
+            return
+
         self.close()
         self.layman.disableEnvironment()
-        QMessageBox.information(
-            None, "Layman", "Layman plugin was updated. Please restart QGIS."
-        )
+
+        if action_type == "downgrade":
+            message = self.tr(
+                "Layman plugin was downgraded to version 2.x. Please restart QGIS."
+            )
+        elif action_type == "upgrade":
+            message = self.tr(
+                "Layman plugin was upgraded to version 3.x. Please restart QGIS."
+            )
+        else:
+            message = self.tr("Layman plugin was updated. Please restart QGIS.")
+
+        QMessageBox.information(None, self.tr("Layman"), message)
 
     def copytree(self, src, dst, symlinks=False, ignore=None):
         try:
             shutil.rmtree(dst)
             os.mkdir(dst)
-        except:
+        except Exception as e:
             self.utils.emitMessageBox.emit(
-                ["Plugin nebyl aktualizován!", "Plugin was not updated!"]
+                [self.tr("Plugin was not updated!"), self.tr("Plugin was not updated!")]
             )
-            return
+            return False
         for item in os.listdir(src):
             s = os.path.join(src, item)
             d = os.path.join(dst, item)
@@ -210,12 +326,35 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
                 shutil.copytree(s, d, symlinks, ignore)
             else:
                 shutil.copy2(s, d)
+        return True
 
     def download_url(self, url, save_path, chunk_size=128):
         r = requests.get(url, stream=True)
         with open(save_path, "wb") as fd:
             for chunk in r.iter_content(chunk_size=chunk_size):
                 fd.write(chunk)
+
+    def checkVersionForBranch(self, branch):
+        """Check version availability for specific branch"""
+        if branch == "3.x":
+            url = "https://raw.githubusercontent.com/LESPROJEKT/qgis-layman-plugin/3.x/metadata.txt"
+        else:  # master
+            url = "https://raw.githubusercontent.com/LESPROJEKT/qgis-layman-plugin/master/metadata.txt"
+
+        try:
+            r = requests.get(url)
+            buf = io.StringIO(r.text)
+            config = configparser.ConfigParser()
+            config.read_file(buf)
+            version = config.get("general", "version")
+            installedVersion = self.utils.getVersion()
+            if installedVersion == version:
+                return [True, version]
+            else:
+                return [False, version]
+        except Exception as e:
+            # If we can't check the version, assume update is available
+            return [False, "Unknown"]
 
     def checkQgisVersion(self):
         version = Qgis.QGIS_VERSION_INT
@@ -229,8 +368,10 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
     def delete_whole_user(self):
         reply = QMessageBox.question(
             None,
-            "Confirm Deletion",
-            "Are you sure you want to delete all your publications and your account?",
+            self.tr("Confirm Deletion"),
+            self.tr(
+                "Are you sure you want to delete all your publications and your account?"
+            ),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -241,8 +382,10 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
             if response.status_code == 200:
                 QMessageBox.information(
                     None,
-                    "Account Deleted",
-                    "Your account and all publications have been successfully deleted.",
+                    self.tr("Account Deleted"),
+                    self.tr(
+                        "Your account and all publications have been successfully deleted."
+                    ),
                 )
                 return
             else:
@@ -259,26 +402,32 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
                         )
                         QMessageBox.warning(
                             None,
-                            "Deletion Error",
-                            "Your account cannot be deleted because the following publications "
-                            "are shared with other readers:\n\n"
-                            f"{pub_list_str}\n\n"
-                            "Please remove or update permissions before deleting your account.",
+                            self.tr("Deletion Error"),
+                            self.tr(
+                                "Your account cannot be deleted because the following publications "
+                                "are shared with other readers:\n\n"
+                                f"{pub_list_str}\n\n"
+                                "Please remove or update permissions before deleting your account."
+                            ),
                         )
                     else:
                         QMessageBox.critical(
                             None,
-                            "Deletion Error",
-                            f"An error occurred while deleting your account.\n\n"
-                            f"Server returned status code: {response.status_code}\n"
-                            f"Details: {error_data}",
+                            self.tr("Deletion Error"),
+                            self.tr(
+                                f"An error occurred while deleting your account.\n\n"
+                                f"Server returned status code: {response.status_code}\n"
+                                f"Details: {error_data}"
+                            ),
                         )
 
                 except ValueError:
                     QMessageBox.critical(
                         None,
-                        "Deletion Error",
-                        f"An unexpected error occurred. Response text:\n{response.text}",
+                        self.tr("Deletion Error"),
+                        self.tr(
+                            f"An unexpected error occurred. Response text:\n{response.text}"
+                        ),
                     )
         else:
             print("User canceled deletion.")
