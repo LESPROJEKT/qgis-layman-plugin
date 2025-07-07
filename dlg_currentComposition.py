@@ -328,9 +328,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.hasOnlineLayers() and not self.utils.checkLayerSize():
             response = QMessageBox.question(
                 None,
-                self.tr("Převod do offline formátu"),
+                self.tr("Convert to offline format"),
                 self.tr(
-                    "Projekt obsahuje online vrstvy. Chcete je převést do offline formátu dle aktuální výřezu projektu?"
+                    "The project contains online layers. Do you want to convert them to an offline format based on the current project extent?"
                 ),
                 QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
             )

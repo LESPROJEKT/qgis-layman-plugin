@@ -55,13 +55,7 @@ class AddMickaDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressDone.emit()
         self.loadMickaMaps()
         self.pushButton_map.clicked.connect(lambda: self.progressBar_loader.show())
-        self.pushButton_map.clicked.connect(
-            lambda: self.layman.loadLayersMicka(
-                self.treeWidget.selectedItems()[0].text(0),
-                self.treeWidget.indexOfTopLevelItem(self.treeWidget.currentItem()),
-                self.mickaRet,
-            )
-        )
+        self.pushButton_map.clicked.connect(self.loadSelectedMickaMap)
         self.pushButton_stepLeft.clicked.connect(lambda: self.goLeft())
         self.pushButton_stepRight.clicked.connect(lambda: self.goRight())
         self.pushButton_search.clicked.connect(lambda: self.mickaSearch())
@@ -70,6 +64,26 @@ class AddMickaDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def connectEvents(self):
         self.progressDone.connect(self._onProgressDone)
+
+    def loadSelectedMickaMap(self):
+        selected_items = self.treeWidget.selectedItems()
+        if not selected_items:
+            self.progressBar_loader.hide()
+            self.utils.showQBar.emit(
+                [
+                    "Vyberte prosím mapu z katalogu",
+                    "Please select a map from the catalogue",
+                ],
+                Qgis.Warning,
+            )
+            return
+
+        selected_item = selected_items[0]
+        self.layman.loadLayersMicka(
+            selected_item.text(0),
+            self.treeWidget.indexOfTopLevelItem(selected_item),
+            self.mickaRet,
+        )
 
     def goLeft(self):
         print(self.cataloguePosition)
@@ -101,7 +115,6 @@ class AddMickaDialog(QtWidgets.QDialog, FORM_CLASS):
     def loadMickaMapsThread(self, query=""):
         uri = self.URI.replace("/client", "")
         if query == "":
-            # url = uri + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="+str(self.cataloguePosition)+"&sortby=&language=eng&template=report-layman"
             url = (
                 uri
                 + "/micka/csw/?request=GetRecords&query=type%3D%27application%27&format=text/json&MaxRecords=20&StartPosition="
@@ -109,7 +122,6 @@ class AddMickaDialog(QtWidgets.QDialog, FORM_CLASS):
                 + "&sortby=&language=eng"
             )
         else:
-            # url = uri + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"+query+"*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng&template=report-layman"
             url = (
                 uri
                 + "/micka/csw/?request=GetRecords&query=AnyText%20like%20%27*"
