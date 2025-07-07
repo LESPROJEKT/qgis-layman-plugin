@@ -158,12 +158,8 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             lambda: self.withoutLogin(servers, self.comboBox_server.currentIndex())
         )
         from pathlib import Path
-        from PyQt5.QtCore import Qt
 
         registerSuffix = "/accounts/signup/"
-
-        self.label_sign.setTextInteractionFlags(Qt.TextBrowserInteraction)
-        self.label_sign.setOpenExternalLinks(True)
 
         server_file = Path(__file__).with_name("server_list.txt")
         self.servers = {}
@@ -178,12 +174,15 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         def setReg():
             alias = self.comboBox_server.currentText()
             base_url = self.servers.get(alias, alias)
-            full_url = f"{base_url}{registerSuffix}"
-            text = "Registrovat" if self.layman.locale == "cs" else "Register"
-            self.label_sign.setText(f'<a href="{full_url}">{text}</a>')
+            self.current_register_url = f"{base_url}{registerSuffix}"
+            text = self.tr("Register")
+            self.pushButton_register.setText(text)
 
         self.comboBox_server.currentTextChanged.connect(setReg)
         setReg()
+
+        # Connect register button click
+        self.pushButton_register.clicked.connect(self.open_register_url)
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.pushButton_logout.clicked.connect(lambda: self.logout())
 
@@ -209,6 +208,10 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.utils.setAuthCfg(self.layman.authCfg)
         self.show()
 
+    def open_register_url(self):
+        if hasattr(self, "current_register_url"):
+            QDesktopServices.openUrl(QUrl(self.current_register_url))
+
     def checkUsername(self, name):
         n = name.split("@")
         if len(n[0]) > 0:
@@ -216,27 +219,6 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.layman.Agrimail = name
         else:
             self.pushButton_Connect.setEnabled(False)
-
-    def setReg(self):
-        registerSuffix = "/home?p_p_id=com_liferay_login_web_portlet_LoginPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&saveLastPath=false&_com_liferay_login_web_portlet_LoginPortlet_mvcRenderCommandName=%2Flogin%2Fcreate_account"
-        if self.layman.locale == "cs":
-            self.label_sign.setText(
-                '<a href="https://'
-                + self.comboBox_server.currentText()
-                .replace("https://", "")
-                .replace("home", "")
-                + registerSuffix
-                + '">Registrovat</a>'
-            )
-        else:
-            self.label_sign.setText(
-                '<a href="https://'
-                + self.comboBox_server.currentText()
-                .replace("https://", "")
-                .replace("home", "")
-                + registerSuffix
-                + '">Register</a>'
-            )
 
     def refreshAfterFailedLogin(self):
         self.pushButton_Connect.setEnabled(True)
@@ -265,6 +247,11 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.URI = None
         self.layman.instance = None
 
+        # Clear utils URI to prevent using old server URL in layman_api property
+        self.utils.URI = None
+        # Clear the cached layman_api instance
+        self.utils._layman_api = None
+
     def withoutLogin(self, servers, i):
         self.layman.menu_CurrentCompositionDialog.setEnabled(False)
         self.layman.isAuthorized = False
@@ -289,7 +276,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
 class ServerFormDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Manage Servers")
+        self.setWindowTitle(self.tr("Manage Servers"))
         self.resize(400, 600)
 
         layout = QVBoxLayout(self)
