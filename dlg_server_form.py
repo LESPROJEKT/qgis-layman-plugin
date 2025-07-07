@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QMessageBox,
 )
+from PyQt5.QtCore import QCoreApplication
 import os
 
 
@@ -24,7 +25,7 @@ class ServerForm(QWidget):
 
         self.combo = QComboBox()
         self.combo.currentIndexChanged.connect(self.on_combo_changed)
-        layout.addWidget(QLabel("Select server to edit:"))
+        layout.addWidget(QLabel(self.tr("Select server to edit:")))
         layout.addWidget(self.combo)
 
         self.server = QLineEdit()
@@ -34,24 +35,24 @@ class ServerForm(QWidget):
         self.cfg_id = QLineEdit()
         self.alias = QLineEdit()
 
-        layout.addWidget(QLabel("Server"))
+        layout.addWidget(QLabel(self.tr("Server")))
         layout.addWidget(self.server)
-        layout.addWidget(QLabel("Layman Server"))
+        layout.addWidget(QLabel(self.tr("Layman Server")))
         layout.addWidget(self.layman_server)
-        layout.addWidget(QLabel("Client ID"))
+        layout.addWidget(QLabel(self.tr("Client ID")))
         layout.addWidget(self.client_id)
-        layout.addWidget(QLabel("Client Secret"))
+        layout.addWidget(QLabel(self.tr("Client Secret")))
         layout.addWidget(self.client_secret)
-        layout.addWidget(QLabel("Cfg ID"))
+        layout.addWidget(QLabel(self.tr("Cfg ID")))
         layout.addWidget(self.cfg_id)
-        layout.addWidget(QLabel("Alias"))
+        layout.addWidget(QLabel(self.tr("Alias")))
         layout.addWidget(self.alias)
 
-        self.add_button = QPushButton("Add New")
+        self.add_button = QPushButton(self.tr("Add New"))
         self.add_button.clicked.connect(self.add_new)
         layout.addWidget(self.add_button)
 
-        self.save_button = QPushButton("Save")
+        self.save_button = QPushButton(self.tr("Save"))
         self.save_button.clicked.connect(self.save_server)
         layout.addWidget(self.save_button)
 
@@ -97,7 +98,9 @@ class ServerForm(QWidget):
     def save_server(self):
         if len(self.cfg_id.text()) != 7:
             QMessageBox.warning(
-                self, "Invalid Cfg ID", "Cfg ID must be exactly 7 characters long."
+                self,
+                self.tr("Invalid Cfg ID"),
+                self.tr("Cfg ID must be exactly 7 characters long."),
             )
             return
 
@@ -125,6 +128,8 @@ class ServerForm(QWidget):
             with open(self.filename, "w") as f:
                 for server in self.servers:
                     f.write(",".join(server) + "\n")
-            QMessageBox.information(self, "Saved", "Server list saved successfully.")
+            QMessageBox.information(
+                self, self.tr("Saved"), self.tr("Server list saved successfully.")
+            )
         except Exception as e:
-            QMessageBox.critical(self, "Error", str(e))
+            QMessageBox.critical(self, self.tr("Error"), str(e))

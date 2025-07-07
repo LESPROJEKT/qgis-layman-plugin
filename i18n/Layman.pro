@@ -1,6 +1,5 @@
 FORMS = ../dlg_addLayer.ui \
 ../dlg_ConnectionManager.ui \
-../dlg_editMap.ui \
 ../dlg_importLayer.ui \
 ../dlg_addMap.ui \
 ../dlg_userInfo.ui \   
@@ -11,6 +10,7 @@ SOURCES = ../Layman.py \
 ../dlg_importLayer.py \
 ../dlg_addMap.py \
 ../dlg_addLayer.py \
-../dlg_currentComposition.py  
+../dlg_currentComposition.py \
+../dlg_server_form.py
 
 TRANSLATIONS = Layman_cs.ts 
