@@ -381,7 +381,7 @@ class Layman(QObject):
         icon_path = self.plugin_dir + os.sep + "icons" + os.sep + "layers_catalogue.png"
         self.menu_AddLayerDialog = self.add_action(
             icon_path,
-            text=self.tr("Layers cataloque"),
+            text=self.tr("Layers catalogue"),
             callback=self.run_AddLayerDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow(),
@@ -389,7 +389,7 @@ class Layman(QObject):
         icon_path = self.plugin_dir + os.sep + "icons" + os.sep + "map_catalogue.png"
         self.menu_AddMapDialog = self.add_action(
             icon_path,
-            text=self.tr("Map compositions cataloque"),
+            text=self.tr("Map compositions catalogue"),
             callback=self.run_AddMapDialog,
             enabled_flag=False,
             parent=self.iface.mainWindow(),
