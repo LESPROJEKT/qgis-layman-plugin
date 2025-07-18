@@ -55,7 +55,7 @@
        <property name="minimumSize">
         <size>
          <width>400</width>
-         <height>302000</height>
+         <height>200</height>
         </size>
        </property>
        <property name="currentIndex">
@@ -209,6 +209,12 @@
          </item>
          <item>
           <widget class="QTreeWidget" name="treeWidget">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="selectionMode">
             <enum>QAbstractItemView::ExtendedSelection</enum>
            </property>
