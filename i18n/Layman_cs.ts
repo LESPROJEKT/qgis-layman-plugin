@@ -5,7 +5,7 @@
     <name>AddLayerDialog</name>
     <message>
         <location filename="../dlg_addLayer.ui" line="35"/>
-        <source>Layman - Layers cataloque</source>
+        <source>Layman - Layers catalogue</source>
         <translation>Layman - Katalog vrstev</translation>
     </message>
     <message>
@@ -255,7 +255,7 @@
     <name>AddMapDialog</name>
     <message>
         <location filename="../dlg_addMap.ui" line="35"/>
-        <source>Layman - Map compositions cataloque</source>
+        <source>Layman - Map compositions catalogue</source>
         <translation>Layman - Katalog mapových kompozic</translation>
     </message>
     <message>
@@ -264,27 +264,27 @@
         <translation type="obsolete">Načíst kompozici (WMS)</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="386"/>
+        <location filename="../dlg_addMap.ui" line="392"/>
         <source>Close</source>
         <translation>Zavřít</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="217"/>
+        <location filename="../dlg_addMap.ui" line="223"/>
         <source>Compositions</source>
         <translation>Kompozice</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="222"/>
+        <location filename="../dlg_addMap.ui" line="228"/>
         <source>Owner</source>
         <translation>Vlastník</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="227"/>
+        <location filename="../dlg_addMap.ui" line="233"/>
         <source>Permissions</source>
         <translation>Práva</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="261"/>
+        <location filename="../dlg_addMap.ui" line="267"/>
         <source>Preview:</source>
         <translation>Náhled:</translation>
     </message>
@@ -304,7 +304,7 @@
         <translation type="obsolete">Načítání dat</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="331"/>
+        <location filename="../dlg_addMap.ui" line="337"/>
         <source>Load composition</source>
         <translation>Načíst kompozici</translation>
     </message>
@@ -314,7 +314,7 @@
         <translation>Smazat kompozici</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="342"/>
+        <location filename="../dlg_addMap.ui" line="348"/>
         <source>Set permissions</source>
         <translation>Nastavit práva</translation>
     </message>
@@ -324,12 +324,12 @@
         <translation>Zobrazit jenom mé kompozice</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="364"/>
+        <location filename="../dlg_addMap.ui" line="370"/>
         <source>Copy URL</source>
         <translation>Kopírovat URL</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="248"/>
+        <location filename="../dlg_addMap.ui" line="254"/>
         <source>Disable</source>
         <translation>Vypnout</translation>
     </message>
@@ -484,12 +484,12 @@
         <translation>Filtrovat role...</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="232"/>
+        <location filename="../dlg_addMap.ui" line="238"/>
         <source>Qfield</source>
         <translation>Qfield</translation>
     </message>
     <message>
-        <location filename="../dlg_addMap.ui" line="375"/>
+        <location filename="../dlg_addMap.ui" line="381"/>
         <source>Qfield sync</source>
         <translation>Synchronizace</translation>
     </message>
@@ -1108,7 +1108,7 @@
         <translation type="obsolete">Uložit</translation>
     </message>
     <message>
-        <location filename="../dlg_addMicka.ui" line="93"/>
+        <location filename="../dlg_addMicka.ui" line="101"/>
         <source>Close</source>
         <translation>Zavřít</translation>
     </message>
@@ -1238,69 +1238,74 @@
         <translation>Port</translation>
     </message>
     <message>
-        <location filename="../dlg_addMicka.ui" line="21"/>
-        <source>Layman - Browse metadata cataloque</source>
+        <location filename="../dlg_addMicka.ui" line="29"/>
+        <source>Layman - Browse metadata catalogue</source>
         <translation>Layman - Prohlížet metadatový katalog</translation>
     </message>
     <message>
         <location filename="../dlg_addMicka.ui" line="128"/>
         <source>Load map (WMS)</source>
-        <translation>Načíst kompozici (WMS)</translation>
+        <translation type="obsolete">Načíst kompozici (WMS)</translation>
     </message>
     <message>
-        <location filename="../dlg_addMicka.ui" line="49"/>
+        <location filename="../dlg_addMicka.ui" line="57"/>
         <source>Compositions</source>
         <translation>Kompozice</translation>
     </message>
     <message>
-        <location filename="../dlg_addMicka.ui" line="107"/>
+        <location filename="../dlg_addMicka.ui" line="115"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; color:#ff0000;&quot;&gt;Unable to load already loaded composition!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; color:#ff0000;&quot;&gt;Nelze načíst již načtenou kompozici!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
         <location filename="../dlg_addMicka.ui" line="135"/>
         <source>Load map (WFS)</source>
-        <translation>Načíst kompozici (WFS)</translation>
+        <translation type="obsolete">Načíst kompozici (WFS)</translation>
     </message>
     <message>
-        <location filename="../dlg_addMicka.ui" line="117"/>
+        <location filename="../dlg_addMicka.ui" line="125"/>
         <source>Loading data</source>
         <translation>Načítání dat</translation>
     </message>
     <message>
-        <location filename="../dlg_addMicka.ui" line="59"/>
+        <location filename="../dlg_addMicka.ui" line="67"/>
         <source>Load composition</source>
         <translation>Načíst kompozici</translation>
     </message>
     <message>
-        <location filename="../dlg_addMicka.ui" line="29"/>
+        <location filename="../dlg_addMicka.ui" line="37"/>
         <source>Query:</source>
         <translation>Dotaz:</translation>
     </message>
     <message>
-        <location filename="../dlg_addMicka.ui" line="66"/>
+        <location filename="../dlg_addMicka.ui" line="74"/>
         <source>&lt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../dlg_addMicka.ui" line="73"/>
+        <location filename="../dlg_addMicka.ui" line="81"/>
         <source>&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../dlg_addMicka.ui" line="39"/>
+        <location filename="../dlg_addMicka.ui" line="47"/>
         <source>Search</source>
         <translation>Hledat</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="73"/>
         <source>QField:</source>
-        <translation type="unfinished"></translation>
+        <translation>QField:</translation>
+    </message>
+    <message>
+        <location filename="../dlg_userInfo.ui" line="171"/>
+        <source>Delete</source>
+        <translation>Smazat</translation>
     </message>
     <message>
         <location filename="../dlg_userInfo.ui" line="164"/>
-        <source>Delete</source>
-        <translation>Smazat</translation>
+        <source>Upgrade/Downgrade</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -1430,12 +1435,12 @@
     </message>
     <message>
         <location filename="../Layman.py" line="382"/>
-        <source>Layers cataloque</source>
+        <source>Layers catalogue</source>
         <translation>Katalog vrstev</translation>
     </message>
     <message>
         <location filename="../Layman.py" line="390"/>
-        <source>Map compositions cataloque</source>
+        <source>Map compositions catalogue</source>
         <translation>Katalog mapových kompozic</translation>
     </message>
     <message>
@@ -1602,17 +1607,17 @@
         <translation>Cfg ID musí být přesně 7 znaků dlouhé.</translation>
     </message>
     <message>
-        <location filename="../dlg_server_form.py" line="129"/>
+        <location filename="../dlg_server_form.py" line="131"/>
         <source>Saved</source>
         <translation>Uloženo</translation>
     </message>
     <message>
-        <location filename="../dlg_server_form.py" line="129"/>
+        <location filename="../dlg_server_form.py" line="131"/>
         <source>Server list saved successfully.</source>
         <translation>Seznam serverů byl úspěšně uložen.</translation>
     </message>
     <message>
-        <location filename="../dlg_server_form.py" line="131"/>
+        <location filename="../dlg_server_form.py" line="135"/>
         <source>Error</source>
         <translation>Chyba</translation>
     </message>

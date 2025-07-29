@@ -32,7 +32,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Layman - Layers cataloque</string>
+   <string>Layman - Layers catalogue</string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout" stretch="9,1">
    <item>
