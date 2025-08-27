@@ -3209,7 +3209,9 @@ class Layman(QObject):
                     "file": (zipPath, open(zipPath, "rb")),
                     "style": open(stylePath, "rb"),
                 }
-            data["crs"] = "EPSG:4326"
+            else:
+                files = {"file": open(path, "rb"), "style": open(stylePath, "rb")}
+            data["crs"] = str(layer.crs().authid())
             response = self.utils.requestWrapper(
                 "POST",
                 self.layman_api.get_layers_url(self.laymanUsername),
