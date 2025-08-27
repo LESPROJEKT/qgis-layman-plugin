@@ -23,17 +23,16 @@
 """
 
 import os
-from PyQt5 import uic
-from PyQt5 import QtWidgets
-from PyQt5.QtCore import Qt, QCoreApplication
+from qgis.PyQt import uic
+from qgis.PyQt import QtWidgets
+from qgis.PyQt.QtCore import Qt, QCoreApplication
 from qgis.core import *
 import tempfile
-from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterator
+from qgis.PyQt.QtWidgets import QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterator
 import threading
 import re
-import PyQt5
 from .layman_utils import ProxyStyle
-from PyQt5 import QtGui
+from qgis.PyQt import QtGui
 from .layman_api import LaymanAPI
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -322,7 +321,9 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         filename = tempFile = tempfile.gettempdir() + os.sep + "import_log.txt"
         with open(filename, "r") as file:
             file_contents = file.read()
-        PyQt5.QtGui.QGuiApplication.clipboard().setText(file_contents)
+        from qgis.PyQt.QtGui import QGuiApplication
+
+        QGuiApplication.clipboard().setText(file_contents)
 
     def enableButtonImport(self, item, column):
         if len(self.treeWidget.selectedItems()) > 0:

@@ -21,12 +21,12 @@
 """
 
 import os
-from PyQt5 import uic
-from PyQt5 import QtWidgets
+from qgis.PyQt import uic
+from qgis.PyQt import QtWidgets
 import threading
 import requests
-from PyQt5.QtCore import QObject, pyqtSignal, Qt
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt
+from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QTreeWidgetItemIterator,
     QTreeWidgetItem,
@@ -39,7 +39,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 from qgis.core import *
-from PyQt5.QtGui import QPixmap, QIcon
+from qgis.PyQt.QtGui import QPixmap, QIcon
 from .currentComposition import CurrentComposition
 import traceback
 from .layman_utils import ProxyStyle

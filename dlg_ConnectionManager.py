@@ -22,13 +22,13 @@
 
 import os
 
-from PyQt5 import uic
-from PyQt5 import QtWidgets
+from qgis.PyQt import uic
+from qgis.PyQt import QtWidgets
 from .layman_utils import ProxyStyle
 from qgis.core import QgsSettings, QgsApplication, QgsProject
-from PyQt5.QtWidgets import QPushButton
+from qgis.PyQt.QtWidgets import QPushButton
 import threading
-from PyQt5.QtWidgets import QDialog, QVBoxLayout
+from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout
 from .dlg_server_form import ServerForm
 
 

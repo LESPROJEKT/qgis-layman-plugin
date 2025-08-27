@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QLabel,
@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QMessageBox,
 )
-from PyQt5.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication
 import os
 
 

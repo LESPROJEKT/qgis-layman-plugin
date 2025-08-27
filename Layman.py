@@ -45,7 +45,7 @@ import qgis.gui
 import qgis.utils
 import requests
 from owslib.wms import WebMapService
-from PyQt5.QtCore import (
+from qgis.PyQt.QtCore import (
     QCoreApplication,
     QObject,
     QSettings,
@@ -54,8 +54,8 @@ from PyQt5.QtCore import (
     pyqtSignal,
     qVersion,
 )
-from PyQt5.QtGui import QColor, QIcon
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtGui import QColor, QIcon
+from qgis.PyQt.QtWidgets import (
     QAction,
     QFileDialog,
     QLabel,

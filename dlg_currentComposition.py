@@ -21,11 +21,11 @@
 """
 
 import os
-from PyQt5 import uic
-from PyQt5 import QtWidgets, QtCore
+from qgis.PyQt import uic
+from qgis.PyQt import QtWidgets, QtCore
 from qgis.core import *
-from PyQt5.QtGui import QRegExpValidator, QBrush, QColor, QPixmap
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtGui import QRegExpValidator, QBrush, QColor, QPixmap
+from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QTreeWidgetItemIterator,
     QTreeWidgetItem,
@@ -40,7 +40,7 @@ from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
 )
-from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRegExp
+from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRegExp
 from qgis.PyQt.QtCore import QPoint
 import threading
 import requests
