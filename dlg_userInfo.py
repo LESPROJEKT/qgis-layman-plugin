@@ -26,17 +26,17 @@ import os
 import io
 import configparser
 
-from PyQt5 import uic
-from PyQt5 import QtWidgets
+from qgis.PyQt import uic
+from qgis.PyQt import QtWidgets
 import requests, json
-from PyQt5.QtGui import QCursor
-from PyQt5.QtCore import Qt
+from qgis.PyQt.QtGui import QCursor
+from qgis.PyQt.QtCore import Qt
 
 from .layman_utils import LaymanUtils
 from .layman_utils import ProxyStyle
 import tempfile
 import shutil
-from PyQt5.QtWidgets import QMessageBox
+from qgis.PyQt.QtWidgets import QMessageBox
 from zipfile import ZipFile
 from qgis.core import Qgis
 from .layman_api import LaymanAPI

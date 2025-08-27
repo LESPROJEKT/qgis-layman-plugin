@@ -3,12 +3,11 @@ import requests
 import configparser
 import os
 import re
-import PyQt5
 from qgis.core import *
-from PyQt5.QtCore import QObject, pyqtSignal, QUrl, QByteArray, Qt, QRect, QSize
+from qgis.PyQt.QtCore import QObject, pyqtSignal, QUrl, QByteArray, Qt, QRect, QSize
 import io
-from PyQt5.QtNetwork import QNetworkRequest
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtNetwork import QNetworkRequest
+from qgis.PyQt.QtWidgets import (
     QWidget,
     QHBoxLayout,
     QPushButton,
@@ -19,7 +18,7 @@ from PyQt5.QtWidgets import (
 from qgis.PyQt.QtGui import QGuiApplication
 from .dlg_errMsg import ErrMsgDialog
 import tempfile
-from PyQt5 import QtWidgets, QtGui, QtCore
+from qgis.PyQt import QtWidgets, QtGui, QtCore
 import csv
 import http.client
 import asyncio
@@ -218,7 +217,9 @@ class LaymanUtils(QObject):
             message = (
                 str(err) if url == "" else str(err) + "\n" + "requested url: " + url
             )
-            clipboard = PyQt5.QtGui.QGuiApplication.clipboard()
+            from qgis.PyQt.QtGui import QGuiApplication
+
+            clipboard = QGuiApplication.clipboard()
             clipboard.setText(message)
             self.dlgErr.close()
 
@@ -1516,7 +1517,7 @@ class ProxyStyle(QtWidgets.QProxyStyle):
                 if option.state & QtWidgets.QStyle.State_On:
                     state = QtGui.QIcon.On
                 window = widget.window().windowHandle() if widget is not None else None
-                size = PyQt5.QtCore.QSize(15, 15)
+                size = QtCore.QSize(15, 15)
                 pixmap = icon.pixmap(window, size, mode, state)
                 pixmapWidth = pixmap.width() / pixmap.devicePixelRatio()
                 pixmapHeight = pixmap.height() / pixmap.devicePixelRatio()

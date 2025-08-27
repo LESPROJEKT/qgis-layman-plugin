@@ -21,10 +21,10 @@
 """
 
 import os
-from PyQt5 import uic
-from PyQt5 import QtWidgets
-from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRect
-from PyQt5.QtWidgets import (
+from qgis.PyQt import uic
+from qgis.PyQt import QtWidgets
+from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRect
+from qgis.PyQt.QtWidgets import (
     QTreeWidgetItem,
     QTreeWidgetItemIterator,
     QCheckBox,
@@ -37,12 +37,13 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QLineEdit,
 )
-from PyQt5.QtGui import QPixmap, QIcon
+from qgis.PyQt.QtGui import QPixmap, QIcon
 from qgis.core import *
 import threading
 import requests
-from PyQt5.QtWidgets import QPushButton
-from PyQt5 import uic
+
+# QPushButton already imported above
+# uic already imported above
 import tempfile
 import asyncio
 from .layman_utils import CenterIconDelegate
