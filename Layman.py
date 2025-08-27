@@ -2632,7 +2632,9 @@ class Layman(QObject):
                 zipObj.write(path,os.path.basename(path))
                 zipObj.close()
                 files = {'file': (zipPath, open(zipPath, 'rb')),'style': open(stylePath, 'rb')}
-            data['crs'] = 'EPSG:4326'
+            else:
+                files = {'file': open(path, 'rb'),'style': open(stylePath, 'rb')}
+            data['crs'] = str(layer.crs().authid())
             response = self.utils.requestWrapper("POST", self.URI+'/rest/'+self.laymanUsername+'/layers', data, files)         
             res = self.utils.fromByteToJson(response.content)              
             try:
