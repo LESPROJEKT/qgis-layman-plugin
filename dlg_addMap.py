@@ -875,9 +875,11 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     ]
                 )
                 if self.layman.qfieldReady:
+                    workspace = data[row]["workspace"]
+                    owner = names.get(workspace, workspace)
                     qfieldExists = self.matchQfield(
                         data[row]["title"],
-                        names[data[row]["workspace"]],
+                        owner,
                         self.qProjects,
                     )
                     if qfieldExists:
@@ -907,9 +909,11 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         ]
                     )
                     if self.layman.qfieldReady:
+                        workspace = dataAll[row]["workspace"]
+                        owner = names.get(workspace, workspace)
                         qfieldExists = self.matchQfield(
                             dataAll[row]["title"],
-                            names[dataAll[row]["workspace"]],
+                            owner,
                             self.qProjects,
                         )
                         if qfieldExists:
@@ -956,9 +960,11 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                             ]
                         )
                         if self.layman.qfieldReady:
+                            workspace = dataAll[row]["workspace"]
+                            owner = names.get(workspace, workspace)
                             qfieldExists = self.matchQfield(
                                 dataAll[row]["title"],
-                                names[dataAll[row]["workspace"]],
+                                owner,
                                 self.qProjects,
                             )
                             if qfieldExists:
