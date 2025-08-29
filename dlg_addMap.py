@@ -803,11 +803,13 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def setQfieldButtons(self):
         if self.layman.qfieldReady:
             names = self.utils.getUserScreenNames()
+            workspace = self.treeWidget.selectedItems()[0].text(1)
+            owner = names.get(workspace, workspace)
             qfieldExists = self.matchQfield(
                 self.utils.removeUnacceptableChars(
                     self.treeWidget.selectedItems()[0].text(0)
                 ),
-                names[self.treeWidget.selectedItems()[0].text(1)],
+                owner,
                 self.qProjects,
             )
             self.updateButtonsSignal.emit(qfieldExists)
