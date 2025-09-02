@@ -24,7 +24,7 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets, QtCore
 from qgis.core import *
-from qgis.PyQt.QtGui import QRegExpValidator, QBrush, QColor, QPixmap
+from qgis.PyQt.QtGui import QRegularExpressionValidator, QBrush, QColor, QPixmap
 from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QTreeWidgetItemIterator,
@@ -40,7 +40,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
     QVBoxLayout,
 )
-from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRegExp
+from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRegularExpression
 from qgis.PyQt.QtCore import QPoint
 import threading
 import requests
@@ -247,7 +247,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if not self.layman.qfieldReady:
             self.pushButton_qfield.setEnabled(False)
         self.show()
-        result = self.exec_()
+        result = self.exec()
 
     def UpdateQfield(self):
         if self.qfield.offineRaster:
@@ -332,11 +332,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.tr(
                     "The project contains online layers. Do you want to convert them to an offline format based on the current project extent?"
                 ),
-                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No
+                | QMessageBox.StandardButton.Cancel,
             )
-            if response == QMessageBox.Yes:
+            if response == QMessageBox.StandardButton.Yes:
                 self.qfield.offineRaster = True
-            elif response == QMessageBox.No:
+            elif response == QMessageBox.StandardButton.No:
                 self.qfield.offineRaster = False
             else:
                 return
@@ -545,21 +547,21 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 if isinstance(layer, QgsVectorLayer):
                     item.setText(1, "WMS")
                 if (
-                    layer.type() == QgsMapLayer.VectorLayer
+                    layer.type() == QgsMapLayer.LayerType.VectorLayer
                     and layer.dataProvider().name() == "WFS"
                 ):
                     item.setText(1, "WFS")
                 if layer.dataProvider().name() == "arcgismapserver":
                     item.setText(1, "ArcGIS REST")
                 self.setGuiForItem(item)
-                if layerType == QgsMapLayer.VectorLayer:
+                if layerType == QgsMapLayer.LayerType.VectorLayer:
                     try:
                         layer.editingStopped.disconnect()
                     except:
                         print("connect to stopEditing not exists")
             self.treeWidget_layers.addTopLevelItem(item)
         iterator = QTreeWidgetItemIterator(
-            self.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         notActive = set(layerList) - set(layersInCanvas)
 
@@ -597,7 +599,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 else self.checkBox_all.setText("Uncheck all layers")
             )
             iterator = QTreeWidgetItemIterator(
-                self.treeWidget_layers, QTreeWidgetItemIterator.All
+                self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
             )
             while iterator.value():
                 item = iterator.value()
@@ -614,7 +616,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 else self.checkBox_all.setText("Check all layers")
             )
             iterator = QTreeWidgetItemIterator(
-                self.treeWidget_layers, QTreeWidgetItemIterator.All
+                self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
             )
             while iterator.value():
                 item = iterator.value()
@@ -636,7 +638,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def getCheckedLayerNames(self):
         checkedLayers = []
         iterator = QTreeWidgetItemIterator(
-            self.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         while iterator.value():
             item = iterator.value()
@@ -748,7 +750,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def comboBoxChanged(self, text):
         iterator = QTreeWidgetItemIterator(
-            self.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         try:
             while iterator.value():
@@ -776,7 +778,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressStart.emit()
         self.currentSet = list()
         iterator = QTreeWidgetItemIterator(
-            self.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         try:
             while iterator.value():
@@ -801,7 +803,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.utils.removeUnacceptableChars(composition["layers"][i]["title"])
             )
         iterator = QTreeWidgetItemIterator(
-            self.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         while iterator.value():
             item = iterator.value()
@@ -828,7 +830,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         ret = False
 
         iterator = QTreeWidgetItemIterator(
-            self.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         while iterator.value():
             item = iterator.value()
@@ -930,7 +932,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         layerList = list()
         layerCheckedList = list()
         iterator = QTreeWidgetItemIterator(
-            self.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         while iterator.value():
             item = iterator.value()
@@ -946,7 +948,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.processingRequest = True
         layers = list()
         iterator = QTreeWidgetItemIterator(
-            self.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         while iterator.value():
             item = iterator.value()
@@ -970,7 +972,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         it[2] == "Overwrite geometry" or it[2] == "Přepsat data"
                     ) and it[0] == item.text(0):
                         layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
-                        if layer.type() == QgsMapLayer.VectorLayer:
+                        if layer.type() == QgsMapLayer.LayerType.VectorLayer:
                             self.layman.postRequest(layer.name(), True)
             elif (
                 item.checkState(0) == 0
@@ -1652,8 +1654,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         msgbox = QMessageBox()
         msgbox.setWindowTitle("Layman")
         msgbox.setText(text)
-        msgbox.setIcon(QMessageBox.Information)
-        msgbox.addButton(QMessageBox.Ok)
+        msgbox.setIcon(QMessageBox.Icon.Information)
+        msgbox.addButton(QMessageBox.StandardButton.Ok)
         msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
         msgbox.exec()
 
@@ -1723,10 +1725,18 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.comboBox_epsg.setCurrentText(
                 composition["projection"].replace("epsg:", "")
             )
-        self.lineEdit_xmin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
-        self.lineEdit_xmax.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
-        self.lineEdit_ymin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
-        self.lineEdit_ymax.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_xmin.setValidator(
+            QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$"))
+        )
+        self.lineEdit_xmax.setValidator(
+            QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$"))
+        )
+        self.lineEdit_ymin.setValidator(
+            QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$"))
+        )
+        self.lineEdit_ymax.setValidator(
+            QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$"))
+        )
         self.pushButton_save_meta.clicked.connect(
             lambda: self.progressBar_loader.show()
         )
@@ -1959,17 +1969,25 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         layers = QgsProject.instance().mapLayers().values()
         self.treeWidget.itemClicked.connect(self.setExtent)
         for layer in layers:
-            if layer.type() == QgsMapLayer.VectorLayer:
+            if layer.type() == QgsMapLayer.LayerType.VectorLayer:
                 item = QTreeWidgetItem([layer.name()])
                 self.treeWidget.addTopLevelItem(item)
         ext = self.layman.iface.mapCanvas().extent()
         self.pushButton_back_2.clicked.connect(
             lambda: self.setStackWidget("main", False)
         )
-        self.lineEdit_3.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
-        self.lineEdit_4.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
-        self.lineEdit_5.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
-        self.lineEdit_6.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_3.setValidator(
+            QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$"))
+        )
+        self.lineEdit_4.setValidator(
+            QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$"))
+        )
+        self.lineEdit_5.setValidator(
+            QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$"))
+        )
+        self.lineEdit_6.setValidator(
+            QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$"))
+        )
         self.lineEdit_2.editingFinished.connect(self.checkNameCreateMap)
         self.lineEdit_2.textEdited.connect(self.checkForChars)
         projectPath = QgsProject.instance().fileName()
@@ -2267,16 +2285,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def deleteCurrentMap(self):
         composition = self.layman.instance.getComposition()
         msgbox = QMessageBox(
-            QMessageBox.Question,
+            QMessageBox.Icon.Question,
             self.tr("Delete map"),
             self.tr("Do you want really delete this composition?"),
         )
-        msgbox.addButton(QMessageBox.Yes)
-        msgbox.addButton(QMessageBox.No)
-        msgbox.setDefaultButton(QMessageBox.No)
+        msgbox.addButton(QMessageBox.StandardButton.Yes)
+        msgbox.addButton(QMessageBox.StandardButton.No)
+        msgbox.setDefaultButton(QMessageBox.StandardButton.No)
         msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
         reply = msgbox.exec()
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             self.deleteQfieldProject(composition["name"])
             url = self.layman_api.get_map_url(
                 self.layman.laymanUsername, composition["name"]

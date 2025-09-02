@@ -330,13 +330,13 @@ class LaymanUtils(QObject):
         except:
             if self.locale == "cs":
                 QMessageBox(
-                    QMessageBox.Question,
+                    QMessageBox.Icon.Question,
                     "Layman",
                     "Došlo k chybě při komunikaci se serverem.",
                 )
             else:
                 QMessageBox(
-                    QMessageBox.Question,
+                    QMessageBox.Icon.Question,
                     "Layman",
                     "An error occurred while communicating with the server.",
                 )
@@ -905,7 +905,9 @@ class LaymanUtils(QObject):
         crs = map_settings.destinationCrs()
         units = crs.mapUnits()
         dpi = 25.4 / 0.28
-        mpu = QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, units)
+        mpu = QgsUnitTypes.fromUnitToUnitFactor(
+            QgsUnitTypes.DistanceUnit.DistanceMeters, units
+        )
         return denominator / (mpu * 39.37 * dpi)
 
     def resolutionRounder(self, x):
@@ -1151,7 +1153,7 @@ QPushButton::indicator {
     def saveUnsavedLayers(self):
         project = QgsProject.instance()
         for layer in project.mapLayers().values():
-            if layer.type() == QgsMapLayer.VectorLayer and layer.isModified():
+            if layer.type() == QgsMapLayer.LayerType.VectorLayer and layer.isModified():
                 if layer.commitChanges():
                     print(f"Changes saved for layer: {layer.name()}")
                 else:
