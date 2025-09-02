@@ -26,7 +26,7 @@ from PyQt5 import uic
 from PyQt5 import QtWidgets
 from .layman_utils import ProxyStyle
 from qgis.core import  QgsSettings, QgsApplication, QgsProject
-from PyQt5.QtWidgets import QPushButton
+from qgis.PyQt.QtWidgets import QPushButton
 import threading
 
                              
@@ -217,4 +217,4 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.menu_AddMapDialog.setEnabled(True)
         self.layman.instance = None
         threading.Thread(target=lambda: self.layman.fillCompositionDict()).start()
-        self.close()           
+        self.close()

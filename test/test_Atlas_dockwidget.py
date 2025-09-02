@@ -14,7 +14,7 @@ __copyright__ = 'Copyright 2019, jan vrobel'
 
 import unittest
 
-from PyQt5.QtGui import QDockWidget
+from qgis.PyQt.QtGui import QDockWidget
 
 from Atlas_dockwidget import AtlasDockWidget
 

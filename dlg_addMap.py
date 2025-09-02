@@ -25,18 +25,20 @@ from PyQt5 import uic
 from PyQt5 import QtWidgets
 import threading
 import requests
-from PyQt5.QtCore import QObject, pyqtSignal, Qt
-from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup, QLineEdit, QWidget, QVBoxLayout
+from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt
+from qgis.PyQt.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup, QLineEdit, QWidget, QVBoxLayout
 from qgis.core import *
-from PyQt5.QtGui import QPixmap, QIcon
+from qgis.PyQt.QtGui import QPixmap, QIcon
 from .currentComposition import CurrentComposition
 import traceback
 from .layman_utils import ProxyStyle
 import asyncio
 from distutils.version import LooseVersion
 from .layman_qfield import Qfield  
-from .layman_utils import CenterIconDelegate,IconQfieldDelegate
+from .layman_utils import IconQfieldDelegate
 from distutils.version import LooseVersion
+from qgis.PyQt.QtCore import QThread, pyqtSignal
+import threading
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -682,7 +684,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_delete.setEnabled(False)            
              
     def filterResults(self, value):
-        iterator = QTreeWidgetItemIterator(self.treeWidget, QTreeWidgetItemIterator.All)
+        iterator = QTreeWidgetItemIterator(self.treeWidget, QTreeWidgetItemIterator.IteratorFlag.All)
         while iterator.value():
             item = iterator.value()
             if value.lower() not in item.text(0).lower():
@@ -790,12 +792,12 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.qfield.deleteProject(project_id)            
     def deleteMap(self,item): 
         name = self.layman.getNameByTitle(item.text(0))         
-        msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete map"), self.tr("Do you want really delete composition ")+name+"?")
-        msgbox.addButton(QMessageBox.Yes)
-        msgbox.addButton(QMessageBox.No)
-        msgbox.setDefaultButton(QMessageBox.No)
+        msgbox = QMessageBox(QMessageBox.Icon.Question, self.tr("Delete map"), self.tr("Do you want really delete composition ")+name+"?")
+        msgbox.addButton(QMessageBox.StandardButton.Yes)
+        msgbox.addButton(QMessageBox.StandardButton.No)
+        msgbox.setDefaultButton(QMessageBox.StandardButton.No)
         reply = msgbox.exec()
-        if (reply == QMessageBox.Yes):
+        if (reply == QMessageBox.StandardButton.Yes):
             name = self.utils.removeUnacceptableChars(name)         
             threading.Thread(target=self.deleteQfieldProject, args=(name,)).start()
             url = self.URI+'/rest/'+self.laymanUsername+'/maps/'+name
@@ -902,12 +904,12 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             return
         if len(layers) > 0:
             if name != old_loaded:  
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem."))                
-                msgbox.addButton(QMessageBox.Yes)
-                msgbox.addButton(QMessageBox.No)
-                msgbox.setDefaultButton(QMessageBox.No)
+                msgbox = QMessageBox(QMessageBox.Icon.Question, "Layman", self.tr("Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem."))                
+                msgbox.addButton(QMessageBox.StandardButton.Yes)
+                msgbox.addButton(QMessageBox.StandardButton.No)
+                msgbox.setDefaultButton(QMessageBox.StandardButton.No)
                 reply = msgbox.exec()
-                if (reply == QMessageBox.Yes):
+                if (reply == QMessageBox.StandardButton.Yes):
                     self.layman.iface.newProjectCreated.disconnect()
                     self.layman.iface.newProject()
                     projection = data['projection'].replace("epsg:","").replace("EPSG:","")
@@ -924,14 +926,14 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.layman.iface.newProjectCreated.connect(self.layman.removeCurrent) 
                 else:
                     if self.utils.checkIfNotLocalLayer():                  
-                        msgbox = QMessageBox(QMessageBox.Question, "Layman", self.tr("Načítáte stejnou kompozici. Chcete ponechat původní lokální vrstvy?"))                        
-                        msgbox.addButton(QMessageBox.Yes)
-                        msgbox.addButton(QMessageBox.No)
-                        msgbox.setDefaultButton(QMessageBox.No)
+                        msgbox = QMessageBox(QMessageBox.Icon.Question, "Layman", self.tr("Načítáte stejnou kompozici. Chcete ponechat původní lokální vrstvy?"))                        
+                        msgbox.addButton(QMessageBox.StandardButton.Yes)
+                        msgbox.addButton(QMessageBox.StandardButton.No)
+                        msgbox.setDefaultButton(QMessageBox.StandardButton.No)
                         reply = msgbox.exec()
-                        if (reply == QMessageBox.Yes):  
+                        if (reply == QMessageBox.StandardButton.Yes):  
                             self.utils.removeWmsWfsLayers()                            
-                        if (reply == QMessageBox.No):    
+                        if (reply == QMessageBox.StandardButton.No):    
                             self.layman.iface.newProjectCreated.disconnect()
                             self.layman.iface.newProject()
                             self.layman.iface.newProjectCreated.connect(self.layman.removeCurrent)  
@@ -1228,8 +1230,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         global dialog_running 
         dialog_running = False    
         self.qfieldWorking = False
-from PyQt5.QtCore import QThread, pyqtSignal
-import threading
+
 
 class DownloadThread(QThread):
     progressDone = pyqtSignal()
@@ -1269,4 +1270,4 @@ class DownloadThread(QThread):
             self.patchMap2.emit(True)
         
         self.progressDone.emit()          
-        self.layman.qfieldWorking = False        
+        self.layman.qfieldWorking = False

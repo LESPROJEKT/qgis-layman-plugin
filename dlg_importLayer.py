@@ -25,10 +25,10 @@
 import os
 from PyQt5 import uic
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import Qt, QCoreApplication
+from qgis.PyQt.QtCore import Qt, QCoreApplication
 from qgis.core import *
 import tempfile
-from PyQt5.QtWidgets import (QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterator)
+from qgis.PyQt.QtWidgets import (QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterator)
 import threading
 import re
 import PyQt5
@@ -119,12 +119,12 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         for child in root.children():
             self.get_layers_in_order(child, layers)
         for layer in layers:
-            if (layer.type() == QgsMapLayer.VectorLayer):
+            if (layer.type() == QgsMapLayer.LayerType.VectorLayer):
                 if self.utils.isLayerPostgres(layer):
                     layerType = 'postgres'
                 else:
                     layerType = 'vector layer'
-            if (layer.type() == QgsMapLayer.RasterLayer):	
+            if (layer.type() == QgsMapLayer.LayerType.RasterLayer):	
                 if layer.dataProvider().name() == "arcgismapserver":	
                     layerType = 'arcgis layer'	
                 else:	
@@ -190,14 +190,14 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.batchLength = len(layers)        
         if self.checkIfAllLayerAreRaster(layers):
             if self.layman.locale == "cs":
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Je vybráno více rastrových vrstev. Chcete je exportovat jako časové? Symbologie bude přebrána z prvního rastru.")
+                msgbox = QMessageBox(QMessageBox.Icon.Question, "Layman", "Je vybráno více rastrových vrstev. Chcete je exportovat jako časové? Symbologie bude přebrána z prvního rastru.")
             else:
-                msgbox = QMessageBox(QMessageBox.Question, "Layman", "Multiple raster layers are selected. Do you want to export them as time series? The symbology will be taken from the first raster.")
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
+                msgbox = QMessageBox(QMessageBox.Icon.Question, "Layman", "Multiple raster layers are selected. Do you want to export them as time series? The symbology will be taken from the first raster.")
+            msgbox.addButton(QMessageBox.StandardButton.Yes)
+            msgbox.addButton(QMessageBox.StandardButton.No)
+            msgbox.setDefaultButton(QMessageBox.StandardButton.No)
             reply = msgbox.exec()
-            if (reply == QMessageBox.Yes):
+            if (reply == QMessageBox.StandardButton.Yes):
                 
                 self.setStackWidget("time")
                 return
@@ -209,14 +209,14 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             for item in layers:
                 if (self.checkExistingLayer(item.text(0))):
                     if self.layman.locale == "cs":
-                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Je vybráno více vrstev a některé z nich již na serveru existují. Chcete je hromadně přepsat?")
+                        msgbox = QMessageBox(QMessageBox.Icon.Question, "Layman", "Je vybráno více vrstev a některé z nich již na serveru existují. Chcete je hromadně přepsat?")
                     else:
-                        msgbox = QMessageBox(QMessageBox.Question, "Layman", "Multiple layers are selected and some of them already exist on the server. Do you want to overwrite them?")
-                    msgbox.addButton(QMessageBox.Yes)
-                    msgbox.addButton(QMessageBox.No)
-                    msgbox.setDefaultButton(QMessageBox.No)
+                        msgbox = QMessageBox(QMessageBox.Icon.Question, "Layman", "Multiple layers are selected and some of them already exist on the server. Do you want to overwrite them?")
+                    msgbox.addButton(QMessageBox.StandardButton.Yes)
+                    msgbox.addButton(QMessageBox.StandardButton.No)
+                    msgbox.setDefaultButton(QMessageBox.StandardButton.No)
                     reply = msgbox.exec()
-                    if (reply == QMessageBox.Yes):  
+                    if (reply == QMessageBox.StandardButton.Yes):  
                         bulk = True     
                         break  
                     else:
@@ -235,7 +235,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             return False
         for item in layers:
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
-            if layer.type() == QgsMapLayer.RasterLayer:
+            if layer.type() == QgsMapLayer.LayerType.RasterLayer:
                 raster_layer = layer
                 if raster_layer.providerType() != "wms":
                     path = raster_layer.source()
@@ -268,7 +268,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         except:
             print("no layer in list")
             return
-        iterator = QTreeWidgetItemIterator(self.treeWidget, QTreeWidgetItemIterator.All)
+        iterator = QTreeWidgetItemIterator(self.treeWidget, QTreeWidgetItemIterator.IteratorFlag.All)
         while iterator.value():
             item = iterator.value()
             if item.text(0) == layerName:
@@ -347,4 +347,4 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if (layerName in pom):
             return True
         else:
-            return False        
+            return False

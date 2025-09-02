@@ -23,23 +23,24 @@
 """
 
 import os
-from PyQt5 import uic
-from PyQt5 import QtWidgets, QtCore
+from qgis.PyQt import uic, QtWidgets, QtCore
 from qgis.core import *
-from PyQt5.QtGui import  QRegExpValidator,QBrush, QColor, QPixmap
-from PyQt5.QtWidgets import QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox, QPushButton,  QDesktopWidget,  QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup, QLineEdit, QWidget, QVBoxLayout
-from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRegExp
-from qgis.PyQt.QtCore import QPoint
+from qgis.PyQt.QtGui import QRegularExpressionValidator, QBrush, QColor, QPixmap
+from qgis.PyQt.QtWidgets import (
+    QMessageBox, QTreeWidgetItemIterator, QTreeWidgetItem, QComboBox,
+    QPushButton, QDesktopWidget, QCheckBox, QTableWidgetItem, QTableWidget,
+    QButtonGroup, QLineEdit, QWidget, QVBoxLayout
+)
+from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRegularExpression, QPoint
 import threading
 import requests
 import xml.etree.ElementTree as ET
 import traceback
+import tempfile
 from .currentComposition import CurrentComposition
 from .layman_utils import ProxyStyle
+from .layman_qfield import Qfield
 from distutils.version import LooseVersion
-from .layman_qfield import Qfield   
-from distutils.version import LooseVersion  
-import tempfile   
 
 
 
@@ -207,7 +208,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if not self.layman.qfieldReady:
             self.pushButton_qfield.setEnabled(False)
         self.show()
-        result = self.exec_()  
+        result = self.exec()  
               
     def UpdateQfield(self):
         if self.qfield.offineRaster:
@@ -272,11 +273,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             response = QMessageBox.question(
                 None, self.tr('Převod do offline formátu'),
                 self.tr('Projekt obsahuje online vrstvy. Chcete je převést do offline formátu dle aktuální výřezu projektu?'),
-                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel
             )
-            if response == QMessageBox.Yes:
+            if response == QMessageBox.StandardButton.Yes:
                 self.qfield.offineRaster = True
-            elif response == QMessageBox.No:
+            elif response == QMessageBox.StandardButton.No:
                 self.qfield.offineRaster = False
             else:
                 return
@@ -447,18 +448,18 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     item.setText(1, "WMS")
                 if isinstance(layer, QgsVectorLayer):                
                     item.setText(1, "WMS")
-                if layer.type() == QgsMapLayer.VectorLayer and layer.dataProvider().name() == 'WFS':
+                if layer.type() == QgsMapLayer.LayerType.VectorLayer and layer.dataProvider().name() == 'WFS':
                     item.setText(1, "WFS") 
                 if layer.dataProvider().name() == 'arcgismapserver':          
                     item.setText(1, "ArcGIS REST")                              
                 self.setGuiForItem(item)
-                if layerType == QgsMapLayer.VectorLayer:
+                if layerType == QgsMapLayer.LayerType.VectorLayer:
                     try:
                         layer.editingStopped.disconnect()
                     except:
                         print("connect to stopEditing not exists")            
             self.treeWidget_layers.addTopLevelItem(item)        
-        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)     
+        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All)     
         notActive = set(layerList) - set(layersInCanvas)  
         
         for layer in notActive:            
@@ -485,7 +486,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def checkAllLayers(self, checked):
         if checked:
             self.checkBox_all.setText("Odebrat vše") if self.layman.locale == "cs" else self.checkBox_all.setText("Uncheck all layers")        
-            iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
+            iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All)
             while iterator.value():
                 item = iterator.value()
                 item.setCheckState(0,2)                
@@ -494,7 +495,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
      
         if not checked:
             self.checkBox_all.setText("Vybrat vše") if self.layman.locale == "cs" else self.checkBox_all.setText("Check all layers")                   
-            iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
+            iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All)
             while iterator.value():           
                 item = iterator.value()
                 item.setCheckState(0,0)                
@@ -514,7 +515,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def getCheckedLayerNames(self):
         checkedLayers = []      
-        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
+        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All)
         while iterator.value():
             item = iterator.value()     
             if item.checkState(0) == 0:             
@@ -586,7 +587,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             iterator +=1
             self.treeWidget_layers.itemWidget(item,1).setCurrentText(item.text(1)) 
     def comboBoxChanged(self, text):        
-        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
+        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All)
         try:
             while iterator.value():
                 item = iterator.value()
@@ -600,7 +601,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.writeProjectValues()
         self.progressStart.emit()     
         self.currentSet = list()
-        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
+        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All)
         try:
             while iterator.value():
                 item = iterator.value()
@@ -615,7 +616,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         layerList = []
         for i in range (0, len(composition['layers'])):
             layerList.append(self.utils.removeUnacceptableChars(composition['layers'][i]['title']))  
-        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
+        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All)
         while iterator.value():
             item = iterator.value()
             self.itemClick(item,0) ## check for subgroups
@@ -636,7 +637,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         duplicity = list()
         ret = False
 
-        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
+        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All)
         while iterator.value():
             item = iterator.value()
             if item.text(0) in layerList and item.checkState(0) == 2:
@@ -721,7 +722,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def saveMapLayers(self):
         layerList = list()
         layerCheckedList = list()
-        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
+        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All)
         while iterator.value():
             item = iterator.value()
             if item.checkState(0) == 2:
@@ -733,7 +734,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         composition = self.layman.instance.getComposition()
         self.processingRequest = True
         layers = list()
-        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.All)
+        iterator = QTreeWidgetItemIterator(self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All)
         while iterator.value():
             item = iterator.value()         
             if item.checkState(0) == 2 and  self.utils.removeUnacceptableChars(item.text(0)) not in layerList:           
@@ -748,7 +749,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 for it in self.currentSet:                                 
                     if (it[2] =='Overwrite geometry'  or it[2] == "Přepsat data") and it[0] == item.text(0):
                         layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
-                        if layer.type() == QgsMapLayer.VectorLayer:
+                        if layer.type() == QgsMapLayer.LayerType.VectorLayer:
                             self.layman.postRequest(layer.name(), True)
             elif item.checkState(0) == 0 and item.text(0) not in layerCheckedList and self.treeWidget_layers.itemWidget(item,2).currentText() in ("Smazat", "Remove"):  ## může být zaškrnut i jinde, pak nemažem                                        
                 pom = 0             
@@ -1254,8 +1255,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         msgbox = QMessageBox()     
         msgbox.setWindowTitle("Layman")
         msgbox.setText(text)
-        msgbox.setIcon(QMessageBox.Information)
-        msgbox.addButton(QMessageBox.Ok)
+        msgbox.setIcon(QMessageBox.Icon.Information)
+        msgbox.addButton(QMessageBox.StandardButton.Ok)
         msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
         msgbox.exec()                                  
     def removeWritePermissionList(self):
@@ -1312,10 +1313,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.comboBox_epsg.addItems([value.split(":")[1] for value in self.layman.supportedEPSG])
         if 'projection' in composition:            
             self.comboBox_epsg.setCurrentText(composition['projection'].replace("epsg:",""))
-        self.lineEdit_xmin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
-        self.lineEdit_xmax.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
-        self.lineEdit_ymin.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
-        self.lineEdit_ymax.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))  
+        self.lineEdit_xmin.setValidator(QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_xmax.setValidator(QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_ymin.setValidator(QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_ymax.setValidator(QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$")))
         self.pushButton_save_meta.clicked.connect(lambda: self.progressBar_loader.show())      
         self.pushButton_save_meta.clicked.connect(lambda: self.modifyMeta())
         self.pushButton_range_2.clicked.connect(lambda: self.setRangeFromCanvas())
@@ -1469,15 +1470,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         layers = QgsProject.instance().mapLayers().values()     
         self.treeWidget.itemClicked.connect(self.setExtent)
         for layer in layers:         
-            if (layer.type() == QgsMapLayer.VectorLayer):
+            if (layer.type() == QgsMapLayer.LayerType.VectorLayer):
                 item = QTreeWidgetItem([layer.name()])
                 self.treeWidget.addTopLevelItem(item)
         ext = self.layman.iface.mapCanvas().extent()
         self.pushButton_back_2.clicked.connect(lambda: self.setStackWidget("main", False))     
-        self.lineEdit_3.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
-        self.lineEdit_4.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
-        self.lineEdit_5.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
-        self.lineEdit_6.setValidator(QRegExpValidator(QRegExp(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_3.setValidator(QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_4.setValidator(QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_5.setValidator(QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$")))
+        self.lineEdit_6.setValidator(QRegularExpressionValidator(QRegularExpression(r"^-?\d*[.,]?\d*$")))
         self.lineEdit_2.editingFinished.connect(self.checkNameCreateMap)
         self.lineEdit_2.textEdited.connect(self.checkForChars)
         projectPath = QgsProject.instance().fileName()
@@ -1675,13 +1676,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.qfield.deleteProject(project_id)
     def deleteCurrentMap(self):
         composition = self.layman.instance.getComposition()        
-        msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete map"), self.tr("Do you want really delete this composition?"))
-        msgbox.addButton(QMessageBox.Yes)
-        msgbox.addButton(QMessageBox.No)
-        msgbox.setDefaultButton(QMessageBox.No)
+        msgbox = QMessageBox(QMessageBox.Icon.Question, self.tr("Delete map"), self.tr("Do you want really delete this composition?"))
+        msgbox.addButton(QMessageBox.StandardButton.Yes)
+        msgbox.addButton(QMessageBox.StandardButton.No)
+        msgbox.setDefaultButton(QMessageBox.StandardButton.No)
         msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
         reply = msgbox.exec()
-        if (reply == QMessageBox.Yes):
+        if (reply == QMessageBox.StandardButton.Yes):
             self.deleteQfieldProject(composition['name'])
             url = self.URI+'/rest/'+self.layman.laymanUsername+'/maps/'+composition['name']           
             response = self.utils.requestWrapper("DELETE", url, payload = None, files = None)
