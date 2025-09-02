@@ -25,8 +25,8 @@ import os
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 import threading
-from PyQt5.QtWidgets import QTreeWidgetItem
-from PyQt5.QtCore import pyqtSignal
+from qgis.PyQt.QtWidgets import QTreeWidgetItem
+from qgis.PyQt.QtCore import pyqtSignal
 from qgis.core import Qgis
 
 
@@ -112,4 +112,4 @@ class AddMickaDialog(QtWidgets.QDialog, FORM_CLASS):
         try:
             self.progressBar_loader.hide()
         except:
-            pass   
+            pass

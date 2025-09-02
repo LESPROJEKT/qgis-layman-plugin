@@ -29,14 +29,14 @@ import configparser
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 import requests, json
-from PyQt5.QtGui import QCursor
-from PyQt5.QtCore import Qt
+from qgis.PyQt.QtGui import QCursor
+from qgis.PyQt.QtCore import Qt
 
 from .layman_utils import LaymanUtils
 from .layman_utils import ProxyStyle
 import tempfile
 import shutil
-from PyQt5.QtWidgets import QMessageBox
+from qgis.PyQt.QtWidgets import QMessageBox
 from zipfile import ZipFile
 from qgis.core import Qgis
 
@@ -182,22 +182,22 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
 
         if not self.checkQgisVersion():
             msgbox = QMessageBox(
-                QMessageBox.Question,
+                QMessageBox.Icon.Question,
                 self.tr("Plugin update"),
                 self.tr(
                     "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?"
                 ),
             )
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
+            msgbox.addButton(QMessageBox.StandardButton.Yes)
+            msgbox.addButton(QMessageBox.StandardButton.No)
+            msgbox.setDefaultButton(QMessageBox.StandardButton.No)
             reply = msgbox.exec()
-            if reply == QMessageBox.No:
+            if reply == QMessageBox.StandardButton.No:
                 return
 
         if action_type == "downgrade":
             msgbox = QMessageBox(
-                QMessageBox.Question,
+                QMessageBox.Icon.Question,
                 self.tr("Plugin downgrade"),
                 self.tr(
                     f"Do you want to downgrade the plugin from version {current_version} to version 2.x?"
@@ -205,18 +205,18 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
             )
         else:
             msgbox = QMessageBox(
-                QMessageBox.Question,
+                QMessageBox.Icon.Question,
                 self.tr("Plugin upgrade"),
                 self.tr(
                     f"Do you want to upgrade the plugin from version {current_version} to version 3.x?"
                 ),
             )
 
-        msgbox.addButton(QMessageBox.Yes)
-        msgbox.addButton(QMessageBox.No)
-        msgbox.setDefaultButton(QMessageBox.No)
+        msgbox.addButton(QMessageBox.StandardButton.Yes)
+        msgbox.addButton(QMessageBox.StandardButton.No)
+        msgbox.setDefaultButton(QMessageBox.StandardButton.No)
         reply = msgbox.exec()
-        if reply == QMessageBox.No:
+        if reply == QMessageBox.StandardButton.No:
             return
 
         self.installPlugin(url, action_type)
@@ -227,22 +227,22 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
 
         if not self.checkQgisVersion():
             msgbox = QMessageBox(
-                QMessageBox.Question,
+                QMessageBox.Icon.Question,
                 self.tr("Plugin update"),
                 self.tr(
                     "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?"
                 ),
             )
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
+            msgbox.addButton(QMessageBox.StandardButton.Yes)
+            msgbox.addButton(QMessageBox.StandardButton.No)
+            msgbox.setDefaultButton(QMessageBox.StandardButton.No)
             reply = msgbox.exec()
-            if reply == QMessageBox.No:
+            if reply == QMessageBox.StandardButton.No:
                 return
 
         if len(version_parts) >= 2 and int(version_parts[0]) >= 3:
             msgbox = QMessageBox(
-                QMessageBox.Question,
+                QMessageBox.Icon.Question,
                 self.tr("Plugin update"),
                 self.tr(
                     f"Do you want to update the plugin version {current_version} (3.x)?"
@@ -250,18 +250,18 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
             )
         else:
             msgbox = QMessageBox(
-                QMessageBox.Question,
+                QMessageBox.Icon.Question,
                 self.tr("Plugin update"),
                 self.tr(
                     f"Do you want to update the plugin version {current_version} (2.x)?"
                 ),
             )
 
-        msgbox.addButton(QMessageBox.Yes)
-        msgbox.addButton(QMessageBox.No)
-        msgbox.setDefaultButton(QMessageBox.No)
+        msgbox.addButton(QMessageBox.StandardButton.Yes)
+        msgbox.addButton(QMessageBox.StandardButton.No)
+        msgbox.setDefaultButton(QMessageBox.StandardButton.No)
         reply = msgbox.exec()
-        if reply == QMessageBox.No:
+        if reply == QMessageBox.StandardButton.No:
             return
 
         self.installPlugin(url, "update")
@@ -375,11 +375,11 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
             self.tr(
                 "Are you sure you want to delete all your publications and your account?"
             ),
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
 
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             url = self.layman_api.get_user_delete_url(self.laymanUsername)
             response = requests.delete(url)
             if response.status_code == 200:

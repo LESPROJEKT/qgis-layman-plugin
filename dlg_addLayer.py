@@ -23,13 +23,13 @@
 import os
 from PyQt5 import uic
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import QObject, pyqtSignal, Qt, QRect
-from PyQt5.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup, QPushButton, QMessageBox, QWidget, QVBoxLayout, QLineEdit
-from PyQt5.QtGui import QPixmap, QIcon
+from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRect
+from qgis.PyQt.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QCheckBox, QTableWidgetItem, QTableWidget, QButtonGroup, QPushButton, QMessageBox, QWidget, QVBoxLayout, QLineEdit
+from qgis.PyQt.QtGui import QPixmap, QIcon
 from qgis.core import *
 import threading
 import requests
-from PyQt5.QtWidgets import QPushButton
+from qgis.PyQt.QtWidgets import QPushButton
 from PyQt5 import uic
 import tempfile
 import asyncio
@@ -157,7 +157,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.label_loading.show()       
         self.show()
-        result = self.exec_()
+        result = self.exec()
 
    
 
@@ -570,12 +570,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             items.append(layers[i].text(0))
         question = True
         if len(items) > 1:          
-            msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete layer"), self.tr("Do you want delete selected layers?"))
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
+            msgbox = QMessageBox(QMessageBox.Icon.Question, self.tr("Delete layer"), self.tr("Do you want delete selected layers?"))
+            msgbox.addButton(QMessageBox.StandardButton.Yes)
+            msgbox.addButton(QMessageBox.StandardButton.No)
+            msgbox.setDefaultButton(QMessageBox.StandardButton.No)
             reply = msgbox.exec()
-            if (reply == QMessageBox.Yes):
+            if (reply == QMessageBox.StandardButton.Yes):
                 question = False
         for j in range (0, len(items)):
             self.layerDelete(items[j], layerNames, question)
@@ -583,14 +583,14 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         title = name
         name = layerNames[title]
         if question:            
-            msgbox = QMessageBox(QMessageBox.Question, self.tr("Delete layer"), self.tr("Do you want delete layer ")+str(name)+"?")
-            msgbox.addButton(QMessageBox.Yes)
-            msgbox.addButton(QMessageBox.No)
-            msgbox.setDefaultButton(QMessageBox.No)
+            msgbox = QMessageBox(QMessageBox.Icon.Question, self.tr("Delete layer"), self.tr("Do you want delete layer ")+str(name)+"?")
+            msgbox.addButton(QMessageBox.StandardButton.Yes)
+            msgbox.addButton(QMessageBox.StandardButton.No)
+            msgbox.setDefaultButton(QMessageBox.StandardButton.No)
             reply = msgbox.exec()
         else:
-            reply = QMessageBox.Yes
-        if (reply == QMessageBox.Yes):     
+            reply = QMessageBox.StandardButton.Yes
+        if (reply == QMessageBox.StandardButton.Yes):     
             name = self.utils.removeUnacceptableChars(name).lower()
             self.progressBar_loader.show()
             threading.Thread(target=lambda: self.layerDeleteThread(name)).start()          
@@ -649,7 +649,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.postgisFound.emit(False)
     def filterResults(self, value):
 
-        iterator = QTreeWidgetItemIterator(self.treeWidget, QTreeWidgetItemIterator.All)
+        iterator = QTreeWidgetItemIterator(self.treeWidget, QTreeWidgetItemIterator.IteratorFlag.All)
         while iterator.value():
             item = iterator.value()
             if value.lower() not in item.text(0).lower():
@@ -1030,4 +1030,3 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressBar_loader.hide()      
 
 
-      
