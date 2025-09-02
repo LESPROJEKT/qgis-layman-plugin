@@ -430,7 +430,7 @@ class Layman(QObject):
 
     def comboBoxChanged(self, text):
         iterator = QTreeWidgetItemIterator(
-            self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.dlg.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         try:
             while iterator.value():
@@ -516,17 +516,17 @@ class Layman(QObject):
         if server != "" and name != "":
             if server == self.URI and not afterLogged and self.laymanUsername != "":
                 msgbox = QMessageBox(
-                    QMessageBox.Question,
+                    QMessageBox.Icon.Question,
                     "Layman",
                     self.tr(
                         "This project includes link to Layman server. Do you want set the project as current composition?"
                     ),
                 )
-                msgbox.addButton(QMessageBox.Yes)
-                msgbox.addButton(QMessageBox.No)
-                msgbox.setDefaultButton(QMessageBox.No)
+                msgbox.addButton(QMessageBox.StandardButton.Yes)
+                msgbox.addButton(QMessageBox.StandardButton.No)
+                msgbox.setDefaultButton(QMessageBox.StandardButton.No)
                 reply = msgbox.exec()
-                if reply == QMessageBox.Yes:
+                if reply == QMessageBox.StandardButton.Yes:
                     if self.compositionExists(name):
                         self.current = name
                         self.instance = CurrentComposition(
@@ -562,17 +562,17 @@ class Layman(QObject):
                     return
                 if afterLogged == False:
                     msgbox = QMessageBox(
-                        QMessageBox.Question,
+                        QMessageBox.Icon.Question,
                         "Layman",
                         self.tr(
                             "This project includes link to Layman server. Do you want login?"
                         ),
                     )
-                    msgbox.addButton(QMessageBox.Yes)
-                    msgbox.addButton(QMessageBox.No)
-                    msgbox.setDefaultButton(QMessageBox.No)
+                    msgbox.addButton(QMessageBox.StandardButton.Yes)
+                    msgbox.addButton(QMessageBox.StandardButton.No)
+                    msgbox.setDefaultButton(QMessageBox.StandardButton.No)
                     reply = msgbox.exec()
-                    if reply == QMessageBox.Yes:
+                    if reply == QMessageBox.StandardButton.Yes:
                         proj = QgsProject.instance()
                         server, type_conversion_ok = proj.readEntry(
                             "Layman", "Server", ""
@@ -713,17 +713,17 @@ class Layman(QObject):
                 and self.current != None
             ):
                 msgbox = QMessageBox(
-                    QMessageBox.Question,
+                    QMessageBox.Icon.Question,
                     "Layman",
                     self.tr("Coordinate system was changed to: ")
                     + str(crs.authid())
                     + self.tr(". Do you want write it to composition?"),
                 )
-                msgbox.addButton(QMessageBox.Yes)
-                msgbox.addButton(QMessageBox.No)
-                msgbox.setDefaultButton(QMessageBox.No)
+                msgbox.addButton(QMessageBox.StandardButton.Yes)
+                msgbox.addButton(QMessageBox.StandardButton.No)
+                msgbox.setDefaultButton(QMessageBox.StandardButton.No)
                 reply = msgbox.exec()
-                if reply == QMessageBox.Yes:
+                if reply == QMessageBox.StandardButton.Yes:
                     src = QgsCoordinateReferenceSystem(
                         int(composition["projection"].split(":")[1])
                     )
@@ -771,7 +771,7 @@ class Layman(QObject):
         duplicity = list()
         ret = False
         iterator = QTreeWidgetItemIterator(
-            self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.dlg.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         while iterator.value():
             item = iterator.value()
@@ -900,7 +900,7 @@ class Layman(QObject):
         layerList = list()
         layerCheckedList = list()
         iterator = QTreeWidgetItemIterator(
-            self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.dlg.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         while iterator.value():
             item = iterator.value()
@@ -916,7 +916,7 @@ class Layman(QObject):
         self.processingRequest = True
         layers = list()
         iterator = QTreeWidgetItemIterator(
-            self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.dlg.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         while iterator.value():
             item = iterator.value()
@@ -928,7 +928,7 @@ class Layman(QObject):
                     layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
                     if isinstance(layer, QgsVectorLayer):
                         layerType = layer.type()
-                        if layerType == QgsMapLayer.VectorLayer:
+                        if layerType == QgsMapLayer.LayerType.VectorLayer:
                             layer.editingStopped.connect(self.layerEditStopped)
                         layers.append(layer)
 
@@ -1262,7 +1262,7 @@ class Layman(QObject):
     def checkAllLayers(self, checked):
         if checked:
             iterator = QTreeWidgetItemIterator(
-                self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All
+                self.dlg.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
             )
             while iterator.value():
                 item = iterator.value()
@@ -1274,7 +1274,7 @@ class Layman(QObject):
 
         if not checked:
             iterator = QTreeWidgetItemIterator(
-                self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All
+                self.dlg.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
             )
             while iterator.value():
                 item = iterator.value()
@@ -1560,7 +1560,7 @@ class Layman(QObject):
     def updateComposition(self, checkD=True):
         self.currentSet = list()
         iterator = QTreeWidgetItemIterator(
-            self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.dlg.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         try:
             while iterator.value():
@@ -1592,7 +1592,7 @@ class Layman(QObject):
         layers = list()
 
         iterator = QTreeWidgetItemIterator(
-            self.dlg.treeWidget_layers, QTreeWidgetItemIterator.All
+            self.dlg.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         while iterator.value():
             item = iterator.value()
@@ -2145,7 +2145,7 @@ class Layman(QObject):
             self.instance.setIds(layers)
             for layer in layers:
                 layerType = layer.type()
-                if layerType == QgsMapLayer.VectorLayer:
+                if layerType == QgsMapLayer.LayerType.VectorLayer:
                     layer.editingStopped.connect(self.layerEditStopped)
                     layer.styleChanged.connect(self.layerStyleToUpdate)
         ## load opacity info
@@ -2246,7 +2246,7 @@ class Layman(QObject):
 
     def deleteLayerFromCanvas(self, name):
         lay = QgsProject.instance().mapLayersByName(name)[0]
-        if lay is not None and lay.type() != QgsMapLayer.VectorLayer:
+        if lay is not None and lay.type() != QgsMapLayer.LayerType.VectorLayer:
             QgsProject.instance().removeMapLayer(lay.id())
 
     def getSelectedLayers(self):
@@ -2255,7 +2255,7 @@ class Layman(QObject):
         for a in arr:
             layer = QgsProject.instance().mapLayersByName(a.text())
             for lay in layer:
-                if lay.type() == QgsMapLayer.VectorLayer:
+                if lay.type() == QgsMapLayer.LayerType.VectorLayer:
                     layers.append(lay)
 
         return layers
@@ -2449,7 +2449,7 @@ class Layman(QObject):
         ## zde musí být zajištěna vektorová vrstva
         layer = lay
         layerType = layer.type()
-        if layerType == QgsMapLayer.VectorLayer:
+        if layerType == QgsMapLayer.LayerType.VectorLayer:
             renderer = layer.renderer()
             hasIcon = False
             if isinstance(renderer, QgsSingleSymbolRenderer):
@@ -2512,7 +2512,7 @@ class Layman(QObject):
             layer = QgsProject.instance().mapLayersByName(layer_name)[0]
 
         layerType = layer.type()
-        if layerType == QgsMapLayer.VectorLayer:
+        if layerType == QgsMapLayer.LayerType.VectorLayer:
             renderer = layer.renderer()
             if isinstance(renderer, QgsSingleSymbolRenderer):
                 self.copySymbols(renderer.symbol(), tempfile.gettempdir(), fileNames)
@@ -2623,7 +2623,7 @@ class Layman(QObject):
         )
         fileNames = []
         layerType = layer.type()
-        if layerType == QgsMapLayer.VectorLayer:
+        if layerType == QgsMapLayer.LayerType.VectorLayer:
             renderer = layer.renderer()
             if isinstance(renderer, QgsSingleSymbolRenderer):
                 self.copySymbols(renderer.symbol(), tempfile.gettempdir(), fileNames)
@@ -3496,7 +3496,7 @@ class Layman(QObject):
                         if not bulk:
                             if self.locale == "cs":
                                 msgbox = QMessageBox(
-                                    QMessageBox.Question,
+                                    QMessageBox.Icon.Question,
                                     "Layman",
                                     "Vrstva "
                                     + layer_name
@@ -3504,19 +3504,19 @@ class Layman(QObject):
                                 )
                             else:
                                 msgbox = QMessageBox(
-                                    QMessageBox.Question,
+                                    QMessageBox.Icon.Question,
                                     "Layman",
                                     "Layer "
                                     + layer_name
                                     + " already exists in server. Do you want overwrite it´s geometry?",
                                 )
-                            msgbox.addButton(QMessageBox.Yes)
-                            msgbox.addButton(QMessageBox.No)
-                            msgbox.setDefaultButton(QMessageBox.No)
+                            msgbox.addButton(QMessageBox.StandardButton.Yes)
+                            msgbox.addButton(QMessageBox.StandardButton.No)
+                            msgbox.setDefaultButton(QMessageBox.StandardButton.No)
                             reply = msgbox.exec()
                         else:
-                            reply = QMessageBox.Yes
-                        if reply == QMessageBox.Yes:
+                            reply = QMessageBox.StandardButton.Yes
+                        if reply == QMessageBox.StandardButton.Yes:
                             self.dlg.progressBar.show()
                             if not noInfo:
                                 self.dlg.label_import.show()
@@ -4106,7 +4106,7 @@ class Layman(QObject):
             ) and layer.dataProvider().uri().uri() != "":
                 self.addExternalWMSToComposite(layer.name())
             if (
-                layer.type() == QgsMapLayer.VectorLayer
+                layer.type() == QgsMapLayer.LayerType.VectorLayer
                 and layer.dataProvider().name() == "WFS"
             ):
                 path = ""
@@ -5643,7 +5643,7 @@ class Layman(QObject):
         layers = project.mapLayers().values()
         for layer in layers:
             if (
-                layer.type() == QgsMapLayer.VectorLayer
+                layer.type() == QgsMapLayer.LayerType.VectorLayer
                 and layer.dataProvider().name() == "WFS"
             ):
                 layer.dataProvider().reloadData()

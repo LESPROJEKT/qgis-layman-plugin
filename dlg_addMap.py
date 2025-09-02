@@ -827,7 +827,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_delete.setEnabled(False)
 
     def filterResults(self, value):
-        iterator = QTreeWidgetItemIterator(self.treeWidget, QTreeWidgetItemIterator.All)
+        iterator = QTreeWidgetItemIterator(
+            self.treeWidget, QTreeWidgetItemIterator.IteratorFlag.All
+        )
         while iterator.value():
             item = iterator.value()
             if value.lower() not in item.text(0).lower():
@@ -999,15 +1001,15 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def deleteMap(self, item):
         name = self.layman.getNameByTitle(item.text(0))
         msgbox = QMessageBox(
-            QMessageBox.Question,
+            QMessageBox.Icon.Question,
             self.tr("Delete map"),
             self.tr("Do you want really delete composition ") + name + "?",
         )
-        msgbox.addButton(QMessageBox.Yes)
-        msgbox.addButton(QMessageBox.No)
-        msgbox.setDefaultButton(QMessageBox.No)
+        msgbox.addButton(QMessageBox.StandardButton.Yes)
+        msgbox.addButton(QMessageBox.StandardButton.No)
+        msgbox.setDefaultButton(QMessageBox.StandardButton.No)
         reply = msgbox.exec()
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             name = self.utils.removeUnacceptableChars(name)
             threading.Thread(target=self.deleteQfieldProject, args=(name,)).start()
             url = self.layman_api.get_map_url(self.laymanUsername, name)
@@ -1163,17 +1165,17 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         if len(layers) > 0:
             if name != old_loaded:
                 msgbox = QMessageBox(
-                    QMessageBox.Question,
+                    QMessageBox.Icon.Question,
                     "Layman",
                     self.tr(
                         "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem."
                     ),
                 )
-                msgbox.addButton(QMessageBox.Yes)
-                msgbox.addButton(QMessageBox.No)
-                msgbox.setDefaultButton(QMessageBox.No)
+                msgbox.addButton(QMessageBox.StandardButton.Yes)
+                msgbox.addButton(QMessageBox.StandardButton.No)
+                msgbox.setDefaultButton(QMessageBox.StandardButton.No)
                 reply = msgbox.exec()
-                if reply == QMessageBox.Yes:
+                if reply == QMessageBox.StandardButton.Yes:
                     self.layman.iface.newProjectCreated.disconnect()
                     self.layman.iface.newProject()
                     projection = (
@@ -1197,19 +1199,19 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:
                     if self.utils.checkIfNotLocalLayer():
                         msgbox = QMessageBox(
-                            QMessageBox.Question,
+                            QMessageBox.Icon.Question,
                             "Layman",
                             self.tr(
                                 "Načítáte stejnou kompozici. Chcete ponechat původní lokální vrstvy?"
                             ),
                         )
-                        msgbox.addButton(QMessageBox.Yes)
-                        msgbox.addButton(QMessageBox.No)
-                        msgbox.setDefaultButton(QMessageBox.No)
+                        msgbox.addButton(QMessageBox.StandardButton.Yes)
+                        msgbox.addButton(QMessageBox.StandardButton.No)
+                        msgbox.setDefaultButton(QMessageBox.StandardButton.No)
                         reply = msgbox.exec()
-                        if reply == QMessageBox.Yes:
+                        if reply == QMessageBox.StandardButton.Yes:
                             self.utils.removeWmsWfsLayers()
-                        if reply == QMessageBox.No:
+                        if reply == QMessageBox.StandardButton.No:
                             self.layman.iface.newProjectCreated.disconnect()
                             self.layman.iface.newProject()
                             self.layman.iface.newProjectCreated.connect(
