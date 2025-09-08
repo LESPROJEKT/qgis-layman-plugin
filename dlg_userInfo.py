@@ -135,7 +135,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
             )
 
         if self.server != None and self.laymanUsername != "":
-            userEndpoint = self.layman_api.get_current_user_url()
+            userEndpoint = self.URI + "/rest/current-user"
             r = self.utils.requestWrapper("GET", userEndpoint, payload=None, files=None)
             res = r.text
             res = self.utils.fromByteToJson(r.content)
@@ -380,7 +380,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
         )
 
         if reply == QMessageBox.Yes:
-            url = self.layman_api.get_user_delete_url(self.laymanUsername)
+            url = self.URI + "/rest/current-user"
             response = requests.delete(url)
             if response.status_code == 200:
                 QMessageBox.information(
