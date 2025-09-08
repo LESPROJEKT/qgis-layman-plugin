@@ -235,9 +235,20 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                                                  
     def getRoles(self):
         uri = self.URI + "/rest/roles"
-        r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
-        res = self.utils.fromByteToJson(r.content)
-        return res
+        try:
+            headers = self.utils.getAuthHeader(self.authCfg)
+            if headers is False:
+                return []
+            r = requests.get(uri, headers=headers)
+            if r.status_code == 200:
+                res = self.utils.fromByteToJson(r.content)
+                if res is None:
+                    return []
+                return res
+            else:
+                return []
+        except Exception:
+            return []
     def removeTabByTitle(self, tab_widget, title):
         index = 0
         while index < tab_widget.count():

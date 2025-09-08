@@ -863,9 +863,20 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                                                  
     def getRoles(self):
         uri = self.URI + "/rest/roles"
-        r = self.utils.requestWrapper("GET", uri, payload = None, files = None)
-        res = self.utils.fromByteToJson(r.content)
-        return res
+        try:
+            headers = self.utils.getAuthHeader(self.authCfg)
+            if headers is False:
+                return []
+            r = requests.get(uri, headers=headers)
+            if r.status_code == 200:
+                res = self.utils.fromByteToJson(r.content)
+                if res is None:
+                    return []
+                return res
+            else:
+                return []
+        except Exception:
+            return []
     def removeTabByTitle(self, tab_widget, title):
         index = 0
         while index < tab_widget.count():
@@ -943,7 +954,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             role_widget.setHorizontalHeaderLabels([self.tr('Role'), self.tr('Read'), self.tr('Write'), self.tr('Nick')])
             roles = self.getRoles()
             self.roles = roles
-            row = 0
+            row = 0            
+            if roles is None:
+                roles = []
             for rolename in (roles):    
                 if rolename == "EVERYONE":
                     continue
