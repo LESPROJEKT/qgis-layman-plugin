@@ -5307,10 +5307,8 @@ class Layman(QObject):
                 self.authHeader = authHeader
                 self.authOptained()
                 if hasattr(self, "dlg"):
-                    if isinstance(self.dlg, ConnectionManagerDialog):
-                        self.dlg.pushButton_logout.setEnabled(True)
-                        self.dlg.pushButton_NoLogin.setEnabled(False)
-                        self.dlg.pushButton_Connect.setEnabled(False)
+                    if isinstance(self.dlg, ConnectionManagerDialog):                        
+                        self.dlg.setup_logout_mode()
                         self.dlg.close()
                 if load != "":
                     print("loading current")

@@ -27,6 +27,8 @@ from qgis.PyQt import QtWidgets
 from .layman_utils import ProxyStyle
 from qgis.core import QgsSettings, QgsApplication, QgsProject
 from qgis.PyQt.QtWidgets import QPushButton
+from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtGui import QDesktopServices, QIcon
 import threading
 from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout
 from .dlg_server_form import ServerForm
@@ -88,9 +90,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
                         self.comboBox_server.addItem(self.server.replace("/client", ""))
                         self.layman.setServers(servers, i)
                         print("loaded name is " + name)
-                        self.pushButton_Connect.clicked.connect(
-                            lambda: self.layman.openAuthLiferayUrl2(name)
-                        )
+                        self.stored_name = name
                         break
                     elif (
                         self.server == "http://157.230.109.174/client"
@@ -99,9 +99,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
                         self.comboBox_server.addItem("test HUB")
                         self.layman.setServers(servers, i)
                         print("loaded name is " + name)
-                        self.pushButton_Connect.clicked.connect(
-                            lambda: self.layman.openAuthLiferayUrl2(name)
-                        )
+                        self.stored_name = name
                         break
                 else:
                     if len(servers[i]) == 6:
@@ -123,10 +121,8 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         ):
             config = self.utils.loadIni()
             if "login" in config["DEFAULT"]:
-                if len(config["DEFAULT"]["login"]) > 0:
-                    # self.layman.Agrimail = config['DEFAULT']['login']
-                    self.pushButton_Connect.setEnabled(True)
-                # self.lineEdit_userName.setText(config['DEFAULT']['login'])
+                if len(config["DEFAULT"]["login"]) > 0:                    
+                    self.pushButton_Connect.setEnabled(True)                
 
             for i in range(0, self.comboBox_server.count()):
                 if not self.server:
@@ -143,17 +139,12 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
                 os.makedirs(os.getenv("HOME") + os.sep + ".layman")
             except:
                 print("layman directory already exists")
-            self.pushButton_Connect.setEnabled(True)
-        # self.lineEdit_userName.textChanged.connect(self.checkUsername)
+            self.pushButton_Connect.setEnabled(True)        
         self.pushButton_close.clicked.connect(lambda: self.close())
         if QgsSettings().value("laymanLastServer") != None:
             self.comboBox_server.setCurrentIndex(
-                int(QgsSettings().value("laymanLastServer"))
-            )
-        if not self.server:
-            self.pushButton_Connect.clicked.connect(
-                lambda: self.layman.openAuthLiferayUrl2()
-            )
+                int(QgsSettings().value("laymanLastServer"))            )
+        
         self.pushButton_NoLogin.clicked.connect(
             lambda: self.withoutLogin(servers, self.comboBox_server.currentIndex())
         )
@@ -180,18 +171,13 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.comboBox_server.currentTextChanged.connect(setReg)
         setReg()
-
-        # Connect register button click
+        
         self.pushButton_register.clicked.connect(self.open_register_url)
-        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.pushButton_logout.clicked.connect(lambda: self.logout())
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")        
+        self.pushButton_Connect.clicked.connect(self.handle_login_logout)
 
-        if self.laymanUsername != "":
-            self.pushButton_logout.setEnabled(True)
-            self.pushButton_NoLogin.setEnabled(False)
-            self.pushButton_Connect.setEnabled(False)
-            self.comboBox_server.setEnabled(False)
-            # self.lineEdit_userName.setEnabled(False)
+        if self.laymanUsername != "":            
+            self.setup_logout_mode()
             if self.layman.locale == "cs":
                 self.setWindowTitle(
                     "Layman - Přihlášený uživatel: " + self.laymanUsername
@@ -199,14 +185,39 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 self.setWindowTitle("Layman - Logged user: " + self.laymanUsername)
 
-        else:
-            self.pushButton_logout.setEnabled(False)
-            self.pushButton_NoLogin.setEnabled(True)
-            self.pushButton_Connect.setEnabled(True)
-            self.comboBox_server.setEnabled(True)
-            # self.lineEdit_userName.setEnabled(True)
+        else:            
+            self.setup_login_mode()
         self.utils.setAuthCfg(self.layman.authCfg)
         self.show()
+
+    def setup_login_mode(self):        
+        self.pushButton_Connect.setText(self.tr("Login"))
+        self.pushButton_Connect.setIcon(QIcon(os.path.join(self.layman.plugin_dir, "icons", "login_logged.png")))
+        self.pushButton_Connect.setEnabled(True)
+        self.pushButton_NoLogin.setEnabled(True)
+        self.comboBox_server.setEnabled(True)
+        self.pushButton_Connect.setDefault(True)
+        self.pushButton_Connect.setAutoDefault(True)
+        self.is_logged_in = False
+
+    def setup_logout_mode(self):        
+        self.pushButton_Connect.setText(self.tr("Logout"))
+        self.pushButton_Connect.setIcon(QIcon(os.path.join(self.layman.plugin_dir, "icons", "logout.png")))
+        self.pushButton_Connect.setEnabled(True)
+        self.pushButton_NoLogin.setEnabled(False)
+        self.comboBox_server.setEnabled(False)
+        self.pushButton_Connect.setDefault(True)
+        self.pushButton_Connect.setAutoDefault(True)
+        self.is_logged_in = True
+
+    def handle_login_logout(self):        
+        if self.is_logged_in:
+            self.logout()
+        else:            
+            if hasattr(self, 'stored_name') and self.stored_name:
+                self.layman.openAuthLiferayUrl2(self.stored_name)
+            else:
+                self.layman.openAuthLiferayUrl2()
 
     def open_register_url(self):
         if hasattr(self, "current_register_url"):
@@ -231,8 +242,8 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.laymanUsername = ""
         self.layman.textbox.setText("Layman")
         self.close()
-        self.pushButton_NoLogin.setEnabled(True)
-        self.pushButton_Connect.setEnabled(True)
+        # Reset to login mode after logout
+        self.setup_login_mode()
 
         try:
             QgsProject.instance().crsChanged.disconnect()
@@ -259,9 +270,8 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.utils.URI = servers[i][1]
         self.layman.menu_AddLayerDialog.setEnabled(True)
         self.layman.laymanUsername = "browser"
-        self.pushButton_logout.setEnabled(True)
-        self.pushButton_NoLogin.setEnabled(False)
-        self.pushButton_Connect.setEnabled(False)
+        # Setup logout mode for browser user
+        self.setup_logout_mode()
         self.layman.menu_UserInfoDialog.setEnabled(True)
         self.layman.menu_AddMapDialog.setEnabled(True)
         self.layman.instance = None
