@@ -1,11 +1,13 @@
 from qgis.PyQt.QtWidgets import (
     QWidget,
     QVBoxLayout,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
     QComboBox,
     QMessageBox,
+    QDialog,
 )
 from qgis.PyQt.QtCore import QCoreApplication
 import os
@@ -48,15 +50,26 @@ class ServerForm(QWidget):
         layout.addWidget(QLabel(self.tr("Alias")))
         layout.addWidget(self.alias)
 
+        # Horizontal layout for buttons
+        button_layout = QHBoxLayout()
+        
         self.add_button = QPushButton(self.tr("Add New"))
         self.add_button.clicked.connect(self.add_new)
-        layout.addWidget(self.add_button)
+        button_layout.addWidget(self.add_button)
 
         self.save_button = QPushButton(self.tr("Save"))
         self.save_button.clicked.connect(self.save_server)
-        layout.addWidget(self.save_button)
+        button_layout.addWidget(self.save_button)
 
+        self.close_button = QPushButton(self.tr("Close"))
+        self.close_button.clicked.connect(self.close_dialog)
+        button_layout.addWidget(self.close_button)
+
+        layout.addLayout(button_layout)
         self.setLayout(layout)
+        
+        # Set minimum width to make the form wider
+        self.setMinimumWidth(400)
 
     def load_servers(self):
         try:
@@ -133,3 +146,16 @@ class ServerForm(QWidget):
             )
         except Exception as e:
             QMessageBox.critical(self, self.tr("Error"), str(e))
+
+    def close_dialog(self):
+        """Close the parent dialog"""
+        if hasattr(self, 'parent') and self.parent():
+            # Find the dialog in the parent hierarchy
+            dialog = self.parent()
+            while dialog and not isinstance(dialog, QDialog):
+                dialog = dialog.parent()
+            if dialog:
+                dialog.close()
+        else:
+            # Fallback: close this widget
+            self.close()
