@@ -178,11 +178,24 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             ).start()
         )
         self.filter.valueChanged.connect(self.filterResults)
-        self.treeWidget.setColumnWidth(0, 250)
-        self.treeWidget.setColumnWidth(1, 80)
-        self.treeWidget.setColumnWidth(2, 80)
-        self.treeWidget.setColumnWidth(3, 100)
-        self.treeWidget.setColumnWidth(4, 50)
+        # Set column widths
+        self.treeWidget.setColumnWidth(0, 280)  # Layer - trochu zúžený
+        self.treeWidget.setColumnWidth(1, 140)  # Owner - ještě širší
+        self.treeWidget.setColumnWidth(2, 80)   # Permissions
+        self.treeWidget.setColumnWidth(3, 80)   # CRS
+        self.treeWidget.setColumnWidth(4, 30)   # Status - menší
+        
+        # Allow user to resize columns and maintain proportions when dialog is resized
+        self.treeWidget.header().setStretchLastSection(False)  # Don't stretch last section
+        self.treeWidget.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)      # Layer column stretches to fill space
+        self.treeWidget.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Interactive)  # User can resize
+        self.treeWidget.header().setSectionResizeMode(2, QtWidgets.QHeaderView.Interactive)  # User can resize
+        self.treeWidget.header().setSectionResizeMode(3, QtWidgets.QHeaderView.Interactive)  # User can resize
+        self.treeWidget.header().setSectionResizeMode(4, QtWidgets.QHeaderView.Interactive)  # User can resize
+        
+        # Enable sorting by clicking on column headers
+        self.treeWidget.setSortingEnabled(True)
+        self.treeWidget.sortByColumn(0, Qt.AscendingOrder)  # Default sort by Layer name (column 0)
 
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.checkBox_own.stateChanged.connect(self.rememberValueLayer)
