@@ -117,6 +117,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_noUser.hide()
         self.pushButton_postgis.setEnabled(False)
 
+
         delegate = CenterIconDelegate()
         self.treeWidget.setItemDelegate(delegate)
         try:
@@ -1035,6 +1036,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.pushButton_setPermissions.setEnabled(True)
             self.pushButton_delete.setEnabled(True)
+        
+        # Set WMS button as default focus when layer is selected
+        self.pushButton.setFocus()
 
     def checkFileType(self, name, workspace):
         name = self.layerNamesDict[name]
