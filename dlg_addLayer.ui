@@ -260,6 +260,9 @@
        <property name="text">
         <string>Náhled</string>
        </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
       </widget>
      </item>
      <item alignment="Qt::AlignHCenter">
@@ -282,14 +285,14 @@
          <height>200</height>
         </size>
        </property>
-       <property name="frameShape">
-        <enum>QFrame::Box</enum>
-       </property>
        <property name="text">
-        <string/>
+        <string>Disabled</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::Box</enum>
        </property>
       </widget>
      </item>
