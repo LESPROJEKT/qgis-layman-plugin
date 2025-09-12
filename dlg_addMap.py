@@ -197,7 +197,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.checkBox_own.stateChanged.connect(
             lambda state: asyncio.run(self.loadMapsThread(state))
         )
-        asyncio.run(self.loadMapsThread(checked))
+        asyncio.run(self.loadMapsThread(checked))     
         
         # Initialize thumbnail label based on checkbox state
         if self.checkBox_thumbnail.checkState() == 2:  # Checked
@@ -797,7 +797,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             smaller_pixmap = pixmap.scaled(
                 200, 200, Qt.KeepAspectRatio, Qt.FastTransformation
             )
-            self.label_thumbnail.setPixmap(smaller_pixmap)
+            self.label_thumbnail.setPixmap(smaller_pixmap)     
             self.label_thumbnail.setText("")  # Clear any placeholder text
         else:  # Show placeholder when preview is disabled
             self.label_thumbnail.clear()
@@ -813,7 +813,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         
     def enableLoadMapButtons(self, item):
         self.pushButton_map.setEnabled(True) 
-        self.pushButton_copyUrl.setEnabled(True)
+        self.pushButton_copyUrl.setEnabled(True)           
         self.pushButton_map.setFocus()  # Set focus on Load composition button           
         
     def setPermissionsButton(self, item):

@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1200</width>
-    <height>800</height>
+    <width>1100</width>
+    <height>770</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -28,7 +28,9 @@
   <property name="windowTitle">
    <string>Layman - Current composition</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout" stretch="8,2">
+  <layout class="QVBoxLayout" name="mainVerticalLayout">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="8,2">
    <item>
     <widget class="QStackedWidget" name="stackedWidget">
      <property name="currentIndex">
@@ -200,6 +202,12 @@
             </item>
             <item>
              <widget class="QTextEdit" name="textEdit_description">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>70</height>
+               </size>
+              </property>
               <property name="placeholderText">
                <string>Description:</string>
               </property>
@@ -283,17 +291,6 @@
               </property>
              </widget>
             </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_CreateComposition">
-              <property name="text">
-               <string>Create</string>
-              </property>
-              <property name="icon">
-               <iconset>
-                <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
-              </property>
-             </widget>
-            </item>
            </layout>
           </item>
           <item>
@@ -306,6 +303,39 @@
            </widget>
           </item>
          </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_create">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>15</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_CreateComposition">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Create new composition</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
+         </property>
         </widget>
        </item>
       </layout>
@@ -888,17 +918,6 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_new">
-       <property name="text">
-        <string>New</string>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>icons/layer.png</normaloff>icons/layer.png</iconset>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QProgressBar" name="progressBar_loader">
        <property name="enabled">
         <bool>true</bool>
@@ -945,13 +964,6 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_close2">
-       <property name="text">
-        <string>Close</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <spacer name="verticalSpacer_3">
        <property name="orientation">
         <enum>Qt::Vertical</enum>
@@ -966,6 +978,30 @@
         </size>
        </property>
       </spacer>
+     </item>
+    </layout>
+   </item>
+   </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_bottom">
+     <item>
+      <widget class="QPushButton" name="pushButton_new">
+       <property name="text">
+        <string>New</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>icons/layer.png</normaloff>icons/layer.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_close2">
+       <property name="text">
+        <string>Close</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

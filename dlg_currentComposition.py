@@ -49,9 +49,9 @@ import traceback
 from .currentComposition import CurrentComposition
 from .layman_utils import ProxyStyle
 from distutils.version import LooseVersion
-from .layman_qfield import Qfield
-from distutils.version import LooseVersion
-import tempfile
+from .layman_qfield import Qfield   
+from distutils.version import LooseVersion  
+import tempfile   
 from .layman_api import LaymanAPI
 
 
@@ -79,13 +79,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         dialog_running = True
         self.setObjectName("CurrentMapDialog")
         self.utils = utils
-        self.isAuthorized = isAuthorized
+        self.isAuthorized = isAuthorized       
         self.URI = URI
         self.layman = layman
         self.pushButton_CreateCompositionConnected = False
         self.layerServices = {}
         app = QtWidgets.QApplication.instance()
-        main_window = self.layman.iface.mainWindow()
+        main_window = self.layman.iface.mainWindow() 
         desktop = QDesktopWidget()
         screen_rect = desktop.screenGeometry(main_window)
         dialog_rect = self.frameGeometry()
@@ -99,18 +99,18 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setStyle(proxy_style)
         self.setupUi(self)
         self.globalRead = {}
-        self.globalWrite = {}
+        self.globalWrite = {}  
         self.qfield = Qfield(self.utils)
-        self.qfield.setURI(self.URI)
+        self.qfield.setURI(self.URI) 
         self.qfieldWorking = True
         self.layman_api = LaymanAPI(URI)
         self.setUi()
-
+        
     def connectEvents(self):
         self.permissionInfo.connect(self.afterPermissionDone)
         self.progressDone.connect(self._onProgressDone)
         self.progressStart.connect(self._onProgressStart)
-        self.onRefreshCurrentForm.connect(self.on_layers_removed)
+        self.onRefreshCurrentForm.connect(self.on_layers_removed) 
         self.qfieldUpdate.connect(self.UpdateQfield)
 
     def setStackWidget(self, option: str, refresh: bool = True) -> None:
@@ -144,7 +144,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.setLayerPropertiesUI()
 
     def setStackWidget2(self, option, refresh=True):
-        if option == "main":
+        if option == "main":       
             self.page1.setVisible(True)
             self.page2.setVisible(False)
             self.page3.setVisible(False)
@@ -153,108 +153,108 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if refresh:
                 self.refreshCurrentForm()
             else:
-                self.setVisibilityForCurrent(True)
-        if option == "permissions":
+                self.setVisibilityForCurrent(True)                
+        if option == "permissions": 
             self.page1.setVisible(False)
             self.page2.setVisible(True)
             self.page3.setVisible(False)
             self.page4.setVisible(False)
             self.page5.setVisible(False)
-            self.setPermissionsUI(self.layman.current)
-        if option == "metadata":
+            self.setPermissionsUI(self.layman.current)  
+        if option == "metadata": 
             self.page1.setVisible(False)
             self.page2.setVisible(False)
             self.page3.setVisible(False)
             self.page4.setVisible(True)
             self.page5.setVisible(False)
-            self.setMetadataUI()
-        if option == "new":
+            self.setMetadataUI() 
+        if option == "new": 
             self.page1.setVisible(False)
             self.page2.setVisible(False)
             self.page3.setVisible(True)
             self.page4.setVisible(False)
             self.page5.setVisible(False)
-            self.setNewUI()
-        if option == "props":
+            self.setNewUI()    
+        if option == "props": 
             self.page1.setVisible(False)
             self.page2.setVisible(False)
             self.page3.setVisible(False)
             self.page4.setVisible(False)
             self.page5.setVisible(True)
-            self.setLayerPropertiesUI()
-
+            self.setLayerPropertiesUI()     
+                                       
     def writeProjectValues(self):
-        self.layman.writeValuesToProject(self.URI, self.layman.current)
+        self.layman.writeValuesToProject(self.URI, self.layman.current)        
         projekt = QgsProject.instance()
-        cesta_k_projektu = projekt.fileName()
-        print(cesta_k_projektu)
+        cesta_k_projektu = projekt.fileName()  
+        print(cesta_k_projektu)    
 
-    def setUi(self):
-        QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
-        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)
-        self.connectEvents()
+    def setUi(self):    
+        QgsProject.instance().layerWasAdded.connect(self.on_layers_added)  
+        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)     
+        self.connectEvents()  
         self.permissionsConnected = False
         self.layman.dlg_current = self
         self.utils.recalculateDPI()
         self.pushButton_setPermissions.clicked.connect(
             lambda: self.setStackWidget("permissions")
         )
-        self.pushButton_back.clicked.connect(lambda: self.setStackWidget("main", False))
+        self.pushButton_back.clicked.connect(lambda: self.setStackWidget("main", False))  
         self.pushButton_editMeta.clicked.connect(
             lambda: self.setStackWidget("metadata")
         )
-        self.pushButton_new.clicked.connect(lambda: self.setStackWidget("new"))
+        self.pushButton_new.clicked.connect(lambda: self.setStackWidget("new"))        
         self.pushButton_new.show()
         self.setVisibilityForCurrent(False)
         self.label_readonly.hide()
-        self.label_log.hide()
+        self.label_log.hide()        
         self.label_raster.hide()
         self.treeWidget_layers.header().resizeSection(0, 230)
-        self.pushButton_qfield.clicked.connect(self.writeProjectValues)
-        self.pushButton_qfield.clicked.connect(self.exportToQfield)
+        self.pushButton_qfield.clicked.connect(self.writeProjectValues) 
+        self.pushButton_qfield.clicked.connect(self.exportToQfield)      
         if self.layman.current != None:
             self.layman.instance.refreshComposition()
-            composition = self.layman.instance.getComposition()
+            composition = self.layman.instance.getComposition()        
             self.setVisibilityForCurrent(True)
             self.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl())
             layerList = list()
             serviceList = list()
-            try:
+            try:                
                 self.setWindowTitle(self.tr("Composition: ") + composition["title"])
             except:
-                print("titulek nenačten")
-
-            try:
+                print("titulek nenačten")          
+            
+            try:                
                 len(composition["layers"])
-            except:
+            except:            
                 return
             self.refreshCurrentForm()
-            if self.layman.laymanUsername != self.layman.instance.getWorkspace():
+            if self.layman.laymanUsername != self.layman.instance.getWorkspace():             
                 self.setVisibilityForCurrent(True)
         else:
             self.pushButton_new.setEnabled(True)
-        if not self.isAuthorized:
+        if not self.isAuthorized:      
             self.setVisibilityForCurrent(False)
-        if not self.pushButton_save.receivers(self.pushButton_save.clicked) > 0:
-            self.pushButton_close2.clicked.connect(lambda: self.close())
+        if not self.pushButton_save.receivers(self.pushButton_save.clicked) > 0:          
+            self.pushButton_close2.clicked.connect(lambda: self.close())                  
             self.pushButton_save.clicked.connect(lambda: self.updateComposition())
             # self.pushButton_save.clicked.connect(lambda: threading.Thread(target=self.updateComposition).start())
             self.checkBox_all.stateChanged.connect(self.checkAllLayers)
-            self.pushButton_delete.clicked.connect(lambda: self.deleteCurrentMap())
-            self.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())
+            self.pushButton_delete.clicked.connect(lambda: self.deleteCurrentMap())                     
+            self.treeWidget_layers.itemChanged.connect(lambda: self.layersWasModified())       
             self.treeWidget_layers.itemChanged.connect(self.checkCheckbox)
-        self.progressBar_loader.hide()
+        self.progressBar_loader.hide()  
         if not self.layman.qfieldReady:
             self.pushButton_qfield.setEnabled(False)
         self.show()
         result = self.exec()
-
+              
     def UpdateQfield(self):
         if self.qfield.offineRaster:
             self.utils.replace_wms_xyz_layers("mbtiles")
-        self.progressStart.emit()
-        self.layman.qfieldWorking = True
-        self.utils.saveUnsavedLayers()
+        self.progressStart.emit() 
+        self.layman.qfieldWorking = True                
+        self.utils.saveUnsavedLayers()  
         try:
             QgsProject.instance().layerWasAdded.disconnect()
         except TypeError as e:
@@ -262,8 +262,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         try:
             QgsProject.instance().layerRemoved.disconnect()
         except TypeError as e:
-            print(f"Chyba při odpojování on_layers_added: {e}")
-        name = self.layman.current
+            print(f"Chyba při odpojování on_layers_added: {e}")      
+        name = self.layman.current            
         self.qfield.selectedLayers = self.getCheckedLayerNames()
         permissions = self.layman.instance.getAllPermissions()
         permission = "true" if "EVERYONE" in permissions["read"] else "false"
@@ -272,19 +272,19 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.layman.instance.getDescription(),
             permission,
         )
-        res = response.json()
+        res = response.json()       
         if response.status_code == 201:
             self.utils.showQgisBar(
                 [" Projekt by úspěšně vytvořen.", " Project was successfully created."],
                 Qgis.Success,
             )
         elif "code" in res and res["code"] == "project_already_exists":
-            convertedProjectPath = self.qfield.convertQProject()
+            convertedProjectPath = self.qfield.convertQProject()            
             self.utils.showQgisBar(
                 [" Aktualizuji project QField.", " Update QField project"], Qgis.Success
             )
-            project_id = self.qfield.getProjectByName(name)
-            qfieldFiles = self.qfield.getProjectFiles(project_id).json()
+            project_id = self.qfield.getProjectByName(name)              
+            qfieldFiles = self.qfield.getProjectFiles(project_id).json()  
             if self.utils.hasMatchingLayer(self.utils.getWmsOrWfsLayers(), qfieldFiles):
                 self.utils.showQgisBar(
                     [
@@ -293,37 +293,37 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     ],
                     Qgis.Warning,
                 )
-                self.progressDone.emit()
+                self.progressDone.emit()   
                 return
             layersToDelete = self.qfield.selectedLayers
             layersToPost = self.qfield.findLayersToPost(
                 self.layman.instance.getLayerList(), qfieldFiles
             )
-            filesToCheck = self.qfield.filesToCheck(qfieldFiles)
-            local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)
-            self.qfield.postMultipleFiles(project_id, convertedProjectPath)
+            filesToCheck = self.qfield.filesToCheck(qfieldFiles)         
+            local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)               
+            self.qfield.postMultipleFiles(project_id, convertedProjectPath)    
             self.syncFiles(
                 local_hashes, filesToCheck, layersToPost, layersToDelete, project_id
             )
         self.layman.current = name
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
-        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)
-        self.layman.qfieldWorking = False
-        self.layman.stylesToUpdate = set()
-        self.layman.writeValuesToProject(self.URI, name)
-        self.onRefreshCurrentForm.emit()
-        self.progressDone.emit()
+        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)  
+        self.layman.qfieldWorking = False  
+        self.layman.stylesToUpdate = set()  
+        self.layman.writeValuesToProject(self.URI, name)  
+        self.onRefreshCurrentForm.emit()       
+        self.progressDone.emit()   
 
     def hasOnlineLayers(self):
         project = QgsProject.instance()
-        layers = project.mapLayers().values()
+        layers = project.mapLayers().values()    
         for layer in layers:
             if isinstance(layer, QgsRasterLayer):
                 if layer.providerType() == "wms" or layer.providerType() == "xyz":
                     return True
         return False
-
-    def exportToQfield(self):
+      
+    def exportToQfield(self):  
         self.qfield.offineRaster = False
         if self.hasOnlineLayers() and not self.utils.checkLayerSize():
             response = QMessageBox.question(
@@ -342,11 +342,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.qfield.offineRaster = False
             else:
                 return
-        # self.qfieldUpdate.emit()
+        # self.qfieldUpdate.emit()       
         self.updateComposition(qfield=True)
-
+    
     def qfieldThread(self):
-        name = self.layman.current
+        name = self.layman.current            
         self.qfield.selectedLayers = self.getCheckedLayerNames()
         permissions = self.layman.instance.getAllPermissions()
         permission = "true" if "EVERYONE" in permissions["read"] else "false"
@@ -362,29 +362,29 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 Qgis.Success,
             )
         elif "code" in res and res["code"] == "project_already_exists":
-            convertedProjectPath = self.qfield.convertQProject()
+            convertedProjectPath = self.qfield.convertQProject()            
             self.utils.showMessageSignal.emit(
                 [" Aktualizuji project QField.", " Update QField project"], Qgis.Success
             )
-            project_id = self.qfield.getProjectByName(name)
-            qfieldFiles = self.qfield.getProjectFiles(project_id).json()
+            project_id = self.qfield.getProjectByName(name)              
+            qfieldFiles = self.qfield.getProjectFiles(project_id).json()  
             layersToDelete = self.qfield.selectedLayers
             layersToPost = self.qfield.findLayersToPost(
                 self.layman.instance.getLayerList(), qfieldFiles
             )
-            filesToCheck = self.qfield.filesToCheck(qfieldFiles)
-            local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)
-            self.qfield.postMultipleFiles(project_id, convertedProjectPath)
+            filesToCheck = self.qfield.filesToCheck(qfieldFiles)         
+            local_hashes = self.utils.create_local_files_hash_dict(convertedProjectPath)               
+            self.qfield.postMultipleFiles(project_id, convertedProjectPath)    
             self.syncFiles(
                 local_hashes, filesToCheck, layersToPost, layersToDelete, project_id
             )
-        self.layman.current = name
+        self.layman.current = name        
         QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
-        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)
-        self.layman.qfieldWorking = False
-        self.layman.stylesToUpdate = set()
-        self.onRefreshCurrentForm.emit()
-        self.progressDone.emit()
+        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)  
+        self.layman.qfieldWorking = False          
+        self.layman.stylesToUpdate = set()  
+        self.onRefreshCurrentForm.emit()       
+        self.progressDone.emit() 
 
     def syncFiles(
         self,
@@ -395,96 +395,96 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         project_id,
     ):
         for filename, local_hash in local_files_hashes.items():
-            fullpath = filename
-            filename = self.utils.get_filename_with_extension(filename)
-            server_hash = server_files_hashes.get(filename)
-            if local_hash != server_hash and server_hash != None:
-                print(f"File {filename} was changed, sending to server.")
+            fullpath = filename          
+            filename = self.utils.get_filename_with_extension(filename) 
+            server_hash = server_files_hashes.get(filename)       
+            if local_hash != server_hash and server_hash != None:             
+                print(f"File {filename} was changed, sending to server.")   
+                self.qfield.postProjectFile(project_id, fullpath)   
+            elif filename in layers_to_post:                             
                 self.qfield.postProjectFile(project_id, fullpath)
-            elif filename in layers_to_post:
-                self.qfield.postProjectFile(project_id, fullpath)
-            # self.qfield.postProjectFile(project_id, fullpath)
+            # self.qfield.postProjectFile(project_id, fullpath)                
             # elif filename in layers_to_delete:
-            #     self.qfield.deleteProjectFile(project_id, fullpath)
-
+            #     self.qfield.deleteProjectFile(project_id, fullpath)                                       
+    
         for file in layers_to_delete:
             self.qfield.deleteProjectFile(project_id, file + ".gpkg")
 
-    def setVisibilityForCurrent(self, visible):
+    def setVisibilityForCurrent(self, visible):           
         if self.layman.instance is None:
-            self.pushButton_editMeta.setEnabled(False)
+            self.pushButton_editMeta.setEnabled(False)   
             self.pushButton_setPermissions.setEnabled(False)
-            self.pushButton_delete.setEnabled(False)
+            self.pushButton_delete.setEnabled(False)              
             self.pushButton_save.setEnabled(False)
-            self.pushButton_copyUrl.setEnabled(False)
+            self.pushButton_copyUrl.setEnabled(False)   
             self.pushButton_qfield.setEnabled(False)
             self.pushButton_new.setEnabled(True)
             self.label_readonly.hide()
-            self.pushButton_new.show()
+            self.pushButton_new.show()              
             return
         if (
             self.layman.laymanUsername != self.layman.instance.getWorkspace()
             and visible == True
         ):
-            self.pushButton_editMeta.setEnabled(False)
+            self.pushButton_editMeta.setEnabled(False)   
             self.pushButton_setPermissions.setEnabled(False)
-            self.pushButton_delete.setEnabled(False)
+            self.pushButton_delete.setEnabled(False)              
             self.pushButton_save.setEnabled(False)
-            self.pushButton_copyUrl.setEnabled(True)
-            if self.layman.qfieldReady:
+            self.pushButton_copyUrl.setEnabled(True) 
+            if self.layman.qfieldReady:  
                 self.pushButton_qfield.setEnabled(False)
             self.pushButton_new.setEnabled(True)
             self.label_readonly.show()
-            self.pushButton_new.show()
-            self.checkBox_all.setEnabled(False)
-        else:
-            self.pushButton_new.show()
+            self.pushButton_new.show()   
+            self.checkBox_all.setEnabled(False) 
+        else:  
+            self.pushButton_new.show()       
             self.pushButton_new.setEnabled(visible)
-            self.pushButton_setPermissions.setEnabled(visible)
-            self.pushButton_editMeta.setEnabled(visible)
+            self.pushButton_setPermissions.setEnabled(visible)      
+            self.pushButton_editMeta.setEnabled(visible)            
             self.pushButton_save.setEnabled(visible)
-            self.pushButton_delete.setEnabled(visible)
-            self.pushButton_copyUrl.setEnabled(visible)
-            if self.layman.qfieldReady:
+            self.pushButton_delete.setEnabled(visible)     
+            self.pushButton_copyUrl.setEnabled(visible)             
+            if self.layman.qfieldReady: 
                 self.pushButton_qfield.setEnabled(visible)
             self.checkBox_all.setEnabled(visible)
 
     def refreshCurrentForm(self, layerAdded=None):
         print(self.layman.current)
-        self.pushButton_new.show()
+        self.pushButton_new.show()  
         if self.layman.instance == None:
             return
         composition = self.layman.instance.getComposition()
         print(composition)
-        if self.layman.current != None:
+        if self.layman.current != None:           
             try:
                 writePermissions = self.layman.instance.getAllPermissions()["write"]
             except:
                 writePermissions = []
-                print("get permissions failed")
-            if self.layman.laymanUsername not in writePermissions:
-                self.treeWidget_layers.setEnabled(False)
-                self.pushButton_editMeta.setEnabled(False)
-                self.pushButton_setPermissions.setEnabled(False)
-                self.pushButton_save.setEnabled(False)
-                self.pushButton_delete.setEnabled(False)
-                self.pushButton_setPermissions.setEnabled(False)
-                self.pushButton_qfield.setEnabled(False)
-                self.label_readonly.show()
-            else:
-                self.label_readonly.hide()
-                self.layman.instance.refreshComposition()
+                print("get permissions failed")                
+            if self.layman.laymanUsername not in writePermissions:                    
+                    self.treeWidget_layers.setEnabled(False)               
+                    self.pushButton_editMeta.setEnabled(False)
+                    self.pushButton_setPermissions.setEnabled(False)                    
+                    self.pushButton_save.setEnabled(False)
+                    self.pushButton_delete.setEnabled(False)
+                    self.pushButton_setPermissions.setEnabled(False)
+                    self.pushButton_qfield.setEnabled(False) 
+                    self.label_readonly.show()  
+            else:   
+                self.label_readonly.hide()                 
+                self.layman.instance.refreshComposition()                     
                 self.pushButton_editMeta.setEnabled(True)
                 self.pushButton_new.setEnabled(True)
-                self.pushButton_setPermissions.setEnabled(True)
+                self.pushButton_setPermissions.setEnabled(True)                        
                 self.pushButton_save.setEnabled(True)
                 self.pushButton_delete.setEnabled(True)
                 if self.layman.qfieldReady:
-                    self.pushButton_qfield.setEnabled(True)
+                    self.pushButton_qfield.setEnabled(True) 
                 else:
-                    self.pushButton_qfield.setEnabled(False)
-                self.pushButton_copyUrl.setEnabled(True)
-
+                    self.pushButton_qfield.setEnabled(False)     
+                self.pushButton_copyUrl.setEnabled(True) 
+        
         try:
             (
                 self.setWindowTitle("Kompozice: " + composition["title"])
@@ -496,36 +496,36 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget_layers.clear()
         layerList = list()
         serviceList = list()
-        self.layman.instance.refreshComposition()
+        self.layman.instance.refreshComposition()        
         for i in reversed(range(0, len(composition["layers"]))):
             layerList.append(
                 self.utils.removeUnacceptableChars(composition["layers"][i]["title"])
             )
             serviceList.append(composition["layers"][i]["className"])
-        layers = QgsProject.instance().mapLayers().values()
+        layers = QgsProject.instance().mapLayers().values()        
         layersInCanvas = []
         self.layerIds = list()
         layersArr = list()
         layers = self.getLayersOrder()
-
+     
         for layer in layers:
             layersArr.append(layer)
 
         if layerAdded:
             layersArr.append(layerAdded)
-        for layer in layersArr:
+        for layer in layersArr:  
             self.layerIds.append(
                 [self.utils.removeUnacceptableChars(layer.name()), layer.id()]
             )
-            layerType = layer.type()
+            layerType = layer.type()                
             item = QTreeWidgetItem()
-            item.setText(0, layer.name())
-            layersInCanvas.append(self.utils.removeUnacceptableChars(layer.name()))
+            item.setText(0, layer.name())               
+            layersInCanvas.append(self.utils.removeUnacceptableChars(layer.name()))          
             if self.utils.removeUnacceptableChars(layer.name()) in layerList:
-                i = layerList.index(self.utils.removeUnacceptableChars(layer.name()))
-                if serviceList[i] == self.layman.vectorService:
+                i = layerList.index(self.utils.removeUnacceptableChars(layer.name()))               
+                if serviceList[i] == self.layman.vectorService:                       
                     item.setText(1, "WFS")
-                if serviceList[i] == self.layman.rasterService:
+                if serviceList[i] == self.layman.rasterService:                       
                     item.setText(1, "WMS")
                 if serviceList[i] == "XYZ":
                     item.setText(1, "XYZ")
@@ -536,38 +536,38 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         "This layer is displayed and is part of the loaded composition."
                     ),
                 )
-            else:
+            else:                
                 item.setCheckState(0, 0)
                 item.setToolTip(
                     0, self.tr("This layer is not part of the composition.")
                 )
-
+               
                 if isinstance(layer, QgsRasterLayer):
                     item.setText(1, "WMS")
-                if isinstance(layer, QgsVectorLayer):
+                if isinstance(layer, QgsVectorLayer):                
                     item.setText(1, "WMS")
                 if (
                     layer.type() == QgsMapLayer.LayerType.VectorLayer
                     and layer.dataProvider().name() == "WFS"
                 ):
-                    item.setText(1, "WFS")
+                    item.setText(1, "WFS") 
                 if layer.dataProvider().name() == "arcgismapserver":
-                    item.setText(1, "ArcGIS REST")
+                    item.setText(1, "ArcGIS REST")                              
                 self.setGuiForItem(item)
                 if layerType == QgsMapLayer.LayerType.VectorLayer:
                     try:
                         layer.editingStopped.disconnect()
                     except:
-                        print("connect to stopEditing not exists")
-            self.treeWidget_layers.addTopLevelItem(item)
+                        print("connect to stopEditing not exists")            
+            self.treeWidget_layers.addTopLevelItem(item)        
         iterator = QTreeWidgetItemIterator(
             self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
-        notActive = set(layerList) - set(layersInCanvas)
-
-        for layer in notActive:
+        notActive = set(layerList) - set(layersInCanvas)  
+        
+        for layer in notActive:            
             item = QTreeWidgetItem()
-
+            
             if self.layman.locale == "cs":
                 item.setText(0, layer + " (Smazána z projektu)")
                 item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
@@ -576,7 +576,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 item.setText(0, layer + " (Removed from canvas)")
                 item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
                 item.setData(0, QtCore.Qt.CheckStateRole, None)
-
+            
             brush = QBrush()
             brush.setColor(QColor(255, 17, 0))
             item.setForeground(0, brush)
@@ -588,9 +588,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 ),
             )
             self.treeWidget_layers.addTopLevelItem(item)
-            self.layersWasModified()
+            self.layersWasModified()           
         self.addAvailableServices(layersArr, iterator, notActive)
-
+        
     def checkAllLayers(self, checked):
         if checked:
             (
@@ -608,7 +608,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.layman.rasterService
                 )
                 iterator += 1
-
+     
         if not checked:
             (
                 self.checkBox_all.setText("Vybrat vše")
@@ -618,48 +618,48 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             iterator = QTreeWidgetItemIterator(
                 self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
             )
-            while iterator.value():
+            while iterator.value():           
                 item = iterator.value()
                 item.setCheckState(0, 0)
                 self.layerServices = {}
                 iterator += 1
 
-    def checkCheckbox(self, item, column):
+    def checkCheckbox(self, item, column):        
         combobox = self.treeWidget_layers.itemWidget(item, 2)
-        if combobox is not None:
-            if item.checkState(column) == 2:
+        if combobox is not None:            
+            if item.checkState(column) == 2:                
                 if item.text(2) != "":
                     combobox.setCurrentIndex(2)
                 else:
                     combobox.setCurrentIndex(1)
             if item.checkState(column) == 0:
-                combobox.setCurrentIndex(2)
+                combobox.setCurrentIndex(2) 
 
     def getCheckedLayerNames(self):
-        checkedLayers = []
+        checkedLayers = []      
         iterator = QTreeWidgetItemIterator(
             self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         while iterator.value():
-            item = iterator.value()
-            if item.checkState(0) == 0:
+            item = iterator.value()     
+            if item.checkState(0) == 0:             
                 checkedLayers.append(item.text(0))
             iterator += 1
-        return checkedLayers
-
+        return checkedLayers     
+                                 
     def getLayersOrder(self):
         bridge = self.layman.iface.layerTreeCanvasBridge()
         root = bridge.rootGroup()
-        return root.layerOrder()
+        return root.layerOrder()                
 
     def addAvailableServices(self, layersArr, iterator, notActive):
         urlServer = self.URI.replace("/client", "")
         data = self.utils.getLayers()
         while iterator.value():
-            item = iterator.value()
-            cell = QComboBox()
+            item = iterator.value()                
+            cell = QComboBox()         
             cellServices = QComboBox()
-            for layer in layersArr:
+            for layer in layersArr:                
                 if (
                     self.utils.removeUnacceptableChars(layer.name())
                     == self.utils.removeUnacceptableChars(item.text(0))
@@ -728,7 +728,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 #     if self.layman.locale == "cs":
                 #         cell.addItems(['Beze změny','Přidat ze serveru'])
                 #     else:
-                #         cell.addItems(['No change','Add from server'])
+                #         cell.addItems(['No change','Add from server'])                       
                 else:
                     if self.layman.locale == "cs":
                         cell.addItems(["Beze změny", "Přidat"])
@@ -737,18 +737,18 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
             self.treeWidget_layers.setItemWidget(item, 2, cell)
             self.treeWidget_layers.setItemWidget(item, 1, cellServices)
-
+                                            
             if self.layman.instance.getServiceForLayer(item.text(0)) in (
                 ["HSLayers.Layer.WMS", "WMS", "XYZ"]
             ):
-                cellButton = QPushButton("...", None)
+                cellButton = QPushButton("...", None)                
                 cellButton.clicked.connect(lambda: self.setStackWidget("props"))
                 self.treeWidget_layers.setItemWidget(item, 3, cellButton)
             ##
             iterator += 1
             self.treeWidget_layers.itemWidget(item, 1).setCurrentText(item.text(1))
 
-    def comboBoxChanged(self, text):
+    def comboBoxChanged(self, text):        
         iterator = QTreeWidgetItemIterator(
             self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
@@ -771,11 +771,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     item.setCheckState(0, 2)
                 iterator += 1
         except:
-            print("neni v canvasu")
-
+            print("neni v canvasu")                        
+            
     def updateComposition(self, checkD=True, thread=True, qfield=False):
         self.writeProjectValues()
-        self.progressStart.emit()
+        self.progressStart.emit()     
         self.currentSet = list()
         iterator = QTreeWidgetItemIterator(
             self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
@@ -792,10 +792,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 )
                 iterator += 1
         except:
-            print("neni v canvasu")
-        if self.duplicateLayers():
+            print("neni v canvasu")     
+        if self.duplicateLayers():           
             self.showInfoDialogOnTop(self.tr("Duplicity in layer names!"))
-            return
+            return         
         composition = self.layman.instance.getComposition()
         layerList = []
         for i in range(0, len(composition["layers"])):
@@ -815,15 +815,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 lay = QgsProject.instance().mapLayersByName(item.text(0))[0]
                 lay.styleChanged.connect(self.layman.layerStyleToUpdate)
             iterator += 1
-        if thread:
+        if thread:            
             threading.Thread(
                 target=lambda: self.updateCompositionThread(qfield)
             ).start()
-        else:
-            self.updateCompositionThread()
+        else:  
+            self.updateCompositionThread()          
         # self.progressBar_loader.show()
-        self.pushButton_save.setEnabled(False)
-
+        self.pushButton_save.setEnabled(False)     
+        
     def duplicateLayers(self):
         layerList = set()
         duplicity = list()
@@ -839,17 +839,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 duplicity.append(item.text(0))
             if item.checkState(0) == 2:
                 layerList.add(item.text(0))
-                print("append" + item.text(0))
+                print("append" + item.text(0))            
             iterator += 1
         while iterator.value():
             item = iterator.value()
-            if item.text(0) in duplicity:
+            if item.text(0) in duplicity:                
                 item.setForeground(0, QColor(255, 18, 0))
                 ret = True
-            else:
+            else:                
                 item.setForeground(0, QColor(0, 0, 0))
             iterator += 1
-        return ret
+        return ret                
 
     def itemClick(self, item, col):
         if item.checkState(0) == 2 and self.checkIfLayerIsInMoreGroups(
@@ -860,31 +860,31 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 + item.text(0)
                 + self.tr(" is nested in two groups. Only parent group will be saved.")
             )
-
+            
     def checkIfLayerIsInMoreGroups(self, layer):
         root = QgsProject.instance().layerTreeRoot()
         tree_layer = root.findLayer(layer.id())
         if tree_layer:
             layer_parent = tree_layer.parent()
 
-            if layer_parent:
-                group_parent = layer_parent.parent()
+            if layer_parent:                
+                group_parent = layer_parent.parent() 
                 test = layer_parent.name() or "root"
                 if test == "root":
                     return False
-                if group_parent:
+                if group_parent:                    
                     test = group_parent.name() or "root"
                     if test == "root":
                         return False
                     else:
-                        return True
-
+                        return True            
+             
     def updateCompositionThread(self, qfield=False):
         composition = self.layman.instance.getComposition()
         i = 0
         for item in self.currentSet:
             service = self.layman.instance.getServiceForLayer(item[0])
-            if service in ("HSLayers.Layer.WMS", "WMS") and item[1] == "WFS":
+            if service in ("HSLayers.Layer.WMS", "WMS") and item[1] == "WFS":                      
                 self.layerServices[self.utils.removeUnacceptableChars(item[0])] = (
                     self.layman.wms_wfs3(item[0], i, item[1])
                 )
@@ -893,12 +893,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.layman.wms_wfs3(item[0], i, item[1])
                 )
             i = i + 1
-
+        
         duplicityCheck = self.saveMapLayers()
         if not duplicityCheck:
-            QgsMessageLog.logMessage("layersLoaded")
+            QgsMessageLog.logMessage("layersLoaded")            
             return
-        self.modified = False
+        self.modified = False 
         if len(self.layman.stylesToUpdate) > 0:
             layerList = set()
             for layer in self.layman.stylesToUpdate:
@@ -917,16 +917,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         )
                     except:
                         print("neni v poli")
-
-        self.layman.updateLayerPropsInComposition()
-        self.layman.syncOrder2(self.getLayersOrder())
-        self.layman.patchMap2()
+        
+        self.layman.updateLayerPropsInComposition() 
+        self.layman.syncOrder2(self.getLayersOrder())          
+        self.layman.patchMap2()                
         self.layman.writeValuesToProject(self.URI, composition["name"])
-        self.layman.showExportInfo.emit("F")
-        self.onRefreshCurrentForm.emit()
-        self.progressDone.emit()
+        self.layman.showExportInfo.emit("F")        
+        self.onRefreshCurrentForm.emit()    
+        self.progressDone.emit()           
         if qfield:
-            self.qfieldUpdate.emit()
+            self.qfieldUpdate.emit()            
 
     def saveMapLayers(self):
         layerList = list()
@@ -939,7 +939,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if item.checkState(0) == 2:
                 layerCheckedList.append(item.text(0))
             iterator += 1
-        composition = self.layman.instance.getComposition()
+        composition = self.layman.instance.getComposition()  
         for i in range(0, len(composition["layers"])):
             layerList.append(
                 self.utils.removeUnacceptableChars(composition["layers"][i]["title"])
@@ -951,23 +951,23 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
         while iterator.value():
-            item = iterator.value()
+            item = iterator.value()         
             if (
                 item.checkState(0) == 2
                 and self.utils.removeUnacceptableChars(item.text(0)) not in layerList
             ):
-                if not self.layman.checkLayerInCurrentCompositon(item.text(0)):
+                if not self.layman.checkLayerInCurrentCompositon(item.text(0)):  
                     layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
                     if isinstance(layer, QgsVectorLayer):
-                        layers.append(layer)
+                        layers.append(layer)                        
                     else:
-                        layers.append(layer)
+                        layers.append(layer)          
 
             elif (
                 item.checkState(0) == 2
                 and self.utils.removeUnacceptableChars(item.text(0)) in layerList
             ):
-                for it in self.currentSet:
+                for it in self.currentSet:                                 
                     if (
                         it[2] == "Overwrite geometry" or it[2] == "Přepsat data"
                     ) and it[0] == item.text(0):
@@ -980,10 +980,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 and self.treeWidget_layers.itemWidget(item, 2).currentText()
                 in ("Smazat", "Remove")
             ):  ## může být zaškrnut i jinde, pak nemažem
-                pom = 0
+                pom = 0             
                 for i in range(0, len(composition["layers"])):
                     i = i - pom
-
+                                      
                     if self.utils.removeUnacceptableChars(
                         composition["layers"][i]["title"]
                     ) == self.utils.removeUnacceptableChars(
@@ -992,19 +992,19 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         del composition["layers"][i]
                         pom = pom + 1
             iterator += 1
-        uniq = self.checkUniqueName(layers)
+        uniq = self.checkUniqueName(layers)      
         if uniq:
-            if len(layers) > 0:
-                newLayers = list()
-                for item in self.currentSet:
+            if len(layers) > 0:          
+                newLayers = list()                
+                for item in self.currentSet:                    
                     if item[2] == "Add from server" or item[2] == "Přidat ze serveru":
-                        for layer in layers:
-                            if layer.name() == item[0]:
+                        for layer in layers:                                                    
+                            if layer.name() == item[0]:                               
                                 self.layman.addExistingLayerToComposition(
                                     layer.name(), composition, item[1].lower(), layer
                                 )
                                 layers.remove(layer)
-
+                    
                     if (
                         item[2] == "Add and overwrite"
                         or item[2] == "Add"
@@ -1014,14 +1014,14 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         for layer in layers:
                             if layer.name() == item[0]:
                                 newLayers.append(layer)
-                if len(newLayers) > 0:
+                if len(newLayers) > 0:                                   
                     self.layman.addLayerToComposition(
                         composition, layers, self.currentSet
                     )
             return True
         else:
             QgsMessageLog.logMessage("uniqLayers")
-            return False
+            return False        
 
     def checkUniqueName(self, layers):
         layerList = list()
@@ -1030,10 +1030,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if len(set(layerList)) == len(layerList):
             return True
         else:
-            return False
+            return False        
 
     def layersWasModified(self):
-        self.modified = True
+        self.modified = True  
 
     def collectPermissionsAndSave(self, tab_widget, map):
         self.failed = []
@@ -1048,7 +1048,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             )
             if table_widget:
                 self.collectAccessFromTable(table_widget, read_access, "read")
-            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):    
                 role_table_widget = self.getWidgetByTabName(
                     tab_widget, self.tr("Permissions by role")
                 )
@@ -1063,7 +1063,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             )
             if table_widget:
                 self.collectAccessFromTable(table_widget, write_access, "write")
-            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
+            if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):    
                 role_table_widget = self.getWidgetByTabName(
                     tab_widget, self.tr("Permissions by role")
                 )
@@ -1081,18 +1081,18 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             "access_rights.read": self.utils.listToString(read_access),
             "access_rights.write": self.utils.listToString(write_access),
         }
-
-        map = self.utils.removeUnacceptableChars(map)
+ 
+        map = self.utils.removeUnacceptableChars(map)      
         url = self.layman_api.get_map_url(self.layman.laymanUsername, map)
         response = requests.patch(
             url, data=data, headers=self.utils.getAuthHeader(self.utils.authCfg)
         )
         if response.status_code != 200:
-            self.failed.append(map)
-        if len(self.failed) == 0:
-            self.permissionInfo.emit(True, self.failed, 0)
+            self.failed.append(map)          
+        if len(self.failed) == 0:       
+            self.permissionInfo.emit(True, self.failed, 0)                
         else:
-            self.permissionInfo.emit(False, self.failed, 0)
+            self.permissionInfo.emit(False, self.failed, 0)          
         url = self.layman_api.get_map_file_url(self.layman.laymanUsername, map)
         composition = requests.get(
             url, data=data, headers=self.utils.getAuthHeader(self.utils.authCfg)
@@ -1138,21 +1138,21 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if tab_widget.tabText(i) == tab_name:
                 return tab_widget.widget(i)
         return None
-
+                    
     def collectAccessFromTable(self, table_widget, access_list, type):
         for row in range(table_widget.rowCount()):
-            item = table_widget.item(row, 3)
-            if item is not None:
+            item = table_widget.item(row, 3)  
+            if item is not None:  
                 username = item.text()
                 if type == "read":
                     read_checkbox = table_widget.cellWidget(row, 1)
-                    if read_checkbox.isChecked():
+                    if read_checkbox.isChecked():                        
                         access_list.append(username)
-                if type == "write":
+                if type == "write":                    
                     write_checkbox = table_widget.cellWidget(row, 2)
                     if write_checkbox.isChecked():
-                        access_list.append(username)
-
+                        access_list.append(username)                       
+                                                 
     def getRoles(self):
         uri = self.layman_api.get_roles_url()
         r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
@@ -1165,7 +1165,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if tab_widget.tabText(index) == title:
                 tab_widget.removeTab(index)
             else:
-                index += 1
+                index += 1  
 
     def populatePermissionsWidget(
         self, tab_widget, user_dict, read_access, write_access
@@ -1183,15 +1183,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         user_widget.verticalHeader().setVisible(False)
         self.utils.setTableWidgetNotBorder(user_widget)
         self.globalRead.clear()
-        self.globalWrite.clear()
-        for username in user_dict.keys():
+        self.globalWrite.clear()       
+        for username in user_dict.keys():  
             self.globalRead[username] = username in read_access
             self.globalWrite[username] = username in write_access
-        ### add users
-
-        num_columns = 4
+    ### add users
+       
+        num_columns = 4  
         user_widget.setRowCount(len(user_dict))
-        user_widget.setColumnCount(num_columns)
+        user_widget.setColumnCount(num_columns)  
         user_widget.setHorizontalHeaderLabels(
             [self.tr("User"), self.tr("Read"), self.tr("Write"), self.tr("Nick")]
         )
@@ -1202,9 +1202,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 row, 0, QTableWidgetItem(full_name + " (" + username + ")")
             )
             read_checkbox = QCheckBox()
-            write_checkbox = QCheckBox()
-            write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
-            read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
+            write_checkbox = QCheckBox() 
+            write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
+            read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")                 
             write_checkbox.stateChanged.connect(
                 lambda state, rc=read_checkbox: (
                     rc.setChecked(True) if state else rc.isChecked()
@@ -1219,38 +1219,38 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 read_checkbox.setDisabled(True)
                 write_checkbox.setDisabled(True)
             user_widget.setCellWidget(row, 1, read_checkbox)
-            user_widget.setCellWidget(row, 2, write_checkbox)
+            user_widget.setCellWidget(row, 2, write_checkbox)            
             if username in write_access:
                 write_checkbox.setChecked(True)
                 read_checkbox.setChecked(True)
             else:
                 read_checkbox.setChecked(username in read_access)
-            if everyone_read_checked:
-                read_checkbox.setChecked(True)
-                read_checkbox.setEnabled(False)
-            if everyone_write_checked:
-                write_checkbox.setChecked(True)
-                write_checkbox.setEnabled(False)
+            if everyone_read_checked:                  
+                read_checkbox.setChecked(True)    
+                read_checkbox.setEnabled(False)  
+            if everyone_write_checked:                  
+                write_checkbox.setChecked(True) 
+                write_checkbox.setEnabled(False)                             
             user_widget.setItem(row, 3, QTableWidgetItem(username))
             user_widget.setColumnHidden(3, True)
             user_widget.resizeColumnToContents(0)
         self.userFilterLineEdit = QLineEdit()
         self.userFilterLineEdit.setPlaceholderText(self.tr("Filter users..."))
-        self.userFilterLineEdit.textChanged.connect(self.filterRecords)
+        self.userFilterLineEdit.textChanged.connect(self.filterRecords)     
         userTab = QWidget()
         userLayout = QVBoxLayout()
-        userLayout.addWidget(self.userFilterLineEdit)
-        userLayout.addWidget(user_widget)
-        userTab.setLayout(userLayout)
+        userLayout.addWidget(self.userFilterLineEdit)  
+        userLayout.addWidget(user_widget)  
+        userTab.setLayout(userLayout)    
         tab_widget.addTab(userTab, self.tr("Permissions by user"))
-        ### add roles
+    ### add roles
         if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
-            num_columns = 4
+            num_columns = 4  
             role_widget = QTableWidget()
             role_widget.verticalHeader().setVisible(False)
             self.utils.setTableWidgetNotBorder(role_widget)
             role_widget.setRowCount(len(user_dict))
-            role_widget.setColumnCount(num_columns)
+            role_widget.setColumnCount(num_columns)  
             role_widget.setHorizontalHeaderLabels(
                 [self.tr("Role"), self.tr("Read"), self.tr("Write"), self.tr("Nick")]
             )
@@ -1262,11 +1262,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     continue
                 self.globalRead[rolename] = rolename in read_access
                 self.globalWrite[rolename] = rolename in write_access
-                role_widget.setItem(row, 0, QTableWidgetItem(rolename))
+                role_widget.setItem(row, 0, QTableWidgetItem(rolename))   
                 read_checkbox = QCheckBox()
-                write_checkbox = QCheckBox()
-                write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
-                read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
+                write_checkbox = QCheckBox()  
+                write_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;") 
+                read_checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")   
                 write_checkbox.stateChanged.connect(
                     lambda state, rc=read_checkbox: (
                         rc.setChecked(True) if state else None
@@ -1278,7 +1278,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     )
                 )
                 role_widget.setCellWidget(row, 1, read_checkbox)
-                role_widget.setCellWidget(row, 2, write_checkbox)
+                role_widget.setCellWidget(row, 2, write_checkbox) 
                 if rolename in write_access:
                     write_checkbox.setChecked(True)
                     read_checkbox.setChecked(True)
@@ -1286,14 +1286,14 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:
                     if rolename in read_access:
                         self.globalRead[rolename] = True
-                    read_checkbox.setChecked(rolename in read_access)
-                if everyone_read_checked:
-                    read_checkbox.setChecked(True)
-                    read_checkbox.setEnabled(False)
-                if everyone_write_checked:
-                    write_checkbox.setChecked(True)
-                    write_checkbox.setEnabled(False)
-                role_widget.setItem(row, 3, QTableWidgetItem(rolename))
+                    read_checkbox.setChecked(rolename in read_access)      
+                if everyone_read_checked:                  
+                    read_checkbox.setChecked(True)   
+                    read_checkbox.setEnabled(False)  
+                if everyone_write_checked:                  
+                    write_checkbox.setChecked(True)    
+                    write_checkbox.setEnabled(False)                        
+                role_widget.setItem(row, 3, QTableWidgetItem(rolename))         
                 role_widget.setColumnHidden(3, True)
                 role_widget.resizeColumnToContents(0)
                 row = row + 1
@@ -1301,54 +1301,54 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             roleLayout = QVBoxLayout()
             self.roleFilterLineEdit = QLineEdit()
             self.roleFilterLineEdit.setPlaceholderText(self.tr("Filter roles..."))
-            self.roleFilterLineEdit.textChanged.connect(self.filterRecords)
-            roleLayout.addWidget(self.roleFilterLineEdit)
-            roleLayout.addWidget(role_widget)
-            roleTab.setLayout(roleLayout)
-            tab_widget.addTab(roleTab, self.tr("Permissions by role"))
+            self.roleFilterLineEdit.textChanged.connect(self.filterRecords)  
+            roleLayout.addWidget(self.roleFilterLineEdit)  
+            roleLayout.addWidget(role_widget)  
+            roleTab.setLayout(roleLayout)      
+            tab_widget.addTab(roleTab, self.tr("Permissions by role"))  
 
-    def setEveryonePermissionsRadiobuutons(self, public_read, public_write):
+    def setEveryonePermissionsRadiobuutons(self, public_read, public_write):            
         self.radioButton_readPublic.setChecked(public_read)
-        self.radioButton_readPrivate.setChecked(not public_read)
+        self.radioButton_readPrivate.setChecked(not public_read)        
         self.radioButton_writePublic.setChecked(public_write)
-        self.radioButton_writePrivate.setChecked(not public_write)
+        self.radioButton_writePrivate.setChecked(not public_write)  
 
     def getUserWidget(self):
-        user_tab_index = 0
-        user_tab = self.tabWidget.widget(user_tab_index)
+        user_tab_index = 0 
+        user_tab = self.tabWidget.widget(user_tab_index)  
         if (
             user_tab is not None
             and hasattr(user_tab, "layout")
             and user_tab.layout() is not None
         ):
             for i in range(user_tab.layout().count()):
-                widget = user_tab.layout().itemAt(i).widget()
+                widget = user_tab.layout().itemAt(i).widget()              
                 if isinstance(widget, QTableWidget):
                     return widget
         return None
 
     def getRoleWidget(self):
-        user_tab_index = 1
-        user_tab = self.tabWidget.widget(user_tab_index)
+        user_tab_index = 1  
+        user_tab = self.tabWidget.widget(user_tab_index)  
         if (
             user_tab is not None
             and hasattr(user_tab, "layout")
             and user_tab.layout() is not None
         ):
             for i in range(user_tab.layout().count()):
-                widget = user_tab.layout().itemAt(i).widget()
+                widget = user_tab.layout().itemAt(i).widget()       
                 if isinstance(widget, QTableWidget):
                     return widget
         return None
 
     def getWidgetByTabName(self, tab_widget, tab_name):
         for i in range(tab_widget.count()):
-            if tab_widget.tabText(i) == tab_name:
-                container_widget = tab_widget.widget(i)
-                if container_widget.layout() and container_widget.layout().count() > 0:
-                    for j in range(container_widget.layout().count()):
-                        widget = container_widget.layout().itemAt(j).widget()
-                        if isinstance(widget, QTableWidget):
+            if tab_widget.tabText(i) == tab_name:               
+                container_widget = tab_widget.widget(i)               
+                if container_widget.layout() and container_widget.layout().count() > 0:             
+                    for j in range(container_widget.layout().count()):                  
+                        widget = container_widget.layout().itemAt(j).widget()                     
+                        if isinstance(widget, QTableWidget):                           
                             return widget
         return None
 
@@ -1359,7 +1359,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         user_widget = self.getUserWidget()
         if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
             role_widget = self.getRoleWidget()
-
+       
         if isinstance(user_widget, QTableWidget):
             for row in range(user_widget.rowCount()):
                 item = user_widget.item(row, 0)
@@ -1375,7 +1375,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         role_widget.setRowHidden(
                             row, role_filter_text not in item.text().lower()
                         )
-
+         
     def updatePermissions(self, permissionType, isPublic):
         user_widget = self.getWidgetByTabName(
             self.tabWidget, self.tr("Permissions by user")
@@ -1385,11 +1385,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.tabWidget, self.tr("Permissions by role")
             )
         if permissionType == "read":
-            if isPublic:
+            if isPublic:               
                 self.updateWidgetPermissions(user_widget, "read", True)
                 if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
                     self.updateWidgetPermissions(role_widget, "read", True)
-            else:
+            else:     
                 self.globalUpdateFromPermissions(user_widget, "read", self.globalRead)
                 if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
                     self.globalUpdateFromPermissions(
@@ -1399,12 +1399,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.radioButton_writePrivate.setChecked(True)
 
         elif permissionType == "write":
-            if isPublic:
+            if isPublic:              
                 self.radioButton_readPublic.setChecked(True)
                 self.updateWidgetPermissions(user_widget, "write", True)
                 if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
                     self.updateWidgetPermissions(role_widget, "write", True)
-            else:
+            else:              
                 self.globalUpdateFromPermissions(user_widget, "write", self.globalWrite)
                 if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
                     self.globalUpdateFromPermissions(
@@ -1419,17 +1419,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if LooseVersion(self.layman.laymanVersion) >= LooseVersion("1.23.0"):
                 self.updateWidgetPermissions(role_widget, "read", True)
 
-    def updateQfieldPermissions(self, tab_widget, map):
+    def updateQfieldPermissions(self, tab_widget, map):        
         if not self.layman.qfieldReady:
             return
-        read_access, write_access = self.getUserPermissions(tab_widget)
-        read_access = self.utils.transformUsernames(read_access)
-        write_access = self.utils.transformUsernames(write_access)
-        existingUsers = self.qfield.getAllUsers().json()
+        read_access, write_access = self.getUserPermissions(tab_widget) 
+        read_access = self.utils.transformUsernames(read_access)   
+        write_access = self.utils.transformUsernames(write_access) 
+        existingUsers = self.qfield.getAllUsers().json()   
         users_write = self.utils.findCommonUsers(write_access, existingUsers)
         users_read = self.utils.findCommonUsers(read_access, existingUsers)
-        users_write_set = set(users_write)
-        users_read = [user for user in users_read if user not in users_write_set]
+        users_write_set = set(users_write)  
+        users_read = [user for user in users_read if user not in users_write_set]        
         self.qfield.qfieldPermissionsJunction(
             self.qfield.findProjectByName(map),
             users_write,
@@ -1437,7 +1437,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.layman.laymanUsername,
         )
 
-    def getUserPermissions(self, tab_widget):
+    def getUserPermissions(self, tab_widget):    
         read_access = []
         write_access = []
         if self.radioButton_readPublic.isChecked():
@@ -1470,17 +1470,17 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.layman.laymanUsername not in write_access:
             write_access.append(self.layman.laymanUsername)
         if self.layman.laymanUsername not in read_access:
-            read_access.append(self.layman.laymanUsername)
+            read_access.append(self.layman.laymanUsername)    
         return [read_access, write_access]
-
+    
     def alignCheckboxesInTable(self, table_widget, count):
         for row in range(count):
-            for col in [1, 2]:
+            for col in [1, 2]:       
                 checkbox = QCheckBox()
-                checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
+                checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")  
                 checkbox_item = QTableWidgetItem()
-                checkbox_item.setFlags(Qt.ItemIsEnabled)
-                checkbox_item.setTextAlignment(Qt.AlignCenter)
+                checkbox_item.setFlags(Qt.ItemIsEnabled)  
+                checkbox_item.setTextAlignment(Qt.AlignCenter) 
                 table_widget.setCellWidget(row, col, checkbox)
                 table_widget.setItem(row, col, checkbox_item)
 
@@ -1489,49 +1489,49 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             return
         rowCount = widget.rowCount()
         for row in range(rowCount):
-            read_checkbox = widget.cellWidget(row, 1)
-            write_checkbox = widget.cellWidget(row, 2)
+            read_checkbox = widget.cellWidget(row, 1)  
+            write_checkbox = widget.cellWidget(row, 2)  
             if permissionType == "write" and isPublic:
-                if write_checkbox is not None:
-                    write_checkbox.setChecked(True)
+                if write_checkbox is not None:                   
+                    write_checkbox.setChecked(True) 
                     write_checkbox.setEnabled(False)
                 if read_checkbox is not None:
-                    read_checkbox.setChecked(True)
+                    read_checkbox.setChecked(True)  
                     read_checkbox.setEnabled(False)
 
             elif permissionType == "read" and isPublic:
                 if read_checkbox is not None:
                     read_checkbox.setChecked(True)
                     read_checkbox.setEnabled(False)
-
+        
             else:
                 if permissionType == "write" and write_checkbox is not None:
-                    write_checkbox.setChecked(False)
+                    write_checkbox.setChecked(False)  
                 if permissionType == "read" and read_checkbox is not None:
-                    read_checkbox.setChecked(False)
+                    read_checkbox.setChecked(False)                              
 
-    def globalUpdateFromPermissions(self, widget, permissionType, permissionsDict):
+    def globalUpdateFromPermissions(self, widget, permissionType, permissionsDict):            
         if widget is None:
             return
-        rowCount = widget.rowCount()
-        for row in range(rowCount):
+        rowCount = widget.rowCount()  
+        for row in range(rowCount):   
             try:
-                user_or_role = widget.item(row, 3).text()
+                user_or_role = widget.item(row, 3).text() 
             except:
-                return
+                return          
             checkbox = widget.cellWidget(row, 1 if permissionType == "read" else 2)
-            if checkbox is not None and user_or_role in permissionsDict:
+            if checkbox is not None and user_or_role in permissionsDict:          
                 if user_or_role == self.layman.laymanUsername:
                     checkbox.setChecked(True)
                     checkbox.setEnabled(False)
-                else:
+                else:     
                     checkbox.setChecked(permissionsDict[user_or_role])
-                    checkbox.setEnabled(True)
-            elif checkbox is not None and user_or_role in self.roles:
+                    checkbox.setEnabled(True) 
+            elif checkbox is not None and user_or_role in self.roles:                    
                 checkbox.setChecked(False)
-                checkbox.setEnabled(True)
+                checkbox.setEnabled(True)         
 
-    def setPermissionsUI(self, mapName):
+    def setPermissionsUI(self, mapName): 
         group1 = QButtonGroup(self)
         group2 = QButtonGroup(self)
         group1.addButton(self.radioButton_readPublic)
@@ -1553,7 +1553,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             usersDictReversed["EVERYONE"] = "EVERYONE"
         r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
         res = self.utils.fromByteToJson(r.content)
-        userCount = len(res)
+        userCount = len(res)      
         for i in range(0, userCount):
             usersDict[
                 res[i]["name"] if res[i]["name"] != "" else res[i]["username"]
@@ -1565,7 +1565,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         mapName = self.utils.removeUnacceptableChars(mapName)
         uri = self.layman_api.get_map_url(self.layman.laymanUsername, mapName)
         r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
-        res = self.utils.fromByteToJson(r.content)
+        res = self.utils.fromByteToJson(r.content)      
         self.populatePermissionsWidget(
             self.tabWidget,
             usersDictReversed,
@@ -1582,7 +1582,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 "write", self.radioButton_writePublic.isChecked()
             )
         )
-        if not self.permissionsConnected:
+        if not self.permissionsConnected:           
             self.pushButton_save_permissions.clicked.connect(
                 lambda: self.progressBar_loader.show()
             )
@@ -1597,19 +1597,19 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     target=self.updateQfieldPermissions, args=(self.tabWidget, mapName)
                 ).start()
             )
-            self.permissionsConnected = True
-
+            self.permissionsConnected = True    
+            
     def checkAddedItemDuplicity(self, type, usernameList):
-        itemsTextListRead = []
+        itemsTextListRead = [] 
         for i in range(self.listWidget_read.count()):
-            current_item = self.listWidget_read.item(i)
-            hidden_item = current_item.data(Qt.UserRole)
+            current_item = self.listWidget_read.item(i) 
+            hidden_item = current_item.data(Qt.UserRole) 
             if hidden_item is not None:
-                itemsTextListRead.append(hidden_item.text())
-        itemsTextListWrite = []
+                itemsTextListRead.append(hidden_item.text())    
+        itemsTextListWrite = [] 
         for i in range(self.listWidget_write.count()):
-            current_item = self.listWidget_write.item(i)
-            hidden_item = current_item.data(Qt.UserRole)
+            current_item = self.listWidget_write.item(i) 
+            hidden_item = current_item.data(Qt.UserRole) 
             if hidden_item is not None:
                 itemsTextListWrite.append(hidden_item.text())
         allItems = [
@@ -1626,38 +1626,38 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     )
                     self.listWidget_read.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)
+                    self.setHiddenItem(current_item, hidden_text)   
                     return True
-                else:
+                else:                    
                     self.showInfoDialogOnTop(
                         self.tr("This user already exists in the list!")
                     )
                     return False
-            else:
+            else: 
                 if (
                     usernameList[self.comboBox_users.currentIndex()]
                     not in itemsTextListWrite
                 ) and type == "write":
                     return True
-                else:
+                else: 
                     self.showInfoDialogOnTop(
                         self.tr("This user already exists in the list!")
                     )
-                    return False
+                    return False   
 
     def setHiddenItem(self, item, hidden_text):
         hidden_item = QtWidgets.QListWidgetItem(hidden_text)
         hidden_item.setHidden(True)
-        item.setData(Qt.UserRole, hidden_item)
+        item.setData(Qt.UserRole, hidden_item)                 
 
     def showInfoDialogOnTop(self, text):
-        msgbox = QMessageBox()
+        msgbox = QMessageBox()     
         msgbox.setWindowTitle("Layman")
         msgbox.setText(text)
         msgbox.setIcon(QMessageBox.Icon.Information)
         msgbox.addButton(QMessageBox.StandardButton.Ok)
         msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
-        msgbox.exec()
+        msgbox.exec()                                  
 
     def removeWritePermissionList(self):
         self.deleteItem(self.listWidget_read.currentItem().text())
@@ -1669,7 +1669,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         items_list = self.listWidget_write.findItems(itemName, Qt.MatchExactly)
         for item in items_list:
             r = self.listWidget_write.row(item)
-            self.listWidget_write.takeItem(r)
+            self.listWidget_write.takeItem(r)               
 
     def checkPermissionButtons(self):
         name = self.utils.getUserName()
@@ -1688,22 +1688,22 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.pushButton_removeWrite.setEnabled(True)
         except:
             self.pushButton_removeWrite.setEnabled(False)
-            print("neni vybrana polozka")
-
+            print("neni vybrana polozka")     
+                
     def afterPermissionDone(self, success, failed, info):
-        self.progressBar_loader.hide()
-        if success:
-            self.showInfoDialogOnTop(self.tr("Permissions was saved successfully."))
-        else:
+        self.progressBar_loader.hide()             
+        if success:            
+            self.showInfoDialogOnTop(self.tr("Permissions was saved successfully."))                
+        else:            
             self.showInfoDialogOnTop(
                 self.tr("Permissions was not saved for layer: ")
                 + str(failed).replace("[", "").replace("]", "")
             )
-
-    def setMetadataUI(self):
+                    
+    def setMetadataUI(self):       
         composition = self.layman.instance.getComposition()
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        self.lineEdit_name.hide()
+        self.lineEdit_name.hide() 
         self.pushButton_save.setEnabled(False)
         self.pushButton_back_3.clicked.connect(
             lambda: self.setStackWidget("main", False)
@@ -1742,7 +1742,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         )
         self.pushButton_save_meta.clicked.connect(lambda: self.modifyMeta())
         self.pushButton_range_2.clicked.connect(lambda: self.setRangeFromCanvas())
-        self.pushButton_range.clicked.connect(lambda: self.setExtentFromLayers())
+        self.pushButton_range.clicked.connect(lambda: self.setExtentFromLayers())       
         self.pushButton_range.setToolTip(
             self.tr("Gets spatial range information from wms capatibilies.")
         )
@@ -1754,11 +1754,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_save_meta.setEnabled(False)
             self.pushButton_range.setEnabled(False)
             self.pushButton_range_2.setEnabled(False)
-
-    def modifyMeta(self):
-        self.progressStart.emit()
+                          
+    def modifyMeta(self):      
+        self.progressStart.emit() 
         self.layman.project.crsChanged.disconnect()
-        composition = self.layman.instance.getComposition()
+        composition = self.layman.instance.getComposition()    
         self.compositionDict = self.utils.fillCompositionDict()
         self.compositionDict[composition["name"]] = self.lineEdit_title.text()
         composition["abstract"] = self.lineEdit_abstract.text()
@@ -1767,7 +1767,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         src = QgsCoordinateReferenceSystem(int(composition["projection"].split(":")[1]))
         epsg = self.comboBox_epsg.currentText()
         dest = QgsCoordinateReferenceSystem(int(epsg))
-        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
+        tform = QgsCoordinateTransform(src, dest, QgsProject.instance())              
         # transformace extentu
         coords = self.utils.tranformCoords(
             float(self.lineEdit_xmin.text().replace(",", ".")),
@@ -1836,16 +1836,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 self.setWindowTitle("Composition: " + composition["title"])
         except:
-            pass
+            pass                          
         self.progressDone.emit()
         self.layman.project.crsChanged.connect(self.layman.crsChanged)
 
     def _onProgressDone(self):
-        self.progressBar_loader.hide()
+        self.progressBar_loader.hide()    
 
     def _onProgressStart(self):
-        self.progressBar_loader.show()
-
+        self.progressBar_loader.show()             
+        
     def setExtentFromLayers(self):
         composition = self.layman.instance.getComposition()
         xmin = None
@@ -1908,7 +1908,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.lineEdit_ymin.setText(str(ymin))
             self.lineEdit_ymax.setText(str(ymax))
 
-    def setRangeFromCanvas(self):
+    def setRangeFromCanvas(self):        
         ext = self.layman.iface.mapCanvas().extent()
         coords = self.tranformCoords(
             ext.xMinimum(), ext.xMaximum(), ext.yMinimum(), ext.yMaximum()
@@ -1916,7 +1916,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_xmin.setText(str(coords[0]))
         self.lineEdit_xmax.setText(str(coords[1]))
         self.lineEdit_ymin.setText(str(coords[2]))
-        self.lineEdit_ymax.setText(str(coords[3]))
+        self.lineEdit_ymax.setText(str(coords[3]))        
 
     def tranformCoords(self, xmin, xmax, ymin, ymax, dest=4326):
         src = QgsProject.instance().crs()
@@ -1924,9 +1924,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
         max = tform.transform(QgsPointXY(float(xmax), float(ymax)))
         min = tform.transform(QgsPointXY(float(xmin), float(ymin)))
-        return [min.x(), max.x(), min.y(), max.y()]
+        return [min.x(), max.x(), min.y(), max.y()]       
 
-    def copyCompositionUrl(self, composition=None):
+    def copyCompositionUrl(self, composition=None): 
         if not composition:
             url = self.layman.instance.getUrl()
         else:
@@ -1934,7 +1934,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.treeWidget.selectedItems()[0].text(1),
                 self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)),
             )
-        try:
+        try: 
             self.utils.copyToClipboard(url)
             self.utils.showQgisBar(
                 [" URL uloženo do schránky.", " URL saved to clipboard."], Qgis.Success
@@ -1962,13 +1962,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 Qgis.Warning,
                 "",
             )
-
-    def setNewUI(self):
+            
+    def setNewUI(self): 
         self.treeWidget.clear()
-        self.pushButton_new.hide()
-        layers = QgsProject.instance().mapLayers().values()
+        self.pushButton_new.hide()      
+        layers = QgsProject.instance().mapLayers().values()     
         self.treeWidget.itemClicked.connect(self.setExtent)
-        for layer in layers:
+        for layer in layers:         
             if layer.type() == QgsMapLayer.LayerType.VectorLayer:
                 item = QTreeWidgetItem([layer.name()])
                 self.treeWidget.addTopLevelItem(item)
@@ -1992,23 +1992,23 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_2.textEdited.connect(self.checkForChars)
         projectPath = QgsProject.instance().fileName()
         if projectPath != "":
-            projectName = os.path.basename(projectPath).split(".")[0]
+            projectName = os.path.basename(projectPath).split(".")[0]           
             self.lineEdit_2.setText(projectName)
         self.lineEdit_3.setText(str(ext.xMinimum()))
         self.lineEdit_4.setText(str(ext.xMaximum()))
         self.lineEdit_5.setText(str(ext.yMinimum()))
         self.lineEdit_6.setText(str(ext.yMaximum()))
-        self.pushButton_editMeta.setEnabled(False)
+        self.pushButton_editMeta.setEnabled(False)   
         self.pushButton_setPermissions.setEnabled(False)
-        self.pushButton_delete.setEnabled(False)
+        self.pushButton_delete.setEnabled(False)              
         self.pushButton_save.setEnabled(False)
         self.pushButton_qfield.setEnabled(False)
         self.pushButton_copyUrl.setEnabled(False)
         self.pushButton_defaultExtent.clicked.connect(
             lambda: self.setDefaultExtent(ext)
         )
-        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
-        if not self.pushButton_CreateCompositionConnected:
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}") 
+        if not self.pushButton_CreateCompositionConnected:                        
             self.pushButton_CreateComposition.clicked.connect(
                 lambda: self.createComposition(
                     self.lineEdit_2.text(),
@@ -2017,10 +2017,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 )
             )
             self.pushButton_CreateCompositionConnected = True
-
+        
     def setExtent(self, it, col):
         layer = QgsProject.instance().mapLayersByName(it.text(0))
-        ext = layer[0].extent()
+        ext = layer[0].extent()       
         xmin = ext.xMinimum()
         xmax = ext.xMaximum()
         ymin = ext.yMinimum()
@@ -2048,19 +2048,19 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_3.setText(str(xmin))
         self.lineEdit_4.setText(str(xmax))
         self.lineEdit_5.setText(str(ymin))
-        self.lineEdit_6.setText(str(ymax))
-        self.label_4.setText(self.tr("Extent of layer: ") + it.text(0))
+        self.lineEdit_6.setText(str(ymax))        
+        self.label_4.setText(self.tr("Extent of layer: ") + it.text(0))        
 
     def checkNameCreateMap(self):
         text = self.lineEdit_2.text()
         if text != "":
-            text = self.utils.removeUnacceptableChars(text)
+            text = self.utils.removeUnacceptableChars(text)            
             url = self.layman_api.get_map_file_url(
                 self.layman.laymanUsername, str(text)
             )
             r = requests.get(url, headers=self.utils.getAuthHeader(self.layman.authCfg))
-            res = r.json()
-            e = False
+            res = r.json()       
+            e = False          
             try:
                 if res["code"] == 2:
                     ch = False
@@ -2070,9 +2070,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 ch = True
                 e = True  ## kdyz nevraci rescode tak je to v poradku
             if not e:
-                self.pushButton_CreateComposition.setEnabled(True)
+                self.pushButton_CreateComposition.setEnabled(True)              
             else:
-                self.pushButton_CreateComposition.setEnabled(False)
+                self.pushButton_CreateComposition.setEnabled(False)              
                 self.utils.showQgisBar(
                     [
                         " Kompozice s tímto jménem již existuje",
@@ -2080,40 +2080,40 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     ],
                     Qgis.Warning,
                 )
-
+                
     def checkForSpecialChars(self, s):
         special_characters = "!@#$%^&*()+?=,<>/"
         if any(c in special_characters for c in s):
             return True
         else:
             return False
-
+        
     def checkForChars(self, string):
-        if self.checkForSpecialChars(string):
+        if self.checkForSpecialChars(string):           
             self.showInfoDialogOnTop(self.tr("Unsupported char."))
         else:
-            self.pushButton_CreateComposition.setEnabled(True)
-
+            self.pushButton_CreateComposition.setEnabled(True)                      
+            
     def createComposition(self, title, abstract, setCurrent=False):
         self.compositionDict = self.utils.fillCompositionDict()
-        if QgsProject.instance().crs().authid() not in self.layman.supportedEPSG:
+        if QgsProject.instance().crs().authid() not in self.layman.supportedEPSG:            
             self.showInfoDialogOnTop(self.tr("Project EPSG is not supported."))
             return
         if title == "":
             self.showInfoDialogOnTop(self.tr("Name is not filled!"))
-            return
+            return                
         else:
             name = self.utils.removeUnacceptableChars(title)
             data = self.layman.getEmptyComposite(name, title, abstract)
-            self.layman.importCleanComposite(data)
-            if setCurrent:
+            self.layman.importCleanComposite(data)          
+            if setCurrent:                
                 self.layman.current = name
                 self.layman.selectedWorkspace = self.layman.laymanUsername
                 url = self.layman_api.get_map_file_url(
                     self.layman.selectedWorkspace, name
                 )
                 r = self.utils.requestWrapper("GET", url, payload=None, files=None)
-                data = r.json()
+                data = r.json()        
                 self.layman.instance = CurrentComposition(
                     self.URI,
                     name,
@@ -2122,74 +2122,74 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.layman.laymanUsername,
                 )
                 self.layman.instance.setComposition(data)
-                self.compositionDict[name] = title
+                self.compositionDict[name] = title                
                 prj = QgsProject().instance()
                 QgsProject().instance().setTitle(title)
-                root = prj.layerTreeRoot()
+                root = prj.layerTreeRoot()  
                 self.prj = QgsProject.instance()
-                QgsProject.instance().setTitle(title)
-                self.pushButton_editMeta.setEnabled(True)
+                QgsProject.instance().setTitle(title)  
+                self.pushButton_editMeta.setEnabled(True)   
                 self.pushButton_setPermissions.setEnabled(True)
-                self.pushButton_delete.setEnabled(True)
+                self.pushButton_delete.setEnabled(True)              
                 self.pushButton_save.setEnabled(True)
                 self.pushButton_copyUrl.setEnabled(True)
                 self.label_readonly.hide()
-                self.treeWidget_layers.setEnabled(True)
-        self.setStackWidget("main", True)
+                self.treeWidget_layers.setEnabled(True)   
+        self.setStackWidget("main", True)                         
 
     def setDefaultExtent(self, ext):
         self.lineEdit_3.setText(str(ext.xMinimum()))
         self.lineEdit_4.setText(str(ext.xMaximum()))
         self.lineEdit_5.setText(str(ext.yMinimum()))
-        self.lineEdit_6.setText(str(ext.yMaximum()))
+        self.lineEdit_6.setText(str(ext.yMaximum()))                
 
     def setGuiForItem(self, item):
-        if item.text(1) == "GEOJSON":
+        if item.text(1) == "GEOJSON":            
             item.setToolTip(1, self.tr("Layer loaded from a local geojson file."))
-        if item.text(1) == "SHP":
+        if item.text(1) == "SHP":            
             item.setToolTip(1, self.tr("Layer loaded from a local SHP file."))
-        if item.text(1) == "MEMORY":
+        if item.text(1) == "MEMORY":            
             item.setToolTip(
                 1,
                 self.tr(
                     "Layer stored in QGIS memory. It will be deleted after QGIS is turned off."
                 ),
             )
-        if item.text(1) == "WMS":
+        if item.text(1) == "WMS":            
             item.setToolTip(
                 1,
                 self.tr(
                     "A layer loaded over a WMS service that provides data in a raster format. It is possible to change this service to a WFS vector service using the button."
                 ),
             )
-        if item.text(1) == "WFS":
+        if item.text(1) == "WFS":            
             item.setToolTip(
                 1,
                 self.tr(
                     "A layer loaded over a WFS service that provides data in a vector format. It is possible to change this service to a WMS raster service using the button. Changes in this layer are saved to the server."
                 ),
             )
-        if item.text(1) == "OGR":
+        if item.text(1) == "OGR":            
             item.setToolTip(1, self.tr("Vector layer loaded from a local file."))
 
-    def on_layers_removed(self):
+    def on_layers_removed(self):      
         if self.objectName() == "CurrentCompositionDialog":
-            self.refreshCurrentForm()
+            self.refreshCurrentForm()  
 
-    def on_layers_added(self, layer):
-        if self.objectName() == "CurrentCompositionDialog":
-            self.refreshCurrentForm(layer)
-
-    def setLayerPropertiesUI(self):
+    def on_layers_added(self, layer):     
+        if self.objectName() == "CurrentCompositionDialog":                
+            self.refreshCurrentForm(layer)   
+                           
+    def setLayerPropertiesUI(self):             
         self.pushButton_back_4.clicked.connect(
             lambda: self.setStackWidget("main", False)
         )
-        layerName = self.treeWidget_layers.selectedItems()[0].text(0)
+        layerName = self.treeWidget_layers.selectedItems()[0].text(0)      
         self.label_name.setText(layerName)
         self.pushButton_save_props.clicked.connect(
             lambda: self.saveCompositionLayerChanges(layerName)
         )
-        composition = self.layman.instance.getComposition()
+        composition = self.layman.instance.getComposition()           
         for layer in composition["layers"]:
             if layer["title"] == layerName:
                 (
@@ -2210,7 +2210,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         else self.checkBox_greyScale.setCheckState(0)
                     )
                 else:
-                    self.checkBox_greyScale.setCheckState(0)
+                    self.checkBox_greyScale.setCheckState(0)    
                 self.label_opacity.setText(str(layer["opacity"] * 100) + " %")
                 self.label_max.setText(
                     "None"
@@ -2226,8 +2226,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     True if layer["visibility"] else False
                 )
                 self.label_path.setText(str(layer["path"]))
-
-    def setGrayScaleForLayer(self, layer):
+                
+    def setGrayScaleForLayer(self, layer):       
         if isinstance(layer, QgsRasterLayer):
             pipe = layer.pipe()
             if self.checkBox_greyScale.checkState() == 2:
@@ -2275,15 +2275,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 Qgis.Warning,
                 "",
             )
-        self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])
+        self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])                            
 
     def deleteQfieldProject(self, name):
-        project_id = self.qfield.getProjectByName(name)
+        project_id = self.qfield.getProjectByName(name)  
         if project_id is not None:
             self.qfield.deleteProject(project_id)
 
     def deleteCurrentMap(self):
-        composition = self.layman.instance.getComposition()
+        composition = self.layman.instance.getComposition()        
         msgbox = QMessageBox(
             QMessageBox.Icon.Question,
             self.tr("Delete map"),
@@ -2327,7 +2327,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
             self.layman.instance = None
             self.layman.current = None
-            self.close()
+            self.close()           
 
     def setWritePermissionList(self, usernameList):
         allItems = [
@@ -2335,12 +2335,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         ]
         if self.comboBox_users.currentText() in allItems:
             if self.checkAddedItemDuplicity("write", usernameList):
-                itemsTextListRead = []
+                itemsTextListRead = [] 
                 for i in range(self.listWidget_read.count()):
-                    current_item = self.listWidget_read.item(i)
-                    hidden_item = current_item.data(Qt.UserRole)
+                    current_item = self.listWidget_read.item(i) 
+                    hidden_item = current_item.data(Qt.UserRole) 
                     if hidden_item is not None:
-                        itemsTextListRead.append(hidden_item.text())
+                        itemsTextListRead.append(hidden_item.text())              
                 if (
                     usernameList[self.comboBox_users.currentIndex()]
                     in itemsTextListRead
@@ -2350,33 +2350,33 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     )
                     self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)
+                    self.setHiddenItem(current_item, hidden_text)   
                     print("1")
-                else:
+                else:  
                     current_item = QtWidgets.QListWidgetItem(
                         self.comboBox_users.currentText()
                     )
-                    self.listWidget_read.addItem(current_item)
+                    self.listWidget_read.addItem(current_item)                    
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)
+                    self.setHiddenItem(current_item, hidden_text)     
 
                     current_item = QtWidgets.QListWidgetItem(
                         self.comboBox_users.currentText()
                     )
                     self.listWidget_write.addItem(current_item)
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
-                    self.setHiddenItem(current_item, hidden_text)
-                    print("2")
+                    self.setHiddenItem(current_item, hidden_text) 
+                    print("2")   
 
     def reject(self):
-        super().reject()
-        global dialog_running
-        dialog_running = False
+        super().reject()   
+        global dialog_running 
+        dialog_running = False      
         self.layman.currentOpened = False
         self.qfieldWorking = False
-        self.onRefreshCurrentForm.disconnect()
+        self.onRefreshCurrentForm.disconnect() 
         try:
-            QgsProject.instance().layerWasAdded.disconnect()
+            QgsProject.instance().layerWasAdded.disconnect()  
             QgsProject.instance().layerRemoved.disconnect()
         except:
-            print("not connected")
+            print("not connected")            
