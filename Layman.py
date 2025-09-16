@@ -349,27 +349,8 @@ class Layman(QObject):
             enabled_flag=True,
             parent=self.iface.mainWindow(),
         )
-
-        icon_path = self.plugin_dir + os.sep + "icons" + os.sep + "save.png"
-        self.menu_saveLocalFile = self.add_action(
-            icon_path,
-            text=self.tr("Save as JSON and QML"),
-            callback=self.saveLocalFile,
-            enabled_flag=False,
-            parent=self.iface.mainWindow(),
-        )
-
+        
         self.first_start = True
-        icon_path = self.plugin_dir + os.sep + "icons" + os.sep + "open.png"
-        self.menu_loadJson = self.add_action(
-            icon_path,
-            text=self.tr("Load from JSON"),
-            callback=self.loadLocalFile,
-            enabled_flag=False,
-            parent=self.iface.mainWindow(),
-        )
-        self.first_start = True
-
         icon_path = self.plugin_dir + os.sep + "icons" + os.sep + "export_layers.png"
         self.menu_ImportLayerDialog = self.add_action(
             icon_path,
@@ -1356,8 +1337,6 @@ class Layman(QObject):
             self.dlg.close()
 
     def disableEnvironment(self):
-        self.menu_saveLocalFile.setEnabled(False)
-        self.menu_loadJson.setEnabled(False)
         self.menu_ImportLayerDialog.setEnabled(False)
         self.menu_AddMickaDialog.setEnabled(False)
         self.menu_AddLayerDialog.setEnabled(False)
@@ -2379,125 +2358,6 @@ class Layman(QObject):
             }
         return comp
 
-    def loadLocalFile(self):
-        options = QFileDialog.Options()
-        dialog = QFileDialog()
-        dialog.setStyleSheet(
-            "QPushButton {color: #fff !important;text-transform: uppercase; font-size:"
-            + self.utils.fontSize
-            + "; text-decoration: none;   background: #72c02c;   padding: 20px;  border-radius: 50px;    display: inline-block; border: none;transition: all 0.4s ease 0s;} QPushButton:hover{background: #66ab27 ;}QPushButton:disabled{background: #64818b ;}"
-        )
-        try:
-            if self.locale == "cs":
-                fileName = dialog.getOpenFileName(
-                    None,
-                    "Načíst soubor",
-                    "",
-                    "GeoJson Files (*.geojson);;Json Files (*.json)",
-                    options=options,
-                )
-            else:
-                fileName = dialog.getOpenFileName(
-                    None,
-                    "Load file",
-                    "",
-                    "GeoJson Files (*.geojson);;Json Files (*.json)",
-                    options=options,
-                )
-            if fileName[0] != "":
-                self.loadJsonLayer(fileName[0])
-        except Exception:
-            pass
-
-    def saveLocalFile(self):
-        layer = self.iface.activeLayer()
-        layer.commitChanges()
-        path = iface.activeLayer().dataProvider().dataSourceUri()
-        path = path.split("|")[0].replace("'", "")
-        if layer is None:
-            self.utils.emitMessageBox.emit(
-                ["Není načtena vrstva!", "You must load layer first!"]
-            )
-
-        else:
-            defaultDir = os.path.dirname(path)
-            dialog = QFileDialog()
-            dialog.setFileMode(1)
-            dialog.setDirectory(defaultDir)
-
-            if self.locale == "cs":
-                layer_name = dialog.getSaveFileName(
-                    None,
-                    "Uložit soubor",
-                    defaultDir + os.sep + str(layer.name()) + ".geojson",
-                    "*.geojson",
-                )
-            else:
-                layer_name = dialog.getSaveFileName(
-                    None,
-                    "Save file",
-                    defaultDir + os.sep + str(layer.name()) + ".geojson",
-                    "*.geojson",
-                )
-
-            self.json_export_local(layer_name[0], layer)
-
-    def json_export_local(self, layer_name, lay):
-        filePath = self.getTempPath(layer_name)
-        ogr_driver_name = "GeoJSON"
-        project = QgsProject.instance()
-        fileNames = []
-        ## zde musí být zajištěna vektorová vrstva
-        layer = lay
-        layerType = layer.type()
-        if layerType == QgsMapLayer.LayerType.VectorLayer:
-            renderer = layer.renderer()
-            hasIcon = False
-            if isinstance(renderer, QgsSingleSymbolRenderer):
-                self.copySymbols(renderer.symbol(), tempfile.gettempdir(), fileNames)
-            layerCrs = qgis.utils.iface.activeLayer().crs().authid()
-            crs = QgsCoordinateReferenceSystem(layerCrs)
-            result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(
-                layer, layer_name, "utf-8", crs, ogr_driver_name
-            )  # export jsonu do souboru
-
-            if (
-                result2[0] == 2
-            ):  ## testujeme zda není soubor otevřený v jiném procesu / návratový kod 2
-                tempFile = self.getTempPath(
-                    os.path.basename(layer_name.replace(".geojson", ""))
-                )
-                sld_temp_filename = tempFile.replace("geojson", "sld")
-                qml_temp_filename = tempFile.replace("geojson", "qml")
-                layer.saveSldStyle(sld_temp_filename)
-                layer.saveNamedStyle(qml_temp_filename)
-                result2 = qgis.core.QgsVectorFileWriter.writeAsVectorFormat(
-                    layer, tempFile, "utf-8", crs, ogr_driver_name
-                )
-                if result2[0] == 2:
-                    self.utils.emitMessageBox.emit(
-                        [
-                            "Soubor není možné přepsat. Je již otevřený jiným procesem.",
-                            "It is not possible overwrite this file. File is already open in other process.",
-                        ]
-                    )
-                    return
-                if os.path.basename(layer_name.replace(".geojson", "")) != "":
-                    QgsProject.instance().removeMapLayer(layer.id())
-                    shutil.copy(tempFile, layer_name)
-                    shutil.copy(
-                        sld_temp_filename, layer_name.replace(".geojson", ".sld")
-                    )
-                    shutil.copy(
-                        qml_temp_filename, layer_name.replace(".geojson", ".qml")
-                    )
-                    self.loadJsonLayer(layer_name)
-
-            else:
-                sld_filename = layer_name.replace("geojson", "sld")
-                qml_filename = layer_name.replace("geojson", "qml")
-                layer.saveSldStyle(sld_filename)
-                layer.saveNamedStyle(qml_filename)
 
     def json_export(self, layer_name, id=None):
         filePath = self.getTempPath(
@@ -5128,8 +4988,6 @@ class Layman(QObject):
             pass
 
         self.menu_Connection.setEnabled(True)
-        self.menu_saveLocalFile.setEnabled(False)
-        self.menu_loadJson.setEnabled(True)
         self.menu_ImportLayerDialog.setEnabled(True)
         self.menu_AddMickaDialog.setEnabled(True)
         self.menu_AddLayerDialog.setEnabled(True)
@@ -5403,14 +5261,6 @@ class Layman(QObject):
         self.dlg.label_progress.setText(self.tr("Sucessfully exported:") + " 1 / 1")
         self.dlg.progressBar.hide()
 
-    def layerChanged(self):
-        if iface.activeLayer() is not None and isinstance(
-            iface.activeLayer(), QgsVectorLayer
-        ):
-            self.menu_saveLocalFile.setEnabled(True)
-        else:
-            self.menu_saveLocalFile.setEnabled(False)
-
     def _onEmitMessageBox(self, message):
         if self.locale == "cs":
             QMessageBox.information(None, "Layman", message[0])
@@ -5667,8 +5517,6 @@ class Layman(QObject):
                 self.dockwidget = AtlasDockWidget()
             self.dockwidget.closingPlugin.connect(self.onClosePlugin)
             self.dockwidget.pushButton.clicked.connect(self.sendLayer)
-            self.dockwidget.pushButton_2.clicked.connect(self.loadLocalFile)
-            self.dockwidget.pushButton_3.clicked.connect(self.saveLocalFile)
             self.dockwidget.pushButton_getLayers.clicked.connect(self.run_getLayer)
             self.dlgGetLayers.pushButtonxx.clicked.connect(
                 lambda: print(self.dlgGetLayers.items.currentItem().text())

@@ -23,20 +23,6 @@
      </widget>
     </item>
     <item row="1" column="0">
-     <widget class="QPushButton" name="pushButton_2">
-      <property name="text">
-       <string>Nacti json</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="0">
-     <widget class="QPushButton" name="pushButton_3">
-      <property name="text">
-       <string>Do souboru</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="0">
      <widget class="QPushButton" name="pushButton_getLayers">
       <property name="text">
        <string>Načti vzdálené vrstvy</string>
