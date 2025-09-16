@@ -37,6 +37,7 @@ import unicodedata
 import xml.etree.ElementTree as ET
 import zipfile
 from builtins import range, str
+from urllib.parse import urlparse
 from distutils.version import LooseVersion
 from zipfile import ZipFile
 import processing
@@ -274,6 +275,19 @@ class Layman(QObject):
 
     def tr(self, message):
         return QCoreApplication.translate("Layman", message)
+
+    def extract_domain_from_url(self, url):
+        """Extrahuje doménové jméno z URL pro zobrazení"""
+        try:
+            parsed = urlparse(url)
+            domain = parsed.netloc
+            # Odstraníme www. prefix pokud existuje
+            if domain.startswith('www.'):
+                domain = domain[4:]
+            return domain
+        except Exception:
+            # Pokud se nepodaří parsovat, vrátíme původní text
+            return url
 
     def add_action(
         self,
@@ -5040,15 +5054,10 @@ class Layman(QObject):
                 self.laymanUsername = res["detail"]["username"]
                 print("username is: " + self.laymanUsername)
                 self.utils.laymanUsername = self.laymanUsername
-                url = (
-                    self.server.replace("https:\\", "")
-                    .replace(".cz", "")
-                    .replace("http:\\", "")
-                    .replace("www.", "")
-                    .replace(".com", "")
-                )
+                # Zobrazíme jen doménové jméno
+                display_text = self.extract_domain_from_url(self.server)
                 self.setPluginLabel.emit(
-                    '<a href="' + self.server + '">' + url + "</a>"
+                    '<a href="' + self.server + '">' + display_text + "</a>"
                 )
 
             if res["code"] == 32:
@@ -5068,9 +5077,10 @@ class Layman(QObject):
                 # print("username is: " + res["claims"]["preferred_username"])
                 # self.laymanUsername = res["claims"]["preferred_username"]
                 self.utils.laymanUsername = self.laymanUsername
-                url = self.server.replace("https:\\", "")
+                # Zobrazíme jen doménové jméno
+                display_text = self.extract_domain_from_url(self.server)
                 self.setPluginLabel.emit(
-                    '<a href="' + self.server + '">' + url + "</a>"
+                    '<a href="' + self.server + '">' + display_text + "</a>"
                 )
             except Exception as ex:
                 print(ex)
