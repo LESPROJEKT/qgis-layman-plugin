@@ -1110,70 +1110,525 @@ class Layman(QObject):
         self.dlg = AddMickaDialog(self.URI, self.utils, self)
 
     def loadLayersMicka(self, name, row, mickaRet):
-        epsg = list()
-        if "crs" in mickaRet["records"][row]:
-            for record in mickaRet["records"][row]["crs"]:
-                epsg.append(record["code"])
-        if "operatesOn" in mickaRet["records"][row]:
-            for record in mickaRet["records"][row]["operatesOn"]:
-                if "title" in record:
-                    title = record["title"]
-                else:
-                    title = "without title"
 
-                loaded = False
-                if "online" in record:
-                    for online in record["online"]:
-                        protocol = online["protocolText"]
-                        url = online["url"]
+        if row < len(mickaRet.get('records', [])):
+            current_record = mickaRet["records"][row]
+        else:
+            return
 
-                        if "OGC:WMS" in protocol and not loaded:
-                            print("load wms")
-                            urlWithParams = self.getWmsUrl(url, epsg)
+        if current_record.get('type') == 'application' and current_record.get('serviceType') == 'Map':
+            
+            if 'links' in current_record:
 
-                            rlayer = QgsRasterLayer(urlWithParams, title, "wms")
-                            if rlayer.isValid():
-                                QgsProject.instance().addMapLayer(rlayer)
-                            loaded = True
-                        elif "OGC:WFS" in protocol and not loaded:
-                            r = url.split("/")
-                            acc = r[len(r) - 2]
-                            print("load wfs")
-                            if "REQUEST" in url:
-                                layers = url.split("LAYERS=")[1].lower()
-                            quri = QgsDataSourceUri()
-                            quri.setParam("srsname", epsg[0])
-                            quri.setParam("typename", acc + ":" + layers)
-                            quri.setParam("restrictToRequestBBOX", "1")
-                            quri.setParam("pagingEnabled", "true")
-                            quri.setParam("version", "auto")
-                            quri.setParam("request", "GetFeature")
-                            quri.setParam("service", "WFS")
-                            quri.setParam("url", url)
-                            vlayer = QgsVectorLayer(
-                                url + "?" + str(quri.encodedUri(), "utf-8"),
-                                layers,
-                                "WFS",
+                file_url = None
+                for link in current_record['links']:
+                    if link.get('url', '').endswith('/file'):
+                        file_url = link['url']
+                        break
+                
+                if file_url:
+                    url_parts = file_url.split('/')
+                    if len(url_parts) >= 7:
+                        workspace = url_parts[-4]
+                        map_name = url_parts[-2]
+
+                        try:
+                            from .layman_api import LaymanAPI
+                            layman_api = LaymanAPI(self.URI)
+                            url = layman_api.get_map_file_url(workspace, map_name)
+                            
+                            r = self.utils.requestWrapper("GET", url, payload=None, files=None, emitErr=False)
+
+                            if r.status_code != 200:
+                                if r.status_code == 404:
+                                    self.utils.emitMessageBox.emit(
+                                        [f"Workspace '{workspace}' neexistuje na serveru", f"Workspace '{workspace}' does not exist on server"]
+                                    )
+                                else:
+                                    self.utils.emitMessageBox.emit(
+                                        [f"Chyba při načítání kompozice (HTTP {r.status_code})", f"Error loading composition (HTTP {r.status_code})"]
+                                    )
+                                return
+                            
+                            data = r.json()
+
+                            self.loadCompositionFromMickaData(data, map_name, workspace)
+                            
+                        except Exception as e:
+                            self.utils.emitMessageBox.emit(
+                                [f"Chyba při načítání kompozice: {str(e)}", f"Error loading composition: {str(e)}"]
                             )
-                            print("validity WFS")
+                    else:
+                        self.utils.emitMessageBox.emit(
+                            ["Nepodařilo se rozpoznat strukturu URL", "Could not parse URL structure"]
+                        )
+                else:
+                    self.utils.emitMessageBox.emit(
+                        ["Není nalezen odkaz na soubor kompozice", "No composition file link found"]
+                    )
+            else:
+                self.utils.emitMessageBox.emit(
+                    ["Není nalezen žádný odkaz", "No links found"]
+                )
+        else:
+            
+            epsg = list()
+            if "crs" in mickaRet["records"][row]:
+                for record in mickaRet["records"][row]["crs"]:
+                    epsg.append(record["code"])
+                
+            if "operatesOn" in mickaRet["records"][row]:
+                for i, record in enumerate(mickaRet["records"][row]["operatesOn"]):
+                    if "title" in record:
+                        title = record["title"]
+                    else:
+                        title = "without title"
 
-                            if rlayer.isValid():
-                                QgsProject.instance().addMapLayer(vlayer)
-                            loaded = True
-                        else:
-                            if "wms" in url.lower() and not loaded:
+                    loaded = False
+                    if "online" in record:
+                        for j, online in enumerate(record["online"]):
+                            protocol = online["protocolText"]
+                            url = online["url"]
+
+                            if "OGC:WMS" in protocol and not loaded:
                                 urlWithParams = self.getWmsUrl(url, epsg)
+
                                 rlayer = QgsRasterLayer(urlWithParams, title, "wms")
                                 if rlayer.isValid():
                                     QgsProject.instance().addMapLayer(rlayer)
-                                    loaded = True
-                else:
-                    print("online not found")
-        else:
-            self.utils.emitMessageBox.emit(
-                ["Není vrstva k načtení!", "No layer to load!"]
-            )
+                                loaded = True
+                            elif "OGC:WFS" in protocol and not loaded:
+                                r = url.split("/")
+                                acc = r[len(r) - 2]
+                                if "REQUEST" in url:
+                                    layers = url.split("LAYERS=")[1].lower()
+                                quri = QgsDataSourceUri()
+                                quri.setParam("srsname", epsg[0])
+                                quri.setParam("typename", acc + ":" + layers)
+                                quri.setParam("restrictToRequestBBOX", "1")
+                                quri.setParam("pagingEnabled", "true")
+                                quri.setParam("version", "auto")
+                                quri.setParam("request", "GetFeature")
+                                quri.setParam("service", "WFS")
+                                quri.setParam("url", url)
+                                vlayer = QgsVectorLayer(
+                                    url + "?" + str(quri.encodedUri(), "utf-8"),
+                                    layers,
+                                    "WFS",
+                                )
+
+                                if rlayer.isValid():
+                                    QgsProject.instance().addMapLayer(vlayer)
+                                loaded = True
+                            else:
+                                if "wms" in url.lower() and not loaded:
+                                    urlWithParams = self.getWmsUrl(url, epsg)
+                                    rlayer = QgsRasterLayer(urlWithParams, title, "wms")
+                                    if rlayer.isValid():
+                                        QgsProject.instance().addMapLayer(rlayer)
+                                        loaded = True
+                    else:
+                        print(f"DEBUG: Item {i} has no 'online' section")
+            else:
+                self.utils.emitMessageBox.emit(
+                    ["Není vrstva k načtení!", "No layer to load!"]
+                )
+        
         QgsMessageLog.logMessage("disableProgressBar")
+
+    def layerChanged(self):        
+        pass
+
+    def loadCompositionFromMickaData(self, data, composition_name, workspace):
+        try:
+            self.current = composition_name
+
+            self.instance = CurrentComposition(
+                self.URI,
+                composition_name,
+                workspace,
+                self.utils.getAuthHeader(self.utils.authCfg),
+                "micka_user",
+            )
+            self.instance.setComposition(data)
+
+            if "title" in data:
+                QgsProject.instance().setTitle(data["title"])
+            
+            if "projection" in data:
+                projection = data["projection"].replace("epsg:", "").replace("EPSG:", "")
+                if projection:
+                    crs = QgsCoordinateReferenceSystem(int(projection))
+                    self.crsChangedConnect = False
+                    QgsProject.instance().setCrs(crs)
+                    self.crsChangedConnect = True
+
+            if isinstance(data, dict) and "layers" in data:
+                self.loadLayerFromData(data, "WMS", composition_name)
+            else:
+                print("Data is corrupted or missing layers, skipping layer loading")
+
+            
+        except Exception as e:
+            self.utils.emitMessageBox.emit(
+                [f"Chyba při načítání kompozice: {str(e)}", f"Error loading composition: {str(e)}"]
+            )
+
+    def loadLayerFromData(self, data, service, groupName=""):
+        if not "layers" in data:
+            self.utils.emitMessageBox.emit(
+                ["Kompozice je poškozena!", "Map composition is corrupted!"]
+            )
+            return
+        i = 1
+        groups = list()
+        groupPositions = list()
+        groupsSet = set()
+        
+        for x in range(len(data["layers"]) - 1, -1, -1):
+            try:
+                try:
+                    subgroupName = data["layers"][x].get("path", "")
+                except:
+                    subgroupName = ""
+                try:
+                    timeDimension = data["layers"][x].get("dimensions", "")
+                except:
+                    timeDimension = ""
+                    
+                className = data["layers"][x]["className"]
+                visibility = data["layers"][x]["visibility"]
+                
+                if className == "XYZ":
+                    layerName = data["layers"][x]["title"]
+                elif className == "HSLayers.Layer.WMS" or className == "WMS":
+                    layerName = data["layers"][x]["params"]["LAYERS"]
+                elif className == "OpenLayers.Layer.Vector" or className == "Vector":
+                    try:
+                        layerName = data["layers"][x]["name"]
+                    except:
+                        try:
+                            layerName = data["layers"][x]["protocol"]["LAYERS"]
+                        except:
+                            QgsMessageLog.logMessage("compositionSchemaError")
+                            self.instance = None
+                            self.current = None
+                            return            
+                elif className == "ArcGISRest":
+                    layerName = data["layers"][x]["title"]
+                else:
+                    layerName = data["layers"][x].get("title", f"Layer_{x}")
+
+                if className == "HSLayers.Layer.WMS" or className == "WMS":
+                    layerName = data["layers"][x]["params"]["LAYERS"]
+                    format_type = data["layers"][x]["params"]["FORMAT"]
+                    epsg = "EPSG:4326"
+                    minRes = data["layers"][x].get("minResolution", 0)
+                    maxRes = data["layers"][x].get("maxResolution", None)
+                    greyscale = data["layers"][x].get("greyscale", False)
+                    
+                    try:
+                        groupName = data["layers"][x].get("path", "")
+                    except:
+                        groupName = ""
+                        
+                    layerNameTitle = data["layers"][x]["title"]
+                    repairUrl = data["layers"][x]["url"]
+                    repairUrl = self.utils.convertUrlFromHex(repairUrl)
+                    everyone = not self.isAuthorized
+                    
+                    if groupName != "":
+                        groups.append([groupName, len(data["layers"]) - i])
+                        groupsSet.add(groupName)
+                        groupPositions.append(
+                            [groupName, layerNameTitle, len(data["layers"]) - i]
+                        )
+                    else:
+                        groups.append([layerNameTitle, len(data["layers"]) - i])
+                        
+                    legends = "0"                        
+                    if "legends" in data["layers"][x]:
+                        legends = "1"
+
+                    self.loadWms(
+                        repairUrl,
+                        layerName,
+                        layerNameTitle,
+                        format_type,
+                        epsg,
+                        groupName,
+                        subgroupName,
+                        timeDimension,
+                        visibility,
+                        everyone,
+                        minRes,
+                        maxRes,
+                        greyscale,
+                        legends
+                    )
+                    
+                i = i + 1
+                    
+            except Exception as e:
+                continue
+
+    def readMapJsonThread(self, name, service, workspace=""):
+        unloadedLayers = list()
+        processingRequest = True   
+        old_loaded = self.current         
+        if self.instance != None:
+            old_composition = self.instance.getComposition()       
+        self.current = name
+        
+        if workspace != "":                    
+            from .layman_api import LaymanAPI
+            layman_api = LaymanAPI(self.URI)
+            url = layman_api.get_map_file_url(workspace, name)
+            r = self.utils.requestWrapper("GET", url, payload=None, files=None)
+            data = r.json()
+            self.instance = CurrentComposition(
+                self.URI,
+                name,
+                workspace,
+                self.utils.getAuthHeader(self.utils.authCfg),
+                "micka_user",
+            )
+            self.instance.setComposition(data)           
+        else:                 
+            workspace = self.getCompositionWorkspace(name)
+            try:
+                from .layman_api import LaymanAPI
+                layman_api = LaymanAPI(self.URI)
+                url = layman_api.get_map_file_url(workspace, name)
+            except:
+                QgsMessageLog.logMessage("compositionSchemaError")
+                return      
+            r = self.utils.requestWrapper("GET", url, payload=None, files=None)
+            data = r.json()
+            
+        name = self.utils.removeUnacceptableChars(name)          
+        layers = QgsProject.instance().mapLayers()
+        if len(data["layers"]) == 0:
+            self.utils.showQBar.emit(
+                [
+                    "Mapová kompozice je načtena, ale neobsahuje žádné vrstvy.",
+                    "Map composition is loaded but not contains layers.",
+                ],
+                Qgis.Success,
+            )
+            return
+            
+        if len(layers) > 0:
+            if name != old_loaded:
+                self.iface.newProjectCreated.disconnect()
+                self.iface.newProject()
+                projection = (
+                    data["projection"].replace("epsg:", "").replace("EPSG:", "")
+                )
+                crs = QgsCoordinateReferenceSystem(int(projection))
+                self.crsChangedConnect = False
+                QgsProject.instance().setCrs(crs)
+                self.crsChangedConnect = True
+                QgsProject.instance().setTitle(data["title"])
+                self.iface.newProjectCreated.connect(
+                    self.removeCurrent
+                )
+            else: 
+                if self.utils.compare_json_layers(data, old_composition):
+                    self.iface.newProjectCreated.disconnect()
+                    self.iface.newProject()
+                    self.iface.newProjectCreated.connect(
+                        self.removeCurrent
+                    )
+                else:
+                    if self.utils.checkIfNotLocalLayer():
+                        self.iface.newProjectCreated.disconnect()
+                        self.iface.newProject()
+                        self.iface.newProjectCreated.connect(
+                            self.removeCurrent
+                        )
+                    else:    
+                        project = QgsProject.instance()                       
+                        for layer_id in project.mapLayers():
+                            layer = project.mapLayer(layer_id)
+                            provider = layer.dataProvider()
+                            provider.reloadData()
+                        return
+
+        self.loadLayerFromComposition(data, service, name)
+
+    def loadLayerFromComposition(self, data, service, groupName=""):
+        if not "layers" in data:
+            self.utils.emitMessageBox.emit(
+                ["Kompozice je poškozena!", "Map composition is corrupted!"]
+            )
+            return
+            className = data["layers"][x]["className"]
+            visibility = data["layers"][x]["visibility"]
+            
+            if className == "XYZ":
+                layerName = data["layers"][x]["title"]
+            elif className == "HSLayers.Layer.WMS" or className == "WMS":
+                layerName = data["layers"][x]["params"]["LAYERS"]
+            elif className == "OpenLayers.Layer.Vector" or className == "Vector":
+                try:
+                    layerName = data["layers"][x]["name"]
+                except:
+                    try:
+                        layerName = data["layers"][x]["protocol"]["LAYERS"]
+                    except:
+                        QgsMessageLog.logMessage("compositionSchemaError")
+                        self.instance = None
+                        self.current = None
+                        return            
+            elif className == "ArcGISRest":
+                layerName = data["layers"][x]["title"]
+            else:
+                layerName = data["layers"][x].get("title", f"Layer_{x}")
+
+            self.loadSingleLayer(data["layers"][x], layerName, className, visibility, groupName)
+
+    def loadSingleLayer(self, layer_data, layerName, className, visibility, groupName=""):
+        try:
+            if className == "HSLayers.Layer.WMS" or className == "WMS":
+                params = layer_data["params"]
+                url = layer_data["url"]
+                layers = params["LAYERS"]
+                format_type = params.get("FORMAT", "image/png")
+                version = params.get("VERSION", "1.3.0")
+                layerNameTitle = layer_data["title"]
+                minRes = layer_data.get("minResolution", 0)
+                maxRes = layer_data.get("maxResolution", None)
+                greyscale = layer_data.get("greyscale", False)
+                repairUrl = self.utils.convertUrlFromHex(url)
+                self.loadWms(
+                    repairUrl,
+                    layers,
+                    layerNameTitle,
+                    format_type,
+                    "EPSG:4326",
+                    groupName,
+                    "",
+                    "",
+                    visibility,
+                    not self.isAuthorized,
+                    minRes,
+                    maxRes,
+                    greyscale,
+                    "0"
+                )
+                    
+            elif className == "OpenLayers.Layer.Vector" or className == "Vector":         
+                try:                 
+                    if "protocol" in data["layers"][x] and "url" in data["layers"][x]["protocol"]:
+                        wfs_url = data["layers"][x]["protocol"]["url"]
+                        wfs_layers = data["layers"][x]["protocol"].get("LAYERS", layerName)                        
+                     
+                        quri = QgsDataSourceUri()
+                        quri.setParam("srsname", "EPSG:4326") 
+                        quri.setParam("typename", wfs_layers)
+                        quri.setParam("restrictToRequestBBOX", "1")
+                        quri.setParam("pagingEnabled", "true")
+                        quri.setParam("version", "auto")
+                        quri.setParam("request", "GetFeature")
+                        quri.setParam("service", "WFS")
+                        quri.setParam("url", wfs_url)
+                        
+                        vlayer = QgsVectorLayer(
+                            wfs_url + "?" + str(quri.encodedUri(), "utf-8"),
+                            layerNameTitle,
+                            "WFS",
+                        )
+                        
+                        if vlayer.isValid():
+                            if groupName != "":
+                                self.addWmsToGroup(subgroupName, vlayer, "")
+                            else:
+                                QgsProject.instance().addMapLayer(vlayer)
+                        else:
+                            self.utils.emitMessageBox.emit(
+                                [f"Chyba při načítání WFS vrstvy: {layerNameTitle}", f"Error loading WFS layer: {layerNameTitle}"]
+                            )
+                    else:
+                        self.utils.emitMessageBox.emit(
+                            [f"Chybí URL pro WFS vrstvu: {layerNameTitle}", f"Missing URL for WFS layer: {layerNameTitle}"]
+                        )
+                except Exception as e:
+                    self.utils.emitMessageBox.emit(
+                        [f"Chyba při načítání Vector vrstvy: {str(e)}", f"Error loading Vector layer: {str(e)}"]
+                    )
+                
+            elif className == "XYZ":                
+                try:                   
+                    if "url" in data["layers"][x]:
+                        xyz_url = data["layers"][x]["url"]
+                        format_type = data["layers"][x].get("params", {}).get("FORMAT", "image/png")
+                        epsg = "EPSG:4326"
+                        minRes = data["layers"][x].get("minResolution", 0)
+                        maxRes = data["layers"][x].get("maxResolution", None)     
+                        self.loadXYZ(
+                            xyz_url,
+                            layerName,
+                            layerNameTitle,
+                            format_type,
+                            epsg,
+                            groupName,
+                            subgroupName,
+                            visibility,
+                            -1,
+                            minRes,
+                            maxRes
+                        )
+                    else:
+                        self.utils.emitMessageBox.emit(
+                            [f"Chybí URL pro XYZ vrstvu: {layerNameTitle}", f"Missing URL for XYZ layer: {layerNameTitle}"]
+                        )
+                except Exception as e:
+                    self.utils.emitMessageBox.emit(
+                        [f"Chyba při načítání XYZ vrstvy: {str(e)}", f"Error loading XYZ layer: {str(e)}"]
+                    )
+                
+            elif className == "ArcGISRest":          
+                try:                 
+                    if "url" in data["layers"][x]:
+                        arcgis_url = data["layers"][x]["url"]
+                        format_type = data["layers"][x].get("params", {}).get("FORMAT", "image/png")
+                        epsg = "EPSG:4326"
+                        minRes = data["layers"][x].get("minResolution", 0)
+                        maxRes = data["layers"][x].get("maxResolution", None)                       
+                        
+                        rlayer = QgsRasterLayer(arcgis_url, layerNameTitle, "arcgismapserver")
+                        
+                        if rlayer.isValid():
+                            if minRes is not None and maxRes is not None:
+                                rlayer.setMinimumScale(self.utils.resolutionToScale(maxRes))
+                                rlayer.setMaximumScale(self.utils.resolutionToScale(minRes))
+                                rlayer.setScaleBasedVisibility(True)
+                            
+                            if groupName != "":
+                                self.addWmsToGroup(subgroupName, rlayer, "")
+                            else:
+                                QgsProject.instance().addMapLayer(rlayer)
+                        else:
+                            self.utils.emitMessageBox.emit(
+                                [f"Chyba při načítání ArcGIS REST vrstvy: {layerNameTitle}", f"Error loading ArcGIS REST layer: {layerNameTitle}"]
+                            )
+                    else:
+                        self.utils.emitMessageBox.emit(
+                            [f"Chybí URL pro ArcGIS REST vrstvu: {layerNameTitle}", f"Missing URL for ArcGIS REST layer: {layerNameTitle}"]
+                        )
+                except Exception as e:
+                    self.utils.emitMessageBox.emit(
+                        [f"Chyba při načítání ArcGIS REST vrstvy: {str(e)}", f"Error loading ArcGIS REST layer: {str(e)}"]
+                    )
+                
+            else:
+                self.utils.emitMessageBox.emit(
+                    [f"Neznámý typ vrstvy: {className}", f"Unknown layer type: {className}"]
+                )
+                
+        except Exception as e:
+            print(f"Error loading layer {layerName}: {e}")
 
     def getWmsUrl(self, url, epsg):
         url = url.replace("%2F", "/").replace("%3A", ":")
