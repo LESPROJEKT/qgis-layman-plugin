@@ -5,7 +5,7 @@ from qgis.core import *
 
 class CurrentComposition(object):
     def __init__(self, uri, name, workspace, header, user):
-        self.composition = list()
+        self.composition = dict()
         self.URI = uri
         self.name = name
         self.workspace = workspace
@@ -13,7 +13,7 @@ class CurrentComposition(object):
         self.user = user
         self.layerIds = list()
         self.layers = list()
-        self.refreshComposition()
+        self.is_local = False
 
     def getComposition(self):
         return self.composition
@@ -23,39 +23,49 @@ class CurrentComposition(object):
 
     def getLayerNamesList(self):
         layerList = list()
-        for layer in self.composition["layers"]:
-            layerList.append(self.removeUnacceptableChars(layer["title"]))
+        if isinstance(self.composition, dict) and "layers" in self.composition:
+            for layer in self.composition["layers"]:
+                layerList.append(self.removeUnacceptableChars(layer["title"]))
         return layerList
 
     def isLayerInComposition(self, layerName):
         pom = False
         print(self.composition)
-        for layer in self.composition["layers"]:
-            if self.removeUnacceptableChars(layer["title"]) == layerName:
-                pom = True
+        if isinstance(self.composition, dict) and "layers" in self.composition:
+            for layer in self.composition["layers"]:
+                if self.removeUnacceptableChars(layer["title"]) == layerName:
+                    pom = True
         return pom
 
     def getVisibilityForLayer(self, layerName):
-        for layer in self.composition["layers"]:
-            if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(
-                layer["title"]
-            ):
-                return layer["visibility"]
+        if isinstance(self.composition, dict) and "layers" in self.composition:
+            for layer in self.composition["layers"]:
+                if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(
+                    layer["title"]
+                ):
+                    return layer["visibility"]
+        return None
 
     def getServiceForLayer(self, layerName):
-        for layer in self.composition["layers"]:
-            if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(
-                layer["title"]
-            ):
-                print(layerName, layer["className"])
-                print(layer["className"] == "HSLayers.Layer.WMS")
-                return layer["className"]
+        if isinstance(self.composition, dict) and "layers" in self.composition:
+            for layer in self.composition["layers"]:
+                if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(
+                    layer["title"]
+                ):
+                    print(layerName, layer["className"])
+                    print(layer["className"] == "HSLayers.Layer.WMS")
+                    return layer["className"]
+        return None
 
     def getDescription(self):
-        return self.composition["abstract"]
+        if isinstance(self.composition, dict) and "abstract" in self.composition:
+            return self.composition["abstract"]
+        return ""
 
     def getName(self):
-        return self.composition["name"]
+        if isinstance(self.composition, dict) and "name" in self.composition:
+            return self.composition["name"]
+        return ""
 
     def isLayerId(self, id):
         if id in self.layerIds:
@@ -70,8 +80,9 @@ class CurrentComposition(object):
 
     def getLayerList(self):
         layerList = list()
-        for layer in self.composition["layers"]:
-            layerList.append(layer)
+        if isinstance(self.composition, dict) and "layers" in self.composition:
+            for layer in self.composition["layers"]:
+                layerList.append(layer)
         return layerList
 
     def getUrl(self):
@@ -95,7 +106,9 @@ class CurrentComposition(object):
             )
 
     def getProjection(self):
-        return self.composition["projection"]
+        if isinstance(self.composition, dict) and "projection" in self.composition:
+            return self.composition["projection"]
+        return "EPSG:4326"
 
     def setIds(self, layers):
         for layer in layers:
@@ -105,10 +118,16 @@ class CurrentComposition(object):
     def setComposition(self, json):
         self.composition = json
 
+    def setWorkspace(self, new_workspace):        
+        self.workspace = new_workspace
+
     def getComposition(self):
         return self.composition
 
-    def refreshComposition(self):
+    def refreshComposition(self):        
+        if self.is_local:            
+            return
+            
         url = (
             self.URI
             + "/rest/workspaces/"
@@ -122,32 +141,36 @@ class CurrentComposition(object):
         self.composition = data
 
     def getPermissions(self):
-        url = (
-            self.URI
-            + "/rest/workspaces/"
-            + self.workspace
-            + "/maps/"
-            + self.name
-            + "/file"
-        )
-        r = requests.get(url=url, headers=self.header)
-        data = r.json()
-        if "access_rights" in data and "write" in data["access_rights"]:
-            if (
-                self.user in data["access_rights"]["write"]
-                or "EVERYONE" in data["access_rights"]["write"]
-            ):
-                print("w")
-                return "w"
-        if "access_rights" in data and "read" in data["access_rights"]:
-            if (
-                self.user in data["access_rights"]["read"]
-                or "EVERYONE" in data["access_rights"]["read"]
-            ):
-                print("r")
-                return "r"
-        print("n")
-        return "n"
+        try:
+            url = (
+                self.URI
+                + "/rest/workspaces/"
+                + self.workspace
+                + "/maps/"
+                + self.name
+                + "/file"
+            )
+            r = requests.get(url=url, headers=self.header)
+            data = r.json()
+            if "access_rights" in data and "write" in data["access_rights"]:
+                if (
+                    self.user in data["access_rights"]["write"]
+                    or "EVERYONE" in data["access_rights"]["write"]
+                ):
+                    print("w")
+                    return "w"
+            if "access_rights" in data and "read" in data["access_rights"]:
+                if (
+                    self.user in data["access_rights"]["read"]
+                    or "EVERYONE" in data["access_rights"]["read"]
+                ):
+                    print("r")
+                    return "r"
+            print("n")
+            return "n"
+        except Exception as e:
+            print(f"DEBUG: getPermissions failed: {e}")
+            return "w"
 
     def hasLaymanLayer(self):
         for layer in self.composition["layers"]:
@@ -171,10 +194,14 @@ class CurrentComposition(object):
                 return i
 
     def getAllPermissions(self):
-        url = self.URI + "/rest/workspaces/" + self.workspace + "/maps/" + self.name
-        r = requests.get(url=url, headers=self.header)
-        data = r.json()
-        return data["access_rights"]
+        try:
+            url = self.URI + "/rest/workspaces/" + self.workspace + "/maps/" + self.name
+            r = requests.get(url=url, headers=self.header)
+            data = r.json()
+            return data["access_rights"]
+        except Exception as e:
+            print(f"DEBUG: getAllPermissions failed: {e}")
+            return {"read": ["EVERYONE"], "write": ["EVERYONE"]}
 
     def getOnlyMyLayers(self):
         layers = self.getLayerList()

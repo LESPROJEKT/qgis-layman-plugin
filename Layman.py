@@ -799,6 +799,7 @@ class Layman(QObject):
                 keyword = keyword
         else:
             username = self.parseUsernameFromUrl(self.findUrlParam(layer))
+            keyword = username  
         name = self.utils.removeUnacceptableChars(title)
         self.existLayer = False
         if type == "wms":
@@ -4375,6 +4376,7 @@ class Layman(QObject):
             self.layman_api.get_map_url(workspace, composition["name"]),
             payload=None,
             files=None,
+            emitErr=False,  
         )
         time.sleep(0.5)
         response = self.utils.requestWrapper(

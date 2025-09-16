@@ -918,6 +918,17 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="pushButton_loadFromJson">
+       <property name="text">
+        <string>Load from JSON</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>icons/open.png</normaloff>icons/open.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QProgressBar" name="progressBar_loader">
        <property name="enabled">
         <bool>true</bool>
@@ -1015,6 +1026,7 @@
   <tabstop>pushButton_setPermissions</tabstop>
   <tabstop>pushButton_qfield</tabstop>
   <tabstop>pushButton_copyUrl</tabstop>
+  <tabstop>pushButton_loadFromJson</tabstop>
   <tabstop>checkBox_all</tabstop>
   <tabstop>treeWidget_layers</tabstop>
   <tabstop>pushButton_back</tabstop>

@@ -39,6 +39,7 @@ from qgis.PyQt.QtWidgets import (
     QLineEdit,
     QWidget,
     QVBoxLayout,
+    QFileDialog,
 )
 from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRegularExpression
 from qgis.PyQt.QtCore import QPoint
@@ -46,6 +47,7 @@ import threading
 import requests
 import xml.etree.ElementTree as ET
 import traceback
+import json
 from .currentComposition import CurrentComposition
 from .layman_utils import ProxyStyle
 from distutils.version import LooseVersion
@@ -211,9 +213,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_raster.hide()
         self.treeWidget_layers.header().resizeSection(0, 230)
         self.pushButton_qfield.clicked.connect(self.writeProjectValues) 
-        self.pushButton_qfield.clicked.connect(self.exportToQfield)      
-        if self.layman.current != None:
-            self.layman.instance.refreshComposition()
+        self.pushButton_qfield.clicked.connect(self.exportToQfield)
+        self.pushButton_loadFromJson.clicked.connect(lambda: self.loadFromJsonFile())
+        if self.layman.current != None:               
+            if hasattr(self.layman, 'instance') and self.layman.instance is not None:
+                self.layman.instance.refreshComposition()
             composition = self.layman.instance.getComposition()        
             self.setVisibilityForCurrent(True)
             self.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl())
@@ -265,7 +269,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             print(f"Chyba při odpojování on_layers_added: {e}")      
         name = self.layman.current            
         self.qfield.selectedLayers = self.getCheckedLayerNames()
-        permissions = self.layman.instance.getAllPermissions()
+        if self.layman.laymanUsername == self.layman.instance.getWorkspace():
+            permissions = {"read": ["EVERYONE"], "write": ["EVERYONE"]}
+            print("DEBUG: User owns workspace for QField export - setting full permissions")
+        else:
+            permissions = self.layman.instance.getAllPermissions()
         permission = "true" if "EVERYONE" in permissions["read"] else "false"
         response = self.qfield.createQProject(
             self.layman.instance.getName(),
@@ -348,7 +356,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def qfieldThread(self):
         name = self.layman.current            
         self.qfield.selectedLayers = self.getCheckedLayerNames()
-        permissions = self.layman.instance.getAllPermissions()
+        if self.layman.laymanUsername == self.layman.instance.getWorkspace():
+            permissions = {"read": ["EVERYONE"], "write": ["EVERYONE"]}
+            print("DEBUG: User owns workspace for QField thread - setting full permissions")
+        else:
+            permissions = self.layman.instance.getAllPermissions()
         permission = "true" if "EVERYONE" in permissions["read"] else "false"
         response = self.qfield.createQProject(
             self.layman.instance.getName(),
@@ -418,6 +430,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_save.setEnabled(False)
             self.pushButton_copyUrl.setEnabled(False)   
             self.pushButton_qfield.setEnabled(False)
+            self.pushButton_loadFromJson.setEnabled(True)
             self.pushButton_new.setEnabled(True)
             self.label_readonly.hide()
             self.pushButton_new.show()              
@@ -431,6 +444,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_delete.setEnabled(False)              
             self.pushButton_save.setEnabled(False)
             self.pushButton_copyUrl.setEnabled(True) 
+            self.pushButton_loadFromJson.setEnabled(True)
             if self.layman.qfieldReady:  
                 self.pushButton_qfield.setEnabled(False)
             self.pushButton_new.setEnabled(True)
@@ -445,6 +459,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_save.setEnabled(visible)
             self.pushButton_delete.setEnabled(visible)     
             self.pushButton_copyUrl.setEnabled(visible)             
+            self.pushButton_loadFromJson.setEnabled(True)
             if self.layman.qfieldReady: 
                 self.pushButton_qfield.setEnabled(visible)
             self.checkBox_all.setEnabled(visible)
@@ -456,12 +471,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             return
         composition = self.layman.instance.getComposition()
         print(composition)
-        if self.layman.current != None:           
-            try:
-                writePermissions = self.layman.instance.getAllPermissions()["write"]
-            except:
-                writePermissions = []
-                print("get permissions failed")                
+        if self.layman.current != None:                       
+            if self.layman.laymanUsername == self.layman.instance.getWorkspace():
+                writePermissions = [self.layman.laymanUsername, "EVERYONE"]
+                print("DEBUG: User owns workspace - setting full permissions")
+            else:
+                try:
+                    writePermissions = self.layman.instance.getAllPermissions()["write"]
+                except:
+                    writePermissions = []
+                    print("get permissions failed")                
             if self.layman.laymanUsername not in writePermissions:                    
                     self.treeWidget_layers.setEnabled(False)               
                     self.pushButton_editMeta.setEnabled(False)
@@ -472,7 +491,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.pushButton_qfield.setEnabled(False) 
                     self.label_readonly.show()  
             else:   
-                self.label_readonly.hide()                 
+                self.label_readonly.hide()               
                 self.layman.instance.refreshComposition()                     
                 self.pushButton_editMeta.setEnabled(True)
                 self.pushButton_new.setEnabled(True)
@@ -495,7 +514,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             print("titulek nenačten")
         self.treeWidget_layers.clear()
         layerList = list()
-        serviceList = list()
+        serviceList = list()        
         self.layman.instance.refreshComposition()        
         for i in reversed(range(0, len(composition["layers"]))):
             layerList.append(
@@ -798,10 +817,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             return         
         composition = self.layman.instance.getComposition()
         layerList = []
-        for i in range(0, len(composition["layers"])):
-            layerList.append(
-                self.utils.removeUnacceptableChars(composition["layers"][i]["title"])
-            )
+        if isinstance(composition, dict) and "layers" in composition:
+            for i in range(0, len(composition["layers"])):
+                layerList.append(
+                    self.utils.removeUnacceptableChars(composition["layers"][i]["title"])
+                )
         iterator = QTreeWidgetItemIterator(
             self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
@@ -1928,6 +1948,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def copyCompositionUrl(self, composition=None): 
         if not composition:
+            if self.layman.instance.getWorkspace() == self.layman.laymanUsername:
+                self.utils.showQgisBar(
+                    ["Tato kompozice je načtena z lokálního souboru a nemá server URL.", 
+                     "This composition is loaded from local file and has no server URL."], 
+                    Qgis.Warning
+                )
+                return
             url = self.layman.instance.getUrl()
         else:
             url = self.layman_api.get_map_file_url(
@@ -2367,6 +2394,424 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     hidden_text = usernameList[self.comboBox_users.currentIndex()]
                     self.setHiddenItem(current_item, hidden_text) 
                     print("2")   
+
+    def loadFromJsonFile(self):
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("Load composition from JSON file"),
+            "",
+            "JSON files (*.json);;All files (*.*)"
+        )
+        
+        if filename:
+            try:
+                with open(filename, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                if not self.validateCompositionData(data):
+                    QMessageBox.warning(
+                        self,
+                        self.tr("Invalid file"),
+                        self.tr("Selected file is not a valid Layman composition.")
+                    )
+                    return
+                self.loadCompositionFromData(data, filename)
+                
+            except json.JSONDecodeError:
+                QMessageBox.warning(
+                    self,
+                    self.tr("Invalid JSON"),
+                    self.tr("Selected file is not a valid JSON file.")
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    self.tr("Error"),
+                    self.tr("Error loading file: {}").format(str(e))
+                )
+
+    def validateCompositionData(self, data):
+        required_fields = ['title', 'layers']
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            print(f"Chybějící pole v JSON: {missing_fields}")
+            print(f"Dostupná pole: {list(data.keys())}")
+        return all(field in data for field in required_fields)
+
+    def loadCompositionFromData(self, data, filename):
+        try:
+            self.progressStart.emit()
+            
+            
+            composition_name = data.get("name", os.path.splitext(os.path.basename(filename))[0])
+            self.layman.current = composition_name            
+            
+            original_workspace = None
+            if "layers" in data and len(data["layers"]) > 0:                
+                if "workspace" in data["layers"][0]:
+                    original_workspace = data["layers"][0]["workspace"]        
+            if original_workspace and original_workspace != self.layman.laymanUsername:
+                msgbox = QMessageBox(
+                    QMessageBox.Icon.Question,
+                    "Layman",
+                    self.tr(
+                        f"Tato kompozice patří uživateli '{original_workspace}'. Chcete ji převzít jako svou vlastní kompozici? Můžete ji pak nahrát na server pod svým jménem."
+                    ),
+                )
+                msgbox.addButton(QMessageBox.StandardButton.Yes)
+                msgbox.addButton(QMessageBox.StandardButton.No)
+                msgbox.setDefaultButton(QMessageBox.StandardButton.Yes)
+                reply = msgbox.exec()
+                if reply == QMessageBox.StandardButton.No:
+                    self.progressDone.emit()
+                    return            
+            
+            self.layman.instance = CurrentComposition(
+                self.URI,
+                composition_name,
+                self.layman.laymanUsername,  
+                self.utils.getAuthHeader(self.utils.authCfg),
+                self.layman.laymanUsername,
+            )           
+            self.layman.instance.is_local = True      
+            if original_workspace and original_workspace != self.layman.laymanUsername:                
+                if "user" in data:
+                    data["user"]["name"] = self.layman.laymanUsername
+                    data["user"]["email"] = ""                
+            self.layman.instance.setComposition(data)            
+        
+            if original_workspace and original_workspace != self.layman.laymanUsername:
+                
+                self.layman.instance.setWorkspace(self.layman.laymanUsername)
+
+
+            if "title" in data:
+                QgsProject.instance().setTitle(data["title"])
+
+            if "projection" in data:
+                projection = data["projection"].replace("epsg:", "").replace("EPSG:", "")
+                if projection != "":
+                    crs = QgsCoordinateReferenceSystem(int(projection))
+                    if not self.layman.crsChangedConnect:
+                        self.layman.project.setCrs(crs)
+                        self.layman.project.crsChanged.connect(self.layman.crsChanged)
+                        self.layman.crsChangedConnect = True
+                    else:
+                        self.layman.crsChangedConnect = False
+                        self.layman.project.setCrs(crs)
+                        self.layman.crsChangedConnect = True
+            
+            
+            if "layers" not in data or len(data["layers"]) == 0:
+                self.progressDone.emit()
+                self.utils.showMessageBar(
+                    [
+                        "Mapová kompozice je načtena, ale neobsahuje žádné vrstvy.",
+                        "Map composition is loaded but not contains layers.",
+                    ],
+                    Qgis.Success,
+                )
+                return            
+            
+            layers = QgsProject.instance().mapLayers()
+            if len(layers) > 0:                
+                msgbox = QMessageBox(
+                    QMessageBox.Icon.Question,
+                    "Layman",
+                    self.tr(
+                        "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem."
+                    ),
+                )
+                msgbox.addButton(QMessageBox.StandardButton.Yes)
+                msgbox.addButton(QMessageBox.StandardButton.No)
+                msgbox.setDefaultButton(QMessageBox.StandardButton.No)
+                reply = msgbox.exec()
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.layman.iface.newProjectCreated.disconnect()
+                    self.layman.iface.newProject()                    
+                    if "projection" in data:
+                        projection = data["projection"].replace("epsg:", "").replace("EPSG:", "")
+                        if projection != "":
+                            crs = QgsCoordinateReferenceSystem(int(projection))
+                            self.layman.crsChangedConnect = False
+                            QgsProject.instance().setCrs(crs)
+                            self.layman.crsChangedConnect = True
+                    if "title" in data:
+                        QgsProject.instance().setTitle(data["title"])
+                    self.layman.iface.newProjectCreated.connect(
+                        self.layman.removeCurrent
+                    )            
+            
+            if isinstance(data, dict) and "layers" in data:
+                self.loadLayerFromData(data, "WMS", composition_name)
+            else:
+                print("DEBUG: Data is corrupted or missing layers, skipping layer loading")
+                self.progressDone.emit()
+            
+        except Exception as e:
+            self.progressDone.emit()
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("Error loading composition: {}").format(str(e))
+            )
+
+    def loadLayerFromData(self, data, service, groupName=""):
+        if not "layers" in data:
+            print("corrupted composition")
+            self.utils.emitMessageBox.emit(
+                ["Kompozice je poškozena!", "Map composition is corrupted!"]
+            )
+            return
+            
+        i = 1
+        groups = list()
+        groupPositions = list()
+        groupsSet = set()
+        
+        for x in range(len(data["layers"]) - 1, -1, -1):
+            print("iteration")
+            try:
+                subgroupName = data["layers"][x]["path"]
+            except:
+                print("path for layer not found")
+                subgroupName = ""
+            try:
+                timeDimension = data["layers"][x]["dimensions"]
+            except:
+                print("time dimensions for layer not found")
+                timeDimension = ""
+                
+            className = data["layers"][x]["className"]
+            visibility = data["layers"][x]["visibility"]
+            
+            if className == "XYZ":
+                layerName = data["layers"][x]["title"]
+            if className == "HSLayers.Layer.WMS" or className == "WMS":
+                layerName = data["layers"][x]["params"]["LAYERS"]
+            if className == "OpenLayers.Layer.Vector" or className == "Vector":
+                try:
+                    layerName = data["layers"][x]["name"]
+                except:
+                    try:
+                        layerName = data["layers"][x]["protocol"]["LAYERS"]
+                    except:
+                        QgsMessageLog.logMessage("compositionSchemaError")
+                        self.layman.instance = None
+                        self.layman.current = None
+                        return
+            if className == "ArcGISRest":
+                layerName = data["layers"][x]["title"]
+                
+            try:
+                print(layerName)
+            except:
+                print("wrong format of composition")
+                return
+
+            if className == "HSLayers.Layer.WMS" or className == "WMS":
+                layerName = data["layers"][x]["params"]["LAYERS"]
+                format = data["layers"][x]["params"]["FORMAT"]
+                epsg = "EPSG:4326"
+                minRes = data["layers"][x]["minResolution"]
+                maxRes = data["layers"][x]["maxResolution"]
+                if "greyscale" in data["layers"][x]:
+                    greyscale = data["layers"][x]["greyscale"]
+                else:
+                    greyscale = False
+
+                try:
+                    groupName = data["layers"][x]["path"]
+                except:
+                    groupName = ""
+                layerNameTitle = data["layers"][x]["title"]
+                repairUrl = data["layers"][x]["url"]
+                repairUrl = self.utils.convertUrlFromHex(repairUrl)
+                everyone = not self.layman.isAuthorized  # Použij authcfg pokud je uživatel autentifikovaný
+                
+                print(f"DEBUG: WMS Layer connection details:")
+                print(f"  - Layer name: {layerName}")
+                print(f"  - Layer title: {layerNameTitle}")
+                print(f"  - URL: {repairUrl}")
+                print(f"  - Format: {format}")
+                print(f"  - EPSG: {epsg}")
+                print(f"  - Group: {groupName}")
+                print(f"  - Everyone: {everyone}")
+                print(f"  - IsAuthorized: {self.layman.isAuthorized}")
+                
+                if groupName != "":
+                    groups.append([groupName, len(data["layers"]) - i])
+                    groupsSet.add(groupName)
+                    groupPositions.append(
+                        [groupName, layerNameTitle, len(data["layers"]) - i]
+                    )
+                else:
+                    groups.append([layerNameTitle, len(data["layers"]) - i])
+                legends = "0"                        
+                if "legends" in data["layers"][x]:
+                    legends = "1"                       
+                self.layman.loadWms(
+                    repairUrl,
+                    layerName,
+                    layerNameTitle,
+                    format,
+                    epsg,
+                    groupName,
+                    subgroupName,
+                    timeDimension,
+                    visibility,
+                    everyone,
+                    minRes,
+                    maxRes,
+                    greyscale,
+                    legends,
+                )
+                
+            elif className == "ArcGISRest":
+                url = data["layers"][x]["url"]
+                layerNameTitle = data["layers"][x]["title"]
+                
+                print(f"DEBUG: ArcGISRest Layer connection details:")
+                print(f"  - Layer title: {layerNameTitle}")
+                print(f"  - URL: {url}")
+                
+                self.layman.loadArcGisRest(url, layerNameTitle)
+                
+            elif className == "XYZ":
+                layerName = data["layers"][x]["title"]
+                minRes = data["layers"][x]["minResolution"]
+                maxRes = data["layers"][x]["maxResolution"]
+                try:
+                    groupName = data["layers"][x]["path"]
+                except:
+                    groupName = ""             
+                format = "XYZ"
+                epsg = "EPSG:4326"
+                layerNameTitle = data["layers"][x]["title"]
+                
+                print(f"DEBUG: XYZ Layer connection details:")
+                print(f"  - Layer name: {layerName}")
+                print(f"  - Layer title: {layerNameTitle}")
+                print(f"  - URL: {data['layers'][x]['url']}")
+                print(f"  - Format: {format}")
+                print(f"  - EPSG: {epsg}")
+                print(f"  - Group: {groupName}")
+                
+                if groupName != "":
+                    groups.append([groupName, len(data["layers"]) - i])
+                    groupsSet.add(groupName)
+                    groupPositions.append(
+                        [groupName, layerNameTitle, len(data["layers"]) - i]
+                    )
+                else:
+                    groups.append([layerNameTitle, len(data["layers"]) - i])
+                self.layman.loadXYZ(
+                    data["layers"][x]["url"],
+                    layerName,
+                    layerNameTitle,
+                    format,
+                    epsg,
+                    groupName,
+                    subgroupName,
+                    visibility,
+                    -1,
+                    minRes,
+                    maxRes,
+                )
+
+            elif className == "OpenLayers.Layer.Vector" or className == "Vector":
+                epsg = "EPSG:4326"
+                minRes = data["layers"][x]["minResolution"]
+                maxRes = data["layers"][x]["maxResolution"]
+                layerNameTitle = data["layers"][x]["title"]
+                repairUrl = data["layers"][x]["protocol"]["url"]
+                repairUrl = self.utils.convertUrlFromHex(repairUrl)
+                subgroupName = ""
+                everyone = not self.layman.isAuthorized  # Použij authcfg pokud je uživatel autentifikovaný
+                
+                print(f"DEBUG: Vector Layer connection details:")
+                print(f"  - Layer name: {layerName}")
+                print(f"  - Layer title: {layerNameTitle}")
+                print(f"  - URL: {repairUrl}")
+                print(f"  - EPSG: {epsg}")
+                print(f"  - Group: {groupName}")
+                print(f"  - Protocol: {data['layers'][x]['protocol']}")
+                
+                if "path" in data["layers"][x]:
+                    groupName = data["layers"][x]["path"]
+                else:
+                    groupName = ""
+                if groupName != "":
+                    groups.append([groupName, len(data["layers"]) - i])
+                    groupsSet.add(groupName)
+                    groupPositions.append(
+                        [groupName, layerNameTitle, len(data["layers"]) - i]
+                    )
+                else:
+                    groups.append([layerNameTitle, len(data["layers"]) - i])
+                    
+                try:
+                    if "type" in data["layers"][x]["protocol"]:
+                        if (
+                            data["layers"][x]["protocol"]["type"] == "hs.format.WFS"
+                            or data["layers"][x]["protocol"]["type"] == "WFS"
+                            or data["layers"][x]["protocol"]["type"] == "hs.format.externalWFS"
+                        ):
+                            self.layman.loadWfs(
+                                repairUrl,
+                                layerName,
+                                layerNameTitle,
+                                groupName,
+                                subgroupName,
+                                visibility,
+                                everyone,
+                                minRes,
+                                maxRes,
+                            )
+                    if "format" in data["layers"][x]["protocol"]:
+                        if data["layers"][x]["protocol"]["format"] in (
+                            "hs.format.externalWFS",
+                            "externalWFS",
+                        ):
+                            self.layman.loadWfsExternal(
+                                data["layers"][x], epsg, groupName
+                            )
+                        if (
+                            data["layers"][x]["protocol"]["format"] == "hs.format.WFS"
+                            or data["layers"][x]["protocol"]["format"] == "WFS"
+                        ):
+                            self.layman.loadWfs(
+                                repairUrl,
+                                layerName,
+                                layerNameTitle,
+                                groupName,
+                                subgroupName,
+                                visibility,
+                                everyone,
+                                minRes,
+                                maxRes,
+                            )
+                except:   
+                    self.layman.loadWfs(
+                        repairUrl,
+                        layerName,
+                        layerNameTitle,
+                        groupName,
+                        subgroupName,
+                        visibility,
+                        everyone,
+                        minRes,
+                        maxRes,
+                    )
+            
+            i = i + 1
+            
+        self.layman.reorderGroups(groups, groupsSet, groupPositions)
+        self.layman.afterCompositionLoaded()         
+        self.progressDone.emit()
+
+        self.refreshCurrentForm()
+        self.setStackWidget("main", False)
 
     def reject(self):
         super().reject()   
