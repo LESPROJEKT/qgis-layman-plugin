@@ -49,10 +49,17 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, utils, server, laymanUsername, URI, layman, parent=None):
         """Constructor."""
         super(ConnectionManagerDialog, self).__init__(parent)
-        app = QtWidgets.QApplication.instance()
         self.setObjectName("ConnectionManagerDialog")
-        proxy_style = ProxyStyle(app.style())
-        self.setStyle(proxy_style)
+        app = QtWidgets.QApplication.instance()
+        if app and app.style():
+            try:
+                proxy_style = ProxyStyle(app.style())
+                self.setStyle(proxy_style)
+            except Exception as e:
+                import sys
+                import traceback
+                print(f"[Layman] ProxyStyle was not set: {e}", file=sys.stderr)
+                traceback.print_exc()
         self.setupUi(self)
         self.utils = utils
         self.server = server

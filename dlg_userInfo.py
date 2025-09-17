@@ -76,9 +76,16 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
         self.URI = URI
         self.laymanVersion = laymanVersion
         app = QtWidgets.QApplication.instance()
-        proxy_style = ProxyStyle(app.style())
+        if app and app.style():
+            try:
+                proxy_style = ProxyStyle(app.style())
+                self.setStyle(proxy_style)
+            except Exception as e:
+                import sys
+                import traceback
+                print(f"[Layman] ProxyStyle was not set: {e}", file=sys.stderr)
+                traceback.print_exc()
         self.layman = layman
-        self.setStyle(proxy_style)
         if URI:
             self.layman_api = LaymanAPI(URI)
         self.setUi()
