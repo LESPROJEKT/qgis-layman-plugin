@@ -1723,7 +1723,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.showInfoDialogOnTop(self.tr("Permissions was saved successfully."))                
         else:            
             self.showInfoDialogOnTop(
-                self.tr("Permissions was not saved for layer: ")
+                self.tr("Permissions were not saved for composition: ")
                 + str(failed).replace("[", "").replace("]", "")
             )
                     
@@ -2462,7 +2462,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     QMessageBox.Icon.Question,
                     "Layman",
                     self.tr(
-                        f"Tato kompozice patří uživateli '{original_workspace}'. Chcete ji převzít jako svou vlastní kompozici? Můžete ji pak nahrát na server pod svým jménem."
+                        f"This composition belongs to the user '{original_workspace}'. Do you want to take it as your own composition? You can then upload it to the server under your name."
                     ),
                 )
                 msgbox.addButton(QMessageBox.StandardButton.Yes)
@@ -2526,7 +2526,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     QMessageBox.Icon.Question,
                     "Layman",
                     self.tr(
-                        "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem."
+                        "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content."
                     ),
                 )
                 msgbox.addButton(QMessageBox.StandardButton.Yes)

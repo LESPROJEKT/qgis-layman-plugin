@@ -1199,7 +1199,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     QMessageBox.Icon.Question,
                     "Layman",
                     self.tr(
-                        "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem."
+                        "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content."
                     ),
                 )
                 msgbox.addButton(QMessageBox.StandardButton.Yes)
@@ -1613,9 +1613,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 self.utils.emitMessageBox.emit(
                     [
-                        "Práva nebyla uložena pro vrstvu: "
+                        "Práva nebyla uložena pro mapu: "
                         + str(failed).replace("[", "").replace("]", ""),
-                        "Permissions was not saved for layer: "
+                        "Permissions were not saved for composition: "
                         + str(failed).replace("[", "").replace("]", ""),
                     ]
                 )
