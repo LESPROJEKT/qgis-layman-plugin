@@ -21,6 +21,11 @@
        <property name="text">
         <string>Server:</string>
        </property>
+       <property name="font">
+        <font>
+         <weight>68</weight>
+        </font>
+       </property>
       </widget>
      </item>
      <item>
