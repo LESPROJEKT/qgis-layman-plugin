@@ -1142,14 +1142,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         projection = data["projection"].replace("epsg:", "").replace("EPSG:", "")
         if projection != "":
             crs = QgsCoordinateReferenceSystem(int(projection))
-            if self.layman.crsChangedConnect == False:
-                self.layman.project.setCrs(crs)
-                self.layman.project.crsChanged.connect(self.layman.crsChanged)
-                self.crsChangedConnect = True
-            else:
-                self.crsChangedConnect = False
-                self.layman.project.setCrs(crs)
-                self.crsChangedConnect = True      
+            self.layman.project.setCrs(crs)      
         self.pushButton_map.setEnabled(False) 
         self.loadComposition.emit(name, service, workspace)
       
@@ -1213,9 +1206,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         data["projection"].replace("epsg:", "").replace("EPSG:", "")
                     )
                     crs = QgsCoordinateReferenceSystem(int(projection))
-                    self.crsChangedConnect = False
                     QgsProject.instance().setCrs(crs)
-                    self.crsChangedConnect = True
                     QgsProject.instance().setTitle(data["title"])
                     self.layman.iface.newProjectCreated.connect(
                         self.layman.removeCurrent

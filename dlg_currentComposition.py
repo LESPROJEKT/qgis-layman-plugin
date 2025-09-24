@@ -461,24 +461,44 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         else:  
             self.pushButton_new.show()       
             self.pushButton_new.setEnabled(visible)
-            self.pushButton_setPermissions.setEnabled(visible)      
-            self.pushButton_editMeta.setEnabled(visible)            
-            self.pushButton_save.setEnabled(visible)
-            self.pushButton_delete.setEnabled(visible)     
-            self.pushButton_copyUrl.setEnabled(visible)             
-            self.pushButton_loadFromJson.setEnabled(True)
-            if self.layman.qfieldReady: 
+            if visible:
+                if hasattr(self, '_composition_exists_on_server') and self._last_checked_composition == self.layman.current:
+                    server_enabled = self._composition_exists_on_server
+                else:
+                    server_enabled = self.checkCompositionExistsOnServer()
+
+                self.pushButton_setPermissions.setEnabled(server_enabled)
+                self.pushButton_editMeta.setEnabled(server_enabled)
+                self.pushButton_delete.setEnabled(server_enabled)
+                self.pushButton_copyUrl.setEnabled(server_enabled)
+                if self.layman.qfieldReady: 
+                    self.pushButton_qfield.setEnabled(server_enabled)
+                else:
+                    self.pushButton_qfield.setEnabled(False)
+            else:
+                self.pushButton_setPermissions.setEnabled(visible)
+                self.pushButton_editMeta.setEnabled(visible)
+                self.pushButton_delete.setEnabled(visible)
+                self.pushButton_copyUrl.setEnabled(visible)
                 self.pushButton_qfield.setEnabled(visible)
+
+            self.pushButton_save.setEnabled(visible)
+            self.pushButton_loadFromJson.setEnabled(True)
             self.checkBox_all.setEnabled(visible)
 
     def refreshCurrentForm(self, layerAdded=None):
-        print(self.layman.current)
         self.pushButton_new.show()  
         if self.layman.instance == None:
             return
         composition = self.layman.instance.getComposition()
-        print(composition)
-        if self.layman.current != None:                       
+        if self.layman.current != None:
+            if not hasattr(self, '_composition_exists_on_server') or self._last_checked_composition != self.layman.current:
+                composition_exists_on_server = self.checkCompositionExistsOnServer()
+                self._composition_exists_on_server = composition_exists_on_server
+                self._last_checked_composition = self.layman.current
+            else:
+                composition_exists_on_server = self._composition_exists_on_server
+
             if self.layman.laymanUsername == self.layman.instance.getWorkspace():
                 writePermissions = [self.layman.laymanUsername, "EVERYONE"]
                 print("DEBUG: User owns workspace - setting full permissions")
@@ -487,8 +507,23 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     writePermissions = self.layman.instance.getAllPermissions()["write"]
                 except:
                     writePermissions = []
-                    print("get permissions failed")                
-            if self.layman.laymanUsername not in writePermissions:                    
+
+            
+
+            if not composition_exists_on_server:
+                print("DEBUG: Composition not on server - disabling permissions button")
+                self.pushButton_setPermissions.setEnabled(False)
+                self.label_readonly.hide()
+                self.treeWidget_layers.setEnabled(True)               
+                self.pushButton_editMeta.setEnabled(True)                    
+                self.pushButton_save.setEnabled(True)
+                self.pushButton_delete.setEnabled(True)
+                if self.layman.qfieldReady:
+                    self.pushButton_qfield.setEnabled(True) 
+                else:
+                    self.pushButton_qfield.setEnabled(False)     
+                self.pushButton_copyUrl.setEnabled(True)
+            elif self.layman.laymanUsername not in writePermissions:                    
                     self.treeWidget_layers.setEnabled(False)               
                     self.pushButton_editMeta.setEnabled(False)
                     self.pushButton_setPermissions.setEnabled(False)                    
@@ -502,14 +537,25 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.layman.instance.refreshComposition()                     
                 self.pushButton_editMeta.setEnabled(True)
                 self.pushButton_new.setEnabled(True)
-                self.pushButton_setPermissions.setEnabled(True)                        
-                self.pushButton_save.setEnabled(True)
-                self.pushButton_delete.setEnabled(True)
-                if self.layman.qfieldReady:
-                    self.pushButton_qfield.setEnabled(True) 
+                
+
+                if hasattr(self, '_composition_exists_on_server') and self._last_checked_composition == self.layman.current:
+                    server_enabled = self._composition_exists_on_server
+                    print(f"refreshCurrentForm: Using cached result - server buttons: {server_enabled}")
                 else:
-                    self.pushButton_qfield.setEnabled(False)     
-                self.pushButton_copyUrl.setEnabled(True) 
+                    server_enabled = self.checkCompositionExistsOnServer()
+                    print(f"refreshCurrentForm: Fresh check - server buttons: {server_enabled}")
+
+                self.pushButton_setPermissions.setEnabled(server_enabled)
+                self.pushButton_editMeta.setEnabled(server_enabled)
+                self.pushButton_delete.setEnabled(server_enabled)
+                self.pushButton_copyUrl.setEnabled(server_enabled)
+                if self.layman.qfieldReady:
+                    self.pushButton_qfield.setEnabled(server_enabled) 
+                else:
+                    self.pushButton_qfield.setEnabled(False)
+
+                self.pushButton_save.setEnabled(True) 
         
         try:
             (
@@ -947,7 +993,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         
         self.layman.updateLayerPropsInComposition() 
         self.layman.syncOrder2(self.getLayersOrder())          
-        self.layman.patchMap2()                
+        self.layman.patchMap2()
+        self.updateCompositionServerStatus()
         self.layman.writeValuesToProject(self.URI, composition["name"])
         self.layman.showExportInfo.emit("F")        
         self.onRefreshCurrentForm.emit()    
@@ -1558,7 +1605,54 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 checkbox.setChecked(False)
                 checkbox.setEnabled(True)         
 
-    def setPermissionsUI(self, mapName): 
+    def checkCompositionExistsOnServer(self):
+        print("=== CHECKING COMPOSITION ON SERVER ===")
+        if not self.layman.current or not self.layman.instance:
+            print("No current composition or instance")
+            return False
+            
+        try:
+            mapName = self.utils.removeUnacceptableChars(self.layman.current)
+            uri = self.layman_api.get_map_url(self.layman.laymanUsername, mapName)
+
+            headers = self.utils.getAuthHeader(self.utils.authCfg)
+            r = requests.get(uri, headers=headers, timeout=10)
+
+            if r.status_code != 200:
+                print(f"Server returned non-200 status: {r.status_code}")
+                return False
+                
+            res = r.json()
+            if "code" in res and "message" in res:
+                print(f"Server error: {res['message']}")
+                return False
+
+            has_access_rights = "access_rights" in res
+            print(f"Has access_rights: {has_access_rights}")
+            return has_access_rights
+        except Exception as e:
+            print(f"Exception in checkCompositionExistsOnServer: {e}")
+            return False
+    
+    def updateCompositionServerStatus(self):
+        if self.layman.current:
+            exists_on_server = self.checkCompositionExistsOnServer()
+            self._composition_exists_on_server = exists_on_server
+            self._last_checked_composition = self.layman.current
+            return exists_on_server
+        return False
+
+    def setPermissionsUI(self, mapName):
+        if not self.checkCompositionExistsOnServer():
+            self.utils.showMessageBar(
+                [
+                    "Kompozice neexistuje na serveru nebo je načtena pouze lokálně. Nelze nastavit oprávnění.",
+                    "Composition doesn't exist on server or is loaded locally. Cannot set permissions."
+                ],
+                Qgis.Warning
+            )
+            return
+            
         group1 = QButtonGroup(self)
         group2 = QButtonGroup(self)
         group1.addButton(self.radioButton_readPublic)
@@ -1591,8 +1685,41 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             usernameList.append(res[i]["username"])
         mapName = self.utils.removeUnacceptableChars(mapName)
         uri = self.layman_api.get_map_url(self.layman.laymanUsername, mapName)
-        r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
-        res = self.utils.fromByteToJson(r.content)      
+
+        headers = self.utils.getAuthHeader(self.utils.authCfg)
+        r = requests.get(uri, headers=headers, timeout=10)
+
+        if r.status_code != 200:
+            self.utils.showMessageBar(
+                [
+                    f"Chyba serveru (kód {r.status_code}): Kompozice neexistuje na serveru.",
+                    f"Server error (code {r.status_code}): Composition doesn't exist on server."
+                ],
+                Qgis.Warning
+            )
+            return
+        res = r.json()
+
+        if "code" in res and "message" in res:
+            self.utils.showMessageBar(
+                [
+                    f"Chyba serveru: {res['message']}",
+                    f"Server error: {res['message']}"
+                ],
+                Qgis.Warning
+            )
+            return
+
+        if "access_rights" not in res:
+            self.utils.showMessageBar(
+                [
+                    "Kompozice neexistuje na serveru nebo je načtena pouze lokálně. Nelze nastavit oprávnění.",
+                    "Composition doesn't exist on server or is loaded locally. Cannot set permissions."
+                ],
+                Qgis.Warning
+            )
+            return
+            
         self.populatePermissionsWidget(
             self.tabWidget,
             usersDictReversed,
@@ -1784,7 +1911,6 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                           
     def modifyMeta(self):      
         self.progressStart.emit() 
-        self.layman.project.crsChanged.disconnect()
         composition = self.layman.instance.getComposition()    
         self.compositionDict = self.utils.fillCompositionDict()
         self.compositionDict[composition["name"]] = self.lineEdit_title.text()
@@ -1865,7 +1991,6 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         except:
             pass                          
         self.progressDone.emit()
-        self.layman.project.crsChanged.connect(self.layman.crsChanged)
 
     def _onProgressDone(self):
         self.progressBar_loader.hide()    
@@ -1953,21 +2078,31 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         min = tform.transform(QgsPointXY(float(xmin), float(ymin)))
         return [min.x(), max.x(), min.y(), max.y()]       
 
-    def copyCompositionUrl(self, composition=None): 
-        if not composition:
-            if self.layman.instance.getWorkspace() == self.layman.laymanUsername:
-                self.utils.showQgisBar(
-                    ["Tato kompozice je načtena z lokálního souboru a nemá server URL.", 
-                     "This composition is loaded from local file and has no server URL."], 
-                    Qgis.Warning
-                )
-                return
-            url = self.layman.instance.getUrl()
-        else:
-            url = self.layman_api.get_map_file_url(
-                self.treeWidget.selectedItems()[0].text(1),
-                self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)),
+    def copyCompositionUrl(self, composition=None):
+        is_on_server = self.checkCompositionExistsOnServer()
+        if not is_on_server:
+            self.utils.showQgisBar(
+                [
+                    "Tato kompozice je načtena z lokálního souboru a nemá server URL.",
+                    "This composition is loaded from local file and has no server URL.",
+                ],
+                Qgis.Warning,
             )
+            return
+        try:
+            if not composition:
+                workspace = self.layman.instance.getWorkspace()
+                comp = self.layman.instance.getComposition()
+                map_name = comp.get("name") if isinstance(comp, dict) else self.layman.current
+                map_name = self.utils.removeUnacceptableChars(map_name)
+                url = self.layman_api.get_map_file_url(workspace, map_name)
+            else:
+                workspace = self.treeWidget.selectedItems()[0].text(1)
+                map_name = self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0))
+                map_name = self.utils.removeUnacceptableChars(map_name)
+                url = self.layman_api.get_map_file_url(workspace, map_name)
+        except Exception:
+            url = self.layman.instance.getUrl()
         try: 
             self.utils.copyToClipboard(url)
             self.utils.showQgisBar(
@@ -2161,12 +2296,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 QgsProject().instance().setTitle(title)
                 root = prj.layerTreeRoot()  
                 self.prj = QgsProject.instance()
-                QgsProject.instance().setTitle(title)  
-                self.pushButton_editMeta.setEnabled(True)   
-                self.pushButton_setPermissions.setEnabled(True)
-                self.pushButton_delete.setEnabled(True)              
+                QgsProject.instance().setTitle(title)
+                server_enabled = self.checkCompositionExistsOnServer()
+
+                self.pushButton_setPermissions.setEnabled(server_enabled)
+                self.pushButton_editMeta.setEnabled(server_enabled)
+                self.pushButton_delete.setEnabled(server_enabled)
+                self.pushButton_copyUrl.setEnabled(server_enabled)
+                
+                # Always enabled buttons
                 self.pushButton_save.setEnabled(True)
-                self.pushButton_copyUrl.setEnabled(True)
                 self.label_readonly.hide()
                 self.treeWidget_layers.setEnabled(True)   
         self.setStackWidget("main", True)                         
@@ -2499,14 +2638,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 projection = data["projection"].replace("epsg:", "").replace("EPSG:", "")
                 if projection != "":
                     crs = QgsCoordinateReferenceSystem(int(projection))
-                    if not self.layman.crsChangedConnect:
-                        self.layman.project.setCrs(crs)
-                        self.layman.project.crsChanged.connect(self.layman.crsChanged)
-                        self.layman.crsChangedConnect = True
-                    else:
-                        self.layman.crsChangedConnect = False
-                        self.layman.project.setCrs(crs)
-                        self.layman.crsChangedConnect = True
+                    self.layman.project.setCrs(crs)
             
             
             if "layers" not in data or len(data["layers"]) == 0:
@@ -2540,9 +2672,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         projection = data["projection"].replace("epsg:", "").replace("EPSG:", "")
                         if projection != "":
                             crs = QgsCoordinateReferenceSystem(int(projection))
-                            self.layman.crsChangedConnect = False
                             QgsProject.instance().setCrs(crs)
-                            self.layman.crsChangedConnect = True
                     if "title" in data:
                         QgsProject.instance().setTitle(data["title"])
                     self.layman.iface.newProjectCreated.connect(

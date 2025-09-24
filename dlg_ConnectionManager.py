@@ -257,10 +257,6 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         # Reset to login mode after logout
         self.setup_login_mode()
 
-        try:
-            QgsProject.instance().crsChanged.disconnect()
-        except:
-            print("crs changed not connected")
         self.layman.menu_UserInfoDialog.setEnabled(True)
         self.layman.laymanUsername = ""
         self.layman.isAuthorized = False

@@ -181,7 +181,6 @@ class Layman(QObject):
         self.cataloguePosition = 1
         self.initFiles()
         self.compositionDict = {}
-        self.crsChangedConnect = False
         self.current = None
         self.project = QgsProject.instance()
         self.currentLayer = []
@@ -338,7 +337,6 @@ class Layman(QObject):
         self.emitMessageBox.connect(self._onEmitMessageBox)
         self.showExportInfo.connect(self.showExportedCompositionInfo)
         self.cleanTemp.connect(self._cleanTemp)
-        self.project.crsChanged.connect(self.crsChanged)
         self.enableMapButton.connect(self.enableMapMenu)
         self.progressUpdated.connect(self.updateInfo)
 
@@ -693,61 +691,6 @@ class Layman(QObject):
 
     def rememberLastServer(self, server):
         self.settings.setValue("laymanLastServer", server)
-
-    def crsChanged(self):
-        if self.current is None:
-            return
-        if self.strip_accents(self.current) == self.strip_accents(
-            QgsProject.instance().title()
-        ):
-            composition = self.instance.getComposition()
-            print("crs changed")
-            crs = QgsProject.instance().crs()
-            if (
-                composition["projection"] != crs.authid().lower()
-                and self.current != None
-            ):
-                msgbox = QMessageBox(
-                    QMessageBox.Icon.Question,
-                    "Layman",
-                    self.tr("Coordinate system was changed to: ")
-                    + str(crs.authid())
-                    + self.tr(". Do you want write it to composition?"),
-                )
-                msgbox.addButton(QMessageBox.StandardButton.Yes)
-                msgbox.addButton(QMessageBox.StandardButton.No)
-                msgbox.setDefaultButton(QMessageBox.StandardButton.No)
-                reply = msgbox.exec()
-                if reply == QMessageBox.StandardButton.Yes:
-                    src = QgsCoordinateReferenceSystem(
-                        int(composition["projection"].split(":")[1])
-                    )
-                    dest = QgsCoordinateReferenceSystem(
-                        int(QgsProject.instance().crs().authid().split(":")[1])
-                    )
-                    tform = QgsCoordinateTransform(src, dest, QgsProject.instance())
-                    coords = self.utils.tranformCoords(
-                        composition["nativeExtent"][0],
-                        composition["nativeExtent"][2],
-                        composition["nativeExtent"][1],
-                        composition["nativeExtent"][3],
-                        src,
-                        dest,
-                    )
-                    composition["nativeExtent"][0] = float(coords[0])
-                    composition["nativeExtent"][2] = float(coords[1])
-                    composition["nativeExtent"][1] = float(coords[2])
-                    composition["nativeExtent"][3] = float(coords[3])
-                    center = tform.transform(
-                        QgsPointXY(
-                            float(composition["center"][0]),
-                            float(composition["center"][1]),
-                        )
-                    )
-                    composition["center"][0] = float(center.x())
-                    composition["center"][1] = float(center.y())
-                    composition["projection"] = str(crs.authid()).lower()
-                    self.patchMap2(True)
 
     def enableMapMenu(self):
         self.menu_AddMapDialog.setEnabled(True)
@@ -1259,9 +1202,7 @@ class Layman(QObject):
                 projection = data["projection"].replace("epsg:", "").replace("EPSG:", "")
                 if projection:
                     crs = QgsCoordinateReferenceSystem(int(projection))
-                    self.crsChangedConnect = False
                     QgsProject.instance().setCrs(crs)
-                    self.crsChangedConnect = True
 
             if isinstance(data, dict) and "layers" in data:
                 self.loadLayerFromData(data, "WMS", composition_name)
@@ -1426,9 +1367,7 @@ class Layman(QObject):
                     data["projection"].replace("epsg:", "").replace("EPSG:", "")
                 )
                 crs = QgsCoordinateReferenceSystem(int(projection))
-                self.crsChangedConnect = False
                 QgsProject.instance().setCrs(crs)
-                self.crsChangedConnect = True
                 QgsProject.instance().setTitle(data["title"])
                 self.iface.newProjectCreated.connect(
                     self.removeCurrent

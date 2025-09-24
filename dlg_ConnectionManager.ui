@@ -38,7 +38,7 @@
        </property>
        <property name="icon">
         <iconset>
-         <normaloff>icons/edit.png</normaloff>icons/edit.png</iconset>
+         <normaloff>icons/edit_black.png</normaloff>icons/edit_black.png</iconset>
        </property>
        <property name="minimumSize">
         <size>
