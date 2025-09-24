@@ -208,6 +208,8 @@ class Layman(QObject):
             "EPSG:3034",
             "EPSG:3035",
             "EPSG:305",
+            "EPSG:32718",
+            "EPSG:9377",
         ]
         self.iface.layerTreeView().currentLayerChanged.connect(
             lambda: self.layerChanged()
