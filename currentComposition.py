@@ -40,18 +40,18 @@ class CurrentComposition(object):
     def getVisibilityForLayer(self, layerName):
         if isinstance(self.composition, dict) and "layers" in self.composition:
             for layer in self.composition["layers"]:
-                if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(
-                    layer["title"]
-                ):
+                if self.removeUnacceptableChars(
+                    layerName
+                ) == self.removeUnacceptableChars(layer["title"]):
                     return layer["visibility"]
         return None
 
     def getServiceForLayer(self, layerName):
         if isinstance(self.composition, dict) and "layers" in self.composition:
             for layer in self.composition["layers"]:
-                if self.removeUnacceptableChars(layerName) == self.removeUnacceptableChars(
-                    layer["title"]
-                ):
+                if self.removeUnacceptableChars(
+                    layerName
+                ) == self.removeUnacceptableChars(layer["title"]):
                     print(layerName, layer["className"])
                     print(layer["className"] == "HSLayers.Layer.WMS")
                     return layer["className"]
@@ -118,16 +118,16 @@ class CurrentComposition(object):
     def setComposition(self, json):
         self.composition = json
 
-    def setWorkspace(self, new_workspace):        
+    def setWorkspace(self, new_workspace):
         self.workspace = new_workspace
 
     def getComposition(self):
         return self.composition
 
-    def refreshComposition(self):        
-        if self.is_local:            
+    def refreshComposition(self):
+        if self.is_local:
             return
-            
+
         url = (
             self.URI
             + "/rest/workspaces/"

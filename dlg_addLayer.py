@@ -117,7 +117,6 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_noUser.hide()
         self.pushButton_postgis.setEnabled(False)
 
-
         delegate = CenterIconDelegate()
         self.treeWidget.setItemDelegate(delegate)
         try:
@@ -181,21 +180,35 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         # Set column widths
         self.treeWidget.setColumnWidth(0, 280)  # Layer - trochu zúžený
         self.treeWidget.setColumnWidth(1, 140)  # Owner - ještě širší
-        self.treeWidget.setColumnWidth(2, 80)   # Permissions
-        self.treeWidget.setColumnWidth(3, 80)   # CRS
-        self.treeWidget.setColumnWidth(4, 30)   # Status - menší
-        
+        self.treeWidget.setColumnWidth(2, 80)  # Permissions
+        self.treeWidget.setColumnWidth(3, 80)  # CRS
+        self.treeWidget.setColumnWidth(4, 30)  # Status - menší
+
         # Allow user to resize columns and maintain proportions when dialog is resized
-        self.treeWidget.header().setStretchLastSection(False)  # Don't stretch last section
-        self.treeWidget.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)      # Layer column stretches to fill space
-        self.treeWidget.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Interactive)  # User can resize
-        self.treeWidget.header().setSectionResizeMode(2, QtWidgets.QHeaderView.Interactive)  # User can resize
-        self.treeWidget.header().setSectionResizeMode(3, QtWidgets.QHeaderView.Interactive)  # User can resize
-        self.treeWidget.header().setSectionResizeMode(4, QtWidgets.QHeaderView.Interactive)  # User can resize
-        
+        self.treeWidget.header().setStretchLastSection(
+            False
+        )  # Don't stretch last section
+        self.treeWidget.header().setSectionResizeMode(
+            0, QtWidgets.QHeaderView.Stretch
+        )  # Layer column stretches to fill space
+        self.treeWidget.header().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Interactive
+        )  # User can resize
+        self.treeWidget.header().setSectionResizeMode(
+            2, QtWidgets.QHeaderView.Interactive
+        )  # User can resize
+        self.treeWidget.header().setSectionResizeMode(
+            3, QtWidgets.QHeaderView.Interactive
+        )  # User can resize
+        self.treeWidget.header().setSectionResizeMode(
+            4, QtWidgets.QHeaderView.Interactive
+        )  # User can resize
+
         # Enable sorting by clicking on column headers
         self.treeWidget.setSortingEnabled(True)
-        self.treeWidget.sortByColumn(0, Qt.AscendingOrder)  # Default sort by Layer name (column 0)
+        self.treeWidget.sortByColumn(
+            0, Qt.AscendingOrder
+        )  # Default sort by Layer name (column 0)
 
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.checkBox_own.stateChanged.connect(self.rememberValueLayer)
@@ -208,7 +221,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.checkBox_own.stateChanged.connect(
             lambda: self.filterResults(self.filter.text())
         )
-        
+
         # Initialize thumbnail label based on checkbox state
         if self.checkBox_thumbnail.checkState() == 2:  # Checked
             self.label_thumbnail.setText("")  # Clear placeholder when enabled
@@ -1060,7 +1073,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.pushButton_setPermissions.setEnabled(True)
             self.pushButton_delete.setEnabled(True)
-        
+
         # Set WMS button as default focus when layer is selected
         self.pushButton.setFocus()
 

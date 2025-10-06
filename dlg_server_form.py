@@ -52,7 +52,7 @@ class ServerForm(QWidget):
 
         # Horizontal layout for buttons
         button_layout = QHBoxLayout()
-        
+
         self.add_button = QPushButton(self.tr("Add New"))
         self.add_button.clicked.connect(self.add_new)
         button_layout.addWidget(self.add_button)
@@ -67,7 +67,7 @@ class ServerForm(QWidget):
 
         layout.addLayout(button_layout)
         self.setLayout(layout)
-        
+
         # Set minimum width to make the form wider
         self.setMinimumWidth(400)
 
@@ -149,7 +149,7 @@ class ServerForm(QWidget):
 
     def close_dialog(self):
         """Close the parent dialog"""
-        if hasattr(self, 'parent') and self.parent():
+        if hasattr(self, "parent") and self.parent():
             # Find the dialog in the parent hierarchy
             dialog = self.parent()
             while dialog and not isinstance(dialog, QDialog):

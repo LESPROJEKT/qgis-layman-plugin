@@ -58,6 +58,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             except Exception as e:
                 import sys
                 import traceback
+
                 print(f"[Layman] ProxyStyle was not set: {e}", file=sys.stderr)
                 traceback.print_exc()
         self.setupUi(self)
@@ -123,7 +124,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
 
         if self.laymanUsername == "":
             if not self.server:
-                self.layman.setServers(servers, 0)  
+                self.layman.setServers(servers, 0)
 
         self.comboBox_server.currentIndexChanged.connect(
             lambda: self.layman.setServers(servers, self.comboBox_server.currentIndex())
@@ -133,8 +134,8 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         ):
             config = self.utils.loadIni()
             if "login" in config["DEFAULT"]:
-                if len(config["DEFAULT"]["login"]) > 0:                    
-                    self.pushButton_Connect.setEnabled(True)                
+                if len(config["DEFAULT"]["login"]) > 0:
+                    self.pushButton_Connect.setEnabled(True)
 
             for i in range(0, self.comboBox_server.count()):
                 if not self.server:
@@ -151,12 +152,13 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
                 os.makedirs(os.getenv("HOME") + os.sep + ".layman")
             except:
                 print("layman directory already exists")
-            self.pushButton_Connect.setEnabled(True)        
+            self.pushButton_Connect.setEnabled(True)
         self.pushButton_close.clicked.connect(lambda: self.close())
         if QgsSettings().value("laymanLastServer") != None:
             self.comboBox_server.setCurrentIndex(
-                int(QgsSettings().value("laymanLastServer"))            )
-        
+                int(QgsSettings().value("laymanLastServer"))
+            )
+
         self.pushButton_NoLogin.clicked.connect(
             lambda: self.withoutLogin(servers, self.comboBox_server.currentIndex())
         )
@@ -183,12 +185,12 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.comboBox_server.currentTextChanged.connect(setReg)
         setReg()
-        
+
         self.pushButton_register.clicked.connect(self.open_register_url)
-        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")        
+        self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.pushButton_Connect.clicked.connect(self.connect_with_version_check)
 
-        if self.laymanUsername != "":            
+        if self.laymanUsername != "":
             self.setup_logout_mode()
             if self.layman.locale == "cs":
                 self.setWindowTitle(
@@ -197,14 +199,16 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 self.setWindowTitle("Layman - Logged user: " + self.laymanUsername)
 
-        else:            
+        else:
             self.setup_login_mode()
         self.utils.setAuthCfg(self.layman.authCfg)
         self.show()
 
-    def setup_login_mode(self):        
+    def setup_login_mode(self):
         self.pushButton_Connect.setText(self.tr("Login"))
-        self.pushButton_Connect.setIcon(QIcon(os.path.join(self.layman.plugin_dir, "icons", "login_logged.png")))
+        self.pushButton_Connect.setIcon(
+            QIcon(os.path.join(self.layman.plugin_dir, "icons", "login_logged.png"))
+        )
         self.pushButton_Connect.setEnabled(True)
         self.pushButton_NoLogin.setEnabled(True)
         self.comboBox_server.setEnabled(True)
@@ -212,9 +216,11 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_Connect.setAutoDefault(True)
         self.is_logged_in = False
 
-    def setup_logout_mode(self):        
+    def setup_logout_mode(self):
         self.pushButton_Connect.setText(self.tr("Logout"))
-        self.pushButton_Connect.setIcon(QIcon(os.path.join(self.layman.plugin_dir, "icons", "logout.png")))
+        self.pushButton_Connect.setIcon(
+            QIcon(os.path.join(self.layman.plugin_dir, "icons", "logout.png"))
+        )
         self.pushButton_Connect.setEnabled(True)
         self.pushButton_NoLogin.setEnabled(False)
         self.comboBox_server.setEnabled(False)
@@ -222,11 +228,11 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_Connect.setAutoDefault(True)
         self.is_logged_in = True
 
-    def handle_login_logout(self):        
+    def handle_login_logout(self):
         if self.is_logged_in:
             self.logout()
-        else:            
-            if hasattr(self, 'stored_name') and self.stored_name:
+        else:
+            if hasattr(self, "stored_name") and self.stored_name:
                 self.layman.openAuthLiferayUrl2(self.stored_name)
             else:
                 self.layman.openAuthLiferayUrl2()
@@ -290,58 +296,63 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.server_form_dialog = ServerFormDialog(parent=self)
         self.server_form_dialog.show()
 
-    def connect_with_version_check(self):        
-        if self.check_layman_version():            
+    def connect_with_version_check(self):
+        if self.check_layman_version():
             self.handle_login_logout()
-        else:            
+        else:
             self.ask_for_downgrade()
 
     def check_layman_version(self):
         """Check if Layman version on server is compatible (>= 2.0.0)"""
-        try:            
+        try:
             current_index = self.comboBox_server.currentIndex()
             if current_index < 0:
-                return True              
-            
+                return True
+
             path = self.layman.plugin_dir + os.sep + "server_list.txt"
             servers = self.utils.csvToArray(path)
             if current_index >= len(servers):
-                return True  
-                
-            server_url = servers[current_index][1]             
-            
+                return True
+
+            server_url = servers[current_index][1]
+
             response = requests.get(f"{server_url}/rest/about/version", timeout=5)
             if response.status_code == 200:
                 data = response.json()
-                layman_version = data.get("about", {}).get("applications", {}).get("layman", {}).get("version", "")
-                
-                if layman_version:                    
+                layman_version = (
+                    data.get("about", {})
+                    .get("applications", {})
+                    .get("layman", {})
+                    .get("version", "")
+                )
+
+                if layman_version:
                     return self.compare_versions(layman_version, "2.0.0")
                 else:
-                    return True 
+                    return True
             else:
-                return True  
+                return True
         except Exception:
-            return True  
+            return True
 
     def compare_versions(self, version1, version2):
         """Simple version comparison"""
         try:
-            v1_parts = [int(x) for x in version1.split('.')]
-            v2_parts = [int(x) for x in version2.split('.')]            
-            
+            v1_parts = [int(x) for x in version1.split(".")]
+            v2_parts = [int(x) for x in version2.split(".")]
+
             max_len = max(len(v1_parts), len(v2_parts))
             v1_parts.extend([0] * (max_len - len(v1_parts)))
             v2_parts.extend([0] * (max_len - len(v2_parts)))
-            
+
             return v1_parts >= v2_parts
         except (ValueError, AttributeError):
-            return True  
+            return True
 
     def ask_for_downgrade(self):
         """Ask user if they want to downgrade plugin version"""
         current_version = self.utils.getVersion()
-        
+
         msgbox = QMessageBox(
             QMessageBox.Icon.Warning,
             self.tr("Incompatible Plugin Version"),
@@ -354,21 +365,21 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         msgbox.addButton(self.tr("Downgrade"), QMessageBox.ButtonRole.AcceptRole)
         msgbox.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
         msgbox.setDefaultButton(QMessageBox.StandardButton.Cancel)
-        
+
         reply = msgbox.exec()
         if reply == QMessageBox.StandardButton.Ok:
             self.downgrade_plugin()
 
     def downgrade_plugin(self):
         """Downgrade plugin to version 2.x"""
-        try:            
-            master_url = "https://github.com/hslayers/qgis-layman-plugin/archive/master.zip"
+        try:
+            master_url = (
+                "https://github.com/hslayers/qgis-layman-plugin/archive/master.zip"
+            )
             self.install_plugin(master_url, "downgrade")
         except Exception as e:
             QMessageBox.critical(
-                self,
-                self.tr("Error"),
-                self.tr(f"Failed to downgrade plugin: {str(e)}")
+                self, self.tr("Error"), self.tr(f"Failed to downgrade plugin: {str(e)}")
             )
 
     def install_plugin(self, url, action_type="update"):
@@ -386,39 +397,39 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
 
             if os.path.exists(target_dir):
                 shutil.rmtree(target_dir)
-            
+
             shutil.copytree(source_dir, target_dir)
-            
+
             # Clean up
             os.remove(save_path)
             shutil.rmtree(source_dir)
-            
+
             if action_type == "downgrade":
                 QMessageBox.information(
                     self,
                     self.tr("Plugin Downgraded"),
-                    self.tr("Layman plugin was downgraded to version 2.x. Please restart QGIS.")
+                    self.tr(
+                        "Layman plugin was downgraded to version 2.x. Please restart QGIS."
+                    ),
                 )
             else:
                 QMessageBox.information(
                     self,
                     self.tr("Plugin Updated"),
-                    self.tr("Layman plugin was updated. Please restart QGIS.")
+                    self.tr("Layman plugin was updated. Please restart QGIS."),
                 )
-                
+
         except Exception as e:
             QMessageBox.critical(
-                self,
-                self.tr("Error"),
-                self.tr(f"Failed to install plugin: {str(e)}")
+                self, self.tr("Error"), self.tr(f"Failed to install plugin: {str(e)}")
             )
 
     def download_url(self, url, save_path):
         """Download file from URL (copied from userInfo dialog)"""
         response = requests.get(url, stream=True)
         response.raise_for_status()
-        
-        with open(save_path, 'wb') as f:
+
+        with open(save_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
 

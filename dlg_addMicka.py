@@ -128,7 +128,7 @@ class AddMickaDialog(QtWidgets.QDialog, FORM_CLASS):
                 + "*%27%20AND%20type%3D%27application%27&format=text/json&MaxRecords=10&StartPosition=&sortby=&language=eng"
             )
         r = self.utils.requestWrapper("GET", url, payload=None, files=None)
-        
+
         try:
             self.mickaRet = r.json()
         except Exception as e:

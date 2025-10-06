@@ -1509,15 +1509,30 @@ class ProxyStyle(QtWidgets.QProxyStyle):
         try:
             super().drawControl(element, option, painter, widget)
         except Exception:
-            return  
+            return
 
-        if element == QtWidgets.QStyle.CE_PushButtonLabel and icon and not icon.isNull():
+        if (
+            element == QtWidgets.QStyle.CE_PushButtonLabel
+            and icon
+            and not icon.isNull()
+        ):
             try:
                 iconSpacing = 4
-                mode = QtGui.QIcon.Normal if option.state & QtWidgets.QStyle.State_Enabled else QtGui.QIcon.Disabled                                                                         
-                if mode == QtGui.QIcon.Normal and option.state & QtWidgets.QStyle.State_HasFocus:                                                                                            
+                mode = (
+                    QtGui.QIcon.Normal
+                    if option.state & QtWidgets.QStyle.State_Enabled
+                    else QtGui.QIcon.Disabled
+                )
+                if (
+                    mode == QtGui.QIcon.Normal
+                    and option.state & QtWidgets.QStyle.State_HasFocus
+                ):
                     mode = QtGui.QIcon.Active
-                state = QtGui.QIcon.On if option.state & QtWidgets.QStyle.State_On else QtGui.QIcon.Off                                                                                      
+                state = (
+                    QtGui.QIcon.On
+                    if option.state & QtWidgets.QStyle.State_On
+                    else QtGui.QIcon.Off
+                )
 
                 window = None
                 if widget and hasattr(widget, "window") and widget.window():
@@ -1534,13 +1549,27 @@ class ProxyStyle(QtWidgets.QProxyStyle):
                 pixmapWidth = pixmap.width() / dpr
                 pixmapHeight = pixmap.height() / dpr
 
-                iconRect = QtCore.QRect(QtCore.QPoint(), QtCore.QSize(int(pixmapWidth), int(pixmapHeight)))                                                                                  
+                iconRect = QtCore.QRect(
+                    QtCore.QPoint(), QtCore.QSize(int(pixmapWidth), int(pixmapHeight))
+                )
                 iconRect.moveCenter(option.rect.center())
                 iconRect.moveLeft(option.rect.left() + iconSpacing)
                 iconRect = self.visualRect(option.direction, option.rect, iconRect)
 
-                dx = self.proxy().pixelMetric(QtWidgets.QStyle.PM_ButtonShiftHorizontal, option, widget) if self.proxy() else 0                                                              
-                dy = self.proxy().pixelMetric(QtWidgets.QStyle.PM_ButtonShiftVertical, option, widget) if self.proxy() else 0                                                                
+                dx = (
+                    self.proxy().pixelMetric(
+                        QtWidgets.QStyle.PM_ButtonShiftHorizontal, option, widget
+                    )
+                    if self.proxy()
+                    else 0
+                )
+                dy = (
+                    self.proxy().pixelMetric(
+                        QtWidgets.QStyle.PM_ButtonShiftVertical, option, widget
+                    )
+                    if self.proxy()
+                    else 0
+                )
                 iconRect.translate(dx, dy)
 
                 painter.drawPixmap(iconRect, pixmap)

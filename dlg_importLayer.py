@@ -58,6 +58,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             except Exception as e:
                 import sys
                 import traceback
+
                 print(f"[Layman] ProxyStyle was not set: {e}", file=sys.stderr)
                 traceback.print_exc()
         self.setupUi(self)
