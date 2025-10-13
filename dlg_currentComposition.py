@@ -113,7 +113,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.qfield = Qfield(self.utils)
         self.qfield.setURI(self.URI)
         self.qfieldWorking = True
-        self.layman_api = LaymanAPI(URI)
+        # Initialize API only when URI is available
+        self.layman_api = LaymanAPI(URI) if URI else None
         self.setUi()
 
     def connectEvents(self):
@@ -200,9 +201,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         print(cesta_k_projektu)
 
     def setUi(self):
-        QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
-        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)
-        self.connectEvents()
+        if self.isAuthorized:
+            QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
+            QgsProject.instance().layerRemoved.connect(self.on_layers_removed)
+            self.connectEvents()
+        else:
+            self.progressDone.connect(self._onProgressDone)
+            self.progressStart.connect(self._onProgressStart)
         self.permissionsConnected = False
         self.layman.dlg_current = self
         self.utils.recalculateDPI()
@@ -223,7 +228,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_qfield.clicked.connect(self.writeProjectValues)
         self.pushButton_qfield.clicked.connect(self.exportToQfield)
         self.pushButton_loadFromJson.clicked.connect(lambda: self.loadFromJsonFile())
-        if self.layman.current != None:
+        if self.layman.current != None and self.isAuthorized:
             if hasattr(self.layman, "instance") and self.layman.instance is not None:
                 self.layman.instance.refreshComposition()
             composition = self.layman.instance.getComposition()
@@ -246,6 +251,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.pushButton_new.setEnabled(True)
         if not self.isAuthorized:
+            # Force anonymous read-only UI
             self.setVisibilityForCurrent(False)
         if not self.pushButton_save.receivers(self.pushButton_save.clicked) > 0:
             self.pushButton_close2.clicked.connect(lambda: self.close())
@@ -435,6 +441,20 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.qfield.deleteProjectFile(project_id, file + ".gpkg")
 
     def setVisibilityForCurrent(self, visible):
+        # In anonymous mode, keep all actions disabled except Load from JSON
+        if not self.isAuthorized:
+            self.pushButton_editMeta.setEnabled(False)
+            self.pushButton_setPermissions.setEnabled(False)
+            self.pushButton_delete.setEnabled(False)
+            self.pushButton_save.setEnabled(False)
+            self.pushButton_copyUrl.setEnabled(False)
+            self.pushButton_qfield.setEnabled(False)
+            self.pushButton_loadFromJson.setEnabled(True)
+            self.pushButton_new.setEnabled(False)
+            self.label_readonly.hide()
+            self.pushButton_new.show()
+            self.checkBox_all.setEnabled(False)
+            return
         if self.layman.instance is None:
             self.pushButton_editMeta.setEnabled(False)
             self.pushButton_setPermissions.setEnabled(False)
@@ -443,7 +463,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_copyUrl.setEnabled(False)
             self.pushButton_qfield.setEnabled(False)
             self.pushButton_loadFromJson.setEnabled(True)
-            self.pushButton_new.setEnabled(True)
+            self.pushButton_new.setEnabled(False)
             self.label_readonly.hide()
             self.pushButton_new.show()
             return
@@ -495,6 +515,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.checkBox_all.setEnabled(visible)
 
     def refreshCurrentForm(self, layerAdded=None):
+        if not self.isAuthorized:
+            self.setVisibilityForCurrent(False)
+            return
         self.pushButton_new.show()
         if self.layman.instance == None:
             return
@@ -2573,26 +2596,29 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     data = json.load(f)
 
                 if not self.validateCompositionData(data):
-                    QMessageBox.warning(
-                        self,
-                        self.tr("Invalid file"),
-                        self.tr("Selected file is not a valid Layman composition."),
-                    )
+                    if self.layman.isAuthorized:
+                        QMessageBox.warning(
+                            self,
+                            self.tr("Invalid file"),
+                            self.tr("Selected file is not a valid Layman composition."),
+                        )
                     return
                 self.loadCompositionFromData(data, filename)
 
             except json.JSONDecodeError:
-                QMessageBox.warning(
-                    self,
-                    self.tr("Invalid JSON"),
-                    self.tr("Selected file is not a valid JSON file."),
-                )
+                if self.layman.isAuthorized:
+                    QMessageBox.warning(
+                        self,
+                        self.tr("Invalid JSON"),
+                        self.tr("Selected file is not a valid JSON file."),
+                    )
             except Exception as e:
-                QMessageBox.critical(
-                    self,
-                    self.tr("Error"),
-                    self.tr("Error loading file: {}").format(str(e)),
-                )
+                if self.layman.isAuthorized:
+                    QMessageBox.critical(
+                        self,
+                        self.tr("Error"),
+                        self.tr("Error loading file: {}").format(str(e)),
+                    )
 
     def validateCompositionData(self, data):
         required_fields = ["title", "layers"]
@@ -2615,39 +2641,54 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if "layers" in data and len(data["layers"]) > 0:
                 if "workspace" in data["layers"][0]:
                     original_workspace = data["layers"][0]["workspace"]
-            if original_workspace and original_workspace != self.layman.laymanUsername:
-                msgbox = QMessageBox(
-                    QMessageBox.Icon.Question,
-                    "Layman",
-                    self.tr(
-                        f"This composition belongs to the user '{original_workspace}'. Do you want to take it as your own composition? You can then upload it to the server under your name."
-                    ),
-                )
-                msgbox.addButton(QMessageBox.StandardButton.Yes)
-                msgbox.addButton(QMessageBox.StandardButton.No)
-                msgbox.setDefaultButton(QMessageBox.StandardButton.Yes)
-                reply = msgbox.exec()
-                if reply == QMessageBox.StandardButton.No:
-                    self.progressDone.emit()
-                    return
+            if self.layman.isAuthorized:
+                if (
+                    original_workspace
+                    and original_workspace != self.layman.laymanUsername
+                ):
+                    msgbox = QMessageBox(
+                        QMessageBox.Icon.Question,
+                        "Layman",
+                        self.tr(
+                            f"This composition belongs to the user '{original_workspace}'. Do you want to take it as your own composition? You can then upload it to the server under your name."
+                        ),
+                    )
+                    msgbox.addButton(QMessageBox.StandardButton.Yes)
+                    msgbox.addButton(QMessageBox.StandardButton.No)
+                    msgbox.setDefaultButton(QMessageBox.StandardButton.Yes)
+                    reply = msgbox.exec()
+                    if reply == QMessageBox.StandardButton.No:
+                        self.progressDone.emit()
+                        return
 
             self.layman.instance = CurrentComposition(
-                self.URI,
+                self.URI if self.URI else "",
                 composition_name,
-                self.layman.laymanUsername,
-                self.utils.getAuthHeader(self.utils.authCfg),
-                self.layman.laymanUsername,
+                self.layman.laymanUsername if self.layman.laymanUsername else "",
+                (
+                    self.utils.getAuthHeader(self.utils.authCfg)
+                    if self.layman.isAuthorized
+                    else None
+                ),
+                self.layman.laymanUsername if self.layman.laymanUsername else "",
             )
             self.layman.instance.is_local = True
-            if original_workspace and original_workspace != self.layman.laymanUsername:
-                if "user" in data:
-                    data["user"]["name"] = self.layman.laymanUsername
-                    data["user"]["email"] = ""
+            if self.layman.isAuthorized:
+                if (
+                    original_workspace
+                    and original_workspace != self.layman.laymanUsername
+                ):
+                    if "user" in data:
+                        data["user"]["name"] = self.layman.laymanUsername
+                        data["user"]["email"] = ""
             self.layman.instance.setComposition(data)
 
-            if original_workspace and original_workspace != self.layman.laymanUsername:
-
-                self.layman.instance.setWorkspace(self.layman.laymanUsername)
+            if self.layman.isAuthorized:
+                if (
+                    original_workspace
+                    and original_workspace != self.layman.laymanUsername
+                ):
+                    self.layman.instance.setWorkspace(self.layman.laymanUsername)
 
             if "title" in data:
                 QgsProject.instance().setTitle(data["title"])
@@ -2662,43 +2703,47 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
             if "layers" not in data or len(data["layers"]) == 0:
                 self.progressDone.emit()
-                self.utils.showMessageBar(
-                    [
-                        "Mapová kompozice je načtena, ale neobsahuje žádné vrstvy.",
-                        "Map composition is loaded but not contains layers.",
-                    ],
-                    Qgis.Success,
-                )
+                if self.layman.isAuthorized:
+                    self.utils.showMessageBar(
+                        [
+                            "Mapová kompozice je načtena, ale neobsahuje žádné vrstvy.",
+                            "Map composition is loaded but not contains layers.",
+                        ],
+                        Qgis.Success,
+                    )
                 return
 
             layers = QgsProject.instance().mapLayers()
-            if len(layers) > 0:
-                msgbox = QMessageBox(
-                    QMessageBox.Icon.Question,
-                    "Layman",
-                    self.tr(
-                        "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content."
-                    ),
-                )
-                msgbox.addButton(QMessageBox.StandardButton.Yes)
-                msgbox.addButton(QMessageBox.StandardButton.No)
-                msgbox.setDefaultButton(QMessageBox.StandardButton.No)
-                reply = msgbox.exec()
-                if reply == QMessageBox.StandardButton.Yes:
-                    self.layman.iface.newProjectCreated.disconnect()
-                    self.layman.iface.newProject()
-                    if "projection" in data:
-                        projection = (
-                            data["projection"].replace("epsg:", "").replace("EPSG:", "")
-                        )
-                        if projection != "":
-                            crs = QgsCoordinateReferenceSystem(int(projection))
-                            QgsProject.instance().setCrs(crs)
-                    if "title" in data:
-                        QgsProject.instance().setTitle(data["title"])
-                    self.layman.iface.newProjectCreated.connect(
-                        self.layman.removeCurrent
+            if self.layman.isAuthorized:
+                if len(layers) > 0:
+                    msgbox = QMessageBox(
+                        QMessageBox.Icon.Question,
+                        "Layman",
+                        self.tr(
+                            "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content."
+                        ),
                     )
+                    msgbox.addButton(QMessageBox.StandardButton.Yes)
+                    msgbox.addButton(QMessageBox.StandardButton.No)
+                    msgbox.setDefaultButton(QMessageBox.StandardButton.No)
+                    reply = msgbox.exec()
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.layman.iface.newProjectCreated.disconnect()
+                        self.layman.iface.newProject()
+                        if "projection" in data:
+                            projection = (
+                                data["projection"]
+                                .replace("epsg:", "")
+                                .replace("EPSG:", "")
+                            )
+                            if projection != "":
+                                crs = QgsCoordinateReferenceSystem(int(projection))
+                                QgsProject.instance().setCrs(crs)
+                        if "title" in data:
+                            QgsProject.instance().setTitle(data["title"])
+                        self.layman.iface.newProjectCreated.connect(
+                            self.layman.removeCurrent
+                        )
 
             if isinstance(data, dict) and "layers" in data:
                 self.loadLayerFromData(data, "WMS", composition_name)
@@ -2710,11 +2755,12 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
         except Exception as e:
             self.progressDone.emit()
-            QMessageBox.critical(
-                self,
-                self.tr("Error"),
-                self.tr("Error loading composition: {}").format(str(e)),
-            )
+            if self.layman.isAuthorized:
+                QMessageBox.critical(
+                    self,
+                    self.tr("Error"),
+                    self.tr("Error loading composition: {}").format(str(e)),
+                )
 
     def loadLayerFromData(self, data, service, groupName=""):
         if not "layers" in data:
@@ -2984,7 +3030,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         dialog_running = False
         self.layman.currentOpened = False
         self.qfieldWorking = False
-        self.onRefreshCurrentForm.disconnect()
+        try:
+            self.onRefreshCurrentForm.disconnect()
+        except TypeError:
+            pass
         try:
             QgsProject.instance().layerWasAdded.disconnect()
             QgsProject.instance().layerRemoved.disconnect()

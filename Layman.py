@@ -233,6 +233,8 @@ class Layman(QObject):
             "Modus": "mode",
         }
 
+        self.setSchemaVersion()
+
         if os.path.isfile(path):
             self.authFileTime = os.path.getmtime(path)
         else:
@@ -392,7 +394,7 @@ class Layman(QObject):
             icon_path,
             text=self.tr("Current composition"),
             callback=self.run_CurrentCompositionDialog,
-            enabled_flag=False,
+            enabled_flag=True,
             parent=self.iface.mainWindow(),
         )
         icon_path = self.plugin_dir + os.sep + "icons" + os.sep + "metadata.png"
@@ -413,10 +415,6 @@ class Layman(QObject):
         )
 
     def run_CurrentCompositionDialog(self, refresh=False):
-        print("isAuthorized")
-        print(self.isAuthorized)
-        print(self.laymanUsername, self.URI)
-        print(self.current)
         self.dlg_current = CurrentCompositionDialog(
             self.utils, self.isAuthorized, self.URI, self
         )
@@ -1822,7 +1820,7 @@ class Layman(QObject):
         self.menu_AddMapDialog.setEnabled(False)
         self.menu_ImportLayerDialog.setEnabled(False)
         self.menu_UserInfoDialog.setEnabled(False)
-        self.menu_CurrentCompositionDialog.setEnabled(False)
+        self.menu_CurrentCompositionDialog.setEnabled(True)
 
     def setServers(self, servers, i):
         self.URI = servers[i][1]
