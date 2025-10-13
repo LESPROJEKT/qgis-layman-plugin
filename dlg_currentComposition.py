@@ -55,6 +55,8 @@ from .layman_qfield import Qfield
 from distutils.version import LooseVersion
 import tempfile
 from .layman_api import LaymanAPI
+import requests
+import json
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -2595,38 +2597,223 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 with open(filename, "r", encoding="utf-8") as f:
                     data = json.load(f)
 
-                if not self.validateCompositionData(data):
-                    if self.layman.isAuthorized:
-                        QMessageBox.warning(
-                            self,
-                            self.tr("Invalid file"),
-                            self.tr("Selected file is not a valid Layman composition."),
-                        )
+                is_valid, errors = self.validateCompositionDataWithErrors(data)
+                if not is_valid:
+                    error_text = (
+                        "Selected file is not a valid Layman composition.\n\nErrors:\n"
+                        + "\n".join(errors)
+                    )
+                    QMessageBox.warning(
+                        self,
+                        self.tr("Invalid file"),
+                        self.tr(error_text),
+                    )
                     return
                 self.loadCompositionFromData(data, filename)
 
             except json.JSONDecodeError:
-                if self.layman.isAuthorized:
-                    QMessageBox.warning(
-                        self,
-                        self.tr("Invalid JSON"),
-                        self.tr("Selected file is not a valid JSON file."),
-                    )
+                QMessageBox.warning(
+                    self,
+                    self.tr("Invalid JSON"),
+                    self.tr("Selected file is not a valid JSON file."),
+                )
             except Exception as e:
-                if self.layman.isAuthorized:
-                    QMessageBox.critical(
-                        self,
-                        self.tr("Error"),
-                        self.tr("Error loading file: {}").format(str(e)),
-                    )
+                QMessageBox.critical(
+                    self,
+                    self.tr("Error"),
+                    self.tr("Error loading file: {}").format(str(e)),
+                )
+
+    def getCompositionSchema(self):
+        schema_url = "https://raw.githubusercontent.com/hslayers/map-compositions/main/schema2.json"
+        schema_file = os.path.join(
+            self.layman.plugin_dir, "test", "composition_schema.json"
+        )
+
+        try:
+            response = requests.get(schema_url, timeout=10)
+            response.raise_for_status()
+            schema_data = response.json()
+
+            os.makedirs(os.path.dirname(schema_file), exist_ok=True)
+            with open(schema_file, "w", encoding="utf-8") as f:
+                json.dump(schema_data, f, indent=2, ensure_ascii=False)
+
+            return schema_data
+
+        except Exception:
+            try:
+                if os.path.exists(schema_file):
+                    with open(schema_file, "r", encoding="utf-8") as f:
+                        return json.load(f)
+            except Exception:
+                pass
+
+        return None
 
     def validateCompositionData(self, data):
-        required_fields = ["title", "layers"]
+        if not isinstance(data, dict):
+            return False
+
+        schema = self.getCompositionSchema()
+        if schema:
+            return self._validateWithSchema(data, schema)
+        else:
+            return self._validateBasic(data)
+
+    def validateCompositionDataWithErrors(self, data):
+        self.validation_errors = []
+
+        if not isinstance(data, dict):
+            self.validation_errors.append(self.tr("Data is not a valid JSON object"))
+            return False, self.validation_errors
+
+        schema = self.getCompositionSchema()
+        if schema:
+            is_valid = self._validateWithSchema(data, schema)
+        else:
+            is_valid = self._validateBasic(data)
+
+        return is_valid, self.validation_errors
+
+    def _validateWithSchema(self, data, schema):
+        try:
+            if "properties" not in schema:
+                self.validation_errors.append(
+                    self.tr("Schema does not have 'properties' section")
+                )
+                return self._validateBasic(data)
+
+            properties = schema["properties"]
+
+            required = schema.get("required", ["title", "layers"])
+            missing_fields = [field for field in required if field not in data]
+            if missing_fields:
+                error_msg = self.tr(
+                    "Missing required fields according to schema: {}"
+                ).format(missing_fields)
+                self.validation_errors.append(error_msg)
+                return False
+
+            if "title" in properties and "title" in data:
+                title_prop = properties["title"]
+                if title_prop.get("type") == "string" and not isinstance(
+                    data["title"], str
+                ):
+                    error_msg = self.tr("Field 'title' must be a string")
+                    self.validation_errors.append(error_msg)
+                    return False
+                if not data["title"].strip():
+                    error_msg = self.tr("Field 'title' cannot be empty")
+                    self.validation_errors.append(error_msg)
+                    return False
+
+            if "layers" in properties and "layers" in data:
+                layers_prop = properties["layers"]
+                if layers_prop.get("type") == "array":
+                    if not isinstance(data["layers"], list) or len(data["layers"]) == 0:
+                        error_msg = self.tr("Field 'layers' must be a non-empty array")
+                        self.validation_errors.append(error_msg)
+                        return False
+
+                    for i, layer in enumerate(data["layers"]):
+                        if not self._validateLayer(layer, i):
+                            return False
+
+            return True
+
+        except Exception as e:
+            error_msg = self.tr("Error during schema validation: {}").format(e)
+            self.validation_errors.append(error_msg)
+            return self._validateBasic(data)
+
+    def _validateLayer(self, layer, index):
+        if not isinstance(layer, dict):
+            error_msg = self.tr("Layer {} is not an object").format(index)
+            self.validation_errors.append(error_msg)
+            return False
+
+        required_fields = ["title", "className"]
+        missing_fields = [field for field in required_fields if field not in layer]
+        if missing_fields:
+            error_msg = self.tr("Layer {} missing required fields: {}").format(
+                index, missing_fields
+            )
+            self.validation_errors.append(error_msg)
+            return False
+
+        if not isinstance(layer["title"], str) or not layer["title"].strip():
+            error_msg = self.tr("Layer {} has invalid 'title'").format(index)
+            self.validation_errors.append(error_msg)
+            return False
+
+        valid_class_names = [
+            "HSLayers.Layer.WMS",
+            "WMS",
+            "OpenLayers.Layer.Vector",
+            "Vector",
+            "XYZ",
+            "ArcGISRest",
+        ]
+        if layer["className"] not in valid_class_names:
+            error_msg = f"Vrstva {index} má neplatný 'className': {layer['className']}"
+            self.validation_errors.append(error_msg)
+            return False
+
+        if layer["className"] in ["HSLayers.Layer.WMS", "WMS"]:
+            if "url" not in layer or "params" not in layer:
+                error_msg = f"WMS vrstva {index} chybí 'url' nebo 'params'"
+                self.validation_errors.append(error_msg)
+                return False
+            if "LAYERS" not in layer["params"]:
+                error_msg = f"WMS vrstva {index} chybí 'params.LAYERS'"
+                self.validation_errors.append(error_msg)
+                return False
+
+        elif layer["className"] in ["OpenLayers.Layer.Vector", "Vector"]:
+            if "protocol" not in layer or "url" not in layer["protocol"]:
+                error_msg = f"Vector vrstva {index} chybí 'protocol.url'"
+                self.validation_errors.append(error_msg)
+                return False
+
+        elif layer["className"] == "XYZ":
+            if "url" not in layer:
+                error_msg = f"XYZ vrstva {index} chybí 'url'"
+                self.validation_errors.append(error_msg)
+                return False
+
+        elif layer["className"] == "ArcGISRest":
+            if "url" not in layer:
+                error_msg = f"ArcGISRest vrstva {index} chybí 'url'"
+                self.validation_errors.append(error_msg)
+                return False
+
+        return True
+
+    def _validateBasic(self, data):
+        schema = self.getCompositionSchema()
+        if schema and "required" in schema:
+            required_fields = schema["required"]
+        else:
+            required_fields = ["title", "layers"]
+
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
-            print(f"Chybějící pole v JSON: {missing_fields}")
-            print(f"Dostupná pole: {list(data.keys())}")
-        return all(field in data for field in required_fields)
+            error_msg = self.tr("Missing required fields: {}").format(missing_fields)
+            self.validation_errors.append(error_msg)
+            return False
+
+        if not isinstance(data["title"], str) or not data["title"].strip():
+            error_msg = self.tr("Field 'title' must be a non-empty string")
+            self.validation_errors.append(error_msg)
+            return False
+
+        if not isinstance(data["layers"], list) or len(data["layers"]) == 0:
+            error_msg = self.tr("Field 'layers' must be a non-empty array")
+            self.validation_errors.append(error_msg)
+            return False
+
+        return True
 
     def loadCompositionFromData(self, data, filename):
         try:
