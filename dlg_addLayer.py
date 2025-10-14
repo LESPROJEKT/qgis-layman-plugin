@@ -820,7 +820,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def showThumbnail2(self, it):
         layer = it.text(0)
         workspace = it.text(1)
-        if self.checkBox_thumbnail.checkState() == 2:  # 2 = checked (Qt.Checked)
+        if self.checkBox_thumbnail.checkState() == 2:
             layer = self.layerNamesDict[layer]
             url = self.layman_api.get_layer_thumbnail_url(workspace, layer)
             r = requests.get(url, headers=self.utils.getAuthHeader(self.utils.authCfg))
@@ -832,8 +832,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             )
             self.label_thumbnail.setPixmap(smaller_pixmap)
             self.label_thumbnail.setAlignment(Qt.AlignCenter)
-            self.label_thumbnail.setText("")  # Clear any placeholder text
-        else:  # Show placeholder when preview is disabled
+            self.label_thumbnail.setText("")
+        else:
             self.label_thumbnail.clear()
             self.label_thumbnail.setText("Disabled")
             self.label_thumbnail.setAlignment(Qt.AlignCenter)

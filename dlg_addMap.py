@@ -804,20 +804,26 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.permissionsConnected = True
 
     def showThumbnailMap(self, it, workspace):
-        map = it  ##pro QTreeWidget
-        if self.checkBox_thumbnail.checkState() == 2:  # 2 = checked (Qt.Checked)
+        map = it
+        if self.checkBox_thumbnail.checkState() == 2:
             map = self.utils.removeUnacceptableChars(str(map))
-            url = self.layman_api.get_layer_thumbnail_url(workspace, str(map).lower())
-            r = requests.get(url, headers=self.utils.getAuthHeader(self.layman.authCfg))
-            data = r.content
-            pixmap = QPixmap(200, 200)
-            pixmap.loadFromData(data)
-            smaller_pixmap = pixmap.scaled(
-                200, 200, Qt.KeepAspectRatio, Qt.FastTransformation
-            )
-            self.label_thumbnail.setPixmap(smaller_pixmap)
-            self.label_thumbnail.setText("")  # Clear any placeholder text
-        else:  # Show placeholder when preview is disabled
+            url = self.layman_api.get_map_thumbnail_url(workspace, str(map).lower())
+            auth_headers = self.utils.getAuthHeader(self.layman.authCfg)
+            r = requests.get(url, headers=auth_headers)
+            if r.status_code == 200:
+                data = r.content
+                pixmap = QPixmap(200, 200)
+                pixmap.loadFromData(data)
+                smaller_pixmap = pixmap.scaled(
+                    200, 200, Qt.KeepAspectRatio, Qt.FastTransformation
+                )
+                self.label_thumbnail.setPixmap(smaller_pixmap)
+                self.label_thumbnail.setText("")
+            else:
+                self.label_thumbnail.clear()
+                self.label_thumbnail.setText(f"Error {r.status_code}")
+                self.label_thumbnail.setAlignment(Qt.AlignCenter)
+        else:
             self.label_thumbnail.clear()
             self.label_thumbnail.setText("Disabled")
             self.label_thumbnail.setAlignment(Qt.AlignCenter)
@@ -832,7 +838,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def enableLoadMapButtons(self, item):
         self.pushButton_map.setEnabled(True)
         self.pushButton_copyUrl.setEnabled(True)
-        self.pushButton_map.setFocus()  # Set focus on Load composition button
+        self.pushButton_map.setFocus()
 
     def setPermissionsButton(self, item):
         if item.text(2) != "own":
