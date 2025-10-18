@@ -1085,6 +1085,7 @@ class Layman(QObject):
         resumableTotalChunks = len(arr)
         print(resumableTotalChunks)
         filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks")
+        os.makedirs(filePath, exist_ok=True)
         self.layersToUpload = 1
         self.processChunks(
             arr,
