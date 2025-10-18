@@ -71,6 +71,10 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.page_main.setVisible(False)
             self.page_time.setVisible(True)
             self.page_postgis.setVisible(False)
+            self.pushButton.hide()
+            self.pushButton_timeSeries.show()
+            self.label.hide()
+            self.comboBox_resampling.hide()
             self.showTSDialog()
         if option == "main":
             self.page_main.setVisible(True)
