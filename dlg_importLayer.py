@@ -76,6 +76,10 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.label.hide()
             self.comboBox_resampling.hide()
             self.showTSDialog()
+            try:
+                self.adjustSize()
+            except Exception:
+                pass
         if option == "main":
             self.page_main.setVisible(True)
             self.page_time.setVisible(False)
@@ -84,11 +88,19 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_timeSeries.hide()
             self.label.show()
             self.comboBox_resampling.show()
+            try:
+                self.adjustSize()
+            except Exception:
+                pass
         if option == "postgis":
             self.pushButton_timeSeries.hide()
             self.page_main.setVisible(False)
             self.page_time.setVisible(False)
             self.page_postgis.setVisible(True)
+            try:
+                self.adjustSize()
+            except Exception:
+                pass
 
     def setUi(self):
         self.connectEvents()
@@ -180,6 +192,12 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.header().resizeSection(0, 250)
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.show()
+        try:            
+            self._initial_fixed_height = max(self.minimumHeight(), self.height())
+            self.setMinimumHeight(self._initial_fixed_height)
+            self.setMaximumHeight(self._initial_fixed_height)
+        except Exception:
+            pass
 
     def rememberLoginPostgres(self, login, password):
         self.postgis_login = login
