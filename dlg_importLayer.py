@@ -192,7 +192,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.header().resizeSection(0, 250)
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.show()
-        try:            
+        try:
             self._initial_fixed_height = max(self.minimumHeight(), self.height())
             self.setMinimumHeight(self._initial_fixed_height)
             self.setMaximumHeight(self._initial_fixed_height)
