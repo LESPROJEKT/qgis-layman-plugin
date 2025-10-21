@@ -2654,12 +2654,16 @@ class Layman(QObject):
 
     def checkValidAttributes(self, layer_name):
         layers = QgsProject.instance().mapLayersByName(layer_name)
+        if not layers:
+            return True
         if len(layers) > 1:
             for l in layers:
                 if isinstance(l, QgsVectorLayer):
                     layers.clear()
                     layers.append(l)
                     break
+        if not layers:
+            return True
         isValid = True
         if isinstance(layers[0], QgsVectorLayer):
             pom = layers[0].getFeature(1)
@@ -2985,7 +2989,6 @@ class Layman(QObject):
                         url,
                     )
                     return
-
             if response.status_code == 200:
                 try:
                     self.uploaded = self.uploaded + 1
@@ -3096,7 +3099,6 @@ class Layman(QObject):
         title = layer_name
         path = layer.dataProvider().dataSourceUri()
         basename = os.path.basename(path)
-
         if basename == "OUTPUT.tif":
             name = self.utils.removeUnacceptableChars(layer_name)
             newPath = path.replace(basename, name + ".tif")
@@ -3195,7 +3197,9 @@ class Layman(QObject):
             )
         else:
             if patch:
-                url = self.layman_api.get_layer_url(self.laymanUsername, layer_name)
+                url = self.layman_api.get_layer_url(
+                    self.laymanUsername, self.utils.removeUnacceptableChars(layer_name)
+                )
                 self.utils.requestWrapper("DELETE", url, payload=None, files=None)
             if externalFile:
                 zipPath = (
@@ -5084,9 +5088,7 @@ class Layman(QObject):
             self.utils.requestWrapper("DELETE", url, payload=None, files=None)
         self.registerLayer(layer_name)
         layer_name = self.utils.removeUnacceptableChars(layer_name)
-        filePath = os.path.join(
-            tempfile.gettempdir(), "atlas_chunks"
-        )  ## chunky se ukládají do adresáře v tempu
+        filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks")
         print("chunk layer")
         if not (os.path.exists(filePath)):
             os.mkdir(filePath)
