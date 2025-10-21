@@ -429,6 +429,24 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def prepareTSUpdate(self, items, regex, title):
         resamplingMethod = self.comboBox_resampling.currentText()
+
+        if not title or title.strip() == "":
+            if self.layman.locale == "cs":
+                self.utils.emitMessageBox.emit(
+                    [
+                        "Název nemůže být prázdný.",
+                        "Name cannot be empty.",
+                    ]
+                )
+            else:
+                self.utils.emitMessageBox.emit(
+                    [
+                        "Name cannot be empty.",
+                        "Name cannot be empty.",
+                    ]
+                )
+            return
+
         if not self.checkRegex(items, regex):
             print("regex nesedí na názvy")
             self.utils.emitMessageBox.emit(
