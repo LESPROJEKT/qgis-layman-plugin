@@ -33,6 +33,18 @@ from .layman_utils import ProxyStyle
 from qgis.PyQt import QtGui
 from .layman_api import LaymanAPI
 
+SUPPORTED_RASTER_TYPES = [
+    {"bands": 1, "color": ["Gray"], "dtype": ["Byte", "UInt16", "Float32"]},
+    {"bands": 3, "color": ["Red", "Green", "Blue"], "dtype": ["Byte", "UInt16"]},
+    {
+        "bands": 4,
+        "color": ["Red", "Green", "Blue", "Alpha"],
+        "dtype": ["Byte", "UInt16"],
+    },
+    {"bands": 1, "color": ["Palette"], "dtype": ["Byte"]},
+    {"bands": 2, "color": ["Gray", "Alpha"], "dtype": ["Byte", "UInt16"]},
+]
+
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(
     os.path.join(os.path.dirname(__file__), "dlg_importLayer.ui")
@@ -60,6 +72,60 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def tr(self, message):
         return QCoreApplication.translate("Layman", message)
+
+    def get_raster_info(self, layer):
+        provider = layer.dataProvider()
+        bands = provider.bandCount()
+        info = []
+        for i in range(1, bands + 1):
+            provider.colorInterpretation(i)
+            data_type = provider.dataType(i)
+
+            data_type_name = self._get_data_type_name(data_type)
+
+            info.append(
+                {
+                    "band": i,
+                    "color_interpretation": provider.colorInterpretationName(i),
+                    "data_type": data_type_name,
+                }
+            )
+        return info
+
+    def _get_data_type_name(self, data_type):
+        type_mapping = {
+            1: "Byte",  # Qgis.Byte
+            2: "UInt16",  # Qgis.UInt16
+            3: "Int16",  # Qgis.Int16
+            4: "UInt32",  # Qgis.UInt32
+            5: "Int32",  # Qgis.Int32
+            6: "Float32",  # Qgis.Float32
+            7: "Float64",  # Qgis.Float64
+        }
+        return type_mapping.get(data_type, f"Unknown({data_type})")
+
+    def is_supported_raster(self, layer):
+        if not isinstance(layer, QgsRasterLayer):
+            return True
+
+        try:
+            info = self.get_raster_info(layer)
+            bands = len(info)
+            colors = [b["color_interpretation"] for b in info]
+            dtype = info[0]["data_type"]
+
+            for rule in SUPPORTED_RASTER_TYPES:
+                if (
+                    bands == rule["bands"]
+                    and all(c in rule["color"] for c in colors)
+                    and dtype in rule["dtype"]
+                ):
+                    return True
+            return False
+
+        except Exception as e:
+            print(f"Validation raster error: {e}")
+            return False
 
     def connectEvents(self):
         pass
@@ -307,6 +373,22 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             if self.utils.isLayerPostgres(layer):
                 showPostgreDialog(layer)
             else:
+                if isinstance(layer, QgsRasterLayer):
+                    if not self.is_supported_raster(layer):
+                        if self.layman.locale == "cs":
+                            self.utils.emitMessageBox.emit(
+                                [
+                                    f"Raster vrstva '{layer.name()}' není podporovaná Layman serverem.\nPodporované typy:\n- 1× Gray (Byte, UInt16, Float32)\n- 3× RGB (Byte, UInt16)\n- 4× RGBA (Byte, UInt16)\n- 1× Palette (Byte)\n- 2× Gray+Alpha (Byte, UInt16)",
+                                ]
+                            )
+                        else:
+                            self.utils.emitMessageBox.emit(
+                                [
+                                    f"Raster layer '{layer.name()}' is not supported by Layman server.\nSupported types:\n- 1× Gray (Byte, UInt16, Float32)\n- 3× RGB (Byte, UInt16)\n- 4× RGBA (Byte, UInt16)\n- 1× Palette (Byte)\n- 2× Gray+Alpha (Byte, UInt16)"
+                                ]
+                            )
+                        return
+
                 if not bulk:
                     self.layman.postRequest(
                         item.text(0), False, True, False, resamplingMethod
@@ -456,6 +538,24 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 ]
             )
             return
+
+        for item in items:
+            layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+            if isinstance(layer, QgsRasterLayer):
+                if not self.is_supported_raster(layer):
+                    if self.layman.locale == "cs":
+                        self.utils.emitMessageBox.emit(
+                            [
+                                f"Raster vrstva '{layer.name()}' není podporovaná Layman serverem.\nPodporované typy:\n- 1× Gray (Byte, UInt16, Float32)\n- 3× RGB (Byte, UInt16)\n- 4× RGBA (Byte, UInt16)\n- 1× Palette (Byte)\n- 2× Gray+Alpha (Byte, UInt16)"
+                            ]
+                        )
+                    else:
+                        self.utils.emitMessageBox.emit(
+                            [
+                                f"Raster layer '{layer.name()}' is not supported by Layman server.\nSupported types:\n- 1× Gray (Byte, UInt16, Float32)\n- 3× RGB (Byte, UInt16)\n- 4× RGBA (Byte, UInt16)\n- 1× Palette (Byte)\n- 2× Gray+Alpha (Byte, UInt16)"
+                            ]
+                        )
+                    return
         self.progressBar.setMaximum(0)
         self.progressBar.show()
         self.label_progress.show()
