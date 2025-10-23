@@ -375,18 +375,12 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 if isinstance(layer, QgsRasterLayer):
                     if not self.is_supported_raster(layer):
-                        if self.layman.locale == "cs":
-                            self.utils.emitMessageBox.emit(
-                                [
-                                    f"Raster vrstva '{layer.name()}' není podporovaná Layman serverem.\nPodporované typy:\n- 1× Gray (Byte, UInt16, Float32)\n- 3× RGB (Byte, UInt16)\n- 4× RGBA (Byte, UInt16)\n- 1× Palette (Byte)\n- 2× Gray+Alpha (Byte, UInt16)",
-                                ]
-                            )
-                        else:
-                            self.utils.emitMessageBox.emit(
-                                [
-                                    f"Raster layer '{layer.name()}' is not supported by Layman server.\nSupported types:\n- 1× Gray (Byte, UInt16, Float32)\n- 3× RGB (Byte, UInt16)\n- 4× RGBA (Byte, UInt16)\n- 1× Palette (Byte)\n- 2× Gray+Alpha (Byte, UInt16)"
-                                ]
-                            )
+                        self.utils.emitMessageBox.emit(
+                            [
+                                f"Raster vrstva '{layer.name()}' není podporovaná Layman serverem.\nPodporované typy:\n- 1× Gray (Byte, UInt16, Float32)\n- 3× RGB (Byte, UInt16)\n- 4× RGBA (Byte, UInt16)\n- 1× Palette (Byte)\n- 2× Gray+Alpha (Byte, UInt16)",
+                                f"Raster layer '{layer.name()}' is not supported by Layman server.\nSupported types:\n- 1× Gray (Byte, UInt16, Float32)\n- 3× RGB (Byte, UInt16)\n- 4× RGBA (Byte, UInt16)\n- 1× Palette (Byte)\n- 2× Gray+Alpha (Byte, UInt16)",
+                            ]
+                        )
                         return
 
                 if not bulk:
@@ -543,18 +537,12 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
             if isinstance(layer, QgsRasterLayer):
                 if not self.is_supported_raster(layer):
-                    if self.layman.locale == "cs":
-                        self.utils.emitMessageBox.emit(
-                            [
-                                f"Raster vrstva '{layer.name()}' není podporovaná Layman serverem.\nPodporované typy:\n- 1× Gray (Byte, UInt16, Float32)\n- 3× RGB (Byte, UInt16)\n- 4× RGBA (Byte, UInt16)\n- 1× Palette (Byte)\n- 2× Gray+Alpha (Byte, UInt16)"
-                            ]
-                        )
-                    else:
-                        self.utils.emitMessageBox.emit(
-                            [
-                                f"Raster layer '{layer.name()}' is not supported by Layman server.\nSupported types:\n- 1× Gray (Byte, UInt16, Float32)\n- 3× RGB (Byte, UInt16)\n- 4× RGBA (Byte, UInt16)\n- 1× Palette (Byte)\n- 2× Gray+Alpha (Byte, UInt16)"
-                            ]
-                        )
+                    self.utils.emitMessageBox.emit(
+                        [
+                            f"Raster vrstva '{layer.name()}' není podporovaná Layman serverem.\nPodporované typy:\n- 1× Gray (Byte, UInt16, Float32)\n- 3× RGB (Byte, UInt16)\n- 4× RGBA (Byte, UInt16)\n- 1× Palette (Byte)\n- 2× Gray+Alpha (Byte, UInt16)",
+                            f"Raster layer '{layer.name()}' is not supported by Layman server.\nSupported types:\n- 1× Gray (Byte, UInt16, Float32)\n- 3× RGB (Byte, UInt16)\n- 4× RGBA (Byte, UInt16)\n- 1× Palette (Byte)\n- 2× Gray+Alpha (Byte, UInt16)",
+                        ]
+                    )
                     return
         self.progressBar.setMaximum(0)
         self.progressBar.show()
