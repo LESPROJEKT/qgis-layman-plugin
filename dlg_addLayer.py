@@ -725,21 +725,42 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if isinstance(layers, str):
             layers = [layers]
         used_layers = {}
-        if len(layers) == 1:
-            url = self.layman_api.get_layer_url(self.laymanUsername, layers[0])
-            response = self.utils.requestWrapper("GET", url, payload=None, files=None)
-            data = [response.json()]
-        else:
-            url = self.layman_api.get_layers_url(self.laymanUsername)
-            response = self.utils.requestWrapper("GET", url, payload=None, files=None)
-            data = response.json()
-        for layer_data in data:
-            layer_name = layer_data["name"]
-            if layer_name not in layers:
-                continue
-            used_in_maps = layer_data.get("used_in_maps", [])
-            if used_in_maps:
-                used_layers[layer_name] = [m["name"] for m in used_in_maps]
+        try:
+            if len(layers) == 1:
+                url = self.layman_api.get_layer_url(self.laymanUsername, layers[0])
+                response = self.utils.requestWrapper(
+                    "GET", url, payload=None, files=None
+                )
+                if response and response.status_code == 200:
+                    try:
+                        data = [response.json()]
+                    except (ValueError, requests.exceptions.JSONDecodeError):
+                        return {}
+                else:
+                    return {}
+            else:
+                url = self.layman_api.get_layers_url(self.laymanUsername)
+                response = self.utils.requestWrapper(
+                    "GET", url, payload=None, files=None
+                )
+                if response and response.status_code == 200:
+                    try:
+                        data = response.json()
+                    except (ValueError, requests.exceptions.JSONDecodeError):
+                        return {}
+                else:
+                    return {}
+
+            for layer_data in data:
+                layer_name = layer_data["name"]
+                if layer_name not in layers:
+                    continue
+                used_in_maps = layer_data.get("used_in_maps", [])
+                if used_in_maps:
+                    used_layers[layer_name] = [m["name"] for m in used_in_maps]
+        except Exception as e:
+            print(f"Error checking used_in_maps: {e}")
+            return {}
         return used_layers
 
     def callDeleteLayer(self, layers, layerNames):

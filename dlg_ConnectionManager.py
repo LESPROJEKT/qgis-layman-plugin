@@ -37,6 +37,8 @@ from qgis.PyQt.QtGui import QDesktopServices, QIcon
 import threading
 from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout
 from .dlg_server_form import ServerForm
+from qgis.PyQt.QtGui import QDesktopServices
+from qgis.PyQt.QtCore import QUrl
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer

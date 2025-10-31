@@ -1028,7 +1028,8 @@ QPushButton::indicator {
         if self.locale == "cs":
             QMessageBox.information(None, "Layman", message[0])
         else:
-            QMessageBox.information(None, "Layman", message[1])
+            display_message = message[1] if len(message) > 1 else message[0]
+            QMessageBox.information(None, "Layman", display_message)
 
     def set_icon_size_for_all_buttons(self, container):
         css = f"QPushButton {{ background-image: url(''); background-size: 5px 5px; }}"
