@@ -39,6 +39,7 @@ from qgis.PyQt.QtWidgets import (
     QLineEdit,
     QWidget,
     QVBoxLayout,
+    QFileDialog,
 )
 from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRegularExpression
 from qgis.PyQt.QtCore import QPoint
@@ -46,6 +47,7 @@ import threading
 import requests
 import xml.etree.ElementTree as ET
 import traceback
+import json
 from .currentComposition import CurrentComposition
 from .layman_utils import ProxyStyle
 from distutils.version import LooseVersion
@@ -53,6 +55,8 @@ from .layman_qfield import Qfield
 from distutils.version import LooseVersion
 import tempfile
 from .layman_api import LaymanAPI
+import requests
+import json
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -84,7 +88,6 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman = layman
         self.pushButton_CreateCompositionConnected = False
         self.layerServices = {}
-        app = QtWidgets.QApplication.instance()
         main_window = self.layman.iface.mainWindow()
         desktop = QDesktopWidget()
         screen_rect = desktop.screenGeometry(main_window)
@@ -95,15 +98,25 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.move(dialog_rect.topLeft())
         # set to top flag
         # self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
-        proxy_style = ProxyStyle(app.style())
-        self.setStyle(proxy_style)
+        app = QtWidgets.QApplication.instance()
+        if app and app.style():
+            try:
+                proxy_style = ProxyStyle(app.style())
+                self.setStyle(proxy_style)
+            except Exception as e:
+                import sys
+                import traceback
+
+                print(f"[Layman] ProxyStyle was not set: {e}", file=sys.stderr)
+                traceback.print_exc()
         self.setupUi(self)
         self.globalRead = {}
         self.globalWrite = {}
         self.qfield = Qfield(self.utils)
         self.qfield.setURI(self.URI)
         self.qfieldWorking = True
-        self.layman_api = LaymanAPI(URI)
+        # Initialize API only when URI is available
+        self.layman_api = LaymanAPI(URI) if URI else None
         self.setUi()
 
     def connectEvents(self):
@@ -190,9 +203,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         print(cesta_k_projektu)
 
     def setUi(self):
-        QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
-        QgsProject.instance().layerRemoved.connect(self.on_layers_removed)
-        self.connectEvents()
+        if self.isAuthorized:
+            QgsProject.instance().layerWasAdded.connect(self.on_layers_added)
+            QgsProject.instance().layerRemoved.connect(self.on_layers_removed)
+            self.connectEvents()
+        else:
+            self.progressDone.connect(self._onProgressDone)
+            self.progressStart.connect(self._onProgressStart)
         self.permissionsConnected = False
         self.layman.dlg_current = self
         self.utils.recalculateDPI()
@@ -212,8 +229,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget_layers.header().resizeSection(0, 230)
         self.pushButton_qfield.clicked.connect(self.writeProjectValues)
         self.pushButton_qfield.clicked.connect(self.exportToQfield)
-        if self.layman.current != None:
-            self.layman.instance.refreshComposition()
+        self.pushButton_loadFromJson.clicked.connect(lambda: self.loadFromJsonFile())
+        if self.layman.current != None and self.isAuthorized:
+            if hasattr(self.layman, "instance") and self.layman.instance is not None:
+                self.layman.instance.refreshComposition()
             composition = self.layman.instance.getComposition()
             self.setVisibilityForCurrent(True)
             self.pushButton_copyUrl.clicked.connect(lambda: self.copyCompositionUrl())
@@ -234,6 +253,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.pushButton_new.setEnabled(True)
         if not self.isAuthorized:
+            # Force anonymous read-only UI
             self.setVisibilityForCurrent(False)
         if not self.pushButton_save.receivers(self.pushButton_save.clicked) > 0:
             self.pushButton_close2.clicked.connect(lambda: self.close())
@@ -265,7 +285,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             print(f"Chyba při odpojování on_layers_added: {e}")
         name = self.layman.current
         self.qfield.selectedLayers = self.getCheckedLayerNames()
-        permissions = self.layman.instance.getAllPermissions()
+        if self.layman.laymanUsername == self.layman.instance.getWorkspace():
+            permissions = {"read": ["EVERYONE"], "write": ["EVERYONE"]}
+            print(
+                "DEBUG: User owns workspace for QField export - setting full permissions"
+            )
+        else:
+            permissions = self.layman.instance.getAllPermissions()
         permission = "true" if "EVERYONE" in permissions["read"] else "false"
         response = self.qfield.createQProject(
             self.layman.instance.getName(),
@@ -348,7 +374,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def qfieldThread(self):
         name = self.layman.current
         self.qfield.selectedLayers = self.getCheckedLayerNames()
-        permissions = self.layman.instance.getAllPermissions()
+        if self.layman.laymanUsername == self.layman.instance.getWorkspace():
+            permissions = {"read": ["EVERYONE"], "write": ["EVERYONE"]}
+            print(
+                "DEBUG: User owns workspace for QField thread - setting full permissions"
+            )
+        else:
+            permissions = self.layman.instance.getAllPermissions()
         permission = "true" if "EVERYONE" in permissions["read"] else "false"
         response = self.qfield.createQProject(
             self.layman.instance.getName(),
@@ -411,6 +443,20 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.qfield.deleteProjectFile(project_id, file + ".gpkg")
 
     def setVisibilityForCurrent(self, visible):
+        # In anonymous mode, keep all actions disabled except Load from JSON
+        if not self.isAuthorized:
+            self.pushButton_editMeta.setEnabled(False)
+            self.pushButton_setPermissions.setEnabled(False)
+            self.pushButton_delete.setEnabled(False)
+            self.pushButton_save.setEnabled(False)
+            self.pushButton_copyUrl.setEnabled(False)
+            self.pushButton_qfield.setEnabled(False)
+            self.pushButton_loadFromJson.setEnabled(True)
+            self.pushButton_new.setEnabled(False)
+            self.label_readonly.hide()
+            self.pushButton_new.show()
+            self.checkBox_all.setEnabled(False)
+            return
         if self.layman.instance is None:
             self.pushButton_editMeta.setEnabled(False)
             self.pushButton_setPermissions.setEnabled(False)
@@ -418,7 +464,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_save.setEnabled(False)
             self.pushButton_copyUrl.setEnabled(False)
             self.pushButton_qfield.setEnabled(False)
-            self.pushButton_new.setEnabled(True)
+            self.pushButton_loadFromJson.setEnabled(True)
+            self.pushButton_new.setEnabled(False)
             self.label_readonly.hide()
             self.pushButton_new.show()
             return
@@ -431,6 +478,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_delete.setEnabled(False)
             self.pushButton_save.setEnabled(False)
             self.pushButton_copyUrl.setEnabled(True)
+            self.pushButton_loadFromJson.setEnabled(True)
             if self.layman.qfieldReady:
                 self.pushButton_qfield.setEnabled(False)
             self.pushButton_new.setEnabled(True)
@@ -440,29 +488,76 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.pushButton_new.show()
             self.pushButton_new.setEnabled(visible)
-            self.pushButton_setPermissions.setEnabled(visible)
-            self.pushButton_editMeta.setEnabled(visible)
-            self.pushButton_save.setEnabled(visible)
-            self.pushButton_delete.setEnabled(visible)
-            self.pushButton_copyUrl.setEnabled(visible)
-            if self.layman.qfieldReady:
+            if visible:
+                if (
+                    hasattr(self, "_composition_exists_on_server")
+                    and self._last_checked_composition == self.layman.current
+                ):
+                    server_enabled = self._composition_exists_on_server
+                else:
+                    server_enabled = self.checkCompositionExistsOnServer()
+
+                self.pushButton_setPermissions.setEnabled(server_enabled)
+                self.pushButton_editMeta.setEnabled(server_enabled)
+                self.pushButton_delete.setEnabled(server_enabled)
+                self.pushButton_copyUrl.setEnabled(server_enabled)
+                if self.layman.qfieldReady:
+                    self.pushButton_qfield.setEnabled(server_enabled)
+                else:
+                    self.pushButton_qfield.setEnabled(False)
+            else:
+                self.pushButton_setPermissions.setEnabled(visible)
+                self.pushButton_editMeta.setEnabled(visible)
+                self.pushButton_delete.setEnabled(visible)
+                self.pushButton_copyUrl.setEnabled(visible)
                 self.pushButton_qfield.setEnabled(visible)
+
+            self.pushButton_save.setEnabled(visible)
+            self.pushButton_loadFromJson.setEnabled(True)
             self.checkBox_all.setEnabled(visible)
 
     def refreshCurrentForm(self, layerAdded=None):
-        print(self.layman.current)
+        if not self.isAuthorized:
+            self.setVisibilityForCurrent(False)
+            return
         self.pushButton_new.show()
         if self.layman.instance == None:
             return
         composition = self.layman.instance.getComposition()
-        print(composition)
         if self.layman.current != None:
-            try:
-                writePermissions = self.layman.instance.getAllPermissions()["write"]
-            except:
-                writePermissions = []
-                print("get permissions failed")
-            if self.layman.laymanUsername not in writePermissions:
+            if (
+                not hasattr(self, "_composition_exists_on_server")
+                or self._last_checked_composition != self.layman.current
+            ):
+                composition_exists_on_server = self.checkCompositionExistsOnServer()
+                self._composition_exists_on_server = composition_exists_on_server
+                self._last_checked_composition = self.layman.current
+            else:
+                composition_exists_on_server = self._composition_exists_on_server
+
+            if self.layman.laymanUsername == self.layman.instance.getWorkspace():
+                writePermissions = [self.layman.laymanUsername, "EVERYONE"]
+                print("DEBUG: User owns workspace - setting full permissions")
+            else:
+                try:
+                    writePermissions = self.layman.instance.getAllPermissions()["write"]
+                except:
+                    writePermissions = []
+
+            if not composition_exists_on_server:
+                print("DEBUG: Composition not on server - disabling permissions button")
+                self.pushButton_setPermissions.setEnabled(False)
+                self.label_readonly.hide()
+                self.treeWidget_layers.setEnabled(True)
+                self.pushButton_editMeta.setEnabled(True)
+                self.pushButton_save.setEnabled(True)
+                self.pushButton_delete.setEnabled(True)
+                if self.layman.qfieldReady:
+                    self.pushButton_qfield.setEnabled(True)
+                else:
+                    self.pushButton_qfield.setEnabled(False)
+                self.pushButton_copyUrl.setEnabled(True)
+            elif self.layman.laymanUsername not in writePermissions:
                 self.treeWidget_layers.setEnabled(False)
                 self.pushButton_editMeta.setEnabled(False)
                 self.pushButton_setPermissions.setEnabled(False)
@@ -476,14 +571,31 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.layman.instance.refreshComposition()
                 self.pushButton_editMeta.setEnabled(True)
                 self.pushButton_new.setEnabled(True)
-                self.pushButton_setPermissions.setEnabled(True)
-                self.pushButton_save.setEnabled(True)
-                self.pushButton_delete.setEnabled(True)
+
+                if (
+                    hasattr(self, "_composition_exists_on_server")
+                    and self._last_checked_composition == self.layman.current
+                ):
+                    server_enabled = self._composition_exists_on_server
+                    print(
+                        f"refreshCurrentForm: Using cached result - server buttons: {server_enabled}"
+                    )
+                else:
+                    server_enabled = self.checkCompositionExistsOnServer()
+                    print(
+                        f"refreshCurrentForm: Fresh check - server buttons: {server_enabled}"
+                    )
+
+                self.pushButton_setPermissions.setEnabled(server_enabled)
+                self.pushButton_editMeta.setEnabled(server_enabled)
+                self.pushButton_delete.setEnabled(server_enabled)
+                self.pushButton_copyUrl.setEnabled(server_enabled)
                 if self.layman.qfieldReady:
-                    self.pushButton_qfield.setEnabled(True)
+                    self.pushButton_qfield.setEnabled(server_enabled)
                 else:
                     self.pushButton_qfield.setEnabled(False)
-                self.pushButton_copyUrl.setEnabled(True)
+
+                self.pushButton_save.setEnabled(True)
 
         try:
             (
@@ -798,10 +910,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             return
         composition = self.layman.instance.getComposition()
         layerList = []
-        for i in range(0, len(composition["layers"])):
-            layerList.append(
-                self.utils.removeUnacceptableChars(composition["layers"][i]["title"])
-            )
+        if isinstance(composition, dict) and "layers" in composition:
+            for i in range(0, len(composition["layers"])):
+                layerList.append(
+                    self.utils.removeUnacceptableChars(
+                        composition["layers"][i]["title"]
+                    )
+                )
         iterator = QTreeWidgetItemIterator(
             self.treeWidget_layers, QTreeWidgetItemIterator.IteratorFlag.All
         )
@@ -921,6 +1036,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.updateLayerPropsInComposition()
         self.layman.syncOrder2(self.getLayersOrder())
         self.layman.patchMap2()
+        self.updateCompositionServerStatus()
         self.layman.writeValuesToProject(self.URI, composition["name"])
         self.layman.showExportInfo.emit("F")
         self.onRefreshCurrentForm.emit()
@@ -1531,7 +1647,54 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 checkbox.setChecked(False)
                 checkbox.setEnabled(True)
 
+    def checkCompositionExistsOnServer(self):
+        print("=== CHECKING COMPOSITION ON SERVER ===")
+        if not self.layman.current or not self.layman.instance:
+            print("No current composition or instance")
+            return False
+
+        try:
+            mapName = self.utils.removeUnacceptableChars(self.layman.current)
+            uri = self.layman_api.get_map_url(self.layman.laymanUsername, mapName)
+
+            headers = self.utils.getAuthHeader(self.utils.authCfg)
+            r = requests.get(uri, headers=headers, timeout=10)
+
+            if r.status_code != 200:
+                print(f"Server returned non-200 status: {r.status_code}")
+                return False
+
+            res = r.json()
+            if "code" in res and "message" in res:
+                print(f"Server error: {res['message']}")
+                return False
+
+            has_access_rights = "access_rights" in res
+            print(f"Has access_rights: {has_access_rights}")
+            return has_access_rights
+        except Exception as e:
+            print(f"Exception in checkCompositionExistsOnServer: {e}")
+            return False
+
+    def updateCompositionServerStatus(self):
+        if self.layman.current:
+            exists_on_server = self.checkCompositionExistsOnServer()
+            self._composition_exists_on_server = exists_on_server
+            self._last_checked_composition = self.layman.current
+            return exists_on_server
+        return False
+
     def setPermissionsUI(self, mapName):
+        if not self.checkCompositionExistsOnServer():
+            self.utils.showMessageBar(
+                [
+                    "Kompozice neexistuje na serveru nebo je načtena pouze lokálně. Nelze nastavit oprávnění.",
+                    "Composition doesn't exist on server or is loaded locally. Cannot set permissions.",
+                ],
+                Qgis.Warning,
+            )
+            return
+
         group1 = QButtonGroup(self)
         group2 = QButtonGroup(self)
         group1.addButton(self.radioButton_readPublic)
@@ -1564,8 +1727,38 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             usernameList.append(res[i]["username"])
         mapName = self.utils.removeUnacceptableChars(mapName)
         uri = self.layman_api.get_map_url(self.layman.laymanUsername, mapName)
-        r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
-        res = self.utils.fromByteToJson(r.content)
+
+        headers = self.utils.getAuthHeader(self.utils.authCfg)
+        r = requests.get(uri, headers=headers, timeout=10)
+
+        if r.status_code != 200:
+            self.utils.showMessageBar(
+                [
+                    f"Chyba serveru (kód {r.status_code}): Kompozice neexistuje na serveru.",
+                    f"Server error (code {r.status_code}): Composition doesn't exist on server.",
+                ],
+                Qgis.Warning,
+            )
+            return
+        res = r.json()
+
+        if "code" in res and "message" in res:
+            self.utils.showMessageBar(
+                [f"Chyba serveru: {res['message']}", f"Server error: {res['message']}"],
+                Qgis.Warning,
+            )
+            return
+
+        if "access_rights" not in res:
+            self.utils.showMessageBar(
+                [
+                    "Kompozice neexistuje na serveru nebo je načtena pouze lokálně. Nelze nastavit oprávnění.",
+                    "Composition doesn't exist on server or is loaded locally. Cannot set permissions.",
+                ],
+                Qgis.Warning,
+            )
+            return
+
         self.populatePermissionsWidget(
             self.tabWidget,
             usersDictReversed,
@@ -1696,7 +1889,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.showInfoDialogOnTop(self.tr("Permissions was saved successfully."))
         else:
             self.showInfoDialogOnTop(
-                self.tr("Permissions was not saved for layer: ")
+                self.tr("Permissions were not saved for composition: ")
                 + str(failed).replace("[", "").replace("]", "")
             )
 
@@ -1757,7 +1950,6 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def modifyMeta(self):
         self.progressStart.emit()
-        self.layman.project.crsChanged.disconnect()
         composition = self.layman.instance.getComposition()
         self.compositionDict = self.utils.fillCompositionDict()
         self.compositionDict[composition["name"]] = self.lineEdit_title.text()
@@ -1838,7 +2030,6 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         except:
             pass
         self.progressDone.emit()
-        self.layman.project.crsChanged.connect(self.layman.crsChanged)
 
     def _onProgressDone(self):
         self.progressBar_loader.hide()
@@ -1927,13 +2118,34 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         return [min.x(), max.x(), min.y(), max.y()]
 
     def copyCompositionUrl(self, composition=None):
-        if not composition:
-            url = self.layman.instance.getUrl()
-        else:
-            url = self.layman_api.get_map_file_url(
-                self.treeWidget.selectedItems()[0].text(1),
-                self.layman.getNameByTitle(self.treeWidget.selectedItems()[0].text(0)),
+        is_on_server = self.checkCompositionExistsOnServer()
+        if not is_on_server:
+            self.utils.showQgisBar(
+                [
+                    "Tato kompozice je načtena z lokálního souboru a nemá server URL.",
+                    "This composition is loaded from local file and has no server URL.",
+                ],
+                Qgis.Warning,
             )
+            return
+        try:
+            if not composition:
+                workspace = self.layman.instance.getWorkspace()
+                comp = self.layman.instance.getComposition()
+                map_name = (
+                    comp.get("name") if isinstance(comp, dict) else self.layman.current
+                )
+                map_name = self.utils.removeUnacceptableChars(map_name)
+                url = self.layman_api.get_map_file_url(workspace, map_name)
+            else:
+                workspace = self.treeWidget.selectedItems()[0].text(1)
+                map_name = self.layman.getNameByTitle(
+                    self.treeWidget.selectedItems()[0].text(0)
+                )
+                map_name = self.utils.removeUnacceptableChars(map_name)
+                url = self.layman_api.get_map_file_url(workspace, map_name)
+        except Exception:
+            url = self.layman.instance.getUrl()
         try:
             self.utils.copyToClipboard(url)
             self.utils.showQgisBar(
@@ -2128,11 +2340,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 root = prj.layerTreeRoot()
                 self.prj = QgsProject.instance()
                 QgsProject.instance().setTitle(title)
-                self.pushButton_editMeta.setEnabled(True)
-                self.pushButton_setPermissions.setEnabled(True)
-                self.pushButton_delete.setEnabled(True)
+                server_enabled = self.checkCompositionExistsOnServer()
+
+                self.pushButton_setPermissions.setEnabled(server_enabled)
+                self.pushButton_editMeta.setEnabled(server_enabled)
+                self.pushButton_delete.setEnabled(server_enabled)
+                self.pushButton_copyUrl.setEnabled(server_enabled)
+
+                # Always enabled buttons
                 self.pushButton_save.setEnabled(True)
-                self.pushButton_copyUrl.setEnabled(True)
                 self.label_readonly.hide()
                 self.treeWidget_layers.setEnabled(True)
         self.setStackWidget("main", True)
@@ -2368,13 +2584,643 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.setHiddenItem(current_item, hidden_text)
                     print("2")
 
+    def loadFromJsonFile(self):
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("Load composition from JSON file"),
+            "",
+            "JSON files (*.json);;All files (*.*)",
+        )
+
+        if filename:
+            try:
+                with open(filename, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+
+                is_valid, errors = self.validateCompositionDataWithErrors(data)
+                if not is_valid:
+                    error_text = (
+                        "Selected file is not a valid Layman composition.\n\nErrors:\n"
+                        + "\n".join(errors)
+                    )
+                    QMessageBox.warning(
+                        self,
+                        self.tr("Invalid file"),
+                        self.tr(error_text),
+                    )
+                    return
+                self.loadCompositionFromData(data, filename)
+
+            except json.JSONDecodeError:
+                QMessageBox.warning(
+                    self,
+                    self.tr("Invalid JSON"),
+                    self.tr("Selected file is not a valid JSON file."),
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    self.tr("Error"),
+                    self.tr("Error loading file: {}").format(str(e)),
+                )
+
+    def getCompositionSchema(self):
+        schema_url = "https://raw.githubusercontent.com/hslayers/map-compositions/main/schema2.json"
+        schema_file = os.path.join(
+            self.layman.plugin_dir, "test", "composition_schema.json"
+        )
+
+        try:
+            response = requests.get(schema_url, timeout=10)
+            response.raise_for_status()
+            schema_data = response.json()
+
+            os.makedirs(os.path.dirname(schema_file), exist_ok=True)
+            with open(schema_file, "w", encoding="utf-8") as f:
+                json.dump(schema_data, f, indent=2, ensure_ascii=False)
+
+            return schema_data
+
+        except Exception:
+            try:
+                if os.path.exists(schema_file):
+                    with open(schema_file, "r", encoding="utf-8") as f:
+                        return json.load(f)
+            except Exception:
+                pass
+
+        return None
+
+    def validateCompositionData(self, data):
+        if not isinstance(data, dict):
+            return False
+
+        schema = self.getCompositionSchema()
+        if schema:
+            return self._validateWithSchema(data, schema)
+        else:
+            return self._validateBasic(data)
+
+    def validateCompositionDataWithErrors(self, data):
+        self.validation_errors = []
+
+        if not isinstance(data, dict):
+            self.validation_errors.append(self.tr("Data is not a valid JSON object"))
+            return False, self.validation_errors
+
+        schema = self.getCompositionSchema()
+        if schema:
+            is_valid = self._validateWithSchema(data, schema)
+        else:
+            is_valid = self._validateBasic(data)
+
+        return is_valid, self.validation_errors
+
+    def _validateWithSchema(self, data, schema):
+        try:
+            if "properties" not in schema:
+                self.validation_errors.append(
+                    self.tr("Schema does not have 'properties' section")
+                )
+                return self._validateBasic(data)
+
+            properties = schema["properties"]
+
+            required = schema.get("required", ["title", "layers"])
+            missing_fields = [field for field in required if field not in data]
+            if missing_fields:
+                error_msg = self.tr(
+                    "Missing required fields according to schema: {}"
+                ).format(missing_fields)
+                self.validation_errors.append(error_msg)
+                return False
+
+            if "title" in properties and "title" in data:
+                title_prop = properties["title"]
+                if title_prop.get("type") == "string" and not isinstance(
+                    data["title"], str
+                ):
+                    error_msg = self.tr("Field 'title' must be a string")
+                    self.validation_errors.append(error_msg)
+                    return False
+                if not data["title"].strip():
+                    error_msg = self.tr("Field 'title' cannot be empty")
+                    self.validation_errors.append(error_msg)
+                    return False
+
+            if "layers" in properties and "layers" in data:
+                layers_prop = properties["layers"]
+                if layers_prop.get("type") == "array":
+                    if not isinstance(data["layers"], list) or len(data["layers"]) == 0:
+                        error_msg = self.tr("Field 'layers' must be a non-empty array")
+                        self.validation_errors.append(error_msg)
+                        return False
+
+                    for i, layer in enumerate(data["layers"]):
+                        if not self._validateLayer(layer, i):
+                            return False
+
+            return True
+
+        except Exception as e:
+            error_msg = self.tr("Error during schema validation: {}").format(e)
+            self.validation_errors.append(error_msg)
+            return self._validateBasic(data)
+
+    def _validateLayer(self, layer, index):
+        if not isinstance(layer, dict):
+            error_msg = self.tr("Layer {} is not an object").format(index)
+            self.validation_errors.append(error_msg)
+            return False
+
+        required_fields = ["title", "className"]
+        missing_fields = [field for field in required_fields if field not in layer]
+        if missing_fields:
+            error_msg = self.tr("Layer {} missing required fields: {}").format(
+                index, missing_fields
+            )
+            self.validation_errors.append(error_msg)
+            return False
+
+        if not isinstance(layer["title"], str) or not layer["title"].strip():
+            error_msg = self.tr("Layer {} has invalid 'title'").format(index)
+            self.validation_errors.append(error_msg)
+            return False
+
+        valid_class_names = [
+            "HSLayers.Layer.WMS",
+            "WMS",
+            "OpenLayers.Layer.Vector",
+            "Vector",
+            "XYZ",
+            "ArcGISRest",
+        ]
+        if layer["className"] not in valid_class_names:
+            error_msg = f"Vrstva {index} má neplatný 'className': {layer['className']}"
+            self.validation_errors.append(error_msg)
+            return False
+
+        if layer["className"] in ["HSLayers.Layer.WMS", "WMS"]:
+            if "url" not in layer or "params" not in layer:
+                error_msg = f"WMS vrstva {index} chybí 'url' nebo 'params'"
+                self.validation_errors.append(error_msg)
+                return False
+            if "LAYERS" not in layer["params"]:
+                error_msg = f"WMS vrstva {index} chybí 'params.LAYERS'"
+                self.validation_errors.append(error_msg)
+                return False
+
+        elif layer["className"] in ["OpenLayers.Layer.Vector", "Vector"]:
+            if "protocol" not in layer or "url" not in layer["protocol"]:
+                error_msg = f"Vector vrstva {index} chybí 'protocol.url'"
+                self.validation_errors.append(error_msg)
+                return False
+
+        elif layer["className"] == "XYZ":
+            if "url" not in layer:
+                error_msg = f"XYZ vrstva {index} chybí 'url'"
+                self.validation_errors.append(error_msg)
+                return False
+
+        elif layer["className"] == "ArcGISRest":
+            if "url" not in layer:
+                error_msg = f"ArcGISRest vrstva {index} chybí 'url'"
+                self.validation_errors.append(error_msg)
+                return False
+
+        return True
+
+    def _validateBasic(self, data):
+        schema = self.getCompositionSchema()
+        if schema and "required" in schema:
+            required_fields = schema["required"]
+        else:
+            required_fields = ["title", "layers"]
+
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            error_msg = self.tr("Missing required fields: {}").format(missing_fields)
+            self.validation_errors.append(error_msg)
+            return False
+
+        if not isinstance(data["title"], str) or not data["title"].strip():
+            error_msg = self.tr("Field 'title' must be a non-empty string")
+            self.validation_errors.append(error_msg)
+            return False
+
+        if not isinstance(data["layers"], list) or len(data["layers"]) == 0:
+            error_msg = self.tr("Field 'layers' must be a non-empty array")
+            self.validation_errors.append(error_msg)
+            return False
+
+        return True
+
+    def loadCompositionFromData(self, data, filename):
+        try:
+            self.progressStart.emit()
+
+            composition_name = data.get(
+                "name", os.path.splitext(os.path.basename(filename))[0]
+            )
+            self.layman.current = composition_name
+
+            original_workspace = None
+            if "layers" in data and len(data["layers"]) > 0:
+                if "workspace" in data["layers"][0]:
+                    original_workspace = data["layers"][0]["workspace"]
+            if self.layman.isAuthorized:
+                if (
+                    original_workspace
+                    and original_workspace != self.layman.laymanUsername
+                ):
+                    msgbox = QMessageBox(
+                        QMessageBox.Icon.Question,
+                        "Layman",
+                        self.tr(
+                            f"This composition belongs to the user '{original_workspace}'. Do you want to take it as your own composition? You can then upload it to the server under your name."
+                        ),
+                    )
+                    msgbox.addButton(QMessageBox.StandardButton.Yes)
+                    msgbox.addButton(QMessageBox.StandardButton.No)
+                    msgbox.setDefaultButton(QMessageBox.StandardButton.Yes)
+                    reply = msgbox.exec()
+                    if reply == QMessageBox.StandardButton.No:
+                        self.progressDone.emit()
+                        return
+
+            self.layman.instance = CurrentComposition(
+                self.URI if self.URI else "",
+                composition_name,
+                self.layman.laymanUsername if self.layman.laymanUsername else "",
+                (
+                    self.utils.getAuthHeader(self.utils.authCfg)
+                    if self.layman.isAuthorized
+                    else None
+                ),
+                self.layman.laymanUsername if self.layman.laymanUsername else "",
+            )
+            self.layman.instance.is_local = True
+            if self.layman.isAuthorized:
+                if (
+                    original_workspace
+                    and original_workspace != self.layman.laymanUsername
+                ):
+                    if "user" in data:
+                        data["user"]["name"] = self.layman.laymanUsername
+                        data["user"]["email"] = ""
+            self.layman.instance.setComposition(data)
+
+            if self.layman.isAuthorized:
+                if (
+                    original_workspace
+                    and original_workspace != self.layman.laymanUsername
+                ):
+                    self.layman.instance.setWorkspace(self.layman.laymanUsername)
+
+            if "title" in data:
+                QgsProject.instance().setTitle(data["title"])
+
+            if "projection" in data:
+                projection = (
+                    data["projection"].replace("epsg:", "").replace("EPSG:", "")
+                )
+                if projection != "":
+                    crs = QgsCoordinateReferenceSystem(int(projection))
+                    self.layman.project.setCrs(crs)
+
+            if "layers" not in data or len(data["layers"]) == 0:
+                self.progressDone.emit()
+                if self.layman.isAuthorized:
+                    self.utils.showMessageBar(
+                        [
+                            "Mapová kompozice je načtena, ale neobsahuje žádné vrstvy.",
+                            "Map composition is loaded but not contains layers.",
+                        ],
+                        Qgis.Success,
+                    )
+                return
+
+            layers = QgsProject.instance().mapLayers()
+            if self.layman.isAuthorized:
+                if len(layers) > 0:
+                    msgbox = QMessageBox(
+                        QMessageBox.Icon.Question,
+                        "Layman",
+                        self.tr(
+                            "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content."
+                        ),
+                    )
+                    msgbox.addButton(QMessageBox.StandardButton.Yes)
+                    msgbox.addButton(QMessageBox.StandardButton.No)
+                    msgbox.setDefaultButton(QMessageBox.StandardButton.No)
+                    reply = msgbox.exec()
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.layman.iface.newProjectCreated.disconnect()
+                        self.layman.iface.newProject()
+                        if "projection" in data:
+                            projection = (
+                                data["projection"]
+                                .replace("epsg:", "")
+                                .replace("EPSG:", "")
+                            )
+                            if projection != "":
+                                crs = QgsCoordinateReferenceSystem(int(projection))
+                                QgsProject.instance().setCrs(crs)
+                        if "title" in data:
+                            QgsProject.instance().setTitle(data["title"])
+                        self.layman.iface.newProjectCreated.connect(
+                            self.layman.removeCurrent
+                        )
+
+            if isinstance(data, dict) and "layers" in data:
+                self.loadLayerFromData(data, "WMS", composition_name)
+            else:
+                print(
+                    "DEBUG: Data is corrupted or missing layers, skipping layer loading"
+                )
+                self.progressDone.emit()
+
+        except Exception as e:
+            self.progressDone.emit()
+            if self.layman.isAuthorized:
+                QMessageBox.critical(
+                    self,
+                    self.tr("Error"),
+                    self.tr("Error loading composition: {}").format(str(e)),
+                )
+
+    def loadLayerFromData(self, data, service, groupName=""):
+        if not "layers" in data:
+            print("corrupted composition")
+            self.utils.emitMessageBox.emit(
+                ["Kompozice je poškozena!", "Map composition is corrupted!"]
+            )
+            return
+
+        i = 1
+        groups = list()
+        groupPositions = list()
+        groupsSet = set()
+
+        for x in range(len(data["layers"]) - 1, -1, -1):
+            print("iteration")
+            try:
+                subgroupName = data["layers"][x]["path"]
+            except:
+                print("path for layer not found")
+                subgroupName = ""
+            try:
+                timeDimension = data["layers"][x]["dimensions"]
+            except:
+                print("time dimensions for layer not found")
+                timeDimension = ""
+
+            className = data["layers"][x]["className"]
+            visibility = data["layers"][x]["visibility"]
+
+            if className == "XYZ":
+                layerName = data["layers"][x]["title"]
+            if className == "HSLayers.Layer.WMS" or className == "WMS":
+                layerName = data["layers"][x]["params"]["LAYERS"]
+            if className == "OpenLayers.Layer.Vector" or className == "Vector":
+                try:
+                    layerName = data["layers"][x]["name"]
+                except:
+                    try:
+                        layerName = data["layers"][x]["protocol"]["LAYERS"]
+                    except:
+                        QgsMessageLog.logMessage("compositionSchemaError")
+                        self.layman.instance = None
+                        self.layman.current = None
+                        return
+            if className == "ArcGISRest":
+                layerName = data["layers"][x]["title"]
+
+            try:
+                print(layerName)
+            except:
+                print("wrong format of composition")
+                return
+
+            if className == "HSLayers.Layer.WMS" or className == "WMS":
+                layerName = data["layers"][x]["params"]["LAYERS"]
+                format = data["layers"][x]["params"]["FORMAT"]
+                epsg = "EPSG:4326"
+                minRes = data["layers"][x]["minResolution"]
+                maxRes = data["layers"][x]["maxResolution"]
+                if "greyscale" in data["layers"][x]:
+                    greyscale = data["layers"][x]["greyscale"]
+                else:
+                    greyscale = False
+
+                try:
+                    groupName = data["layers"][x]["path"]
+                except:
+                    groupName = ""
+                layerNameTitle = data["layers"][x]["title"]
+                repairUrl = data["layers"][x]["url"]
+                repairUrl = self.utils.convertUrlFromHex(repairUrl)
+                everyone = (
+                    not self.layman.isAuthorized
+                )  # Použij authcfg pokud je uživatel autentifikovaný
+
+                print(f"DEBUG: WMS Layer connection details:")
+                print(f"  - Layer name: {layerName}")
+                print(f"  - Layer title: {layerNameTitle}")
+                print(f"  - URL: {repairUrl}")
+                print(f"  - Format: {format}")
+                print(f"  - EPSG: {epsg}")
+                print(f"  - Group: {groupName}")
+                print(f"  - Everyone: {everyone}")
+                print(f"  - IsAuthorized: {self.layman.isAuthorized}")
+
+                if groupName != "":
+                    groups.append([groupName, len(data["layers"]) - i])
+                    groupsSet.add(groupName)
+                    groupPositions.append(
+                        [groupName, layerNameTitle, len(data["layers"]) - i]
+                    )
+                else:
+                    groups.append([layerNameTitle, len(data["layers"]) - i])
+                legends = "0"
+                if "legends" in data["layers"][x]:
+                    legends = "1"
+                self.layman.loadWms(
+                    repairUrl,
+                    layerName,
+                    layerNameTitle,
+                    format,
+                    epsg,
+                    groupName,
+                    subgroupName,
+                    timeDimension,
+                    visibility,
+                    everyone,
+                    minRes,
+                    maxRes,
+                    greyscale,
+                    legends,
+                )
+
+            elif className == "ArcGISRest":
+                url = data["layers"][x]["url"]
+                layerNameTitle = data["layers"][x]["title"]
+
+                print(f"DEBUG: ArcGISRest Layer connection details:")
+                print(f"  - Layer title: {layerNameTitle}")
+                print(f"  - URL: {url}")
+
+                self.layman.loadArcGisRest(url, layerNameTitle)
+
+            elif className == "XYZ":
+                layerName = data["layers"][x]["title"]
+                minRes = data["layers"][x]["minResolution"]
+                maxRes = data["layers"][x]["maxResolution"]
+                try:
+                    groupName = data["layers"][x]["path"]
+                except:
+                    groupName = ""
+                format = "XYZ"
+                epsg = "EPSG:4326"
+                layerNameTitle = data["layers"][x]["title"]
+
+                print(f"DEBUG: XYZ Layer connection details:")
+                print(f"  - Layer name: {layerName}")
+                print(f"  - Layer title: {layerNameTitle}")
+                print(f"  - URL: {data['layers'][x]['url']}")
+                print(f"  - Format: {format}")
+                print(f"  - EPSG: {epsg}")
+                print(f"  - Group: {groupName}")
+
+                if groupName != "":
+                    groups.append([groupName, len(data["layers"]) - i])
+                    groupsSet.add(groupName)
+                    groupPositions.append(
+                        [groupName, layerNameTitle, len(data["layers"]) - i]
+                    )
+                else:
+                    groups.append([layerNameTitle, len(data["layers"]) - i])
+                self.layman.loadXYZ(
+                    data["layers"][x]["url"],
+                    layerName,
+                    layerNameTitle,
+                    format,
+                    epsg,
+                    groupName,
+                    subgroupName,
+                    visibility,
+                    -1,
+                    minRes,
+                    maxRes,
+                )
+
+            elif className == "OpenLayers.Layer.Vector" or className == "Vector":
+                epsg = "EPSG:4326"
+                minRes = data["layers"][x]["minResolution"]
+                maxRes = data["layers"][x]["maxResolution"]
+                layerNameTitle = data["layers"][x]["title"]
+                repairUrl = data["layers"][x]["protocol"]["url"]
+                repairUrl = self.utils.convertUrlFromHex(repairUrl)
+                subgroupName = ""
+                everyone = (
+                    not self.layman.isAuthorized
+                )  # Použij authcfg pokud je uživatel autentifikovaný
+
+                print(f"DEBUG: Vector Layer connection details:")
+                print(f"  - Layer name: {layerName}")
+                print(f"  - Layer title: {layerNameTitle}")
+                print(f"  - URL: {repairUrl}")
+                print(f"  - EPSG: {epsg}")
+                print(f"  - Group: {groupName}")
+                print(f"  - Protocol: {data['layers'][x]['protocol']}")
+
+                if "path" in data["layers"][x]:
+                    groupName = data["layers"][x]["path"]
+                else:
+                    groupName = ""
+                if groupName != "":
+                    groups.append([groupName, len(data["layers"]) - i])
+                    groupsSet.add(groupName)
+                    groupPositions.append(
+                        [groupName, layerNameTitle, len(data["layers"]) - i]
+                    )
+                else:
+                    groups.append([layerNameTitle, len(data["layers"]) - i])
+
+                try:
+                    if "type" in data["layers"][x]["protocol"]:
+                        if (
+                            data["layers"][x]["protocol"]["type"] == "hs.format.WFS"
+                            or data["layers"][x]["protocol"]["type"] == "WFS"
+                            or data["layers"][x]["protocol"]["type"]
+                            == "hs.format.externalWFS"
+                        ):
+                            self.layman.loadWfs(
+                                repairUrl,
+                                layerName,
+                                layerNameTitle,
+                                groupName,
+                                subgroupName,
+                                visibility,
+                                everyone,
+                                minRes,
+                                maxRes,
+                            )
+                    if "format" in data["layers"][x]["protocol"]:
+                        if data["layers"][x]["protocol"]["format"] in (
+                            "hs.format.externalWFS",
+                            "externalWFS",
+                        ):
+                            self.layman.loadWfsExternal(
+                                data["layers"][x], epsg, groupName
+                            )
+                        if (
+                            data["layers"][x]["protocol"]["format"] == "hs.format.WFS"
+                            or data["layers"][x]["protocol"]["format"] == "WFS"
+                        ):
+                            self.layman.loadWfs(
+                                repairUrl,
+                                layerName,
+                                layerNameTitle,
+                                groupName,
+                                subgroupName,
+                                visibility,
+                                everyone,
+                                minRes,
+                                maxRes,
+                            )
+                except:
+                    self.layman.loadWfs(
+                        repairUrl,
+                        layerName,
+                        layerNameTitle,
+                        groupName,
+                        subgroupName,
+                        visibility,
+                        everyone,
+                        minRes,
+                        maxRes,
+                    )
+
+            i = i + 1
+
+        self.layman.reorderGroups(groups, groupsSet, groupPositions)
+        self.layman.afterCompositionLoaded()
+        self.progressDone.emit()
+
+        self.refreshCurrentForm()
+        self.setStackWidget("main", False)
+
     def reject(self):
         super().reject()
         global dialog_running
         dialog_running = False
         self.layman.currentOpened = False
         self.qfieldWorking = False
-        self.onRefreshCurrentForm.disconnect()
+        try:
+            self.onRefreshCurrentForm.disconnect()
+        except TypeError:
+            pass
         try:
             QgsProject.instance().layerWasAdded.disconnect()
             QgsProject.instance().layerRemoved.disconnect()

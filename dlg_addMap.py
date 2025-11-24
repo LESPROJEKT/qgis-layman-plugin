@@ -75,8 +75,16 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.URI = URI
         self.layman = layman
         app = QtWidgets.QApplication.instance()
-        proxy_style = ProxyStyle(app.style())
-        self.setStyle(proxy_style)
+        if app and app.style():
+            try:
+                proxy_style = ProxyStyle(app.style())
+                self.setStyle(proxy_style)
+            except Exception as e:
+                import sys
+                import traceback
+
+                print(f"[Layman] ProxyStyle was not set: {e}", file=sys.stderr)
+                traceback.print_exc()
         self.setupUi(self)
         self.globalRead = {}
         self.page2.setGeometry(0, 0, 651, 531)
@@ -133,8 +141,30 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget.itemClicked.connect(
             lambda: threading.Thread(target=self.setQfieldButtons).start()
         )
-        self.treeWidget.setColumnWidth(0, 300)
-        self.treeWidget.setColumnWidth(2, 80)
+        # Set column widths
+        self.treeWidget.setColumnWidth(0, 280)  # Layer - trochu zúžený
+        self.treeWidget.setColumnWidth(1, 160)  # Owner - ještě širší
+        self.treeWidget.setColumnWidth(2, 80)  # Permissions
+
+        # Allow user to resize columns and maintain proportions when dialog is resized
+        self.treeWidget.header().setStretchLastSection(
+            False
+        )  # Don't stretch last section
+        self.treeWidget.header().setSectionResizeMode(
+            0, QtWidgets.QHeaderView.Stretch
+        )  # Layer column stretches to fill space
+        self.treeWidget.header().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Interactive
+        )  # User can resize
+        self.treeWidget.header().setSectionResizeMode(
+            2, QtWidgets.QHeaderView.Interactive
+        )  # User can resize
+
+        # Enable sorting by clicking on column headers
+        self.treeWidget.setSortingEnabled(True)
+        self.treeWidget.sortByColumn(
+            0, Qt.AscendingOrder
+        )  # Default sort by Layer name (column 0)
         self.label_noUser.hide()
         delegate = IconQfieldDelegate()
         self.treeWidget.setItemDelegate(delegate)
@@ -186,6 +216,12 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             lambda state: asyncio.run(self.loadMapsThread(state))
         )
         asyncio.run(self.loadMapsThread(checked))
+
+        # Initialize thumbnail label based on checkbox state
+        if self.checkBox_thumbnail.checkState() == 2:  # Checked
+            self.label_thumbnail.setText("")  # Clear placeholder when enabled
+        else:  # Unchecked
+            self.label_thumbnail.setText("Disabled")  # Show placeholder when disabled
 
     def qfieldSync(self):
         self.layman.qfieldWorking = True
@@ -768,18 +804,29 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.permissionsConnected = True
 
     def showThumbnailMap(self, it, workspace):
-        map = it  ##pro QTreeWidget
-        if self.checkBox_thumbnail.checkState() == 0:
+        map = it
+        if self.checkBox_thumbnail.checkState() == 2:
             map = self.utils.removeUnacceptableChars(str(map))
-            url = self.layman_api.get_layer_thumbnail_url(workspace, str(map).lower())
-            r = requests.get(url, headers=self.utils.getAuthHeader(self.layman.authCfg))
-            data = r.content
-            pixmap = QPixmap(200, 200)
-            pixmap.loadFromData(data)
-            smaller_pixmap = pixmap.scaled(
-                200, 200, Qt.KeepAspectRatio, Qt.FastTransformation
-            )
-            self.label_thumbnail.setPixmap(smaller_pixmap)
+            url = self.layman_api.get_map_thumbnail_url(workspace, str(map).lower())
+            auth_headers = self.utils.getAuthHeader(self.layman.authCfg)
+            r = requests.get(url, headers=auth_headers)
+            if r.status_code == 200:
+                data = r.content
+                pixmap = QPixmap(200, 200)
+                pixmap.loadFromData(data)
+                smaller_pixmap = pixmap.scaled(
+                    200, 200, Qt.KeepAspectRatio, Qt.FastTransformation
+                )
+                self.label_thumbnail.setPixmap(smaller_pixmap)
+                self.label_thumbnail.setText("")
+            else:
+                self.label_thumbnail.clear()
+                self.label_thumbnail.setText(f"Error {r.status_code}")
+                self.label_thumbnail.setAlignment(Qt.AlignCenter)
+        else:
+            self.label_thumbnail.clear()
+            self.label_thumbnail.setText("Disabled")
+            self.label_thumbnail.setAlignment(Qt.AlignCenter)
 
     def fillCompositionDict(self):
         url = self.layman_api.get_get_all_maps_url()
@@ -791,6 +838,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def enableLoadMapButtons(self, item):
         self.pushButton_map.setEnabled(True)
         self.pushButton_copyUrl.setEnabled(True)
+        self.pushButton_map.setFocus()
 
     def setPermissionsButton(self, item):
         if item.text(2) != "own":
@@ -1111,14 +1159,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         projection = data["projection"].replace("epsg:", "").replace("EPSG:", "")
         if projection != "":
             crs = QgsCoordinateReferenceSystem(int(projection))
-            if self.layman.crsChangedConnect == False:
-                self.layman.project.setCrs(crs)
-                self.layman.project.crsChanged.connect(self.layman.crsChanged)
-                self.crsChangedConnect = True
-            else:
-                self.crsChangedConnect = False
-                self.layman.project.setCrs(crs)
-                self.crsChangedConnect = True
+            self.layman.project.setCrs(crs)
         self.pushButton_map.setEnabled(False)
         self.loadComposition.emit(name, service, workspace)
 
@@ -1168,7 +1209,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     QMessageBox.Icon.Question,
                     "Layman",
                     self.tr(
-                        "Chcete otevřít kompozici v prázdném projektu QGIS? Váš stávající projekt se zavře. Pokud zvolíte Ne, kompozice se sloučí se stávajícím mapovým obsahem."
+                        "Do you want open a composition in an empty QGIS project? Your existing project will be closed. If you select No, the composition will be merged with the existing map content."
                     ),
                 )
                 msgbox.addButton(QMessageBox.StandardButton.Yes)
@@ -1182,9 +1223,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         data["projection"].replace("epsg:", "").replace("EPSG:", "")
                     )
                     crs = QgsCoordinateReferenceSystem(int(projection))
-                    self.crsChangedConnect = False
                     QgsProject.instance().setCrs(crs)
-                    self.crsChangedConnect = True
                     QgsProject.instance().setTitle(data["title"])
                     self.layman.iface.newProjectCreated.connect(
                         self.layman.removeCurrent
@@ -1582,9 +1621,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             else:
                 self.utils.emitMessageBox.emit(
                     [
-                        "Práva nebyla uložena pro vrstvu: "
+                        "Práva nebyla uložena pro mapu: "
                         + str(failed).replace("[", "").replace("]", ""),
-                        "Permissions was not saved for layer: "
+                        "Permissions were not saved for composition: "
                         + str(failed).replace("[", "").replace("]", ""),
                     ]
                 )

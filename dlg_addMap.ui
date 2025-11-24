@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
-    <height>700</height>
+    <width>1200</width>
+    <height>800</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -21,8 +21,8 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>700</width>
-    <height>500</height>
+    <width>900</width>
+    <height>600</height>
    </size>
   </property>
   <property name="maximumSize">
@@ -34,9 +34,11 @@
   <property name="windowTitle">
    <string>Layman - Map compositions catalogue</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout" stretch="8,2">
+  <layout class="QVBoxLayout" name="mainVerticalLayout">
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="8,2">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout">
      <item>
       <widget class="QLabel" name="label_noUser">
        <property name="text">
@@ -235,7 +237,7 @@
            </column>
            <column>
             <property name="text">
-             <string>Qfield</string>
+             <string>CRS</string>
             </property>
            </column>
           </widget>
@@ -251,23 +253,10 @@
      <item>
       <widget class="QCheckBox" name="checkBox_thumbnail">
        <property name="text">
-        <string>Disable</string>
+        <string>Thumbnail</string>
        </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="label_2">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>Preview:</string>
-       </property>
-       <property name="buddy">
-        <cstring>checkBox_thumbnail</cstring>
+       <property name="checked">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -291,14 +280,14 @@
          <height>200</height>
         </size>
        </property>
-       <property name="frameShape">
-        <enum>QFrame::Box</enum>
-       </property>
        <property name="text">
-        <string/>
+        <string>Disabled</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::Box</enum>
        </property>
       </widget>
      </item>
@@ -332,17 +321,6 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_map">
-       <property name="text">
-        <string>Load composition</string>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>icons/layer.png</normaloff>icons/layer.png</iconset>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="pushButton_setPermissions">
        <property name="text">
         <string>Set permissions</string>
@@ -350,17 +328,6 @@
        <property name="icon">
         <iconset>
          <normaloff>icons/share_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/share_FILL0_wght500_GRAD0_opsz24.png</iconset>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButton_delete">
-       <property name="text">
-        <string>Delete map</string>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
        </property>
       </widget>
      </item>
@@ -383,6 +350,47 @@
        <property name="icon">
         <iconset>
          <normaloff>icons/qfield.png</normaloff>icons/qfield.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="verticalSpacer_right">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>40</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     </layout>
+    </item>
+   </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_bottom_buttons">
+     <item>
+      <widget class="QPushButton" name="pushButton_map">
+       <property name="text">
+        <string>Load composition</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>icons/layer.png</normaloff>icons/layer.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_delete">
+       <property name="text">
+        <string>Delete composition</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</normaloff>icons/delete_FILL0_wght500_GRAD0_opsz24.png</iconset>
        </property>
       </widget>
      </item>

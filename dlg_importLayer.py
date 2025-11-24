@@ -61,8 +61,16 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.URI = URI
         self.layman = layman
         app = QtWidgets.QApplication.instance()
-        proxy_style = ProxyStyle(app.style())
-        self.setStyle(proxy_style)
+        if app and app.style():
+            try:
+                proxy_style = ProxyStyle(app.style())
+                self.setStyle(proxy_style)
+            except Exception as e:
+                import sys
+                import traceback
+
+                print(f"[Layman] ProxyStyle was not set: {e}", file=sys.stderr)
+                traceback.print_exc()
         self.setupUi(self)
         self.firstPostgreRun = True
         self.postgis_login = None

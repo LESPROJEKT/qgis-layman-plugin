@@ -177,11 +177,38 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             ).start()
         )
         self.filter.valueChanged.connect(self.filterResults)
-        self.treeWidget.setColumnWidth(0, 250)
-        self.treeWidget.setColumnWidth(1, 80)
-        self.treeWidget.setColumnWidth(2, 80)
-        self.treeWidget.setColumnWidth(3, 100)
-        self.treeWidget.setColumnWidth(4, 50)
+        # Set column widths
+        self.treeWidget.setColumnWidth(0, 280)  # Layer - trochu zúžený
+        self.treeWidget.setColumnWidth(1, 140)  # Owner - ještě širší
+        self.treeWidget.setColumnWidth(2, 80)  # Permissions
+        self.treeWidget.setColumnWidth(3, 80)  # CRS
+        self.treeWidget.setColumnWidth(4, 30)  # Status - menší
+
+        # Allow user to resize columns and maintain proportions when dialog is resized
+        self.treeWidget.header().setStretchLastSection(
+            False
+        )  # Don't stretch last section
+        self.treeWidget.header().setSectionResizeMode(
+            0, QtWidgets.QHeaderView.Stretch
+        )  # Layer column stretches to fill space
+        self.treeWidget.header().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Interactive
+        )  # User can resize
+        self.treeWidget.header().setSectionResizeMode(
+            2, QtWidgets.QHeaderView.Interactive
+        )  # User can resize
+        self.treeWidget.header().setSectionResizeMode(
+            3, QtWidgets.QHeaderView.Interactive
+        )  # User can resize
+        self.treeWidget.header().setSectionResizeMode(
+            4, QtWidgets.QHeaderView.Interactive
+        )  # User can resize
+
+        # Enable sorting by clicking on column headers
+        self.treeWidget.setSortingEnabled(True)
+        self.treeWidget.sortByColumn(
+            0, Qt.AscendingOrder
+        )  # Default sort by Layer name (column 0)
 
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.checkBox_own.stateChanged.connect(self.rememberValueLayer)
@@ -194,6 +221,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.checkBox_own.stateChanged.connect(
             lambda: self.filterResults(self.filter.text())
         )
+
+        # Initialize thumbnail label based on checkbox state
+        if self.checkBox_thumbnail.checkState() == 2:  # Checked
+            self.label_thumbnail.setText("")  # Clear placeholder when enabled
+        else:  # Unchecked
+            self.label_thumbnail.setText("Disabled")  # Show placeholder when disabled
         if self.isAuthorized:
             self.checkBox_own.setEnabled(True)
         else:
@@ -808,7 +841,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def showThumbnail2(self, it):
         layer = it.text(0)
         workspace = it.text(1)
-        if self.checkBox_thumbnail.checkState() == 0:
+        if self.checkBox_thumbnail.checkState() == 2:
             layer = self.layerNamesDict[layer]
             url = self.layman_api.get_layer_thumbnail_url(workspace, layer)
             r = requests.get(url, headers=self.utils.getAuthHeader(self.utils.authCfg))
@@ -819,6 +852,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 200, 200, Qt.KeepAspectRatio, Qt.FastTransformation
             )
             self.label_thumbnail.setPixmap(smaller_pixmap)
+            self.label_thumbnail.setAlignment(Qt.AlignCenter)
+            self.label_thumbnail.setText("")
+        else:
+            self.label_thumbnail.clear()
+            self.label_thumbnail.setText("Disabled")
             self.label_thumbnail.setAlignment(Qt.AlignCenter)
 
     def checkIfPostgis(self, it):
@@ -1056,6 +1094,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.pushButton_setPermissions.setEnabled(True)
             self.pushButton_delete.setEnabled(True)
+
+        # Set WMS button as default focus when layer is selected
+        self.pushButton.setFocus()
 
     def checkFileType(self, name, workspace):
         name = self.layerNamesDict[name]

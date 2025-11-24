@@ -21,15 +21,61 @@
        <property name="text">
         <string>Server:</string>
        </property>
+       <property name="font">
+        <font>
+         <weight>68</weight>
+        </font>
+       </property>
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBox_server"/>
+      <widget class="QComboBox" name="comboBox_server">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>40</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>40</height>
+        </size>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pushButton_Add">
        <property name="text">
-        <string>Add</string>
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>icons/edit_black.png</normaloff>icons/edit_black.png</iconset>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>40</width>
+         <height>40</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>40</width>
+         <height>40</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Add/Edit Server</string>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string>QPushButton { text-align: center; }</string>
        </property>
       </widget>
      </item>
@@ -37,7 +83,7 @@
    </item>
    <item>
     <layout class="QGridLayout" name="gridLayout_buttons">
-     <item row="0" column="0">
+     <item row="0" column="0" colspan="2">
       <widget class="QPushButton" name="pushButton_Connect">
        <property name="text">
         <string>Login</string>
@@ -48,18 +94,7 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QPushButton" name="pushButton_logout">
-       <property name="text">
-        <string>Logout</string>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>icons/logout.png</normaloff>icons/logout.png</iconset>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
+     <item row="1" column="0" colspan="2">
       <widget class="QPushButton" name="pushButton_NoLogin">
        <property name="text">
         <string>Continue without login</string>
@@ -70,17 +105,17 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="1">
-      <widget class="QPushButton" name="pushButton_close">
-       <property name="text">
-        <string>Close</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0" colspan="2">
+     <item row="2" column="0">
       <widget class="QPushButton" name="pushButton_register">
        <property name="text">
         <string>Register</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QPushButton" name="pushButton_close">
+       <property name="text">
+        <string>Close</string>
        </property>
       </widget>
      </item>
