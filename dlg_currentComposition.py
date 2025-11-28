@@ -609,6 +609,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         layerList = list()
         serviceList = list()
         self.layman.instance.refreshComposition()
+        composition = self.layman.instance.getComposition()
+        if "layers" not in composition:
+            composition["layers"] = []
         for i in reversed(range(0, len(composition["layers"]))):
             layerList.append(
                 self.utils.removeUnacceptableChars(composition["layers"][i]["title"])

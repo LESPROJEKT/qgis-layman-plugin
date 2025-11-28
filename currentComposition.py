@@ -116,6 +116,8 @@ class CurrentComposition(object):
             self.layers.append(layer)
 
     def setComposition(self, json):
+        if "layers" not in json:
+            json["layers"] = []
         self.composition = json
 
     def setWorkspace(self, new_workspace):
@@ -138,6 +140,8 @@ class CurrentComposition(object):
         )
         r = requests.get(url=url, headers=self.header)
         data = r.json()
+        if "layers" not in data:
+            data["layers"] = []
         self.composition = data
 
     def getPermissions(self):
