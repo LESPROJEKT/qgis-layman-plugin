@@ -740,6 +740,17 @@ class Layman(QObject):
             keyword = username
         name = self.utils.removeUnacceptableChars(title)
         self.existLayer = False
+        layer_uuids = self.get_layer_uuids()
+        uuid = layer_uuids.get(name)
+        if uuid is None:
+            url = self.layman_api.get_layer_url(self.laymanUsername, name)
+            r = self.utils.requestWrapper("GET", url, payload=None, files=None)
+            if r.status_code == 200:
+                data = r.json()
+                uuid = data.get("uuid")
+        if uuid is None:
+            raise ValueError(f"UUID not found for layer: {name}")
+        layer_identifier = "l_" + str(uuid)
         if type == "wms":
             wmsUrl = (self.URI + "/geoserver/" + keyword + "/ows").replace(
                 "/client", ""
@@ -759,7 +770,7 @@ class Layman(QObject):
                     "opacity": 1,
                     "url": wmsUrl,
                     "params": {
-                        "LAYERS": str(name),
+                        "LAYERS": layer_identifier,
                         "INFO_FORMAT": "application/vnd.ogc.gml",
                         "FORMAT": "image/png",
                         "VERSION": "1.3.0",
@@ -787,7 +798,7 @@ class Layman(QObject):
                     "wmsMaxScale": 0,
                     "maxResolution": None,
                     "minResolution": 0,
-                    "name": str(name),
+                    "name": layer_identifier,
                     "opacity": 1,
                     "protocol": {"format": self.vectorProtocol, "url": wfsUrl},
                     "ratio": 1.5,
@@ -2211,12 +2222,16 @@ class Layman(QObject):
                     r = self.utils.requestWrapper("GET", url, payload=None, files=None)
                     data = r.json()
                     url = data["wms"]["url"]
+                    layer_uuid = data.get("uuid")
+                    if layer_uuid is None:
+                        raise ValueError(f"UUID not found for layer: {layerName}")
+                    layer_identifier = "l_" + str(layer_uuid)
                     layer["className"] = self.rasterService
                     layer["url"] = url
                     layer["params"] = {
                         "FORMAT": "image/png",
                         "FROMCRS": "EPSG:3857",
-                        "LAYERS": self.utils.removeUnacceptableChars(layerName),
+                        "LAYERS": layer_identifier,
                         "VERSION": "1.3.0",
                     }
                     del layer["protocol"]
@@ -4505,17 +4520,51 @@ class Layman(QObject):
                     path = ""
                 for i in range(0, len(layers)):
                     for i in range(0, len(layers)):
-                        inComposite = False
-                        if self.checkExistingLayer(layers[i].name()) and inComposite:
-                            if not self.isXYZ(layers[i].name()):
-                                self.postRequest(layers[i].name(), True)
-                        else:
-                            if self.isXYZ(layers[i].name()):
-                                pass
+                        if not self.isXYZ(layers[i].name()):
+                            layer_exists = self.checkExistingLayer(layers[i].name())
+                            if not layer_exists:
+                                self.postRequest(
+                                    layers[i].name(),
+                                    auto=True,
+                                    thread=False,
+                                    noInfo=True,
+                                )
                             else:
-                                self.postRequest(layers[i].name(), True)
-                    layer_uuids = self.get_layer_uuids()
-                    uuid = layer_uuids.get(layer.name())
+                                self.postRequest(
+                                    layers[i].name(),
+                                    auto=True,
+                                    thread=False,
+                                    noInfo=True,
+                                )
+                            time.sleep(1.0)
+                    layerNameForApi = self.utils.removeUnacceptableChars(
+                        layers[i].name()
+                    )
+                    uuid = None
+                    max_retries = 10
+                    for retry in range(max_retries):
+                        url = self.layman_api.get_layer_url(
+                            self.laymanUsername, layerNameForApi
+                        )
+                        r = self.utils.requestWrapper(
+                            "GET", url, payload=None, files=None
+                        )
+                        if r.status_code == 200:
+                            data = r.json()
+                            uuid = data.get("uuid")
+                            if uuid is not None:
+                                break
+                        if uuid is None:
+                            layer_uuids = self.get_layer_uuids()
+                            uuid = layer_uuids.get(layerNameForApi)
+                            if uuid is not None:
+                                break
+                        if retry < max_retries - 1:
+                            time.sleep(0.5)
+                    if uuid is None:
+                        raise ValueError(
+                            f"UUID not found for layer: {layers[i].name()} after {max_retries} retries"
+                        )
                     for item in currentSet:
                         if self.utils.removeUnacceptableChars(
                             item[0]
@@ -4621,7 +4670,7 @@ class Layman(QObject):
                                 ),
                                 "url": wmsUrl,
                                 "params": {
-                                    "LAYERS": str(uuid),
+                                    "LAYERS": "l_" + str(uuid),
                                     "INFO_FORMAT": "application/vnd.ogc.gml",
                                     "FORMAT": "image/png",
                                     "VERSION": "1.3.0",
