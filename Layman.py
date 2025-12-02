@@ -729,15 +729,9 @@ class Layman(QObject):
         return ret
 
     def addExistingLayerToComposition(self, title, composition, type, layer):
-        if self.laymanUsername in self.findUrlParam(layer):
-            keyword = "layman"
-            if type == "wms":
-                keyword = keyword + "_wms"
-            else:
-                keyword = keyword
-        else:
-            username = self.parseUsernameFromUrl(self.findUrlParam(layer))
-            keyword = username
+        keyword = "layman"
+        if type == "wms":
+            keyword = keyword + "_wms"
         name = self.utils.removeUnacceptableChars(title)
         self.existLayer = False
         layer_uuids = self.get_layer_uuids()
@@ -782,7 +776,7 @@ class Layman(QObject):
             )
         if type == "wfs":
             styleUrl = self.layman_api.get_layer_style_url(self.laymanUsername, name)
-            wfsUrl = (self.URI + "/rest/geoserver/" + username + "/wfs").replace(
+            wfsUrl = (self.URI + "/rest/geoserver/" + keyword + "/wfs").replace(
                 "/client", ""
             )
             composition["layers"].append(

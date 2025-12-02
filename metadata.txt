@@ -10,7 +10,7 @@
 name=Layman
 qgisMinimumVersion=3.26
 description=Layman
-version=3.1.2
+version=3.1.3
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -55,6 +55,8 @@ changelog=
 	2.5 - repository update
 	2.6 - roles support
 	2.7 - qfield cloud support
+	3.0 - Layman 2 support
+	3.1 - UI changes
 # Tags are comma separated with spaces allowed
 tags=python
 
