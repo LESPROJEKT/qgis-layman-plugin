@@ -3690,14 +3690,37 @@ class Layman(QObject):
                         if not (self.json_export(layer_name)):
                             self.reprojectionFailed.emit(layer_name)
                             return
-        geoPath = self.getTempPath(self.utils.removeUnacceptableChars(layer_name))
-        stylePath = self.getTempPath(
-            self.utils.removeUnacceptableChars(layer_name)
-        ).replace("geojson", "qml")
+        geoPath = self.getTempPath(
+            self.utils.removeUnacceptableChars(layer_name).lower()
+        )
+
+        stylePath = None
+        is_vector_layer = False
+        for layer in QgsProject.instance().mapLayers().values():
+            if (
+                layer.name() == layer_name
+                and layer.type() == QgsMapLayerType.VectorLayer
+            ):
+                is_vector_layer = True
+                break
+
+        if is_vector_layer:
+            style_format = self.utils.getConfigItem("style_format")
+            if not style_format:
+                style_format = "qml"
+
+            base_path = self.getTempPath(
+                self.utils.removeUnacceptableChars(layer_name).lower()
+            )
+            if style_format == "sld":
+                stylePath = base_path.replace("geojson", "sld")
+            else:
+                stylePath = base_path.replace("geojson", "qml")
+
         if os.path.getsize(geoPath) > self.CHUNK_SIZE:
             self.postInChunks(layer_name, "post")
         else:
-            if os.path.isfile(stylePath):  ## existuje style?
+            if stylePath and os.path.isfile(stylePath):  ## existuje style?
                 files = [
                     ("file", open(geoPath, "rb")),
                     ("style", open(stylePath, "rb")),
@@ -4778,8 +4801,23 @@ class Layman(QObject):
     def patchLayer(self, layer_name, data):
         self.layerName = self.utils.removeUnacceptableChars(layer_name)
         geoPath = self.getTempPath(self.layerName)
-        stylePath = self.getTempPath(self.layerName).replace("geojson", "qml")
-        if os.path.isfile(stylePath):  ## existuje styl?
+
+        stylePath = None
+        layers = QgsProject.instance().mapLayersByName(layer_name)
+        is_vector_layer = layers and layers[0].type() == QgsMapLayerType.VectorLayer
+
+        if is_vector_layer:
+            style_format = self.utils.getConfigItem("style_format")
+            if not style_format:
+                style_format = "qml"
+
+            base_path = self.getTempPath(self.layerName.lower())
+            if style_format == "sld":
+                stylePath = base_path.replace("geojson", "sld")
+            else:
+                stylePath = base_path.replace("geojson", "qml")
+
+        if stylePath and os.path.isfile(stylePath):  ## existuje styl?
             files = [("file", open(geoPath, "rb")), ("style", open(stylePath, "rb"))]
         else:
             files = {

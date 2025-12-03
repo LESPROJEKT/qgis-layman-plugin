@@ -239,6 +239,17 @@ class LaymanUtils(QObject):
         if index in (0, 1, 2) and self.port:
             self.showQgisBar(["Port byl uložen.", "Port has been saved."], Qgis.Success)
 
+    def setStyleFormat(self, format_type):
+        if format_type in ("qml", "sld"):
+            self.saveToIni("style_format", format_type)
+            self.showQgisBar(
+                [
+                    f"Formát stylu byl uložen: {format_type.upper()}.",
+                    f"Style format has been saved: {format_type.upper()}.",
+                ],
+                Qgis.Success,
+            )
+
     def saveToIni(self, key, value):
         self.appendIniItem(key, value)
 
