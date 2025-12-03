@@ -117,6 +117,29 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.comboBox_port.setCurrentIndex(2)
         self.comboBox_port.currentIndexChanged.connect(self.utils.setPortValue)
 
+        style_format = self.utils.getConfigItem("style_format")
+        if not style_format:
+            style_format = "qml"  # Default to QML
+        if style_format == "sld":
+            self.radioButton_sld.setChecked(True)
+            self.radioButton_qml.setChecked(False)
+        else:
+            self.radioButton_qml.setChecked(True)
+            self.radioButton_sld.setChecked(False)
+
+        def onStyleFormatChanged():
+            if self.radioButton_qml.isChecked():
+                self.utils.setStyleFormat("qml")
+            elif self.radioButton_sld.isChecked():
+                self.utils.setStyleFormat("sld")
+
+        self.radioButton_qml.toggled.connect(
+            lambda checked: onStyleFormatChanged() if checked else None
+        )
+        self.radioButton_sld.toggled.connect(
+            lambda checked: onStyleFormatChanged() if checked else None
+        )
+
         current_version = self.utils.getVersion()
         version_parts = current_version.split(".")
 
