@@ -580,6 +580,17 @@ class Layman(QObject):
                             if server == servers[i][1]:
                                 self.setServers(servers, i)
                                 self.server = server.replace("/client", "")
+
+                        
+                        if not self.server:
+                            self.utils.emitMessageBox.emit(
+                                [
+                                    "Projekt obsahuje odkaz na Layman server, který není v aktuálním seznamu serverů. Zkontrolujte nastavení Layman serverů a přihlaste se ručně.",
+                                    "Project refers to a Layman server that is not present in the current server list. Please check Layman server settings and log in manually.",
+                                ]
+                            )
+                            return
+
                         self.openAuthLiferayUrl2("", True)
                         self.loggedThrowProject = True
                         self.current = name
@@ -5679,6 +5690,15 @@ class Layman(QObject):
             if isinstance(self.dlg, ConnectionManagerDialog):
                 self.rememberLastServer(self.dlg.comboBox_server.currentIndex())
                 self.dlg.pushButton_Connect.setEnabled(False)
+        
+        if not self.server:
+            self.utils.emitMessageBox.emit(
+                [
+                    "Layman server není nastaven. Zkontrolujte nastavení serverů a zkuste se přihlásit znovu.",
+                    "Layman server is not configured. Please check server settings and try to log in again.",
+                ]
+            )
+            return
         self.isAuthorized = True
         self.utils.isAuthorized = True
         if self.firstLogin or (
