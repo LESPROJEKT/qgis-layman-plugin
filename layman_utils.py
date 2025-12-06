@@ -117,7 +117,7 @@ class LaymanUtils(QObject):
                     Qgis.Warning,
                     "",
                 )
-            return
+            raise LaymanRequestError(f"Request failed: {info}") from ex
         if emitErr:
             if response.status_code not in (200, 201):
                 print(url)
@@ -1155,8 +1155,13 @@ QPushButton::indicator {
 
     def getUserScreenNames(self):
         usersEndpoint = self.layman_api.get_users_url()
-        r = self.requestWrapper("GET", usersEndpoint, payload=None, files=None)
+        try:
+            r = self.requestWrapper("GET", usersEndpoint, payload=None, files=None)
+        except LaymanRequestError:
+            return {}
         res = self.fromByteToJson(r.content)
+        if res is None:
+            return {}
         user_screen_names = {}
         for user in res:
             user_screen_names[user["username"]] = user["screen_name"]
@@ -1656,3 +1661,8 @@ class CenterIconDelegate(QStyledItemDelegate):
             icon.paint(painter, iconRect, Qt.AlignCenter)
         else:
             super().paint(painter, option, index)
+
+
+class LaymanRequestError(Exception):
+    pass
+
