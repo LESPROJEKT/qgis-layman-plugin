@@ -73,6 +73,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     progressStart = pyqtSignal()
     onRefreshCurrentForm = pyqtSignal()
     qfieldUpdate = pyqtSignal()
+    askLayerPermissions = pyqtSignal(list, object)
 
     def __init__(self, utils, isAuthorized, URI, layman, parent=None):
         """Constructor."""
@@ -125,6 +126,24 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressStart.connect(self._onProgressStart)
         self.onRefreshCurrentForm.connect(self.on_layers_removed)
         self.qfieldUpdate.connect(self.UpdateQfield)
+        self.askLayerPermissions.connect(self._showLayerPermissionsDialog)
+
+    def _showLayerPermissionsDialog(
+        self, layers_with_different_permissions, reply_result
+    ):
+        if self.layman.locale == "cs":
+            message = "Chcete nastavit práva i na vrstvy obsažené v kompozici?"
+        else:
+            message = "Do you want to set permissions also for layers contained in the composition?"
+
+        reply = QMessageBox.question(
+            self,
+            self.tr("Different layer permissions"),
+            message,
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes,
+        )
+        reply_result[0] = reply
 
     def setStackWidget(self, option: str, refresh: bool = True) -> None:
         page_map = {
@@ -1119,10 +1138,27 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     if item[2] == "Add from server" or item[2] == "Přidat ze serveru":
                         for layer in layers:
                             if layer.name() == item[0]:
-                                self.layman.addExistingLayerToComposition(
-                                    layer.name(), composition, item[1].lower(), layer
-                                )
-                                layers.remove(layer)
+                                is_external = False
+                                provider = layer.dataProvider()
+                                if provider:
+                                    provider_name = provider.name()
+                                    uri = provider.dataSourceUri()
+                                    
+                                    if "type=xyz" in uri or provider_name == "xyz" or self.layman.isXYZ(layer.name()):
+                                        is_external = True
+                                    elif provider_name == "arcgismapserver":
+                                        is_external = True
+                                    elif isinstance(layer, QgsRasterLayer) and layer.dataProvider().uri().uri() != "":
+                                        if "geoserver" not in layer.dataProvider().dataSourceUri():
+                                            is_external = True
+                                
+                                if is_external:
+                                    continue
+                                else:
+                                    self.layman.addExistingLayerToComposition(
+                                        layer.name(), composition, item[1].lower(), layer
+                                    )
+                                    layers.remove(layer)
 
                     if (
                         item[2] == "Add and overwrite"
@@ -1196,36 +1232,46 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if self.layman.laymanUsername not in read_access:
             read_access.append(self.layman.laymanUsername)
 
-        data = {
-            "access_rights.read": self.utils.listToString(read_access),
-            "access_rights.write": self.utils.listToString(write_access),
-        }
+        read_access_set = set(read_access)
+        write_access_set = set(write_access)
 
         map = self.utils.removeUnacceptableChars(map)
-        url = self.layman_api.get_map_url(self.layman.laymanUsername, map)
-        response = requests.patch(
-            url, data=data, headers=self.utils.getAuthHeader(self.utils.authCfg)
-        )
-        if response.status_code != 200:
-            self.failed.append(map)
-        if len(self.failed) == 0:
-            self.permissionInfo.emit(True, self.failed, 0)
-        else:
-            self.permissionInfo.emit(False, self.failed, 0)
         url = self.layman_api.get_map_file_url(self.layman.laymanUsername, map)
-        composition = requests.get(
-            url, data=data, headers=self.utils.getAuthHeader(self.utils.authCfg)
-        ).json()
-        layers_url = self.layman_api.get_layers_url(self.layman.laymanUsername)
         headers = self.utils.getAuthHeader(self.utils.authCfg)
+
         try:
-            response = requests.get(layers_url, headers=headers)
-            response.raise_for_status()
-            all_layers = response.json()
+            composition_response = requests.get(url, headers=headers)
+            composition_response.raise_for_status()
+            composition = composition_response.json()
         except Exception as e:
-            self.failed.append(f"ERROR: Failed to fetch layers: {e}")
+            error_msg = f"ERROR: Failed to fetch composition: {e}"
+            self.failed.append(error_msg)
             self.permissionInfo.emit(False, self.failed, 0)
             return
+
+        all_layers = []
+        try:
+            all_layers_url = self.layman_api.get_get_all_layers_url()
+            response = requests.get(all_layers_url, headers=headers)
+            if response.status_code == 200:
+                all_layers = response.json()
+        except Exception as e:
+            pass
+
+        if not all_layers:
+            layers_url = self.layman_api.get_layers_url(self.layman.laymanUsername)
+            try:
+                response = requests.get(layers_url, headers=headers)
+                response.raise_for_status()
+                all_layers = response.json()
+            except Exception as e:
+                error_msg = f"ERROR: Failed to fetch layers: {e}"
+                self.failed.append(error_msg)
+                self.permissionInfo.emit(False, self.failed, 0)
+                return
+
+        layers_with_different_permissions = []
+        user_owned_layers = []
 
         for layer in composition.get("layers", []):
             params = layer.get("params", {})
@@ -1233,24 +1279,163 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if not layer_name:
                 continue
 
+            is_layman_layer = False
+            if layer.get("className") in ["HSLayers.Layer.WMS", "WMS"]:
+                if "/geoserver/" in layer.get("url", ""):
+                    is_layman_layer = True
+            elif layer.get("className") in ["OpenLayers.Layer.Vector", "Vector"]:
+                protocol = layer.get("protocol", {})
+                if "/geoserver/" in protocol.get("url", ""):
+                    is_layman_layer = True
+
+            if not is_layman_layer:
+                continue
+
             matching_layer = next(
                 (l for l in all_layers if l.get("name") == layer_name), None
             )
+
+            if not matching_layer and layer_name.startswith("l_"):
+                uuid = layer_name[2:]
+                matching_layer = next(
+                    (l for l in all_layers if l.get("uuid") == uuid), None
+                )
+
             if not matching_layer:
-                self.failed.append(layer_name)
+                try:
+                    layer_url = self.layman_api.get_layer_url(
+                        self.layman.laymanUsername, layer_name
+                    )
+                    layer_response = requests.get(layer_url, headers=headers)
+                    if layer_response.status_code == 200:
+                        matching_layer = layer_response.json()
+                except Exception:
+                    pass
+
+            if not matching_layer:
                 continue
 
-            used_maps = matching_layer.get("used_in_maps", [])
-            is_used_in_map = any(
-                m.get("name") == map
-                and m.get("workspace") == self.layman.laymanUsername
-                for m in used_maps
+            layer_workspace = matching_layer.get("workspace")
+            is_user_owned = layer_workspace == self.layman.laymanUsername
+
+            if not is_user_owned:
+                continue
+
+            user_owned_layers.append(layer_name)
+
+            layer_read_access = set(
+                matching_layer.get("access_rights", {}).get("read", [])
             )
-            # if not is_used_in_map:
-            #     continue
+            layer_write_access = set(
+                matching_layer.get("access_rights", {}).get("write", [])
+            )
+            if (
+                layer_read_access != read_access_set
+                or layer_write_access != write_access_set
+            ):
+                layers_with_different_permissions.append(layer_name)
+
+        if layers_with_different_permissions:
+            reply_result = [None]
+
+            self.askLayerPermissions.emit(
+                layers_with_different_permissions, reply_result
+            )
+
+            import time
+
+            timeout = 30
+            start_time = time.time()
+            while reply_result[0] is None and (time.time() - start_time) < timeout:
+                time.sleep(0.1)
+
+            if reply_result[0] is None:
+                reply_result[0] = QMessageBox.No
+
+            reply = reply_result[0]
+
+            if reply == QMessageBox.No:
+                data = {
+                    "access_rights.read": self.utils.listToString(read_access),
+                    "access_rights.write": self.utils.listToString(write_access),
+                }
+                url = self.layman_api.get_map_url(self.layman.laymanUsername, map)
+                response = requests.patch(url, data=data, headers=headers)
+                if response.status_code != 200:
+                    self.failed.append(map)
+                if len(self.failed) == 0:
+                    self.permissionInfo.emit(True, self.failed, 0)
+                else:
+                    self.permissionInfo.emit(False, self.failed, 0)
+                return
+
+        data = {
+            "access_rights.read": self.utils.listToString(read_access),
+            "access_rights.write": self.utils.listToString(write_access),
+        }
+
+        url = self.layman_api.get_map_url(self.layman.laymanUsername, map)
+        response = requests.patch(url, data=data, headers=headers)
+        if response.status_code != 200:
+            self.failed.append(map)
+
+        for layer in composition.get("layers", []):
+            params = layer.get("params", {})
+            layer_name = params.get("LAYERS")
+            if not layer_name:
+                continue
+
+            is_layman_layer = False
+            if layer.get("className") in ["HSLayers.Layer.WMS", "WMS"]:
+                if "/geoserver/" in layer.get("url", ""):
+                    is_layman_layer = True
+            elif layer.get("className") in ["OpenLayers.Layer.Vector", "Vector"]:
+                protocol = layer.get("protocol", {})
+                if "/geoserver/" in protocol.get("url", ""):
+                    is_layman_layer = True
+
+            if not is_layman_layer:
+                continue
+
+            matching_layer = next(
+                (l for l in all_layers if l.get("name") == layer_name), None
+            )
+
+            if not matching_layer and layer_name.startswith("l_"):
+                uuid = layer_name[2:]
+                matching_layer = next(
+                    (l for l in all_layers if l.get("uuid") == uuid), None
+                )
+
+            if not matching_layer:
+                try:
+                    layer_url = self.layman_api.get_layer_url(
+                        self.layman.laymanUsername, layer_name
+                    )
+                    layer_response = requests.get(layer_url, headers=headers)
+                    if layer_response.status_code == 200:
+                        matching_layer = layer_response.json()
+                except Exception:
+                    pass
+
+            if not matching_layer:
+                continue
+
+            layer_workspace = matching_layer.get("workspace")
+            is_user_owned = layer_workspace == self.layman.laymanUsername
+
+            if not is_user_owned:
+                continue
 
             layer_url = matching_layer.get("url")
-            requests.patch(layer_url, data=data, headers=headers)
+            layer_response = requests.patch(layer_url, data=data, headers=headers)
+            if layer_response.status_code != 200:
+                self.failed.append(layer_name)
+
+        if len(self.failed) == 0:
+            self.permissionInfo.emit(True, self.failed, 0)
+        else:
+            self.permissionInfo.emit(False, self.failed, 0)
 
     def getTableWidgetByTabName(self, tab_widget, tab_name):
         for i in range(tab_widget.count()):
@@ -1891,9 +2076,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if success:
             self.showInfoDialogOnTop(self.tr("Permissions was saved successfully."))
         else:
+            failed_str = str(failed).replace("[", "").replace("]", "").replace("'", "")
             self.showInfoDialogOnTop(
-                self.tr("Permissions were not saved for composition: ")
-                + str(failed).replace("[", "").replace("]", "")
+                self.tr("Permissions were not saved for composition: ") + failed_str
             )
 
     def setMetadataUI(self):
