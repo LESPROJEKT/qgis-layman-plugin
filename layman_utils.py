@@ -1070,10 +1070,33 @@ QPushButton::indicator {
                     projekt.removeMapLayer(vrstva)
 
     def compare_json_layers(self, schema1, schema2):
-        layers1 = schema1["layers"]
-        layers2 = schema2["layers"]
-        layer_names1 = set(layer["title"] for layer in layers1)
-        layer_names2 = set(layer["title"] for layer in layers2)
+        # Handle cases where 'layers' key might not exist
+        if not isinstance(schema1, dict) or "layers" not in schema1:
+            layers1 = []
+        else:
+            layers1 = schema1["layers"]
+
+        if not isinstance(schema2, dict) or "layers" not in schema2:
+            layers2 = []
+        else:
+            layers2 = schema2["layers"]
+
+        # Ensure layers1 and layers2 are lists
+        if not isinstance(layers1, list):
+            layers1 = []
+        if not isinstance(layers2, list):
+            layers2 = []
+
+        layer_names1 = set(
+            layer["title"]
+            for layer in layers1
+            if isinstance(layer, dict) and "title" in layer
+        )
+        layer_names2 = set(
+            layer["title"]
+            for layer in layers2
+            if isinstance(layer, dict) and "title" in layer
+        )
         layer_canvas = set(
             [layer.name() for layer in QgsProject.instance().mapLayers().values()]
         )
@@ -1192,8 +1215,16 @@ QPushButton::indicator {
         usernames_set = set(usernames)
         common_users = []
         for user in qfield_users:
-            if user["username_display"] in usernames_set:
-                common_users.append(user["username_display"])
+            # Handle both dictionary and string formats
+            if isinstance(user, dict):
+                username_display = user.get("username_display")
+            elif isinstance(user, str):
+                username_display = user
+            else:
+                continue
+
+            if username_display and username_display in usernames_set:
+                common_users.append(username_display)
         return common_users
 
     def isWmsOrWfs(self, layer):
@@ -1665,4 +1696,3 @@ class CenterIconDelegate(QStyledItemDelegate):
 
 class LaymanRequestError(Exception):
     pass
-

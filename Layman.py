@@ -581,7 +581,6 @@ class Layman(QObject):
                                 self.setServers(servers, i)
                                 self.server = server.replace("/client", "")
 
-                        
                         if not self.server:
                             self.utils.emitMessageBox.emit(
                                 [
@@ -745,16 +744,93 @@ class Layman(QObject):
             keyword = keyword + "_wms"
         name = self.utils.removeUnacceptableChars(title)
         self.existLayer = False
+
+        if layer is not None:
+            provider = layer.dataProvider()
+            if provider:
+                provider_name = provider.name()
+                uri = provider.dataSourceUri()
+                
+                if provider_name == "arcgismapserver":
+                    return
+                
+                if "type=xyz" in uri or provider_name == "xyz":
+                    return
+                
+                if self.isXYZ(layer.name()):
+                    return
+                
+                if provider_name == "wms":
+                    try:
+                        wms_url = None
+                        if "url=" in uri:
+                            url_part = uri.split("url=")[1]
+                            if "&" in url_part:
+                                wms_url = url_part.split("&")[0]
+                            else:
+                                wms_url = url_part
+                        
+                        if wms_url:
+                            import urllib.parse
+                            wms_url_decoded = urllib.parse.unquote(wms_url)
+                            layman_base_url = self.URI.replace("/client", "") if self.URI else ""
+                            if layman_base_url and layman_base_url not in wms_url_decoded:
+                                return
+                    except Exception:
+                        pass
+
         layer_uuids = self.get_layer_uuids()
         uuid = layer_uuids.get(name)
+        layer_workspace = self.laymanUsername
+
+        if uuid is None:
+            try:
+                all_layers_url = self.layman_api.get_get_all_layers_url()
+                r = self.utils.requestWrapper(
+                    "GET", all_layers_url, payload=None, files=None
+                )
+                if r and r.status_code == 200:
+                    all_layers = r.json()
+                    matching_layer = next(
+                        (l for l in all_layers if l.get("name") == name), None
+                    )
+                    if matching_layer:
+                        layer_workspace = matching_layer.get("workspace")
+                        uuid = matching_layer.get("uuid")
+                        if layer_workspace == "root":
+                            return
+
+            except Exception:
+                pass
+
         if uuid is None:
             url = self.layman_api.get_layer_url(self.laymanUsername, name)
             r = self.utils.requestWrapper("GET", url, payload=None, files=None)
-            if r.status_code == 200:
+            if r and r.status_code == 200:
                 data = r.json()
                 uuid = data.get("uuid")
+                layer_workspace = data.get("workspace", self.laymanUsername)
+                if layer_workspace == "root":
+                    return
+            elif r and r.status_code == 400:
+                try:
+                    all_layers_url = self.layman_api.get_get_all_layers_url()
+                    r_all = self.utils.requestWrapper(
+                        "GET", all_layers_url, payload=None, files=None
+                    )
+                    if r_all and r_all.status_code == 200:
+                        all_layers = r_all.json()
+                        matching_layer = next(
+                            (l for l in all_layers if l.get("name") == name), None
+                        )
+                        if matching_layer and matching_layer.get("workspace") == "root":
+                            return
+                except Exception:
+                    pass
+        
         if uuid is None:
             raise ValueError(f"UUID not found for layer: {name}")
+
         layer_identifier = "l_" + str(uuid)
         if type == "wms":
             wmsUrl = (self.URI + "/geoserver/" + keyword + "/ows").replace(
@@ -786,7 +862,7 @@ class Layman(QObject):
                 }
             )
         if type == "wfs":
-            styleUrl = self.layman_api.get_layer_style_url(self.laymanUsername, name)
+            styleUrl = self.layman_api.get_layer_style_url(layer_workspace, name)
             wfsUrl = (self.URI + "/rest/geoserver/" + keyword + "/wfs").replace(
                 "/client", ""
             )
@@ -4547,51 +4623,73 @@ class Layman(QObject):
                 if path == "root":
                     path = ""
                 for i in range(0, len(layers)):
-                    for i in range(0, len(layers)):
-                        if not self.isXYZ(layers[i].name()):
-                            layer_exists = self.checkExistingLayer(layers[i].name())
-                            if not layer_exists:
-                                self.postRequest(
-                                    layers[i].name(),
-                                    auto=True,
-                                    thread=False,
-                                    noInfo=True,
-                                )
-                            else:
-                                self.postRequest(
-                                    layers[i].name(),
-                                    auto=True,
-                                    thread=False,
-                                    noInfo=True,
-                                )
-                            time.sleep(1.0)
-                    layerNameForApi = self.utils.removeUnacceptableChars(
-                        layers[i].name()
-                    )
-                    uuid = None
-                    max_retries = 10
-                    for retry in range(max_retries):
-                        url = self.layman_api.get_layer_url(
-                            self.laymanUsername, layerNameForApi
+                    provider = layers[i].dataProvider()
+                    is_external = False
+                    if provider:
+                        provider_name = provider.name()
+                        uri = provider.dataSourceUri()
+                        if "type=xyz" in uri or provider_name == "xyz" or self.isXYZ(layers[i].name()):
+                            is_external = True
+                        elif provider_name == "arcgismapserver":
+                            is_external = True
+                        elif isinstance(layers[i], QgsRasterLayer) and layers[i].dataProvider().uri().uri() != "":
+                            if "geoserver" not in layers[i].dataProvider().dataSourceUri():
+                                is_external = True
+                    
+                    if not is_external:
+                        for i in range(0, len(layers)):
+                            if not self.isXYZ(layers[i].name()):
+                                layer_exists = self.checkExistingLayer(layers[i].name())
+                                if not layer_exists:
+                                    self.postRequest(
+                                        layers[i].name(),
+                                        auto=True,
+                                        thread=False,
+                                        noInfo=True,
+                                    )
+                                else:
+                                    self.postRequest(
+                                        layers[i].name(),
+                                        auto=True,
+                                        thread=False,
+                                        noInfo=True,
+                                    )
+                                time.sleep(1.0)
+                        layerNameForApi = self.utils.removeUnacceptableChars(
+                            layers[i].name()
                         )
-                        r = self.utils.requestWrapper(
-                            "GET", url, payload=None, files=None
-                        )
-                        if r.status_code == 200:
-                            data = r.json()
-                            uuid = data.get("uuid")
-                            if uuid is not None:
-                                break
+                        uuid = None
+                        max_retries = 10
+                        for retry in range(max_retries):
+                            url = self.layman_api.get_layer_url(
+                                self.laymanUsername, layerNameForApi
+                            )
+                            r = self.utils.requestWrapper(
+                                "GET", url, payload=None, files=None
+                            )
+                            if r.status_code == 200:
+                                data = r.json()
+                                uuid = data.get("uuid")
+                                if uuid is not None:
+                                    break
+                            if uuid is None:
+                                layer_uuids = self.get_layer_uuids()
+                                uuid = layer_uuids.get(layerNameForApi)
+                                if uuid is not None:
+                                    break
+                            if retry < max_retries - 1:
+                                time.sleep(0.5)
                         if uuid is None:
-                            layer_uuids = self.get_layer_uuids()
-                            uuid = layer_uuids.get(layerNameForApi)
-                            if uuid is not None:
-                                break
-                        if retry < max_retries - 1:
-                            time.sleep(0.5)
-                    if uuid is None:
-                        raise ValueError(
-                            f"UUID not found for layer: {layers[i].name()} after {max_retries} retries"
+                            raise ValueError(
+                                f"UUID not found for layer: {layers[i].name()} after {max_retries} retries"
+                            )
+                        layerNameForApi = self.utils.removeUnacceptableChars(
+                            layers[i].name()
+                        )
+                    else:
+                        uuid = None
+                        layerNameForApi = self.utils.removeUnacceptableChars(
+                            layers[i].name()
                         )
                     for item in currentSet:
                         if self.utils.removeUnacceptableChars(
@@ -5690,7 +5788,7 @@ class Layman(QObject):
             if isinstance(self.dlg, ConnectionManagerDialog):
                 self.rememberLastServer(self.dlg.comboBox_server.currentIndex())
                 self.dlg.pushButton_Connect.setEnabled(False)
-        
+
         if not self.server:
             self.utils.emitMessageBox.emit(
                 [
