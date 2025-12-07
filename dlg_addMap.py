@@ -1425,6 +1425,20 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     repairUrl = self.utils.convertUrlFromHex(repairUrl)
                     subgroupName = ""
                     everyone = False
+                    
+                    layer_workspace = None
+                    if "style" in data["layers"][x] and data["layers"][x]["style"]:
+                        style_url = data["layers"][x]["style"]
+                        try:
+                            import urllib.parse
+                            parsed_url = urllib.parse.urlparse(style_url)
+                            path_parts = parsed_url.path.split("/")
+                            if "workspaces" in path_parts:
+                                workspace_index = path_parts.index("workspaces")
+                                if workspace_index + 1 < len(path_parts):
+                                    layer_workspace = path_parts[workspace_index + 1]
+                        except Exception:
+                            pass
 
                     if "path" in data["layers"][x]:
                         groupName = data["layers"][x]["path"]
@@ -1462,6 +1476,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                                     everyone,
                                     minRes,
                                     maxRes,
+                                    layer_workspace,
                                 )
                         if "format" in data["layers"][x]["protocol"]:
                             if data["layers"][x]["protocol"]["format"] in (
@@ -1488,6 +1503,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                                     everyone,
                                     minRes,
                                     maxRes,
+                                    layer_workspace,
                                 )
 
                     except:
@@ -1501,6 +1517,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                             everyone,
                             minRes,
                             maxRes,
+                            layer_workspace,
                         )
 
             else:

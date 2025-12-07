@@ -2282,30 +2282,116 @@ class Layman(QObject):
         layerName = self.utils.removeUnacceptableChars(layerName)
         for layer in composition["layers"]:
             if self.utils.removeUnacceptableChars(layer["title"]) == layerName:
+                layer_workspace = None
+                if "workspace" in layer:
+                    layer_workspace = layer["workspace"]
+                elif "style" in layer and layer["style"]:
+                    style_url = layer["style"]
+                    try:
+                        import urllib.parse
+                        parsed_url = urllib.parse.urlparse(style_url)
+                        path_parts = parsed_url.path.split("/")
+                        if "workspaces" in path_parts:
+                            workspace_index = path_parts.index("workspaces")
+                            if workspace_index + 1 < len(path_parts):
+                                layer_workspace = path_parts[workspace_index + 1]
+                    except Exception:
+                        pass
+                
+                if not layer_workspace:
+                    layer_identifier = None
+                    if layer.get("className") in ["HSLayers.Layer.WMS", "WMS"]:
+                        if "params" in layer and "LAYERS" in layer["params"]:
+                            layer_identifier = layer["params"]["LAYERS"]
+                    elif layer.get("className") in ["OpenLayers.Layer.Vector", "Vector"]:
+                        if "name" in layer:
+                            layer_identifier = layer["name"]
+                    
+                    if layer_identifier and layer_identifier.startswith("l_"):
+                        uuid = layer_identifier[2:]
+                        try:
+                            all_layers_url = self.layman_api.get_get_all_layers_url()
+                            r_all = self.utils.requestWrapper("GET", all_layers_url, payload=None, files=None)
+                            if r_all and r_all.status_code == 200:
+                                all_layers = r_all.json()
+                                matching_layer = next(
+                                    (l for l in all_layers if l.get("uuid") == uuid), None
+                                )
+                                if matching_layer:
+                                    layer_workspace = matching_layer.get("workspace")
+                        except Exception:
+                            pass
+                
+                if not layer_workspace:
+                    layer_workspace = self.laymanUsername
+                
                 if type == "WFS":
                     try:
-                        name = layer["params"]["LAYERS"]
+                        layer_identifier = layer["params"]["LAYERS"]
                     except Exception:
                         print("convert wms to wfs failed")
                         return
-                    url = self.layman_api.get_layer_url(self.laymanUsername, name)
+                    
+                    layer_name_for_api = layer.get("title", layerName)
+                    if layer_identifier.startswith("l_"):
+                        uuid = layer_identifier[2:]
+                        try:
+                            all_layers_url = self.layman_api.get_get_all_layers_url()
+                            r_all = self.utils.requestWrapper("GET", all_layers_url, payload=None, files=None)
+                            if r_all and r_all.status_code == 200:
+                                all_layers = r_all.json()
+                                matching_layer = next(
+                                    (l for l in all_layers if l.get("uuid") == uuid), None
+                                )
+                                if matching_layer:
+                                    layer_name_for_api = matching_layer.get("name")
+                                    layer_workspace = matching_layer.get("workspace", layer_workspace or self.laymanUsername)
+                        except Exception:
+                            pass
+                    
+                    url = self.layman_api.get_layer_url(layer_workspace, layer_name_for_api)
                     r = self.utils.requestWrapper("GET", url, payload=None, files=None)
+                    if r.status_code != 200:
+                        print(f"Failed to get layer info for: {layer_name_for_api}, status: {r.status_code}")
+                        return
                     data = r.json()
+                    if "wfs" not in data or "url" not in data["wfs"]:
+                        print(f"WFS service not available for layer: {layer_name_for_api}")
+                        return
                     url = data["wfs"]["url"]
+                    styleUrl = self.layman_api.get_layer_style_url(layer_workspace, layer_name_for_api)
                     layer["className"] = self.vectorService
                     layer["protocol"] = {"format": self.vectorProtocol, "url": url}
+                    layer["style"] = styleUrl
+                    if "name" not in layer:
+                        layer_uuid = data.get("uuid")
+                        if layer_uuid:
+                            layer["name"] = "l_" + str(layer_uuid)
                     del layer["params"]
-                    del layer["url"]
+                    if "url" in layer:
+                        del layer["url"]
                     return self.vectorService
                 if type == "WMS":
                     print("set layer to wms")
-                    url = self.layman_api.get_layer_url(self.laymanUsername, layerName)
+                    layer_name_for_api = layerName
+                    if layer.get("className") in ["OpenLayers.Layer.Vector", "Vector"]:
+                        if "name" in layer and layer["name"].startswith("l_"):
+                            layer_name_for_api = layer.get("title", layerName)
+                        elif "protocol" in layer and "url" in layer["protocol"]:
+                            layer_name_for_api = layer.get("title", layerName)
+                    url = self.layman_api.get_layer_url(layer_workspace, layer_name_for_api)
                     r = self.utils.requestWrapper("GET", url, payload=None, files=None)
+                    if r.status_code != 200:
+                        print(f"Failed to get layer info for: {layer_name_for_api}, status: {r.status_code}")
+                        return
                     data = r.json()
+                    if "wms" not in data or "url" not in data["wms"]:
+                        print(f"WMS service not available for layer: {layer_name_for_api}")
+                        return
                     url = data["wms"]["url"]
                     layer_uuid = data.get("uuid")
                     if layer_uuid is None:
-                        raise ValueError(f"UUID not found for layer: {layerName}")
+                        raise ValueError(f"UUID not found for layer: {layer_name_for_api}")
                     layer_identifier = "l_" + str(layer_uuid)
                     layer["className"] = self.rasterService
                     layer["url"] = url
@@ -2315,7 +2401,8 @@ class Layman(QObject):
                         "LAYERS": layer_identifier,
                         "VERSION": "1.3.0",
                     }
-                    del layer["protocol"]
+                    if "protocol" in layer:
+                        del layer["protocol"]
                     return self.rasterService
 
     def setup_oauth(self, authcfg_id, authcfg_name):
@@ -5358,6 +5445,7 @@ class Layman(QObject):
         everyone=False,
         minRes=0,
         maxRes=None,
+        workspace=None,
     ):
         epsg = iface.mapCanvas().mapSettings().destinationCrs().authid()
         url = url.replace("%2F", "/").replace("%3A", ":").replace("/client", "")
@@ -5392,12 +5480,18 @@ class Layman(QObject):
                     self.addWmsToGroup(groupName, vlayer, subgroupName)
 
                     self.currentLayer.append(vlayer)
-                    self.loadStyle.emit(vlayer)
+                    if workspace:
+                        self.utils.loadLayer(vlayer, workspace)
+                    else:
+                        self.loadStyle.emit(vlayer)
                 else:
                     self.currentLayer.append(vlayer)
                     rand = random.randint(0, 10000)
                     self.currentLayerDict[str(rand)] = vlayer
-                    self.loadLayer(vlayer)
+                    if workspace:
+                        self.utils.loadLayer(vlayer, workspace)
+                    else:
+                        self.loadLayer(vlayer)
                     self.setVisibility.emit(vlayer)
             else:  ### cast pro slozenou geometrii
                 self.mixedLayers.append(layerName)
