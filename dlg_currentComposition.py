@@ -3313,6 +3313,20 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 everyone = (
                     not self.layman.isAuthorized
                 )  # Použij authcfg pokud je uživatel autentifikovaný
+                
+                layer_workspace = None
+                if "style" in data["layers"][x] and data["layers"][x]["style"]:
+                    style_url = data["layers"][x]["style"]
+                    try:
+                        import urllib.parse
+                        parsed_url = urllib.parse.urlparse(style_url)
+                        path_parts = parsed_url.path.split("/")
+                        if "workspaces" in path_parts:
+                            workspace_index = path_parts.index("workspaces")
+                            if workspace_index + 1 < len(path_parts):
+                                layer_workspace = path_parts[workspace_index + 1]
+                    except Exception:
+                        pass
 
                 print(f"DEBUG: Vector Layer connection details:")
                 print(f"  - Layer name: {layerName}")
@@ -3353,6 +3367,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                                 everyone,
                                 minRes,
                                 maxRes,
+                                layer_workspace,
                             )
                     if "format" in data["layers"][x]["protocol"]:
                         if data["layers"][x]["protocol"]["format"] in (
@@ -3376,6 +3391,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                                 everyone,
                                 minRes,
                                 maxRes,
+                                layer_workspace,
                             )
                 except:
                     self.layman.loadWfs(
@@ -3388,6 +3404,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         everyone,
                         minRes,
                         maxRes,
+                        layer_workspace,
                     )
 
             i = i + 1
