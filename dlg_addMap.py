@@ -1425,12 +1425,13 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     repairUrl = self.utils.convertUrlFromHex(repairUrl)
                     subgroupName = ""
                     everyone = False
-                    
+
                     layer_workspace = None
                     if "style" in data["layers"][x] and data["layers"][x]["style"]:
                         style_url = data["layers"][x]["style"]
                         try:
                             import urllib.parse
+
                             parsed_url = urllib.parse.urlparse(style_url)
                             path_parts = parsed_url.path.split("/")
                             if "workspaces" in path_parts:

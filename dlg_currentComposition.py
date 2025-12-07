@@ -1143,20 +1143,33 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                                 if provider:
                                     provider_name = provider.name()
                                     uri = provider.dataSourceUri()
-                                    
-                                    if "type=xyz" in uri or provider_name == "xyz" or self.layman.isXYZ(layer.name()):
+
+                                    if (
+                                        "type=xyz" in uri
+                                        or provider_name == "xyz"
+                                        or self.layman.isXYZ(layer.name())
+                                    ):
                                         is_external = True
                                     elif provider_name == "arcgismapserver":
                                         is_external = True
-                                    elif isinstance(layer, QgsRasterLayer) and layer.dataProvider().uri().uri() != "":
-                                        if "geoserver" not in layer.dataProvider().dataSourceUri():
+                                    elif (
+                                        isinstance(layer, QgsRasterLayer)
+                                        and layer.dataProvider().uri().uri() != ""
+                                    ):
+                                        if (
+                                            "geoserver"
+                                            not in layer.dataProvider().dataSourceUri()
+                                        ):
                                             is_external = True
-                                
+
                                 if is_external:
                                     continue
                                 else:
                                     self.layman.addExistingLayerToComposition(
-                                        layer.name(), composition, item[1].lower(), layer
+                                        layer.name(),
+                                        composition,
+                                        item[1].lower(),
+                                        layer,
                                     )
                                     layers.remove(layer)
 
@@ -3313,12 +3326,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 everyone = (
                     not self.layman.isAuthorized
                 )  # Použij authcfg pokud je uživatel autentifikovaný
-                
+
                 layer_workspace = None
                 if "style" in data["layers"][x] and data["layers"][x]["style"]:
                     style_url = data["layers"][x]["style"]
                     try:
                         import urllib.parse
+
                         parsed_url = urllib.parse.urlparse(style_url)
                         path_parts = parsed_url.path.split("/")
                         if "workspaces" in path_parts:
