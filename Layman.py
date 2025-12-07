@@ -750,16 +750,16 @@ class Layman(QObject):
             if provider:
                 provider_name = provider.name()
                 uri = provider.dataSourceUri()
-                
+
                 if provider_name == "arcgismapserver":
                     return
-                
+
                 if "type=xyz" in uri or provider_name == "xyz":
                     return
-                
+
                 if self.isXYZ(layer.name()):
                     return
-                
+
                 if provider_name == "wms":
                     try:
                         wms_url = None
@@ -769,12 +769,18 @@ class Layman(QObject):
                                 wms_url = url_part.split("&")[0]
                             else:
                                 wms_url = url_part
-                        
+
                         if wms_url:
                             import urllib.parse
+
                             wms_url_decoded = urllib.parse.unquote(wms_url)
-                            layman_base_url = self.URI.replace("/client", "") if self.URI else ""
-                            if layman_base_url and layman_base_url not in wms_url_decoded:
+                            layman_base_url = (
+                                self.URI.replace("/client", "") if self.URI else ""
+                            )
+                            if (
+                                layman_base_url
+                                and layman_base_url not in wms_url_decoded
+                            ):
                                 return
                     except Exception:
                         pass
@@ -827,7 +833,7 @@ class Layman(QObject):
                             return
                 except Exception:
                     pass
-        
+
         if uuid is None:
             raise ValueError(f"UUID not found for layer: {name}")
 
@@ -2289,6 +2295,7 @@ class Layman(QObject):
                     style_url = layer["style"]
                     try:
                         import urllib.parse
+
                         parsed_url = urllib.parse.urlparse(style_url)
                         path_parts = parsed_url.path.split("/")
                         if "workspaces" in path_parts:
@@ -2297,69 +2304,89 @@ class Layman(QObject):
                                 layer_workspace = path_parts[workspace_index + 1]
                     except Exception:
                         pass
-                
+
                 if not layer_workspace:
                     layer_identifier = None
                     if layer.get("className") in ["HSLayers.Layer.WMS", "WMS"]:
                         if "params" in layer and "LAYERS" in layer["params"]:
                             layer_identifier = layer["params"]["LAYERS"]
-                    elif layer.get("className") in ["OpenLayers.Layer.Vector", "Vector"]:
+                    elif layer.get("className") in [
+                        "OpenLayers.Layer.Vector",
+                        "Vector",
+                    ]:
                         if "name" in layer:
                             layer_identifier = layer["name"]
-                    
+
                     if layer_identifier and layer_identifier.startswith("l_"):
                         uuid = layer_identifier[2:]
                         try:
                             all_layers_url = self.layman_api.get_get_all_layers_url()
-                            r_all = self.utils.requestWrapper("GET", all_layers_url, payload=None, files=None)
+                            r_all = self.utils.requestWrapper(
+                                "GET", all_layers_url, payload=None, files=None
+                            )
                             if r_all and r_all.status_code == 200:
                                 all_layers = r_all.json()
                                 matching_layer = next(
-                                    (l for l in all_layers if l.get("uuid") == uuid), None
+                                    (l for l in all_layers if l.get("uuid") == uuid),
+                                    None,
                                 )
                                 if matching_layer:
                                     layer_workspace = matching_layer.get("workspace")
                         except Exception:
                             pass
-                
+
                 if not layer_workspace:
                     layer_workspace = self.laymanUsername
-                
+
                 if type == "WFS":
                     try:
                         layer_identifier = layer["params"]["LAYERS"]
                     except Exception:
                         print("convert wms to wfs failed")
                         return
-                    
+
                     layer_name_for_api = layer.get("title", layerName)
                     if layer_identifier.startswith("l_"):
                         uuid = layer_identifier[2:]
                         try:
                             all_layers_url = self.layman_api.get_get_all_layers_url()
-                            r_all = self.utils.requestWrapper("GET", all_layers_url, payload=None, files=None)
+                            r_all = self.utils.requestWrapper(
+                                "GET", all_layers_url, payload=None, files=None
+                            )
                             if r_all and r_all.status_code == 200:
                                 all_layers = r_all.json()
                                 matching_layer = next(
-                                    (l for l in all_layers if l.get("uuid") == uuid), None
+                                    (l for l in all_layers if l.get("uuid") == uuid),
+                                    None,
                                 )
                                 if matching_layer:
                                     layer_name_for_api = matching_layer.get("name")
-                                    layer_workspace = matching_layer.get("workspace", layer_workspace or self.laymanUsername)
+                                    layer_workspace = matching_layer.get(
+                                        "workspace",
+                                        layer_workspace or self.laymanUsername,
+                                    )
                         except Exception:
                             pass
-                    
-                    url = self.layman_api.get_layer_url(layer_workspace, layer_name_for_api)
+
+                    url = self.layman_api.get_layer_url(
+                        layer_workspace, layer_name_for_api
+                    )
                     r = self.utils.requestWrapper("GET", url, payload=None, files=None)
                     if r.status_code != 200:
-                        print(f"Failed to get layer info for: {layer_name_for_api}, status: {r.status_code}")
+                        print(
+                            f"Failed to get layer info for: {layer_name_for_api}, status: {r.status_code}"
+                        )
                         return
                     data = r.json()
                     if "wfs" not in data or "url" not in data["wfs"]:
-                        print(f"WFS service not available for layer: {layer_name_for_api}")
+                        print(
+                            f"WFS service not available for layer: {layer_name_for_api}"
+                        )
                         return
                     url = data["wfs"]["url"]
-                    styleUrl = self.layman_api.get_layer_style_url(layer_workspace, layer_name_for_api)
+                    styleUrl = self.layman_api.get_layer_style_url(
+                        layer_workspace, layer_name_for_api
+                    )
                     layer["className"] = self.vectorService
                     layer["protocol"] = {"format": self.vectorProtocol, "url": url}
                     layer["style"] = styleUrl
@@ -2379,19 +2406,27 @@ class Layman(QObject):
                             layer_name_for_api = layer.get("title", layerName)
                         elif "protocol" in layer and "url" in layer["protocol"]:
                             layer_name_for_api = layer.get("title", layerName)
-                    url = self.layman_api.get_layer_url(layer_workspace, layer_name_for_api)
+                    url = self.layman_api.get_layer_url(
+                        layer_workspace, layer_name_for_api
+                    )
                     r = self.utils.requestWrapper("GET", url, payload=None, files=None)
                     if r.status_code != 200:
-                        print(f"Failed to get layer info for: {layer_name_for_api}, status: {r.status_code}")
+                        print(
+                            f"Failed to get layer info for: {layer_name_for_api}, status: {r.status_code}"
+                        )
                         return
                     data = r.json()
                     if "wms" not in data or "url" not in data["wms"]:
-                        print(f"WMS service not available for layer: {layer_name_for_api}")
+                        print(
+                            f"WMS service not available for layer: {layer_name_for_api}"
+                        )
                         return
                     url = data["wms"]["url"]
                     layer_uuid = data.get("uuid")
                     if layer_uuid is None:
-                        raise ValueError(f"UUID not found for layer: {layer_name_for_api}")
+                        raise ValueError(
+                            f"UUID not found for layer: {layer_name_for_api}"
+                        )
                     layer_identifier = "l_" + str(layer_uuid)
                     layer["className"] = self.rasterService
                     layer["url"] = url
@@ -4715,14 +4750,24 @@ class Layman(QObject):
                     if provider:
                         provider_name = provider.name()
                         uri = provider.dataSourceUri()
-                        if "type=xyz" in uri or provider_name == "xyz" or self.isXYZ(layers[i].name()):
+                        if (
+                            "type=xyz" in uri
+                            or provider_name == "xyz"
+                            or self.isXYZ(layers[i].name())
+                        ):
                             is_external = True
                         elif provider_name == "arcgismapserver":
                             is_external = True
-                        elif isinstance(layers[i], QgsRasterLayer) and layers[i].dataProvider().uri().uri() != "":
-                            if "geoserver" not in layers[i].dataProvider().dataSourceUri():
+                        elif (
+                            isinstance(layers[i], QgsRasterLayer)
+                            and layers[i].dataProvider().uri().uri() != ""
+                        ):
+                            if (
+                                "geoserver"
+                                not in layers[i].dataProvider().dataSourceUri()
+                            ):
                                 is_external = True
-                    
+
                     if not is_external:
                         for i in range(0, len(layers)):
                             if not self.isXYZ(layers[i].name()):
