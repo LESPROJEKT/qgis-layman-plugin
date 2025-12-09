@@ -23,7 +23,7 @@
 import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRect
+from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRect, QTimer
 from qgis.PyQt.QtWidgets import (
     QTreeWidgetItem,
     QTreeWidgetItemIterator,
@@ -64,6 +64,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     layerDeletedSuccessfully = pyqtSignal()
     permissionInfo = pyqtSignal(bool, list, int)
     progressDone = pyqtSignal()
+    statusesUpdated = pyqtSignal(dict)
 
     def __init__(self, utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
@@ -88,6 +89,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layerDeletedSuccessfully.connect(self._onLayerDeletedSuccessfully)
         self.permissionInfo.connect(self.afterPermissionDone)
         self.progressDone.connect(self._onProgressDone)
+        self.statusesUpdated.connect(self._applyStatusIcons)
 
     def setPermissionsWidget(self, option):
         if option:
@@ -215,6 +217,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.progressBar_loader.show()
         asyncio.run(self.loadLayersThread(checked))
+        self._startStatusRefreshTimer()
         self.checkBox_own.stateChanged.connect(
             lambda state: asyncio.run(self.loadLayersThread(state))
         )
@@ -724,10 +727,16 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def check_if_used_in_maps(self, layers):
         if isinstance(layers, str):
             layers = [layers]
+
+        sanitized_layers = [
+            self.utils.removeUnacceptableChars(l).lower() for l in layers
+        ]
         used_layers = {}
         try:
             if len(layers) == 1:
-                url = self.layman_api.get_layer_url(self.laymanUsername, layers[0])
+                url = self.layman_api.get_layer_url(
+                    self.laymanUsername, sanitized_layers[0]
+                )
                 response = self.utils.requestWrapper(
                     "GET", url, payload=None, files=None
                 )
@@ -753,7 +762,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
             for layer_data in data:
                 layer_name = layer_data["name"]
-                if layer_name not in layers:
+                if layer_name not in sanitized_layers:
                     continue
                 used_in_maps = layer_data.get("used_in_maps", [])
                 if used_in_maps:
@@ -858,6 +867,53 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.label_thumbnail.clear()
             self.label_thumbnail.setText("Disabled")
             self.label_thumbnail.setAlignment(Qt.AlignCenter)
+
+    def _startStatusRefreshTimer(self):
+        try:
+            self._status_timer.stop()
+        except Exception:
+            pass
+        self._status_timer = QTimer(self)
+        self._status_timer.setInterval(10000)
+        self._status_timer.timeout.connect(self._refreshStatusesAsync)
+        self._status_timer.start()
+
+    def _refreshStatusesAsync(self):
+        threading.Thread(target=self._refreshStatusesThread, daemon=True).start()
+
+    def _refreshStatusesThread(self):
+        try:
+            if self.laymanUsername and self.isAuthorized:
+                url = self.layman_api.get_get_all_layers_url()
+            else:
+                url = self.layman_api.get_get_all_layers_url()
+            r = self.utils.requestWrapper("GET", url, payload=None, files=None)
+            if not r or r.status_code != 200:
+                return
+            data = r.json()
+            status_map = {}
+            for row in data:
+                key = (row.get("title"), row.get("workspace"))
+                status_map[key] = row.get("wfs_wms_status")
+            self.statusesUpdated.emit(status_map)
+        except Exception:
+            pass
+
+    def _applyStatusIcons(self, status_map):
+        iterator = QTreeWidgetItemIterator(
+            self.treeWidget, QTreeWidgetItemIterator.IteratorFlag.All
+        )
+        while iterator.value():
+            item = iterator.value()
+            key = (item.text(0), item.text(1))
+            status = status_map.get(key)
+            if status:
+                icon = self.getStatusIcon(status)
+                try:
+                    item.setIcon(4, icon)
+                except Exception:
+                    pass
+            iterator += 1
 
     def checkIfPostgis(self, it):
         layer = self.utils.removeUnacceptableChars(it.text(0))
@@ -1239,6 +1295,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 pass
 
     def layerDeleteThread(self, name):
+        name = self.utils.removeUnacceptableChars(name).lower()
         url = self.layman_api.get_layer_url(self.laymanUsername, name)
         response = self.utils.requestWrapper("DELETE", url, payload=None, files=None)
         try:
