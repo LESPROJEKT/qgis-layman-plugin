@@ -484,7 +484,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_copyUrl.setEnabled(False)
             self.pushButton_qfield.setEnabled(False)
             self.pushButton_loadFromJson.setEnabled(True)
-            self.pushButton_new.setEnabled(False)
+            self.pushButton_new.setEnabled(True)
             self.label_readonly.hide()
             self.pushButton_new.show()
             return
@@ -506,7 +506,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.checkBox_all.setEnabled(False)
         else:
             self.pushButton_new.show()
-            self.pushButton_new.setEnabled(visible)
+            self.pushButton_new.setEnabled(True)
             if visible:
                 if (
                     hasattr(self, "_composition_exists_on_server")
