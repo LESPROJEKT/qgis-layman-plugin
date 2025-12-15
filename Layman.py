@@ -1082,6 +1082,7 @@ class Layman(QObject):
                     self.utils.removeUnacceptableChars(layer.name())
                 ).replace(".geojson", ".sld")
                 layer.saveSldStyle(stylePath)
+                self.ensureColormapHasZeroEntry(stylePath)
             if (r"/vsizip/") in layer.source():
                 path = (
                     layer.source()
@@ -3609,6 +3610,37 @@ class Layman(QObject):
         with open(filepath, "w") as file:
             file.write(filedata)
 
+    def ensureColormapHasZeroEntry(self, stylePath):
+        """
+        This is a workaround for a GeoServer colormap issue where the first
+        interval entry can be ignored when the lowest value is greater than 0.
+        """
+        try:
+            with open(stylePath, "r", encoding="utf-8") as file:
+                content = file.read()
+        except (OSError, IOError):
+            return
+
+        if 'quantity="0"' in content:
+            return
+
+        match = re.search(r"<sld:ColorMap[^>]*>", content)
+        if not match:
+            return
+
+        insert_entry = (
+            '\n              <sld:ColorMapEntry label="" quantity="0" color="#ffffff"/>'
+        )
+
+        insert_pos = match.end()
+        content = content[:insert_pos] + insert_entry + content[insert_pos:]
+
+        try:
+            with open(stylePath, "w", encoding="utf-8") as file:
+                file.write(content)
+        except (OSError, IOError):
+            return
+
     def removeUnsupportedLaymanTag(self, stylePath, layer):
         provider = layer.dataProvider()
         stats = provider.bandStatistics(1, QgsRasterBandStats.All, layer.extent(), 0)
@@ -3650,6 +3682,7 @@ class Layman(QObject):
         layer.saveSldStyle(stylePath)
         self.removeUnsupportedLaymanTag(stylePath, layer)
         self.replaceInfiniteInSLD(stylePath)
+        self.ensureColormapHasZeroEntry(stylePath)
         layer_name = layer.name()
         title = layer_name
         path = layer.dataProvider().dataSourceUri()
