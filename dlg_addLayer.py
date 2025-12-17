@@ -79,6 +79,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.globalRead = {}
         self.globalWrite = {}
         self.layman_api = LaymanAPI(URI)
+        self.selectedLayerNames = []
         self.setUi()
 
     def connectEvents(self):
@@ -684,8 +685,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             )
             if res[i]["name"] != self.laymanUsername:
                 usernameList.append(res[i]["username"])
+        self.selectedLayerNames = []
         if len(layerName) == 1:
             layerName[0] = self.layerNamesDict[layerName[0]]
+            self.selectedLayerNames = [layerName[0]]
             uri = self.layman_api.get_layer_url(self.laymanUsername, layerName[0])
             r = self.utils.requestWrapper("GET", uri, payload=None, files=None)
             res = self.utils.fromByteToJson(r.content)
@@ -696,7 +699,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 res["access_rights"]["write"],
             )
         else:
-            name = self.utils.getUserFullName()
+            for i in range(len(layerName)):
+                if layerName[i] in self.layerNamesDict:
+                    layerName[i] = self.layerNamesDict[layerName[i]]
+                self.selectedLayerNames.append(layerName[i])
             self.populatePermissionsWidget(
                 self.tabWidget,
                 usersDictReversed,
@@ -719,7 +725,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_save.clicked.connect(
                 lambda: threading.Thread(
                     target=self.collectPermissionsAndSave,
-                    args=(self.tabWidget, layerName),
+                    args=(self.tabWidget, self.selectedLayerNames),
                 ).start()
             )
             self.permissionsConnected = True
