@@ -4712,7 +4712,7 @@ class Layman(QObject):
         }
 
     def addLayerToComposition(self, composition, layersList, currentSet):
-        uri = self.URI.replace("/client", "")
+        base_uri = self.URI.replace("/client", "")
         for layer in layersList:
             self.showExportInfo.emit(
                 "Nahrávání vrstvy: " + layer.name()
@@ -4782,9 +4782,9 @@ class Layman(QObject):
                     is_external = False
                     if provider:
                         provider_name = provider.name()
-                        uri = provider.dataSourceUri()
+                        provider_uri = provider.dataSourceUri()
                         if (
-                            "type=xyz" in uri
+                            "type=xyz" in provider_uri
                             or provider_name == "xyz"
                             or self.isXYZ(layers[i].name())
                         ):
@@ -4876,7 +4876,9 @@ class Layman(QObject):
                             if self.isXYZ(layers[i].name()):
                                 self.saveXYZ(layers[i])
                             else:
-                                wmsUrl = uri + "/geoserver/" + "layman" + "_wms/ows"
+                                wmsUrl = (
+                                    base_uri + "/geoserver/" + "layman" + "_wms/ows"
+                                )
                                 composition["layers"].append(
                                     {
                                         "metadata": {},
@@ -4908,7 +4910,7 @@ class Layman(QObject):
                                 )
 
                     elif service == "wfs":
-                        wmsUrl = uri + "/geoserver/layman/wfs"
+                        wmsUrl = base_uri + "/geoserver/layman/wfs"
                         styleUrl = self.layman_api.get_layer_style_url(
                             self.laymanUsername, layerName
                         )
@@ -4941,7 +4943,7 @@ class Layman(QObject):
                             }
                         )
                     else:
-                        wmsUrl = uri + "/geoserver/layman_wms/ows"
+                        wmsUrl = base_uri + "/geoserver/layman_wms/ows"
                         composition["layers"].append(
                             {
                                 "metadata": {},
