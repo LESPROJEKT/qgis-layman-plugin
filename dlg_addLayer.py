@@ -903,7 +903,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 status = self._getStatusFromLayerData(row)
                 status_map[key] = {
                     "status": status,
-                    "native_crs": row.get("native_crs")
+                    "native_crs": row.get("native_crs"),
                 }
             self.statusesUpdated.emit(status_map)
         except Exception:
@@ -965,7 +965,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if value == 0:
             self.utils.appendIniItem("layerCheckbox", "0")
 
-    def _isPendingStatus(self, status):        
+    def _isPendingStatus(self, status):
         if not status:
             return False
         pending_statuses = ["PENDING", "PREPARING", "UPDATING"]
@@ -975,7 +975,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         status = layer_data.get("wfs_wms_status")
         if status:
             return status
-        
+
         layman_metadata = layer_data.get("layman_metadata", {})
         publication_status = layman_metadata.get("publication_status")
         if publication_status:
@@ -987,7 +987,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 "FAILED": "FAILED",
             }
             return status_map.get(publication_status, publication_status)
-        
+
         return None
 
     def getStatusIcon(self, status):
