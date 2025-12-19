@@ -900,7 +900,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             status_map = {}
             for row in data:
                 key = (row.get("title"), row.get("workspace"))
-                status_map[key] = row.get("wfs_wms_status")
+                status = self._getStatusFromLayerData(row)
+                status_map[key] = {
+                    "status": status,
+                    "native_crs": row.get("native_crs")
+                }
             self.statusesUpdated.emit(status_map)
         except Exception:
             pass
@@ -912,13 +916,22 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         while iterator.value():
             item = iterator.value()
             key = (item.text(0), item.text(1))
-            status = status_map.get(key)
-            if status:
-                icon = self.getStatusIcon(status)
-                try:
-                    item.setIcon(4, icon)
-                except Exception:
-                    pass
+            layer_data = status_map.get(key)
+            if layer_data:
+                status = layer_data.get("status")
+                native_crs = layer_data.get("native_crs")
+                if status:
+                    icon = self.getStatusIcon(status)
+                    try:
+                        item.setIcon(4, icon)
+                        item.setText(4, status)
+                    except Exception:
+                        pass
+                if native_crs:
+                    try:
+                        item.setText(3, native_crs)
+                    except Exception:
+                        pass
             iterator += 1
 
     def checkIfPostgis(self, it):
@@ -952,10 +965,37 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if value == 0:
             self.utils.appendIniItem("layerCheckbox", "0")
 
+    def _isPendingStatus(self, status):        
+        if not status:
+            return False
+        pending_statuses = ["PENDING", "PREPARING", "UPDATING"]
+        return status.upper() in pending_statuses
+
+    def _getStatusFromLayerData(self, layer_data):
+        status = layer_data.get("wfs_wms_status")
+        if status:
+            return status
+        
+        layman_metadata = layer_data.get("layman_metadata", {})
+        publication_status = layman_metadata.get("publication_status")
+        if publication_status:
+            status_map = {
+                "COMPLETE": "AVAILABLE",
+                "PENDING": "PENDING",
+                "PREPARING": "PENDING",
+                "UPDATING": "PENDING",
+                "FAILED": "FAILED",
+            }
+            return status_map.get(publication_status, publication_status)
+        
+        return None
+
     def getStatusIcon(self, status):
         icon_paths = {
             "AVAILABLE": "correct.png",
             "PENDING": "pending.png",
+            "PREPARING": "pending.png",
+            "UPDATING": "pending.png",
             "FAILED": "failed.png",
         }
         icon_filename = icon_paths.get(status, "failed.png")
@@ -972,7 +1012,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             data = self.utils.fromByteToJson(r)
             if onlyOwn:
                 for row in range(0, len(data)):
-                    if "native_crs" in data[row] and "wfs_wms_status" in data[row]:
+                    status = self._getStatusFromLayerData(data[row])
+                    if "native_crs" in data[row] and status:
                         item = QTreeWidgetItem(
                             [
                                 data[row]["title"],
@@ -981,9 +1022,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                                 data[row]["native_crs"],
                             ]
                         )
-                        status = data[row]["wfs_wms_status"]
                         icon = self.getStatusIcon(status)
                         item.setIcon(4, icon)
+                        item.setText(4, status)
                     elif "native_crs" in data[row]:
                         item = QTreeWidgetItem(
                             [
@@ -1020,10 +1061,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     if dataAll[row] in data:
                         permissions = "own"
                     if permissions != "":
-                        if (
-                            "native_crs" in dataAll[row]
-                            and "wfs_wms_status" in dataAll[row]
-                        ):
+                        status = self._getStatusFromLayerData(dataAll[row])
+                        if "native_crs" in dataAll[row] and status:
                             item = QTreeWidgetItem(
                                 [
                                     dataAll[row]["title"],
@@ -1032,9 +1071,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                                     dataAll[row]["native_crs"],
                                 ]
                             )
-                            status = dataAll[row]["wfs_wms_status"]
                             icon = self.getStatusIcon(status)
                             item.setIcon(4, icon)
+                            item.setText(4, status)
                         elif "native_crs" in dataAll[row]:
                             item = QTreeWidgetItem(
                                 [
@@ -1069,7 +1108,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     permissions = "read"
                 if "EVERYONE" in data[row]["access_rights"]["write"]:
                     permissions = "write"
-                if "native_crs" in data[row] and "wfs_wms_status" in data[row]:
+                status = self._getStatusFromLayerData(data[row])
+                if "native_crs" in data[row] and status:
                     item = QTreeWidgetItem(
                         [
                             data[row]["title"],
@@ -1078,9 +1118,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                             data[row]["native_crs"],
                         ]
                     )
-                    status = data[row]["wfs_wms_status"]
                     icon = self.getStatusIcon(status)
                     item.setIcon(4, icon)
+                    item.setText(4, status)
                 elif "native_crs" in data[row]:
                     item = QTreeWidgetItem(
                         [
@@ -1105,31 +1145,25 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_urlWfs.setEnabled(True)
         self.pushButton_urlWms.setEnabled(True)
         self.checkSelectedCount()
-        self.checkServiceButtons()
+        if self.treeWidget.selectedItems():
+            self.checkServiceButtons()
 
     def checkServiceButtons(self):
+        selected = self.treeWidget.selectedItems()
+        if not selected:
+            return
+
         if self.objectName() == "AddLayerDialog":
-            if (
-                self.checkFileType(
-                    self.treeWidget.selectedItems()[0].text(0),
-                    self.treeWidget.selectedItems()[0].text(1),
-                )
-                == "vector"
-            ):
-                if self.objectName() == "AddLayerDialog":
-                    self.enableWfsButton.emit(True, self.pushButton_wfs)
-            elif (
-                self.checkFileType(
-                    self.treeWidget.selectedItems()[0].text(0),
-                    self.treeWidget.selectedItems()[0].text(1),
-                )
-                == "raster"
-            ):
-                if self.objectName() == "AddLayerDialog":
-                    self.enableWfsButton.emit(False, self.pushButton_wfs)
+            layer_name = selected[0].text(0)
+            workspace = selected[0].text(1)
+
+            file_type = self.checkFileType(layer_name, workspace)
+            if file_type == "vector":
+                self.enableWfsButton.emit(True, self.pushButton_wfs)
+            elif file_type == "raster":
+                self.enableWfsButton.emit(False, self.pushButton_wfs)
             else:
-                if self.objectName() == "AddLayerDialog":
-                    self.enableWfsButton.emit(True, self.pushButton_wfs)
+                self.enableWfsButton.emit(True, self.pushButton_wfs)
 
     def onWfsButton(self, enable, button):
         try:
