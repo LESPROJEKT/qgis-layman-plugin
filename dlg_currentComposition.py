@@ -89,6 +89,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman = layman
         self.pushButton_CreateCompositionConnected = False
         self.layerServices = {}
+        self.project_link_checked = False
         main_window = self.layman.iface.mainWindow()
         desktop = QDesktopWidget()
         screen_rect = desktop.screenGeometry(main_window)
@@ -249,6 +250,51 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_qfield.clicked.connect(self.writeProjectValues)
         self.pushButton_qfield.clicked.connect(self.exportToQfield)
         self.pushButton_loadFromJson.clicked.connect(lambda: self.loadFromJsonFile())
+
+        if (
+            self.isAuthorized
+            and self.URI
+            and self.layman.laymanUsername
+            and not self.project_link_checked
+        ):
+            proj = QgsProject.instance()
+            project_server, type_conversion_ok = proj.readEntry("Layman", "Server", "")
+            project_name, type_conversion_ok = proj.readEntry("Layman", "Name", "")
+            project_workspace, type_conversion_ok = proj.readEntry(
+                "Layman", "Workspace", ""
+            )
+
+            if project_server and project_name and project_workspace:
+                should_check = False
+                if self.layman.current != project_name:
+                    should_check = True
+                elif (
+                    not hasattr(self.layman, "instance") or self.layman.instance is None
+                ):
+                    should_check = True
+
+                if should_check:
+                    composition_to_check = project_name
+                    result = self.checkAndAskForProjectLink(composition_to_check)
+                    self.project_link_checked = True
+                    if result:
+                        if (
+                            self.layman.current
+                            and hasattr(self.layman, "instance")
+                            and self.layman.instance is not None
+                        ):
+                            composition = self.layman.instance.getComposition()
+                            try:
+                                self.setWindowTitle(
+                                    self.tr("Composition: ") + composition["title"]
+                                )
+                            except:
+                                pass
+                            self.refreshCurrentForm()
+                            self.setVisibilityForCurrent(True)
+                else:
+                    self.project_link_checked = True
+
         if self.layman.current != None and self.isAuthorized:
             if hasattr(self.layman, "instance") and self.layman.instance is not None:
                 self.layman.instance.refreshComposition()
@@ -3015,6 +3061,79 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             return False
 
         return True
+
+    def checkAndAskForProjectLink(self, composition_name):
+        if not self.layman.isAuthorized:
+            return False
+
+        proj = QgsProject.instance()
+        project_server, type_conversion_ok = proj.readEntry("Layman", "Server", "")
+        project_name, type_conversion_ok = proj.readEntry("Layman", "Name", "")
+        project_workspace, type_conversion_ok = proj.readEntry(
+            "Layman", "Workspace", ""
+        )
+
+        if not project_server or not project_name or not project_workspace:
+            return False
+
+        normalized_project_server = project_server.rstrip("/")
+        normalized_current_URI = self.URI.rstrip("/") if self.URI else ""
+
+        if normalized_project_server != normalized_current_URI:
+            return False
+
+        if project_workspace != self.layman.laymanUsername:
+            return False
+
+        if not composition_name or composition_name != project_name:
+            composition_name = project_name
+
+        if project_name != composition_name:
+            return False
+
+        question_text = self.tr(
+            "This project includes link to Layman server. Do you want set the project as current composition?"
+        )
+
+        msgbox = QMessageBox(
+            QMessageBox.Icon.Question,
+            "Layman",
+            question_text,
+        )
+        msgbox.addButton(QMessageBox.StandardButton.Yes)
+        msgbox.addButton(QMessageBox.StandardButton.No)
+        msgbox.setDefaultButton(QMessageBox.StandardButton.No)
+        reply = msgbox.exec()
+
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                url = self.layman_api.get_map_file_url(
+                    self.layman.laymanUsername, composition_name
+                )
+                r = self.utils.requestWrapper("GET", url, payload=None, files=None)
+                data = r.json()
+                self.layman.current = composition_name
+                self.layman.instance = CurrentComposition(
+                    self.URI,
+                    composition_name,
+                    self.layman.laymanUsername,
+                    self.utils.getAuthHeader(self.utils.authCfg),
+                    self.layman.laymanUsername,
+                )
+                self.layman.instance.setComposition(data)
+                self.refreshCurrentForm()
+                self.setVisibilityForCurrent(True)
+            except Exception as e:
+                self.utils.showMessageBar(
+                    [
+                        "Chyba při načítání kompozice: " + str(e),
+                        "Error loading composition: " + str(e),
+                    ],
+                    Qgis.Warning,
+                )
+            return True
+
+        return False
 
     def loadCompositionFromData(self, data, filename):
         try:
