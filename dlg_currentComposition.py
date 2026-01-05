@@ -3082,13 +3082,34 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if normalized_project_server != normalized_current_URI:
             return False
 
-        if project_workspace != self.layman.laymanUsername:
-            return False
-
         if not composition_name or composition_name != project_name:
             composition_name = project_name
 
         if project_name != composition_name:
+            return False
+
+        try:
+            map_url = self.layman_api.get_map_url(project_workspace, composition_name)
+            r = self.utils.requestWrapper(
+                "GET", map_url, payload=None, files=None, emitErr=False
+            )
+            if r.status_code != 200:
+                return False
+            try:
+                data = r.json()
+            except:
+                return False
+            if "access_rights" in data:
+                read_permissions = data["access_rights"].get("read", [])
+                has_read_access = (
+                    self.layman.laymanUsername in read_permissions
+                    or "EVERYONE" in read_permissions
+                )
+                if not has_read_access:
+                    return False
+            else:
+                return False
+        except:
             return False
 
         question_text = self.tr(
@@ -3108,7 +3129,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if reply == QMessageBox.StandardButton.Yes:
             try:
                 url = self.layman_api.get_map_file_url(
-                    self.layman.laymanUsername, composition_name
+                    project_workspace, composition_name
                 )
                 r = self.utils.requestWrapper("GET", url, payload=None, files=None)
                 data = r.json()
@@ -3116,7 +3137,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.layman.instance = CurrentComposition(
                     self.URI,
                     composition_name,
-                    self.layman.laymanUsername,
+                    project_workspace,
                     self.utils.getAuthHeader(self.utils.authCfg),
                     self.layman.laymanUsername,
                 )
