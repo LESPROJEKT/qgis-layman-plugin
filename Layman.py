@@ -38,7 +38,11 @@ import xml.etree.ElementTree as ET
 import zipfile
 from builtins import range, str
 from urllib.parse import urlparse
-from distutils.version import LooseVersion
+
+try:
+    from distutils.version import LooseVersion  # Python <= 3.11
+except ModuleNotFoundError:
+    from packaging.version import Version as LooseVersion
 from zipfile import ZipFile
 import processing
 import qgis.core

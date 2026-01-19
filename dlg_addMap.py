@@ -44,10 +44,13 @@ from .currentComposition import CurrentComposition
 import traceback
 from .layman_utils import ProxyStyle
 import asyncio
-from distutils.version import LooseVersion
 from .layman_qfield import Qfield
 from .layman_utils import CenterIconDelegate, IconQfieldDelegate
-from distutils.version import LooseVersion
+
+try:
+    from distutils.version import LooseVersion  # Python <= 3.11
+except ModuleNotFoundError:
+    from packaging.version import Version as LooseVersion
 from .layman_api import LaymanAPI
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), "dlg_addMap.ui"))
