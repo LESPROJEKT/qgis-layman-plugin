@@ -50,9 +50,12 @@ import traceback
 import json
 from .currentComposition import CurrentComposition
 from .layman_utils import ProxyStyle
-from distutils.version import LooseVersion
+
+try:
+    from distutils.version import LooseVersion  # Python <= 3.11
+except ModuleNotFoundError:
+    from packaging.version import Version as LooseVersion
 from .layman_qfield import Qfield
-from distutils.version import LooseVersion
 import tempfile
 from .layman_api import LaymanAPI
 import requests

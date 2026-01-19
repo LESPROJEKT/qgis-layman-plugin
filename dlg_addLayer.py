@@ -47,7 +47,11 @@ import requests
 import tempfile
 import asyncio
 from .layman_utils import CenterIconDelegate
-from distutils.version import LooseVersion
+
+try:
+    from distutils.version import LooseVersion  # Python <= 3.11
+except ModuleNotFoundError:
+    from packaging.version import Version as LooseVersion
 from .layman_api import LaymanAPI
 
 
