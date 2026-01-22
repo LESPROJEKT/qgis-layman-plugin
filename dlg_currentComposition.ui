@@ -9,14 +9,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1100</width>
-    <height>770</height>
+    <width>900</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>600</width>
-    <height>400</height>
+    <width>500</width>
+    <height>350</height>
    </size>
   </property>
   <property name="maximumSize">
@@ -294,23 +294,6 @@
               <property name="icon">
                <iconset>
                 <normaloff>icons/extent.png</normaloff>icons/extent.png</iconset>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_CreateComposition">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="text">
-               <string>Create new composition</string>
-              </property>
-              <property name="icon">
-               <iconset>
-                <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
               </property>
              </widget>
             </item>
@@ -993,7 +976,42 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_bottom">
      <item>
+      <widget class="QPushButton" name="pushButton_CreateComposition">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>330</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Create new composition</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>icons/save_ico.png</normaloff>icons/save_ico.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="pushButton_new">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>330</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="text">
         <string>New</string>
        </property>

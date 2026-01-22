@@ -165,6 +165,10 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             )
             return
         self.stackedWidget.setCurrentWidget(page_map[option])
+        if option == "new":
+            self.pushButton_CreateComposition.setVisible(True)
+        else:
+            self.pushButton_CreateComposition.setVisible(False)
         if option == "main":
             if refresh:
                 self.refreshCurrentForm()
@@ -186,6 +190,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.page3.setVisible(False)
             self.page4.setVisible(False)
             self.page5.setVisible(False)
+            self.pushButton_CreateComposition.setVisible(False)
             if refresh:
                 self.refreshCurrentForm()
             else:
@@ -196,6 +201,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.page3.setVisible(False)
             self.page4.setVisible(False)
             self.page5.setVisible(False)
+            self.pushButton_CreateComposition.setVisible(False)
             self.setPermissionsUI(self.layman.current)
         if option == "metadata":
             self.page1.setVisible(False)
@@ -203,6 +209,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.page3.setVisible(False)
             self.page4.setVisible(True)
             self.page5.setVisible(False)
+            self.pushButton_CreateComposition.setVisible(False)
             self.setMetadataUI()
         if option == "new":
             self.page1.setVisible(False)
@@ -210,6 +217,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.page3.setVisible(True)
             self.page4.setVisible(False)
             self.page5.setVisible(False)
+            self.pushButton_CreateComposition.setVisible(True)
             self.setNewUI()
         if option == "props":
             self.page1.setVisible(False)
@@ -217,6 +225,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.page3.setVisible(False)
             self.page4.setVisible(False)
             self.page5.setVisible(True)
+            self.pushButton_CreateComposition.setVisible(False)
             self.setLayerPropertiesUI()
 
     def writeProjectValues(self):
@@ -245,6 +254,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         )
         self.pushButton_new.clicked.connect(lambda: self.setStackWidget("new"))
         self.pushButton_new.show()
+        self.pushButton_CreateComposition.setVisible(False)
         self.setVisibilityForCurrent(False)
         self.label_readonly.hide()
         self.label_log.hide()
