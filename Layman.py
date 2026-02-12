@@ -34,6 +34,7 @@ import tempfile
 import threading
 import time
 import unicodedata
+import urllib.parse
 import xml.etree.ElementTree as ET
 import zipfile
 from builtins import range, str
@@ -683,8 +684,6 @@ class Layman(QObject):
                                 wms_url = url_part
 
                         if wms_url:
-                            import urllib.parse
-
                             wms_url_decoded = urllib.parse.unquote(wms_url)
                             layman_base_url = (
                                 self.URI.replace("/client", "") if self.URI else ""
@@ -2207,8 +2206,6 @@ class Layman(QObject):
                 elif "style" in layer and layer["style"]:
                     style_url = layer["style"]
                     try:
-                        import urllib.parse
-
                         parsed_url = urllib.parse.urlparse(style_url)
                         path_parts = parsed_url.path.split("/")
                         if "workspaces" in path_parts:
@@ -2303,6 +2300,7 @@ class Layman(QObject):
                     layer["className"] = self.vectorService
                     layer["protocol"] = {"format": self.vectorProtocol, "url": url}
                     layer["style"] = styleUrl
+                    layer["workspace"] = layer_workspace
                     if "name" not in layer:
                         layer_uuid = data.get("uuid")
                         if layer_uuid:
@@ -4656,29 +4654,49 @@ class Layman(QObject):
                     minScale = self.utils.scaleToResolution(layer.minimumScale())
                 else:
                     minScale = None
-                composition["layers"].append(
-                    {
-                        "metadata": {},
-                        "path": path,
-                        # "workspace": self.laymanUsername,
-                        "opacity": layer.opacity(),
-                        "title": layer.name(),
-                        "className": self.vectorService,
-                        "style": "",
-                        "singleTile": False,
-                        "base": False,
-                        "wmsMaxScale": 0,
-                        "maxResolution": minScale,
-                        "minResolution": (
-                            self.utils.scaleToResolution(layer.maximumScale())
-                        ),
-                        "name": str(title),
-                        "protocol": {"format": "hs.format.externalWFS", "url": url},
-                        "ratio": 1.5,
-                        "visibility": layerTreeNode.isVisible(),
-                        "dimensions": {},
-                    }
-                )
+
+                wfs_workspace = None
+                if "/geoserver/" in url:
+                    try:
+                        parsed_url = urllib.parse.urlparse(url)
+                        path_parts = parsed_url.path.split("/")
+                        if "geoserver" in path_parts:
+                            geoserver_index = path_parts.index("geoserver")
+                            if geoserver_index + 1 < len(path_parts):
+                                potential_workspace = path_parts[geoserver_index + 1]
+                                if potential_workspace != "layman":
+                                    wfs_workspace = potential_workspace
+                    except Exception:
+                        pass
+
+                if not wfs_workspace:
+                    wfs_workspace = self.instance.getWorkspace()
+
+                layer_dict = {
+                    "metadata": {},
+                    "path": path,
+                    "opacity": layer.opacity(),
+                    "title": layer.name(),
+                    "className": self.vectorService,
+                    "style": "",
+                    "singleTile": False,
+                    "base": False,
+                    "wmsMaxScale": 0,
+                    "maxResolution": minScale,
+                    "minResolution": (
+                        self.utils.scaleToResolution(layer.maximumScale())
+                    ),
+                    "name": str(title),
+                    "protocol": {"format": "hs.format.externalWFS", "url": url},
+                    "ratio": 1.5,
+                    "visibility": layerTreeNode.isVisible(),
+                    "dimensions": {},
+                }
+
+                if "/geoserver/" in url and wfs_workspace:
+                    layer_dict["workspace"] = wfs_workspace
+
+                composition["layers"].append(layer_dict)
             elif (
                 isinstance(layer, QgsVectorLayer)
             ) or layer.dataProvider().uri().uri() == "":
@@ -4822,16 +4840,17 @@ class Layman(QObject):
                                 )
 
                     elif service == "wfs":
-                        wmsUrl = base_uri + "/geoserver/layman/wfs"
+                        wfs_workspace = self.instance.getWorkspace()
+                        wmsUrl = base_uri + "/geoserver/" + wfs_workspace + "/wfs"
                         styleUrl = self.layman_api.get_layer_style_url(
-                            self.laymanUsername, layerName
+                            wfs_workspace, layerName
                         )
                         composition["layers"].append(
                             {
                                 "metadata": {},
                                 "path": path,
                                 "visibility": True,
-                                # "workspace": self.laymanUsername,
+                                "workspace": wfs_workspace,
                                 "opacity": layer.opacity(),
                                 "title": str(layers[i].name()),
                                 "className": self.vectorService,
