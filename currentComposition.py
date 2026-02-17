@@ -241,6 +241,9 @@ class CurrentComposition(object):
         input = input.replace(")", "")
         input = input.replace("___", "_")
         input = input.replace("__", "_")
+        input = input.replace("ä", "a")
+        input = input.replace("ö", "o")
+        input = input.replace("ü", "u")
         input = re.sub(r"[?|$|.|!]", r"", input)
         input = re.sub(r"[?|$|.|!]", r"", input)
         try:

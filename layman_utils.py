@@ -384,6 +384,9 @@ class LaymanUtils(QObject):
         input = input.replace(")", "")
         input = input.replace("___", "_")
         input = input.replace("__", "_")
+        input = input.replace("ä", "a")
+        input = input.replace("ö", "o")
+        input = input.replace("ü", "u")
         input = re.sub(r"[?|$|.|!]", r"", input)
         try:
             if input[len(input) - 1] == "_":
