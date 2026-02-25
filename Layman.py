@@ -222,6 +222,7 @@ class Layman(QObject):
         self.connectProjectRead()
         self.iface.newProjectCreated.connect(self.removeCurrent)
         self.processingList = []
+        self._raster_upload_semaphore = threading.Semaphore(3)
         self.writeState(0)
         path = tempfile.gettempdir() + os.sep + "atlas" + os.sep + "auth.txt"
         self.dependencies = True
@@ -619,11 +620,11 @@ class Layman(QObject):
         self.menu_AddMapDialog.setEnabled(True)
 
     def updateInfo(self, value):
-        # self.dlg.progressBar.setValue(value)
         try:
-            self.dlg.label_progress.setText(
-                self.tr("Sucessfully exported: ") + str(value) + "%"
-            )
+            if self.batchLength <= 1:
+                self.dlg.label_progress.setText(
+                    self.tr("Sucessfully exported: ") + str(value) + "%"
+                )
         except Exception:
             pass
 
@@ -2635,7 +2636,7 @@ class Layman(QObject):
                     layer.triggerRepaint()
 
     def onRasterUpload(self, progress, max):
-        if self.dlg.objectName() == "ImportLayerDialog":
+        if self.dlg.objectName() == "ImportLayerDialog" and self.batchLength <= 1:
             self.dlg.progressBar.setMaximum(max)
             self.dlg.progressBar.setValue(progress)
 
@@ -3585,86 +3586,106 @@ class Layman(QObject):
         if resamplingMethod == "No value" or resamplingMethod == "Není vybrán":
             resamplingMethod = ""
 
-        data["crs"] = layer.crs().authid()
-        stylePath = self.getTempPath(
-            self.utils.removeUnacceptableChars(layer.name())
-        ).replace("geojson", "sld")
-        layer.saveSldStyle(stylePath)
-        self.removeUnsupportedLaymanTag(stylePath, layer)
-        self.replaceInfiniteInSLD(stylePath)
-        self.ensureColormapHasZeroEntry(stylePath)
-        layer_name = layer.name()
-        title = layer_name
-        path = layer.dataProvider().dataSourceUri()
-        basename = os.path.basename(path)
-        if basename == "OUTPUT.tif":
-            name = self.utils.removeUnacceptableChars(layer_name)
-            newPath = path.replace(basename, name + ".tif")
-            shutil.copy2(path, newPath)
-            path = newPath
+        self._raster_upload_semaphore.acquire()
+        try:
+            data["crs"] = layer.crs().authid()
+            stylePath = self.getTempPath(
+                self.utils.removeUnacceptableChars(layer.name())
+            ).replace("geojson", "sld")
+            layer.saveSldStyle(stylePath)
+            self.removeUnsupportedLaymanTag(stylePath, layer)
+            self.replaceInfiniteInSLD(stylePath)
+            self.ensureColormapHasZeroEntry(stylePath)
+            layer_name = layer.name()
+            title = layer_name
+            path = layer.dataProvider().dataSourceUri()
+            basename = os.path.basename(path)
+            if basename == "OUTPUT.tif":
+                name = self.utils.removeUnacceptableChars(layer_name)
+                newPath = path.replace(basename, name + ".tif")
+                shutil.copy2(path, newPath)
+                path = newPath
 
-        ext = os.path.splitext(path)[1]
+            ext = os.path.splitext(path)[1]
 
-        if r"/vsizip/" in layer.source():
-            path = (
-                layer.source()
-                .replace("/" + os.path.basename(layer.source()), "")
-                .replace(r"/vsizip/", "")
-            )
-
-        externalFile = self.returnPathIfFileExists(path, ext)
-        if os.path.getsize(path) > self.CHUNK_SIZE:
-            if patch:
-                url = self.layman_api.get_layer_url(
-                    self.laymanUsername, self.utils.removeUnacceptableChars(layer_name)
+            if r"/vsizip/" in layer.source():
+                path = (
+                    layer.source()
+                    .replace("/" + os.path.basename(layer.source()), "")
+                    .replace(r"/vsizip/", "")
                 )
-                response = requests.delete(
-                    url, headers=self.utils.getAuthHeader(self.authCfg)
-                )
-                if response.status_code != 200 and response.status_code != 404:
-                    print(
-                        f"Failed to delete existing layer: {response.status_code}, {response.text}"
+
+            externalFile = self.returnPathIfFileExists(path, ext)
+            if os.path.getsize(path) > self.CHUNK_SIZE:
+                if patch:
+                    url = self.layman_api.get_layer_url(
+                        self.laymanUsername,
+                        self.utils.removeUnacceptableChars(layer_name),
                     )
-                    return
-            url = self.layman_api.get_layers_url(self.laymanUsername)
-            name = self.utils.removeUnacceptableChars(layer_name)
-            if externalFile:
-                payload = {
-                    "file": [
-                        name.lower() + ext,
-                        name.lower() + self.returnPathIfFileExists(path, ext, True),
-                    ],
-                    "title": title,
-                    "crs": str(layer.crs().authid()),
-                    "style": open(stylePath, "rb"),
-                    "overview_resampling": resamplingMethod,
-                }
-            else:
-                payload = {
-                    "file": name.lower() + ext,
-                    "title": title,
-                    "crs": str(layer.crs().authid()),
-                    "overview_resampling": resamplingMethod,
-                }
-            with open(stylePath, "rb") as style_file:
-                files = {"style": style_file}
-                response = self.utils.requestWrapper("POST", url, payload, files)
-                print(response.content)
-                if response.status_code != 200:
-                    print(
-                        f"Failed to register layer: {response.status_code}, {response.text}"
+                    response = requests.delete(
+                        url, headers=self.utils.getAuthHeader(self.authCfg)
                     )
-                    return
-            filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks")
-            prepaired_layer_name = self.utils.removeUnacceptableChars(layer_name)
-            if not os.path.exists(filePath):
-                os.mkdir(filePath)
-            if externalFile:
-                with open(externalFile, "rb") as f:
-                    externalExt = os.path.splitext(externalFile)[1]
+                    if response.status_code != 200 and response.status_code != 404:
+                        print(
+                            f"Failed to delete existing layer: {response.status_code}, {response.text}"
+                        )
+                        return
+                url = self.layman_api.get_layers_url(self.laymanUsername)
+                name = self.utils.removeUnacceptableChars(layer_name)
+                if externalFile:
+                    payload = {
+                        "file": [
+                            name.lower() + ext,
+                            name.lower() + self.returnPathIfFileExists(path, ext, True),
+                        ],
+                        "title": title,
+                        "crs": str(layer.crs().authid()),
+                        "style": open(stylePath, "rb"),
+                        "overview_resampling": resamplingMethod,
+                    }
+                else:
+                    payload = {
+                        "file": name.lower() + ext,
+                        "title": title,
+                        "crs": str(layer.crs().authid()),
+                        "overview_resampling": resamplingMethod,
+                    }
+                with open(stylePath, "rb") as style_file:
+                    files = {"style": style_file}
+                    response = self.utils.requestWrapper("POST", url, payload, files)
+                    print(response.content)
+                    if response.status_code != 200:
+                        print(
+                            f"Failed to register layer: {response.status_code}, {response.text}"
+                        )
+                        return
+                filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks")
+                prepaired_layer_name = self.utils.removeUnacceptableChars(layer_name)
+                if not os.path.exists(filePath):
+                    os.mkdir(filePath)
+                if externalFile:
+                    with open(externalFile, "rb") as f:
+                        externalExt = os.path.splitext(externalFile)[1]
+                        arr = [piece for piece in self.read_in_chunks(f)]
+
+                    resumableFilename = prepaired_layer_name + externalExt
+                    layman_original_parameter = "file"
+                    resumableTotalChunks = len(arr)
+                    self.processChunks(
+                        arr,
+                        resumableFilename,
+                        layman_original_parameter,
+                        resumableTotalChunks,
+                        layer_name,
+                        filePath,
+                        externalExt,
+                        True,
+                    )
+
+                with open(path, "rb") as f:
                     arr = [piece for piece in self.read_in_chunks(f)]
 
-                resumableFilename = prepaired_layer_name + externalExt
+                resumableFilename = prepaired_layer_name + ext
                 layman_original_parameter = "file"
                 resumableTotalChunks = len(arr)
                 self.processChunks(
@@ -3674,79 +3695,68 @@ class Layman(QObject):
                     resumableTotalChunks,
                     layer_name,
                     filePath,
-                    externalExt,
-                    True,
+                    ext,
                 )
-
-            with open(path, "rb") as f:
-                arr = [piece for piece in self.read_in_chunks(f)]
-
-            resumableFilename = prepaired_layer_name + ext
-            layman_original_parameter = "file"
-            resumableTotalChunks = len(arr)
-            self.processChunks(
-                arr,
-                resumableFilename,
-                layman_original_parameter,
-                resumableTotalChunks,
-                layer_name,
-                filePath,
-                ext,
-            )
-        else:
-            if patch:
-                url = self.layman_api.get_layer_url(
-                    self.laymanUsername, self.utils.removeUnacceptableChars(layer_name)
-                )
-                self.utils.requestWrapper("DELETE", url, payload=None, files=None)
-            if externalFile:
-                zipPath = (
-                    os.path.join(tempfile.gettempdir(), "atlas_chunks")
-                    + os.sep
-                    + self.utils.removeUnacceptableChars(layer_name)
-                    + ".zip"
-                )
-                zipObj = ZipFile(zipPath, "w")
-                zipObj.write(externalFile, os.path.basename(externalFile))
-                zipObj.write(path, os.path.basename(path))
-                zipObj.close()
-                files = {
-                    "file": (zipPath, open(zipPath, "rb")),
-                    "style": open(stylePath, "rb"),
-                }
             else:
-                files = {"file": open(path, "rb"), "style": open(stylePath, "rb")}
-            data["crs"] = str(layer.crs().authid())
-            response = self.utils.requestWrapper(
-                "POST",
-                self.layman_api.get_layers_url(self.laymanUsername),
-                data,
-                files,
-            )
-            res = self.utils.fromByteToJson(response.content)
-            try:
-                if res["code"] == 4:
-                    self.utils.showQgisBar(
-                        ["Nepodporované CRS souboru", "Unsupported CRS of data file"],
-                        Qgis.Warning,
+                if patch:
+                    url = self.layman_api.get_layer_url(
+                        self.laymanUsername,
+                        self.utils.removeUnacceptableChars(layer_name),
                     )
-                    QgsMessageLog.logMessage("resetProgressbar")
-                    return
-            except Exception:
-                print("uuid")
-        if self.layersToUpload == 1:
-            QgsMessageLog.logMessage("resetProgressbar")
-            self.dlg.label_progress.setText(
-                self.tr("Sucessfully exported: ") + str(1) + " / " + str(1)
-            )
-        else:
-            try:
-                self.uploaded = self.uploaded + 1
-            except Exception:
-                pass
-            self.exportLayerSuccessful.emit(layer_name)
-        QgsMessageLog.logMessage("export")
-        QgsMessageLog.logMessage("disableProgress")
+                    self.utils.requestWrapper("DELETE", url, payload=None, files=None)
+                if externalFile:
+                    zipPath = (
+                        os.path.join(tempfile.gettempdir(), "atlas_chunks")
+                        + os.sep
+                        + self.utils.removeUnacceptableChars(layer_name)
+                        + ".zip"
+                    )
+                    zipObj = ZipFile(zipPath, "w")
+                    zipObj.write(externalFile, os.path.basename(externalFile))
+                    zipObj.write(path, os.path.basename(path))
+                    zipObj.close()
+                    files = {
+                        "file": (zipPath, open(zipPath, "rb")),
+                        "style": open(stylePath, "rb"),
+                    }
+                else:
+                    files = {"file": open(path, "rb"), "style": open(stylePath, "rb")}
+                data["crs"] = str(layer.crs().authid())
+                response = self.utils.requestWrapper(
+                    "POST",
+                    self.layman_api.get_layers_url(self.laymanUsername),
+                    data,
+                    files,
+                )
+                res = self.utils.fromByteToJson(response.content)
+                try:
+                    if res["code"] == 4:
+                        self.utils.showQgisBar(
+                            [
+                                "Nepodporované CRS souboru",
+                                "Unsupported CRS of data file",
+                            ],
+                            Qgis.Warning,
+                        )
+                        QgsMessageLog.logMessage("resetProgressbar")
+                        return
+                except Exception:
+                    print("uuid")
+            if self.batchLength <= 1:
+                QgsMessageLog.logMessage("resetProgressbar")
+                self.dlg.label_progress.setText(
+                    self.tr("Sucessfully exported: ") + str(1) + " / " + str(1)
+                )
+            else:
+                try:
+                    self.uploaded = self.uploaded + 1
+                except Exception:
+                    pass
+                self.exportLayerSuccessful.emit(layer_name)
+            QgsMessageLog.logMessage("export")
+            QgsMessageLog.logMessage("disableProgress")
+        finally:
+            self._raster_upload_semaphore.release()
 
     def processChunks(
         self,
@@ -3818,7 +3828,7 @@ class Layman(QObject):
                         ]
                     )
                 return
-            if not skip:
+            if not skip and self.batchLength <= 1:
                 progress = int((i / resumableTotalChunks) * 100)
                 self.progressUpdated.emit(progress)
         if not skip:
@@ -4046,8 +4056,6 @@ class Layman(QObject):
                             reply = QMessageBox.StandardButton.Yes
                         if reply == QMessageBox.StandardButton.Yes:
                             self.dlg.progressBar.show()
-                            if not noInfo:
-                                self.dlg.label_import.show()
                             q = self.setProcessingItem(layer_name)
                             if isinstance(layers[0], QgsVectorLayer):
                                 if layers[0].crs().authid() in self.supportedEPSG:
@@ -4132,8 +4140,6 @@ class Layman(QObject):
                     self.layerName = layer_name
                     if not auto:
                         self.dlg.progressBar.show()
-                        if not noInfo:
-                            self.dlg.label_import.show()
                     if auto:
                         read = self.instance.getAllPermissions()["read"]
                         write = self.instance.getAllPermissions()["write"]
