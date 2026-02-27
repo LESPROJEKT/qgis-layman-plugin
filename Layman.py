@@ -50,6 +50,7 @@ import qgis.core
 import qgis.gui
 import qgis.utils
 import requests
+from osgeo import gdal
 from owslib.wms import WebMapService
 from qgis.PyQt.QtCore import (
     QCoreApplication,
@@ -122,6 +123,67 @@ from .layman_qfield import Qfield
 from functools import partial
 from .layman_api import LaymanAPI
 from .resources import *
+
+
+def qgs_range_to_single_value(rng):
+    mn = rng.min()
+    mx = rng.max()
+    if mn != mx:
+        raise RuntimeError(
+            f"Additional NoData is a range {mn}..{mx}. GDAL NoData usually supports only a single value."
+        )
+    return float(mn)
+
+
+def apply_provider_user_nodata_to_gdal(layer: QgsRasterLayer, band: int = 1):
+    if not layer or not isinstance(layer, QgsRasterLayer):
+        raise RuntimeError("Active layer is not a raster.")
+
+    prov = layer.dataProvider()
+    ranges = prov.userNoDataValues(band)
+
+    if not ranges:
+        return
+
+    values = []
+    for rng in ranges:
+        try:
+            values.append(qgs_range_to_single_value(rng))
+        except RuntimeError as e:
+            print("Skipping:", e)
+
+    if not values:
+        raise RuntimeError(
+            "Did not find any single additional NoData value (only ranges)."
+        )
+
+    nodata_value = values[0]
+    if len(values) > 1:
+        print(
+            f"Warning: found multiple additional NoData values: {values}. Using the first one: {nodata_value}"
+        )
+
+    path = layer.source().split("|")[0]
+    print(f"Writing GDAL NoData={nodata_value} to file: {path} (band {band})")
+
+    ds = gdal.Open(path, gdal.GA_Update)
+    if ds is None:
+        raise RuntimeError(
+            "GDAL could not open dataset for writing (GA_Update). Check permissions/format."
+        )
+
+    rb = ds.GetRasterBand(band)
+    if rb is None:
+        ds = None
+        raise RuntimeError(f"Dataset does not have band {band}.")
+
+    rb.SetNoDataValue(nodata_value)
+    rb.FlushCache()
+    ds.FlushCache()
+    ds = None
+
+    layer.triggerRepaint()
+    print("Done. NoData written to raster.")
 
 
 class Layman(QObject):
@@ -3588,6 +3650,9 @@ class Layman(QObject):
 
         self._raster_upload_semaphore.acquire()
         try:
+            # Před nahráním zapíše případné uživatelsky nastavené NoData do rastrového souboru
+            apply_provider_user_nodata_to_gdal(layer, band=1)
+
             data["crs"] = layer.crs().authid()
             stylePath = self.getTempPath(
                 self.utils.removeUnacceptableChars(layer.name())
