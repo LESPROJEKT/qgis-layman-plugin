@@ -8,6 +8,23 @@ import requests
 import shutil
 from qgis.core import Qgis
 from enum import Enum
+import ssl
+from urllib import request as urllib_request
+from urllib import error as urllib_error
+
+
+class SimpleHttpResponse:
+    def __init__(self, status_code=0, content=b""):
+        self.status_code = status_code
+        self.content = content
+        self.ok = 200 <= status_code < 300
+
+    @property
+    def text(self):
+        return self.content.decode("utf-8", errors="replace")
+
+    def json(self):
+        return json.loads(self.text)
 
 
 class URLMapping(Enum):
@@ -188,9 +205,18 @@ class Qfield:
 
     def getUserInfo(self):
         url = f"{self.URI}/api/v1/auth/user/"
-        response = self.utils.requestWrapper(
-            "GET", url, payload=None, files=None, emitErr=False
-        )
+        headers = self.utils.getAuthHeader(self.utils.authCfg) or {}
+        req = urllib_request.Request(url, headers=headers, method="GET")
+        context = ssl._create_unverified_context()
+        try:
+            with urllib_request.urlopen(req, timeout=15, context=context) as resp:
+                response = SimpleHttpResponse(
+                    status_code=resp.getcode(), content=resp.read()
+                )
+        except urllib_error.HTTPError as ex:
+            response = SimpleHttpResponse(status_code=ex.code, content=ex.read() or b"")
+        except Exception:
+            response = SimpleHttpResponse(status_code=0, content=b"")
         print(self.URI)
         print(response.content)
         return response

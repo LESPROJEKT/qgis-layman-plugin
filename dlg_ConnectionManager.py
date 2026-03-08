@@ -21,24 +21,25 @@
 """
 
 import os
-import requests
 import json
 import tempfile
 import shutil
 from zipfile import ZipFile
+from urllib import request as urllib_request
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from .layman_utils import ProxyStyle
 from qgis.core import QgsSettings, QgsApplication, QgsProject
 from qgis.PyQt.QtWidgets import QPushButton, QMessageBox
-from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtCore import QUrl, QEventLoop, QTimer
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 import threading
 from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout
 from .dlg_server_form import ServerForm
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -82,6 +83,8 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_Add.clicked.connect(self.open_server_form)
         path = self.layman.plugin_dir + os.sep + "server_list.txt"
         servers = self.utils.csvToArray(path)
+        self._servers_cache = servers
+        self._version_compat_cache = {}
 
         for i in range(0, len(servers)):
             if not self.server:
@@ -164,19 +167,24 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_NoLogin.clicked.connect(
             lambda: self.withoutLogin(servers, self.comboBox_server.currentIndex())
         )
-        from pathlib import Path
-
         registerSuffix = "/accounts/signup/"
-
-        server_file = Path(__file__).with_name("server_list.txt")
         self.servers = {}
-        with server_file.open(encoding="utf-8") as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                parts = [p.strip() for p in line.split(",")]
-                url, alias = parts[0].rstrip("/"), parts[-1]
-                self.servers[alias] = url
+        for row in servers:
+            if not row:
+                continue
+            raw_url = (row[0] or "").strip()
+            if not raw_url:
+                continue
+            base_url = raw_url.rstrip("/")
+            if len(row) == 6:
+                alias = (row[5] or "").strip()
+            else:
+                alias = raw_url.replace("www.", "").replace("https://", "")
+            if alias:
+                self.servers[alias] = base_url
+            # Keep compatibility with the special test alias.
+            if base_url == "http://157.230.109.174/client":
+                self.servers["test HUB"] = base_url
 
         def setReg():
             alias = self.comboBox_server.currentText()
@@ -291,7 +299,9 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.menu_UserInfoDialog.setEnabled(True)
         self.layman.menu_AddMapDialog.setEnabled(True)
         self.layman.instance = None
-        threading.Thread(target=lambda: self.layman.fillCompositionDict()).start()
+        threading.Thread(
+            target=lambda: self.layman.fillCompositionDict(), daemon=True
+        ).start()
         self.close()
 
     def open_server_form(self):
@@ -311,29 +321,61 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             if current_index < 0:
                 return True
 
-            path = self.layman.plugin_dir + os.sep + "server_list.txt"
-            servers = self.utils.csvToArray(path)
+            servers = getattr(self, "_servers_cache", None) or []
             if current_index >= len(servers):
                 return True
 
-            server_url = servers[current_index][1]
+            server_url = servers[current_index][1].rstrip("/")
+            cache = getattr(self, "_version_compat_cache", {})
+            if server_url in cache:
+                return cache[server_url]
 
-            response = requests.get(f"{server_url}/rest/about/version", timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                layman_version = (
-                    data.get("about", {})
-                    .get("applications", {})
-                    .get("layman", {})
-                    .get("version", "")
-                )
+            req = QNetworkRequest(QUrl(f"{server_url}/rest/about/version"))
+            req.setRawHeader(b"User-Agent", b"QGIS-Layman-Plugin")
+            manager = QNetworkAccessManager(self)
+            reply = manager.get(req)
 
-                if layman_version:
-                    return self.compare_versions(layman_version, "2.0.0")
-                else:
-                    return True
-            else:
+            loop = QEventLoop()
+            timeout = {"expired": False}
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+
+            def on_timeout():
+                timeout["expired"] = True
+                loop.quit()
+
+            timer.timeout.connect(on_timeout)
+            reply.finished.connect(loop.quit)
+            timer.start(5000)
+            loop.exec()
+            timer.stop()
+
+            if timeout["expired"]:
+                reply.abort()
+                reply.deleteLater()
                 return True
+
+            status = reply.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
+            if status != 200:
+                reply.deleteLater()
+                return True
+
+            payload = bytes(reply.readAll())
+            reply.deleteLater()
+            data = json.loads(payload.decode("utf-8", errors="replace"))
+            layman_version = (
+                data.get("about", {})
+                .get("applications", {})
+                .get("layman", {})
+                .get("version", "")
+            )
+            compatible = (
+                self.compare_versions(layman_version, "2.0.0")
+                if layman_version
+                else True
+            )
+            self._version_compat_cache[server_url] = compatible
+            return compatible
         except Exception:
             return True
 
@@ -428,11 +470,14 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def download_url(self, url, save_path):
         """Download file from URL (copied from userInfo dialog)"""
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-
-        with open(save_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
+        req = urllib_request.Request(url, headers={"User-Agent": "QGIS-Layman-Plugin"})
+        with urllib_request.urlopen(req, timeout=30) as response, open(
+            save_path, "wb"
+        ) as f:
+            while True:
+                chunk = response.read(8192)
+                if not chunk:
+                    break
                 f.write(chunk)
 
 

@@ -24,6 +24,11 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import Qt, QCoreApplication
+
+try:
+    _ApplicationModal = Qt.WindowModality.ApplicationModal
+except AttributeError:
+    _ApplicationModal = Qt.ApplicationModal
 from qgis.core import *
 import tempfile
 from qgis.PyQt.QtWidgets import QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterator
@@ -251,7 +256,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.treeWidget.addTopLevelItem(item)
                 if layerType == "postgres":
                     self.treeWidget.addTopLevelItem(item)
-        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowModality(_ApplicationModal)
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.selectSelectedLayer()
         self.treeWidget.header().resizeSection(0, 250)

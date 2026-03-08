@@ -25,7 +25,38 @@ from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 import threading
 import requests
-from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt
+from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QTimer
+
+try:
+    _CheckStateUnchecked = Qt.CheckState.Unchecked
+    _CheckStateChecked = Qt.CheckState.Checked
+except AttributeError:
+    _CheckStateUnchecked = Qt.Unchecked
+    _CheckStateChecked = Qt.Checked
+try:
+    _HeaderStretch = QtWidgets.QHeaderView.ResizeMode.Stretch
+    _HeaderInteractive = QtWidgets.QHeaderView.ResizeMode.Interactive
+except AttributeError:
+    _HeaderStretch = QtWidgets.QHeaderView.Stretch
+    _HeaderInteractive = QtWidgets.QHeaderView.Interactive
+try:
+    _AscendingOrder = Qt.SortOrder.AscendingOrder
+except AttributeError:
+    _AscendingOrder = Qt.AscendingOrder
+try:
+    _UserRole = Qt.ItemDataRole.UserRole
+except AttributeError:
+    _UserRole = Qt.UserRole
+try:
+    _AlignCenter = Qt.AlignmentFlag.AlignCenter
+except AttributeError:
+    _AlignCenter = Qt.AlignCenter
+try:
+    _KeepAspectRatio = Qt.AspectRatioMode.KeepAspectRatio
+    _FastTransformation = Qt.TransformationMode.FastTransformation
+except AttributeError:
+    _KeepAspectRatio = Qt.KeepAspectRatio
+    _FastTransformation = Qt.FastTransformation
 from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QTreeWidgetItemIterator,
@@ -67,6 +98,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     clearTree = pyqtSignal()
     showQgisBar = pyqtSignal(list, int)
     updateButtonsSignal = pyqtSignal(bool)
+    thumbnailMapDone = pyqtSignal(object)
 
     def __init__(self, utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
@@ -101,7 +133,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def connectEvents(self):
         self.mapDeletedSuccessfully.connect(self._onMapDeletedSuccessfully)
         self.progressDone.connect(self._onProgressDone)
-        self.loadComposition.connect(self.readMapJsonThread)
+        self.loadComposition.connect(self._deferReadMapJsonThread)
         self.permissionInfo.connect(self.afterPermissionDone)
         self.readCompositionFailed.connect(self._onReadCompositionFailed)
         self.updateButtonsSignal.connect(self.updateButtons)
@@ -124,25 +156,15 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def setUi(self):
         self.connectEvents()
         self.permissionsConnected = False
+        self._user_screen_names = {}
         self.pushButton_setPermissions.clicked.connect(
             lambda: self.setPermissionsWidget(True)
         )
         self.pushButton_back.clicked.connect(lambda: self.setPermissionsWidget(False))
         self.utils.recalculateDPI()
-        self.treeWidget.itemClicked.connect(
-            lambda: threading.Thread(
-                target=lambda: self.showThumbnailMap(
-                    self.layman.getNameByTitle(
-                        self.treeWidget.selectedItems()[0].text(0)
-                    ),
-                    self.treeWidget.selectedItems()[0].text(1),
-                )
-            ).start()
-        )
-        self.treeWidget.itemClicked.connect(self.enableLoadMapButtons)
-        self.treeWidget.itemClicked.connect(self.setPermissionsButton)
-        self.treeWidget.itemClicked.connect(
-            lambda: threading.Thread(target=self.setQfieldButtons).start()
+        self.treeWidget.itemClicked.connect(self.onCompositionItemClicked)
+        self.treeWidget.itemSelectionChanged.connect(
+            self._onCompositionSelectionChanged
         )
         # Set column widths
         self.treeWidget.setColumnWidth(0, 280)  # Layer - trochu zúžený
@@ -154,19 +176,19 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             False
         )  # Don't stretch last section
         self.treeWidget.header().setSectionResizeMode(
-            0, QtWidgets.QHeaderView.Stretch
+            0, _HeaderStretch
         )  # Layer column stretches to fill space
         self.treeWidget.header().setSectionResizeMode(
-            1, QtWidgets.QHeaderView.Interactive
+            1, _HeaderInteractive
         )  # User can resize
         self.treeWidget.header().setSectionResizeMode(
-            2, QtWidgets.QHeaderView.Interactive
+            2, _HeaderInteractive
         )  # User can resize
 
         # Enable sorting by clicking on column headers
         self.treeWidget.setSortingEnabled(True)
         self.treeWidget.sortByColumn(
-            0, Qt.AscendingOrder
+            0, _AscendingOrder
         )  # Default sort by Layer name (column 0)
         self.label_noUser.hide()
         delegate = IconQfieldDelegate()
@@ -210,21 +232,91 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         except:
             checked = False
         if checked == "0":
-            self.checkBox_own.setCheckState(0)
+            self.checkBox_own.setCheckState(_CheckStateUnchecked)
             checked = False
         if checked == "1":
-            self.checkBox_own.setCheckState(2)
+            self.checkBox_own.setCheckState(_CheckStateChecked)
             checked = True
+
         self.checkBox_own.stateChanged.connect(
-            lambda state: asyncio.run(self.loadMapsThread(state))
+            lambda state: asyncio.run(self.loadMapsThread(state == _CheckStateChecked))
         )
         asyncio.run(self.loadMapsThread(checked))
 
         # Initialize thumbnail label based on checkbox state
-        if self.checkBox_thumbnail.checkState() == 2:  # Checked
+        if self.checkBox_thumbnail.checkState() == _CheckStateChecked:  # Checked
             self.label_thumbnail.setText("")  # Clear placeholder when enabled
         else:  # Unchecked
             self.label_thumbnail.setText("Disabled")  # Show placeholder when disabled
+
+        self.thumbnailMapDone.connect(self._onThumbnailMapDone)
+
+    def _onMapItemClickedForThumbnail(self, item=None):
+        if item is None:
+            sel = self.treeWidget.selectedItems()
+            if not sel:
+                return
+            item = sel[0]
+        map_name = self.layman.getNameByTitle(item.text(0))
+        workspace = item.text(1)
+        show = self.checkBox_thumbnail.checkState() == _CheckStateChecked
+        threading.Thread(
+            target=self._fetchThumbnailMap,
+            args=(map_name, workspace, show),
+            daemon=True,
+        ).start()
+
+    def _onCompositionSelectionChanged(self):
+        selected = self.treeWidget.selectedItems()
+        if not selected:
+            self.disableButtonsAddMap()
+            self.updateButtonsSignal.emit(False)
+            return
+        self.onCompositionItemClicked(selected[0], 0)
+
+    def onCompositionItemClicked(self, item, col):
+        self.enableLoadMapButtons(item)
+        self.setPermissionsButton(item)
+        self.setQfieldButtons(item)
+        self._onMapItemClickedForThumbnail(item)
+
+    def _onThumbnailMapDone(self, result):
+        data, error = result
+        if data:
+            pixmap = QPixmap()
+            if pixmap.loadFromData(data):
+                smaller = pixmap.scaled(200, 200, _KeepAspectRatio, _FastTransformation)
+                self.label_thumbnail.setPixmap(smaller)
+                self.label_thumbnail.setText("")
+            else:
+                self.label_thumbnail.clear()
+                self.label_thumbnail.setText("Invalid image")
+            self.label_thumbnail.setAlignment(_AlignCenter)
+        else:
+            self.label_thumbnail.clear()
+            self.label_thumbnail.setText(error or "Error")
+            self.label_thumbnail.setAlignment(_AlignCenter)
+
+    def _fetchThumbnailMap(self, map_name, workspace, show_thumbnail):
+        if not show_thumbnail:
+            self.thumbnailMapDone.emit((None, "Disabled"))
+            return
+        map_safe = self.utils.removeUnacceptableChars(str(map_name))
+        url = self.layman_api.get_map_thumbnail_url(workspace, str(map_safe).lower())
+        try:
+            r = requests.get(
+                url,
+                headers=self.utils.getAuthHeader(self.utils.authCfg),
+                timeout=15,
+                verify=False,
+            )
+        except Exception as e:
+            self.thumbnailMapDone.emit((None, str(e)))
+            return
+        if r.status_code == 200 and r.content:
+            self.thumbnailMapDone.emit((r.content, None))
+        else:
+            self.thumbnailMapDone.emit((None, f"Error {r.status_code}"))
 
     def qfieldSync(self):
         self.layman.qfieldWorking = True
@@ -687,7 +779,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
                 checkbox_item = QTableWidgetItem()
                 checkbox_item.setFlags(Qt.ItemIsEnabled)
-                checkbox_item.setTextAlignment(Qt.AlignCenter)
+                checkbox_item.setTextAlignment(_AlignCenter)
                 table_widget.setCellWidget(row, col, checkbox)
                 table_widget.setItem(row, col, checkbox_item)
 
@@ -806,31 +898,6 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             )
             self.permissionsConnected = True
 
-    def showThumbnailMap(self, it, workspace):
-        map = it
-        if self.checkBox_thumbnail.checkState() == 2:
-            map = self.utils.removeUnacceptableChars(str(map))
-            url = self.layman_api.get_map_thumbnail_url(workspace, str(map).lower())
-            auth_headers = self.utils.getAuthHeader(self.layman.authCfg)
-            r = requests.get(url, headers=auth_headers)
-            if r.status_code == 200:
-                data = r.content
-                pixmap = QPixmap(200, 200)
-                pixmap.loadFromData(data)
-                smaller_pixmap = pixmap.scaled(
-                    200, 200, Qt.KeepAspectRatio, Qt.FastTransformation
-                )
-                self.label_thumbnail.setPixmap(smaller_pixmap)
-                self.label_thumbnail.setText("")
-            else:
-                self.label_thumbnail.clear()
-                self.label_thumbnail.setText(f"Error {r.status_code}")
-                self.label_thumbnail.setAlignment(Qt.AlignCenter)
-        else:
-            self.label_thumbnail.clear()
-            self.label_thumbnail.setText("Disabled")
-            self.label_thumbnail.setAlignment(Qt.AlignCenter)
-
     def fillCompositionDict(self):
         url = self.layman_api.get_get_all_maps_url()
         r = requests.get(url=url, headers=self.utils.getAuthHeader(self.authCfg))
@@ -844,28 +911,33 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_map.setFocus()
 
     def setPermissionsButton(self, item):
-        if item.text(2) != "own":
+        owner = item.text(1)
+        is_own = owner == self.laymanUsername
+        if not is_own:
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_delete.setEnabled(False)
         else:
             self.pushButton_setPermissions.setEnabled(True)
             self.pushButton_delete.setEnabled(True)
 
-    def setQfieldButtons(self):
-        if self.layman.qfieldReady:
-            names = self.utils.getUserScreenNames()
-            workspace = self.treeWidget.selectedItems()[0].text(1)
-            owner = names.get(workspace, workspace)
-            qfieldExists = self.matchQfield(
-                self.utils.removeUnacceptableChars(
-                    self.treeWidget.selectedItems()[0].text(0)
-                ),
-                owner,
-                self.qProjects,
-            )
-            self.updateButtonsSignal.emit(qfieldExists)
-        else:
+    def setQfieldButtons(self, item=None):
+        if item is None:
+            selected = self.treeWidget.selectedItems()
+            if not selected:
+                self.updateButtonsSignal.emit(False)
+                return
+            item = selected[0]
+        if not self.layman.qfieldReady:
             self.updateButtonsSignal.emit(False)
+            return
+        workspace = item.text(1)
+        owner = self._user_screen_names.get(workspace, workspace)
+        qfieldExists = self.matchQfield(
+            self.utils.removeUnacceptableChars(item.text(0)),
+            owner,
+            self.qProjects,
+        )
+        self.updateButtonsSignal.emit(qfieldExists)
 
     def updateButtons(self, qfieldExists):
         if qfieldExists:
@@ -891,11 +963,19 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def matchQfield(self, name, owner, server_response):
         name = self.utils.removeUnacceptableChars(name)
-        if "code" in server_response:
-            if server_response["code"] == "unknown_error":
+        if server_response is None:
+            return False
+        if isinstance(server_response, dict):
+            if server_response.get("code") == "unknown_error":
                 return False
+            # Not a list of projects
+            return False
+        if not isinstance(server_response, (list, tuple)):
+            return False
         for item in server_response:
-            if item["name"] == name and item["owner"] == owner:
+            if not isinstance(item, dict):
+                continue
+            if item.get("name") == name and item.get("owner") == owner:
                 return True
         return False
 
@@ -908,6 +988,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             self.qProjects = self.qProjects.json()
 
         names = self.utils.getUserScreenNames()
+        self._user_screen_names = names or {}
         url = self.layman_api.get_maps_url(self.laymanUsername, order_by="title")
         r = await self.utils.asyncRequestWrapper("GET", url)
         try:
@@ -990,6 +1071,11 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 )
                 return
 
+            own_keys = {
+                (d.get("title"), d.get("workspace"))
+                for d in data
+                if isinstance(d, dict)
+            }
             for row in range(len(dataAll)):
                 permissions = ""
                 if (
@@ -1002,9 +1088,15 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     or "EVERYONE" in dataAll[row]["access_rights"]["write"]
                 ):
                     permissions = "write"
-                if dataAll[row] in data:
+                is_own = (
+                    dataAll[row].get("workspace") == self.laymanUsername
+                    or (dataAll[row].get("title"), dataAll[row].get("workspace"))
+                    in own_keys
+                )
+                if is_own:
                     permissions = "own"
                 if permissions != "":
+                    qfieldExists = False
                     if "native_crs" in dataAll[row]:
                         item = QTreeWidgetItem(
                             [
@@ -1153,6 +1245,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 "",
             )
 
+    def _deferReadMapJsonThread(self, name, service, workspace=""):
+        QTimer.singleShot(0, lambda: self.readMapJsonThread(name, service, workspace))
+
     def readMapJson(self, name, service, workspace=""):
         self.layman.project.setTitle(name)
         url = self.layman_api.get_map_file_url(workspace, name)
@@ -1189,8 +1284,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             workspace = self.getCompositionWorkspace(name)
             try:
                 url = self.layman_api.get_map_file_url(workspace, name)
-            except:
-                QgsMessageLog.logMessage("compositionSchemaError")
+            except Exception:
+                self.readCompositionFailed.emit()
                 return
             r = self.utils.requestWrapper("GET", url, payload=None, files=None)
             data = r.json()
@@ -1271,265 +1366,270 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         self.loadLayer(data, service, name)
 
     def loadLayer(self, data, service, groupName=""):
-        if not "layers" in data:
-            print("corrupted composition")
-            self.utils.emitMessageBox.emit(
-                ["Kompozice je poškozena!", "Map composition is corrupted!"]
-            )
-            return
-        i = 1
-        groups = list()
-        groupPositions = list()
-        groupsSet = set()
-        for x in range(len(data["layers"]) - 1, -1, -1):
-            print("iteration")
-            try:
-                subgroupName = data["layers"][x]["path"]
-            except:
-                print("path for layer not found")
-                subgroupName = ""
-            try:
-                timeDimension = data["layers"][x]["dimensions"]
-            except:
-                print("time dimensions for layer not found")
-                timeDimension = ""
-            className = data["layers"][x]["className"]
-            visibility = data["layers"][x]["visibility"]
-            if className == "XYZ":
-                layerName = data["layers"][x]["title"]
-            if className == "HSLayers.Layer.WMS" or className == "WMS":
-                layerName = data["layers"][x]["params"]["LAYERS"]
-            if className == "OpenLayers.Layer.Vector" or className == "Vector":
-                try:
-                    layerName = data["layers"][x]["name"]
-                except:
-                    try:
-                        layerName = data["layers"][x]["protocol"]["LAYERS"]
-                    except:
-                        QgsMessageLog.logMessage("compositionSchemaError")
-                        self.instance = None
-                        self.layman.current = None
-                        return
-            if className == "ArcGISRest":
-                layerName = data["layers"][x]["title"]
-            try:
-                print(layerName)
-            except:
+        try:
+            if "layers" not in data:
+                print("corrupted composition")
                 self.readCompositionFailed.emit()
-                print("wrong format of composition")
                 return
-            print(self.layman.checkLayerOnLayman(layerName))
-            print(layerName)
-            if self.layman.checkLayerOnLayman(layerName):
-                if className == "HSLayers.Layer.WMS" or className == "WMS":
-                    layerName = data["layers"][x]["params"]["LAYERS"]
-                    format = data["layers"][x]["params"]["FORMAT"]
-                    epsg = "EPSG:4326"
-                    minRes = data["layers"][x]["minResolution"]
-                    maxRes = data["layers"][x]["maxResolution"]
-                    if "greyscale" in data["layers"][x]:
-                        greyscale = data["layers"][x]["greyscale"]
-                    else:
-                        greyscale = False
-
-                    try:
-                        groupName = data["layers"][x]["path"]
-                    except:
-                        groupName = ""
-                    layerNameTitle = data["layers"][x]["title"]
-                    repairUrl = data["layers"][x]["url"]
-                    repairUrl = self.utils.convertUrlFromHex(repairUrl)
-                    everyone = False
-                    try:
-                        r = requests.get(
-                            url=url, headers=self.utils.getAuthHeader(self.authCfg)
-                        )
-                        r = self.utils.requestWrapper(
-                            "GET", url, payload=None, files=None
-                        )
-                        if "EVERYONE" in r.json()["access_rights"]["read"]:
-                            everyone = True
-                        if "time" in r.json()["wms"]:
-                            timeDimension = r.json()["wms"]
-                    except:
-                        print("permissions not found")
-
-                    if groupName != "":
-                        groups.append([groupName, len(data["layers"]) - i])
-                        groupsSet.add(groupName)
-                        groupPositions.append(
-                            [groupName, layerNameTitle, len(data["layers"]) - i]
-                        )
-                    else:
-                        groups.append([layerNameTitle, len(data["layers"]) - i])
-                    legends = "0"
-                    if "legends" in data["layers"][x]:
-                        legends = "1"
-                    self.layman.loadWms(
-                        repairUrl,
-                        layerName,
-                        layerNameTitle,
-                        format,
-                        epsg,
-                        groupName,
-                        subgroupName,
-                        timeDimension,
-                        visibility,
-                        everyone,
-                        minRes,
-                        maxRes,
-                        greyscale,
-                        legends,
-                    )
-                if className == "ArcGISRest":
-                    url = data["layers"][x]["url"]
-                    layerNameTitle = data["layers"][x]["title"]
-                    self.layman.loadArcGisRest(url, layerNameTitle)
-
+            i = 1
+            groups = list()
+            groupPositions = list()
+            groupsSet = set()
+            for x in range(len(data["layers"]) - 1, -1, -1):
+                print("iteration")
+                try:
+                    subgroupName = data["layers"][x]["path"]
+                except Exception:
+                    print("path for layer not found")
+                    subgroupName = ""
+                try:
+                    timeDimension = data["layers"][x]["dimensions"]
+                except Exception:
+                    print("time dimensions for layer not found")
+                    timeDimension = ""
+                className = data["layers"][x]["className"]
+                visibility = data["layers"][x]["visibility"]
                 if className == "XYZ":
                     layerName = data["layers"][x]["title"]
-                    minRes = data["layers"][x]["minResolution"]
-                    maxRes = data["layers"][x]["maxResolution"]
-                    try:
-                        groupName = data["layers"][x]["path"]
-                    except:
-                        groupName = ""
-                    format = "XYZ"
-                    epsg = "EPSG:4326"
-                    layerNameTitle = data["layers"][x]["title"]
-                    if groupName != "":
-                        groups.append([groupName, len(data["layers"]) - i])
-                        groupsSet.add(groupName)
-                        groupPositions.append(
-                            [groupName, layerNameTitle, len(data["layers"]) - i]
-                        )
-                    else:
-                        groups.append([layerNameTitle, len(data["layers"]) - i])
-                    self.layman.loadXYZ(
-                        data["layers"][x]["url"],
-                        layerName,
-                        layerNameTitle,
-                        format,
-                        epsg,
-                        groupName,
-                        subgroupName,
-                        visibility,
-                        -1,
-                        minRes,
-                        maxRes,
-                    )
-
+                if className == "HSLayers.Layer.WMS" or className == "WMS":
+                    layerName = data["layers"][x]["params"]["LAYERS"]
                 if className == "OpenLayers.Layer.Vector" or className == "Vector":
-                    epsg = "EPSG:4326"
-                    minRes = data["layers"][x]["minResolution"]
-                    maxRes = data["layers"][x]["maxResolution"]
-                    layerNameTitle = data["layers"][x]["title"]
-                    repairUrl = data["layers"][x]["protocol"]["url"]
-                    repairUrl = self.utils.convertUrlFromHex(repairUrl)
-                    subgroupName = ""
-                    everyone = False
-
-                    layer_workspace = None
-                    if "style" in data["layers"][x] and data["layers"][x]["style"]:
-                        style_url = data["layers"][x]["style"]
+                    try:
+                        layerName = data["layers"][x]["name"]
+                    except Exception:
                         try:
-                            import urllib.parse
-
-                            parsed_url = urllib.parse.urlparse(style_url)
-                            path_parts = parsed_url.path.split("/")
-                            if "workspaces" in path_parts:
-                                workspace_index = path_parts.index("workspaces")
-                                if workspace_index + 1 < len(path_parts):
-                                    layer_workspace = path_parts[workspace_index + 1]
+                            layerName = data["layers"][x]["protocol"]["LAYERS"]
                         except Exception:
-                            pass
+                            self.readCompositionFailed.emit()
+                            self.instance = None
+                            self.layman.current = None
+                            return
+                if className == "ArcGISRest":
+                    layerName = data["layers"][x]["title"]
+                try:
+                    print(layerName)
+                except Exception:
+                    self.readCompositionFailed.emit()
+                    print("wrong format of composition")
+                    return
+                print(self.layman.checkLayerOnLayman(layerName))
+                print(layerName)
+                if self.layman.checkLayerOnLayman(layerName):
+                    if className == "HSLayers.Layer.WMS" or className == "WMS":
+                        layerName = data["layers"][x]["params"]["LAYERS"]
+                        format = data["layers"][x]["params"]["FORMAT"]
+                        epsg = "EPSG:4326"
+                        minRes = data["layers"][x]["minResolution"]
+                        maxRes = data["layers"][x]["maxResolution"]
+                        if "greyscale" in data["layers"][x]:
+                            greyscale = data["layers"][x]["greyscale"]
+                        else:
+                            greyscale = False
 
-                    if "path" in data["layers"][x]:
-                        groupName = data["layers"][x]["path"]
-                    else:
-                        groupName = ""
-                    if groupName != "":
-                        groups.append([groupName, len(data["layers"]) - i])
-                        groupsSet.add(groupName)
-                        groupPositions.append(
-                            [groupName, layerNameTitle, len(data["layers"]) - i]
-                        )
-                    else:
-                        groups.append([layerNameTitle, len(data["layers"]) - i])
-                    try:  ## nove rozdeleni
-                        if "type" in data["layers"][x]["protocol"]:  ## old
-                            if (
-                                data["layers"][x]["protocol"]["type"] == "hs.format.WFS"
-                                or data["layers"][x]["protocol"]["type"] == "WFS"
-                                or data["layers"][x]["protocol"]["type"]
-                                == "hs.format.externalWFS"
-                            ):
-                                if "workspace" in data:
-                                    repairUrl = (
-                                        repairUrl.replace("hsl-layman", "")
-                                        + data["workspace"]
-                                        + "wfs"
-                                    )
-                                self.layman.loadWfs(
-                                    repairUrl,
-                                    layerName,
-                                    layerNameTitle,
-                                    groupName,
-                                    subgroupName,
-                                    visibility,
-                                    everyone,
-                                    minRes,
-                                    maxRes,
-                                    layer_workspace,
-                                )
-                        if "format" in data["layers"][x]["protocol"]:
-                            if data["layers"][x]["protocol"]["format"] in (
-                                "hs.format.externalWFS",
-                                "externalWFS",
-                            ):
-                                self.layman.loadWfsExternal(
-                                    data["layers"][x], epsg, groupName
-                                )
-                            if (
-                                data["layers"][x]["protocol"]["format"]
-                                == "hs.format.WFS"
-                                or data["layers"][x]["protocol"]["format"] == "WFS"
-                            ):
-                                if "workspace" in data["layers"][x]:
-                                    repairUrl = repairUrl.replace("hsl-layman", "")
-                                self.layman.loadWfs(
-                                    repairUrl,
-                                    layerName,
-                                    layerNameTitle,
-                                    groupName,
-                                    subgroupName,
-                                    visibility,
-                                    everyone,
-                                    minRes,
-                                    maxRes,
-                                    layer_workspace,
-                                )
+                        try:
+                            groupName = data["layers"][x]["path"]
+                        except Exception:
+                            groupName = ""
+                        layerNameTitle = data["layers"][x]["title"]
+                        repairUrl = data["layers"][x]["url"]
+                        repairUrl = self.utils.convertUrlFromHex(repairUrl)
+                        everyone = False
+                        try:
+                            r = requests.get(
+                                url=url, headers=self.utils.getAuthHeader(self.authCfg)
+                            )
+                            r = self.utils.requestWrapper(
+                                "GET", url, payload=None, files=None
+                            )
+                            if "EVERYONE" in r.json()["access_rights"]["read"]:
+                                everyone = True
+                            if "time" in r.json()["wms"]:
+                                timeDimension = r.json()["wms"]
+                        except Exception:
+                            print("permissions not found")
 
-                    except:
-                        self.layman.loadWfs(
+                        if groupName != "":
+                            groups.append([groupName, len(data["layers"]) - i])
+                            groupsSet.add(groupName)
+                            groupPositions.append(
+                                [groupName, layerNameTitle, len(data["layers"]) - i]
+                            )
+                        else:
+                            groups.append([layerNameTitle, len(data["layers"]) - i])
+                        legends = "0"
+                        if "legends" in data["layers"][x]:
+                            legends = "1"
+                        self.layman.loadWms(
                             repairUrl,
                             layerName,
                             layerNameTitle,
+                            format,
+                            epsg,
                             groupName,
                             subgroupName,
+                            timeDimension,
                             visibility,
                             everyone,
                             minRes,
                             maxRes,
-                            layer_workspace,
+                            greyscale,
+                            legends,
+                        )
+                    if className == "ArcGISRest":
+                        url = data["layers"][x]["url"]
+                        layerNameTitle = data["layers"][x]["title"]
+                        self.layman.loadArcGisRest(url, layerNameTitle)
+
+                    if className == "XYZ":
+                        layerName = data["layers"][x]["title"]
+                        minRes = data["layers"][x]["minResolution"]
+                        maxRes = data["layers"][x]["maxResolution"]
+                        try:
+                            groupName = data["layers"][x]["path"]
+                        except Exception:
+                            groupName = ""
+                        format = "XYZ"
+                        epsg = "EPSG:4326"
+                        layerNameTitle = data["layers"][x]["title"]
+                        if groupName != "":
+                            groups.append([groupName, len(data["layers"]) - i])
+                            groupsSet.add(groupName)
+                            groupPositions.append(
+                                [groupName, layerNameTitle, len(data["layers"]) - i]
+                            )
+                        else:
+                            groups.append([layerNameTitle, len(data["layers"]) - i])
+                        self.layman.loadXYZ(
+                            data["layers"][x]["url"],
+                            layerName,
+                            layerNameTitle,
+                            format,
+                            epsg,
+                            groupName,
+                            subgroupName,
+                            visibility,
+                            -1,
+                            minRes,
+                            maxRes,
                         )
 
-            else:
-                self.wrongLayers = True
-            i = i + 1
-        self.layman.reorderGroups(groups, groupsSet, groupPositions)
-        self.layman.afterCompositionLoaded()
-        self.progressDone.emit()
+                    if className == "OpenLayers.Layer.Vector" or className == "Vector":
+                        epsg = "EPSG:4326"
+                        minRes = data["layers"][x]["minResolution"]
+                        maxRes = data["layers"][x]["maxResolution"]
+                        layerNameTitle = data["layers"][x]["title"]
+                        repairUrl = data["layers"][x]["protocol"]["url"]
+                        repairUrl = self.utils.convertUrlFromHex(repairUrl)
+                        subgroupName = ""
+                        everyone = False
+
+                        layer_workspace = None
+                        if "style" in data["layers"][x] and data["layers"][x]["style"]:
+                            style_url = data["layers"][x]["style"]
+                            try:
+                                import urllib.parse
+
+                                parsed_url = urllib.parse.urlparse(style_url)
+                                path_parts = parsed_url.path.split("/")
+                                if "workspaces" in path_parts:
+                                    workspace_index = path_parts.index("workspaces")
+                                    if workspace_index + 1 < len(path_parts):
+                                        layer_workspace = path_parts[
+                                            workspace_index + 1
+                                        ]
+                            except Exception:
+                                pass
+
+                        if "path" in data["layers"][x]:
+                            groupName = data["layers"][x]["path"]
+                        else:
+                            groupName = ""
+                        if groupName != "":
+                            groups.append([groupName, len(data["layers"]) - i])
+                            groupsSet.add(groupName)
+                            groupPositions.append(
+                                [groupName, layerNameTitle, len(data["layers"]) - i]
+                            )
+                        else:
+                            groups.append([layerNameTitle, len(data["layers"]) - i])
+                        try:  ## nove rozdeleni
+                            if "type" in data["layers"][x]["protocol"]:  ## old
+                                if (
+                                    data["layers"][x]["protocol"]["type"]
+                                    == "hs.format.WFS"
+                                    or data["layers"][x]["protocol"]["type"] == "WFS"
+                                    or data["layers"][x]["protocol"]["type"]
+                                    == "hs.format.externalWFS"
+                                ):
+                                    if "workspace" in data:
+                                        repairUrl = (
+                                            repairUrl.replace("hsl-layman", "")
+                                            + data["workspace"]
+                                            + "wfs"
+                                        )
+                                    self.layman.loadWfs(
+                                        repairUrl,
+                                        layerName,
+                                        layerNameTitle,
+                                        groupName,
+                                        subgroupName,
+                                        visibility,
+                                        everyone,
+                                        minRes,
+                                        maxRes,
+                                        layer_workspace,
+                                    )
+                            if "format" in data["layers"][x]["protocol"]:
+                                if data["layers"][x]["protocol"]["format"] in (
+                                    "hs.format.externalWFS",
+                                    "externalWFS",
+                                ):
+                                    self.layman.loadWfsExternal(
+                                        data["layers"][x], epsg, groupName
+                                    )
+                                if (
+                                    data["layers"][x]["protocol"]["format"]
+                                    == "hs.format.WFS"
+                                    or data["layers"][x]["protocol"]["format"] == "WFS"
+                                ):
+                                    if "workspace" in data["layers"][x]:
+                                        repairUrl = repairUrl.replace("hsl-layman", "")
+                                    self.layman.loadWfs(
+                                        repairUrl,
+                                        layerName,
+                                        layerNameTitle,
+                                        groupName,
+                                        subgroupName,
+                                        visibility,
+                                        everyone,
+                                        minRes,
+                                        maxRes,
+                                        layer_workspace,
+                                    )
+
+                        except Exception:
+                            self.layman.loadWfs(
+                                repairUrl,
+                                layerName,
+                                layerNameTitle,
+                                groupName,
+                                subgroupName,
+                                visibility,
+                                everyone,
+                                minRes,
+                                maxRes,
+                                layer_workspace,
+                            )
+
+                else:
+                    self.wrongLayers = True
+                i = i + 1
+            self.layman.reorderGroups(groups, groupsSet, groupPositions)
+            self.layman.afterCompositionLoaded()
+            self.progressDone.emit()
+        except Exception:
+            self.readCompositionFailed.emit()
+            self.progressDone.emit()
 
     def getCompositionWorkspace(self, name):
         url = self.layman_api.get_get_all_maps_url()
@@ -1562,13 +1662,13 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         itemsTextListRead = []
         for i in range(self.listWidget_read.count()):
             current_item = self.listWidget_read.item(i)
-            hidden_item = current_item.data(Qt.UserRole)
+            hidden_item = current_item.data(_UserRole)
             if hidden_item is not None:
                 itemsTextListRead.append(hidden_item.text())
         itemsTextListWrite = []
         for i in range(self.listWidget_write.count()):
             current_item = self.listWidget_write.item(i)
-            hidden_item = current_item.data(Qt.UserRole)
+            hidden_item = current_item.data(_UserRole)
             if hidden_item is not None:
                 itemsTextListWrite.append(hidden_item.text())
         allItems = [
@@ -1627,7 +1727,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def setHiddenItem(self, item, hidden_text):
         hidden_item = QtWidgets.QListWidgetItem(hidden_text)
         hidden_item.setHidden(True)
-        item.setData(Qt.UserRole, hidden_item)
+        item.setData(_UserRole, hidden_item)
 
     def afterPermissionDone(self, success, failed, info):
         if self.objectName() == "AddMapDialog":
@@ -1658,7 +1758,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 itemsTextListRead = []
                 for i in range(self.listWidget_read.count()):
                     current_item = self.listWidget_read.item(i)
-                    hidden_item = current_item.data(Qt.UserRole)
+                    hidden_item = current_item.data(_UserRole)
                     if hidden_item is not None:
                         itemsTextListRead.append(hidden_item.text())
                 if (

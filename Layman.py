@@ -61,6 +61,21 @@ from qgis.PyQt.QtCore import (
     pyqtSignal,
     qVersion,
 )
+
+try:
+    _CheckStateUnchecked = Qt.CheckState.Unchecked
+    _CheckStateChecked = Qt.CheckState.Checked
+except AttributeError:
+    _CheckStateUnchecked = Qt.Unchecked
+    _CheckStateChecked = Qt.Checked
+try:
+    _ForegroundRole = Qt.ItemDataRole.ForegroundRole
+except AttributeError:
+    _ForegroundRole = Qt.ForegroundRole
+try:
+    _QueuedConnection = Qt.ConnectionType.QueuedConnection
+except AttributeError:
+    _QueuedConnection = Qt.QueuedConnection
 from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import (
     QAction,
@@ -72,6 +87,7 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QTreeWidgetItem,
     QTreeWidgetItemIterator,
+    QWidget,
 )
 from qgis.core import *
 from qgis.core import (
@@ -290,6 +306,7 @@ class Layman(QObject):
         self.dependencies = True
         self.firstLogin = True
         self.qfieldWorking = False
+        self._shutting_down = False
         self.resamplingMethods = {
             "Není vybrán": "No value",
             "Nejbližší": "nearest",
@@ -304,6 +321,12 @@ class Layman(QObject):
         }
 
         self.setSchemaVersion()
+        app = QCoreApplication.instance()
+        if app is not None:
+            try:
+                app.aboutToQuit.connect(self._begin_shutdown_cleanup)
+            except Exception:
+                pass
 
         if os.path.isfile(path):
             self.authFileTime = os.path.getmtime(path)
@@ -402,15 +425,17 @@ class Layman(QObject):
         self.reoderComposition.connect(self.reorderGroups)
         self.tsSuccess.connect(self._onSuccessTs)
         self.processingRaster.connect(self.onRasterUpload)
-        self.setPluginLabel.connect(self.onSetPluginLabel)
+        self.setPluginLabel.connect(self.onSetPluginLabel, type=_QueuedConnection)
         self.successWrapper.connect(self.onSuccess)
         self.setVisibility.connect(self._setVisibility)
         self.loadStyle.connect(self._loadStyle)
-        self.emitMessageBox.connect(self._onEmitMessageBox)
-        self.showExportInfo.connect(self.showExportedCompositionInfo)
+        self.emitMessageBox.connect(self._onEmitMessageBox, type=_QueuedConnection)
+        self.showExportInfo.connect(
+            self.showExportedCompositionInfo, type=_QueuedConnection
+        )
         self.cleanTemp.connect(self._cleanTemp)
-        self.enableMapButton.connect(self.enableMapMenu)
-        self.progressUpdated.connect(self.updateInfo)
+        self.enableMapButton.connect(self.enableMapMenu, type=_QueuedConnection)
+        self.progressUpdated.connect(self.updateInfo, type=_QueuedConnection)
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
@@ -510,7 +535,7 @@ class Layman(QObject):
                     or self.dlg.treeWidget_layers.itemWidget(item, 2).currentText()
                     == "Add"
                 ):
-                    item.setCheckState(0, 2)
+                    item.setCheckState(0, _CheckStateChecked)
                 iterator += 1
         except Exception:
             print("neni v canvasu")
@@ -536,7 +561,7 @@ class Layman(QObject):
         for layer in layersToDecision:
             item = QListWidgetItem()
             item.setText(layer)
-            item.setCheckState(0)
+            item.setCheckState(_CheckStateUnchecked)
             self.dlg.listWidget_layers.addItem(item)
         self.dlg.pushButton_save.clicked.connect(lambda: self.layersToUpload())
         self.dlg.pushButton_close.clicked.connect(lambda: self.dlg.close())
@@ -544,7 +569,7 @@ class Layman(QObject):
     def layersToUpload(self):
         for i in range(0, self.dlg.listWidget_layers.count()):
             item = self.dlg.listWidget_layers.item(i)
-            if item.checkState() == 0:
+            if item.checkState() == _CheckStateUnchecked:
                 self.noOverrideLayers.append(item.text())
 
         self.dlg = self.old_dlg
@@ -562,7 +587,7 @@ class Layman(QObject):
                 combobox.setCurrentIndex(2)
 
     def addService(self, item):
-        if item.checkState() == 2:
+        if item.checkState() == _CheckStateChecked:
             print("new layer")
 
     def removeCurrent(self):
@@ -671,9 +696,9 @@ class Layman(QObject):
             item = self.dlg.treeWidget.topLevelItem(i)
             if item.text(0) == name:
                 if status:
-                    item.setData(0, Qt.ForegroundRole, QColor("green"))
+                    item.setData(0, _ForegroundRole, QColor("green"))
                 else:
-                    item.setData(0, Qt.ForegroundRole, QColor("red"))
+                    item.setData(0, _ForegroundRole, QColor("red"))
 
     def rememberLastServer(self, server):
         self.settings.setValue("laymanLastServer", server)
@@ -882,7 +907,7 @@ class Layman(QObject):
             item = self.dlg.listWidget_layers.item(index)
 
             if (
-                item.checkState() == 2
+                item.checkState() == _CheckStateChecked
                 and self.utils.removeUnacceptableChars(item.text()) in layerListServer
                 and not self.instance.isLayerInComposition(
                     self.utils.removeUnacceptableChars(item.text())
@@ -1000,7 +1025,7 @@ class Layman(QObject):
                     self.addLayerToComposition(composition, layers)
             return True
         else:
-            QgsMessageLog.logMessage("uniqLayers")
+            self.showExportInfo.emit("uniqLayers")
             return False
 
     def run_UserInfoDialog(self):
@@ -1108,7 +1133,6 @@ class Layman(QObject):
             True,
         )
         self.tsSuccess.emit()
-        QgsMessageLog.logMessage("export")
 
     def run_ImportLayerDialog(self):
         self.dlg = ImportLayerDialog(
@@ -1272,7 +1296,7 @@ class Layman(QObject):
                     ["Není vrstva k načtení!", "No layer to load!"]
                 )
 
-        QgsMessageLog.logMessage("disableProgressBar")
+        self.showExportInfo.emit("disableProgressBar")
 
     def layerChanged(self):
         pass
@@ -1349,8 +1373,8 @@ class Layman(QObject):
                     except:
                         try:
                             layerName = data["layers"][x]["protocol"]["LAYERS"]
-                        except:
-                            QgsMessageLog.logMessage("compositionSchemaError")
+                        except Exception:
+                            self.showExportInfo.emit("compositionSchemaError")
                             self.instance = None
                             self.current = None
                             return
@@ -1442,8 +1466,8 @@ class Layman(QObject):
 
                 layman_api = LaymanAPI(self.URI)
                 url = layman_api.get_map_file_url(workspace, name)
-            except:
-                QgsMessageLog.logMessage("compositionSchemaError")
+            except Exception:
+                self.showExportInfo.emit("compositionSchemaError")
                 return
             r = self.utils.requestWrapper("GET", url, payload=None, files=None)
             data = r.json()
@@ -1497,6 +1521,7 @@ class Layman(QObject):
                 ["Kompozice je poškozena!", "Map composition is corrupted!"]
             )
             return
+        for x in range(0, len(data["layers"])):
             className = data["layers"][x]["className"]
             visibility = data["layers"][x]["visibility"]
 
@@ -1510,8 +1535,8 @@ class Layman(QObject):
                 except:
                     try:
                         layerName = data["layers"][x]["protocol"]["LAYERS"]
-                    except:
-                        QgsMessageLog.logMessage("compositionSchemaError")
+                    except Exception:
+                        self.showExportInfo.emit("compositionSchemaError")
                         self.instance = None
                         self.current = None
                         return
@@ -1801,7 +1826,7 @@ class Layman(QObject):
             )
             while iterator.value():
                 item = iterator.value()
-                item.setCheckState(0, 2)
+                item.setCheckState(0, _CheckStateChecked)
                 self.layerServices[self.utils.removeUnacceptableChars(item.text(0))] = (
                     "HSLayers.Layer.WMS"
                 )
@@ -1813,16 +1838,26 @@ class Layman(QObject):
             )
             while iterator.value():
                 item = iterator.value()
-                item.setCheckState(0, 0)
+                item.setCheckState(0, _CheckStateUnchecked)
                 self.layerServices = {}
                 iterator += 1
 
     def fillCompositionDict(self):
+        expected_uri = self.URI
+        if not expected_uri:
+            self.compositionDict = {}
+            return
         url = self.layman_api.get_get_all_maps_url()
-        r = requests.get(url=url, headers=self.utils.getAuthHeader(self.authCfg))
-        dataAll = r.json()
+        status, dataAll = self.utils.http_get_json(url, timeout=20)
+        if status != 200 or not isinstance(dataAll, list):
+            self.compositionDict = {}
+            return
+        if self.URI != expected_uri:
+            return
+        composition_dict = {}
         for row in range(0, len(dataAll)):
-            self.compositionDict[dataAll[row]["name"]] = dataAll[row]["title"]
+            composition_dict[dataAll[row]["name"]] = dataAll[row]["title"]
+        self.compositionDict = composition_dict
 
     def getNameByTitle(self, val, refresh=True):
         ret = None
@@ -2198,7 +2233,7 @@ class Layman(QObject):
 
         duplicityCheck = self.saveMapLayers()
         if not duplicityCheck:
-            QgsMessageLog.logMessage("layersLoaded")
+            self.showExportInfo.emit("layersLoaded")
             return
         self.modified = False
         if len(self.stylesToUpdate) > 0:
@@ -2223,8 +2258,8 @@ class Layman(QObject):
         self.updateLayerPropsInComposition()
         self.syncOrder2(self.getLayersOrder())
         self.patchMap2()
-        QgsMessageLog.logMessage("updateMapDone")
-        QgsMessageLog.logMessage("layersUploaded")
+        self.showExportInfo.emit("updateMapDone")
+        self.showExportInfo.emit("layersUploaded")
         self.showExportInfo.emit("F")
         self.onRefreshCurrentForm.emit()
 
@@ -2809,7 +2844,7 @@ class Layman(QObject):
                     composition["layers"][i]["title"]
                 ) == self.utils.removeUnacceptableChars(layer.name()):
                     layer.setOpacity(composition["layers"][i]["opacity"])
-        QgsMessageLog.logMessage("layersLoaded")
+        self.showExportInfo.emit("layersLoaded")
 
     def changeVisibility(self, layerTreeNode):
         if layerTreeNode.nodeType() == 0:
@@ -2919,8 +2954,32 @@ class Layman(QObject):
         self.dockwidget.closingPlugin.disconnect(self.onClosePlugin)
         self.pluginIsActive = False
 
+    def _begin_shutdown_cleanup(self):
+        if self._shutting_down:
+            return
+        self._shutting_down = True
+        try:
+            self.qfieldWorking = False
+            self.processingRequest = False
+            self.isAuthorized = False
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "utils") and self.utils:
+                self.utils.setShuttingDown(True)
+        except Exception:
+            pass
+        # Best-effort close of open plugin dialogs/widgets.
+        for _, obj in list(vars(self).items()):
+            try:
+                if isinstance(obj, QWidget):
+                    obj.close()
+            except Exception:
+                pass
+
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
+        self._begin_shutdown_cleanup()
         authm = QgsApplication.authManager()
         authm.clearCachedConfig(self.authCfg)
         for action in self.actions:
@@ -3530,10 +3589,10 @@ class Layman(QObject):
                 self.writePostLog(
                     str(layer_name), str(response.status_code), str(response.content)
                 )
-            QgsMessageLog.logMessage("exportPatch")
+            self.showExportInfo.emit("exportPatch")
             try:
                 self.toUpload - 1
-                QgsMessageLog.logMessage("layersUploaded")
+                self.showExportInfo.emit("layersUploaded")
             except Exception:
                 pass
         self.cleanTemp.emit(self.utils.removeUnacceptableChars(layer_name))
@@ -3803,12 +3862,12 @@ class Layman(QObject):
                             ],
                             Qgis.Warning,
                         )
-                        QgsMessageLog.logMessage("resetProgressbar")
+                        self.showExportInfo.emit("resetProgressbar")
                         return
                 except Exception:
                     print("uuid")
             if self.batchLength <= 1:
-                QgsMessageLog.logMessage("resetProgressbar")
+                self.showExportInfo.emit("resetProgressbar")
                 self.dlg.label_progress.setText(
                     self.tr("Sucessfully exported: ") + str(1) + " / " + str(1)
                 )
@@ -3818,8 +3877,8 @@ class Layman(QObject):
                 except Exception:
                     pass
                 self.exportLayerSuccessful.emit(layer_name)
-            QgsMessageLog.logMessage("export")
-            QgsMessageLog.logMessage("disableProgress")
+            self.showExportInfo.emit("export")
+            self.showExportInfo.emit("disableProgress")
         finally:
             self._raster_upload_semaphore.release()
 
@@ -3898,7 +3957,7 @@ class Layman(QObject):
                 self.progressUpdated.emit(progress)
         if not skip:
             print("All chunks processed successfully.")
-            QgsMessageLog.logMessage("export")
+            self.showExportInfo.emit("export")
 
     def postThread(self, layer_name, data, q, progress):
         if layer_name in self.mixedLayers:
@@ -3980,7 +4039,7 @@ class Layman(QObject):
                     pass
                 self.exportLayerSuccessful.emit(layer_name)
             elif response.status_code == 413:
-                QgsMessageLog.logMessage("importl_" + layer_name)
+                # vrstva příliš velká – zalogujeme do souboru
                 self.writePostLog(
                     str(layer_name), str(response.status_code), str(response.content)
                 )
@@ -3991,7 +4050,7 @@ class Layman(QObject):
                 )
             self.importedLayer = layer_name
             self.processingList[q][2] = 1
-            QgsMessageLog.logMessage("export")
+            self.showExportInfo.emit("export")
         self.cleanTemp.emit(self.utils.removeUnacceptableChars(layer_name))
 
     def writePostLog(self, name, code, ret):
@@ -4089,7 +4148,7 @@ class Layman(QObject):
                     layers.append(l)
                     break
         if not self.checkPossibleChars(layer_name):
-            QgsMessageLog.logMessage("wrongName")
+            self.showExportInfo.emit("wrongName")
             return
         if nameCheck and validExtent:
             data = {"name": str(layer_name).lower(), "title": str(layer_name)}
@@ -4130,7 +4189,7 @@ class Layman(QObject):
                                         )
                                     ).start()
                                 else:
-                                    QgsMessageLog.logMessage("wrongCrs")
+                                    self.showExportInfo.emit("wrongCrs")
                             if isinstance(layers[0], QgsRasterLayer):
                                 if layers[0].isValid():
                                     if layers[0].crs().authid() in self.supportedEPSG:
@@ -4151,11 +4210,11 @@ class Layman(QObject):
                                                 )
                                             ).start()
                                         else:
-                                            QgsMessageLog.logMessage("BmpNotSupported")
+                                            self.showExportInfo.emit("BmpNotSupported")
                                     else:
-                                        QgsMessageLog.logMessage("wrongCrs")
+                                        self.showExportInfo.emit("wrongCrs")
                                 else:
-                                    QgsMessageLog.logMessage("invalid")
+                                    self.showExportInfo.emit("invalid")
 
                         else:
                             self.batchLength = self.batchLength - 1
@@ -4196,11 +4255,11 @@ class Layman(QObject):
                                                 resamplingMethod,
                                             )
                                     else:
-                                        QgsMessageLog.logMessage("BmpNotSupported")
+                                        self.showExportInfo.emit("BmpNotSupported")
                                 else:
-                                    QgsMessageLog.logMessage("wrongCrs")
+                                    self.showExportInfo.emit("wrongCrs")
                             else:
-                                QgsMessageLog.logMessage("invalid")
+                                self.showExportInfo.emit("invalid")
                 else:
                     self.layerName = layer_name
                     if not auto:
@@ -4220,7 +4279,7 @@ class Layman(QObject):
                                     )
                                 ).start()
                             else:
-                                QgsMessageLog.logMessage("wrongCrs")
+                                self.showExportInfo.emit("wrongCrs")
                         else:
                             self.postThread(layer_name, data, q, True)
                     if isinstance(layers[0], QgsRasterLayer):
@@ -4250,11 +4309,11 @@ class Layman(QObject):
                                         )
 
                                 else:
-                                    QgsMessageLog.logMessage("BmpNotSupported")
+                                    self.showExportInfo.emit("BmpNotSupported")
                             else:
-                                QgsMessageLog.logMessage("wrongCrs")
+                                self.showExportInfo.emit("wrongCrs")
                         else:
-                            QgsMessageLog.logMessage("invalid")
+                            self.showExportInfo.emit("invalid")
 
             else:
                 self.utils.emitMessageBox.emit(
@@ -4551,7 +4610,7 @@ class Layman(QObject):
                 composition["legends"] = legend[1]
             else:
                 composition["legends"] = []
-        QgsMessageLog.logMessage("addRaster")
+        self.showExportInfo.emit("addRaster")
 
     def saveExternalStyle(self, style, layer_name):
         suffix = ".sld"
@@ -5864,9 +5923,16 @@ class Layman(QObject):
         userEndpoint = self.layman_api.get_current_user_url()
         user = {"username": ""}
         print("authheader: " + str(self.utils.getAuthHeader(self.authCfg)))
-        r = requests.patch(
-            url=userEndpoint, data=user, headers=self.utils.getAuthHeader(self.authCfg)
-        )
+        try:
+            r = self.utils.requestWrapper(
+                "PATCH", userEndpoint, payload=user, files=None, emitErr=False
+            )
+        except Exception:
+            self.utils.emitMessageBox.emit(
+                ["Layman server neodpověděl!", "Layman server not respond!"]
+            )
+            self.disableEnvironment()
+            return False
         try:
             res = self.utils.fromByteToJson(r.content)
         except Exception:
@@ -5988,7 +6054,15 @@ class Layman(QObject):
                 if not autoLog:
                     self.saveIni()
                 try:
-                    self.name = self.utils.getUserName()
+                    self.laymanUsername = (
+                        self.utils.getCurrentUserUsername() or self.utils.getUserName()
+                    )
+                    self.utils.laymanUsername = self.laymanUsername
+                    self.name = self.laymanUsername
+                    display_text = self.extract_domain_from_url(self.server)
+                    self.setPluginLabel.emit(
+                        '<a href="' + self.server + '">' + display_text + "</a>"
+                    )
                 except Exception:
                     self.utils.emitMessageBox.emit(
                         [
@@ -6042,14 +6116,24 @@ class Layman(QObject):
             if self.dlg.objectName() == "ConnectionManagerDialog":
                 self.dlg.refreshAfterFailedLogin()
         ### check Qfield ##
-        threading.Thread(target=lambda: self.qfieldCheck()).start()
+        threading.Thread(target=lambda: self.qfieldCheck(), daemon=True).start()
 
     def qfieldCheck(self):
-        urlFound = self.qfield.setURI(self.URI)
+        expected_uri = self.URI
+        if not self.isAuthorized or not expected_uri:
+            self.qfieldReady = False
+            self.enableMapButton.emit()
+            return
+        urlFound = self.qfield.setURI(expected_uri)
         if not urlFound:
             self.enableMapButton.emit()
             return
         user_info = self.qfield.getUserInfo()
+        # Do not apply stale result if user logged out/switched server in meantime.
+        if not self.isAuthorized or self.URI != expected_uri:
+            self.qfieldReady = False
+            self.enableMapButton.emit()
+            return
         if user_info is not None and user_info.status_code == 200:
             print("qfield ready")
             self.qfieldReady = True
@@ -6082,16 +6166,15 @@ class Layman(QObject):
                 shutil.copy2(s, d)
 
     def saveIni(self):
-        dir = os.getenv("HOME") + os.sep + ".layman"
-        if not (os.path.isdir(dir)):
-            try:
-                os.mkdir(dir)
-            except OSError:
-                print("vytváření adresáře selhalo")
-        self.utils.appendIniItem("login", self.Agrimail)
-        self.utils.appendIniItem("id", self.client_id)
-        self.utils.appendIniItem("server", self.server)
-        self.utils.appendIniItem("layman", self.URI)
+        # Keep INI I/O centralized in utils to avoid configparser crashes.
+        self.utils.setIniItems(
+            {
+                "login": getattr(self, "Agrimail", ""),
+                "id": getattr(self, "client_id", ""),
+                "server": getattr(self, "server", "") or "",
+                "layman": getattr(self, "URI", "") or "",
+            }
+        )
 
     def checkQgisVersion(self):
         version = Qgis.QGIS_VERSION_INT
