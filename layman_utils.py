@@ -1,6 +1,5 @@
 import json
 import requests
-import configparser
 import os
 import re
 from qgis.core import *
@@ -20,20 +19,59 @@ from .dlg_errMsg import ErrMsgDialog
 import tempfile
 from qgis.PyQt import QtWidgets, QtGui, QtCore
 import csv
-import http.client
 import asyncio
-import ssl
 import urllib.parse
+from urllib import request as urllib_request
+from urllib import error as urllib_error
 import base64
 import imghdr
 import io
 import hashlib
+import threading
+import ssl
+import time
 from datetime import datetime, timedelta
 import math
 from qgis.PyQt.QtGui import QImage
 from qgis.PyQt.QtCore import QSize
 import processing
 from .layman_api import LaymanAPI
+
+_TLS_LOCK = threading.RLock()
+
+_Style = QtWidgets.QStyle
+try:
+    _CE_PushButtonLabel = _Style.ControlElement.CE_PushButtonLabel
+    _State_Enabled = _Style.StateFlag.State_Enabled
+    _State_HasFocus = _Style.StateFlag.State_HasFocus
+    _State_On = _Style.StateFlag.State_On
+    _State_Selected = _Style.StateFlag.State_Selected
+    _PM_ButtonShiftHorizontal = _Style.PixelMetric.PM_ButtonShiftHorizontal
+    _PM_ButtonShiftVertical = _Style.PixelMetric.PM_ButtonShiftVertical
+except AttributeError:
+    _CE_PushButtonLabel = _Style.CE_PushButtonLabel
+    _State_Enabled = _Style.State_Enabled
+    _State_HasFocus = _Style.State_HasFocus
+    _State_On = _Style.State_On
+    _State_Selected = _Style.State_Selected
+    _PM_ButtonShiftHorizontal = _Style.PM_ButtonShiftHorizontal
+    _PM_ButtonShiftVertical = _Style.PM_ButtonShiftVertical
+
+try:
+    _DisplayRole = Qt.ItemDataRole.DisplayRole
+    _DecorationRole = Qt.ItemDataRole.DecorationRole
+except AttributeError:
+    _DisplayRole = Qt.DisplayRole
+    _DecorationRole = Qt.DecorationRole
+
+try:
+    _AlignCenter = Qt.AlignmentFlag.AlignCenter
+    _AlignLeft = Qt.AlignmentFlag.AlignLeft
+    _AlignVCenter = Qt.AlignmentFlag.AlignVCenter
+except AttributeError:
+    _AlignCenter = Qt.AlignCenter
+    _AlignLeft = Qt.AlignLeft
+    _AlignVCenter = Qt.AlignVCenter
 
 
 class LaymanUtils(QObject):
@@ -55,7 +93,13 @@ class LaymanUtils(QObject):
         self.currentLayer = []
         self.showMessageSignal.connect(self.showQgisBar)
         self._layman_api = None
+        self._http_json_cache = {}
+        self._http_cache_lock = threading.RLock()
+        self._is_shutting_down = False
         self.connectEvents()
+
+    def setShuttingDown(self, value):
+        self._is_shutting_down = bool(value)
 
     @property
     def layman_api(self):
@@ -73,13 +117,43 @@ class LaymanUtils(QObject):
         self.showQBar.connect(self.showQgisBar)
 
     def getConfigItem(self, key):
-        file = os.getenv("HOME") + os.sep + ".layman" + os.sep + "layman_user.INI"
-        config = configparser.RawConfigParser()
-        config.read(file)
+        data = self._read_layman_ini_default()
+        return data.get(str(key).lower())
+
+    def _layman_ini_path(self):
+        return os.getenv("HOME") + os.sep + ".layman" + os.sep + "layman_user.INI"
+
+    def _read_layman_ini_default(self):
+        file = self._layman_ini_path()
+        result = {}
+        if not os.path.isfile(file):
+            return result
+
+        in_default = True
         try:
-            return config.get("DEFAULT", key)
-        except configparser.NoOptionError:
-            return None
+            with open(file, "r", encoding="utf-8") as f:
+                for raw_line in f:
+                    line = raw_line.strip()
+                    if not line or line.startswith("#") or line.startswith(";"):
+                        continue
+                    if line.startswith("[") and line.endswith("]"):
+                        in_default = line[1:-1].strip().lower() == "default"
+                        continue
+                    if in_default and "=" in line:
+                        k, v = line.split("=", 1)
+                        result[k.strip().lower()] = v.strip()
+        except Exception:
+            return {}
+        return result
+
+    def _write_layman_ini_default(self, data):
+        base_dir = os.getenv("HOME") + os.sep + ".layman"
+        os.makedirs(base_dir, exist_ok=True)
+        file = self._layman_ini_path()
+        with open(file, "w", encoding="utf-8") as f:
+            f.write("[DEFAULT]\n")
+            for key, value in data.items():
+                f.write(f"{key}={value}\n")
 
     def getDPI(self):
         return (
@@ -90,23 +164,34 @@ class LaymanUtils(QObject):
     def requestWrapper(
         self, type, url, payload=None, files=None, emitErr=True, additionalHeaders=None
     ):
+        if self._is_shutting_down:
+            raise LaymanRequestError("Layman plugin is shutting down.")
         try:
-            if additionalHeaders is None:
-                response = requests.request(
-                    type,
-                    url=url,
-                    headers=self.getAuthHeader(self.authCfg),
-                    data=payload,
-                    files=files,
-                )
-            else:
-                response = requests.request(
-                    type,
-                    url=url,
-                    headers={**self.getAuthHeader(self.authCfg), **additionalHeaders},
-                    data=payload,
-                    files=files,
-                )
+            with _TLS_LOCK:
+                base_headers = self.getAuthHeader(self.authCfg) or {}
+                if not isinstance(base_headers, dict):
+                    base_headers = {}
+                base_headers["Connection"] = "close"
+                if additionalHeaders is None:
+                    response = requests.request(
+                        type,
+                        url=url,
+                        headers=base_headers,
+                        data=payload,
+                        files=files,
+                        timeout=30,
+                        verify=False,
+                    )
+                else:
+                    response = requests.request(
+                        type,
+                        url=url,
+                        headers={**base_headers, **additionalHeaders},
+                        data=payload,
+                        files=files,
+                        timeout=30,
+                        verify=False,
+                    )
         except Exception as ex:
             info = str(ex)
             if emitErr:
@@ -130,44 +215,111 @@ class LaymanUtils(QObject):
                 )
         return response
 
+    def http_request_bytes(
+        self, method, url, headers=None, data=None, timeout=30, use_auth=True
+    ):
+        if self._is_shutting_down:
+            return 0, b"", "Layman plugin is shutting down."
+        merged_headers = {}
+        if use_auth:
+            auth_headers = self.getAuthHeader(self.authCfg) or {}
+            if isinstance(auth_headers, dict):
+                merged_headers.update(auth_headers)
+        if headers:
+            merged_headers.update(headers)
+
+        if isinstance(data, str):
+            request_data = data.encode("utf-8")
+        else:
+            request_data = data
+
+        req = urllib_request.Request(
+            url=url,
+            data=request_data,
+            headers=merged_headers,
+            method=str(method).upper(),
+        )
+        context = ssl._create_unverified_context()
+        try:
+            with _TLS_LOCK:
+                with urllib_request.urlopen(
+                    req, timeout=timeout, context=context
+                ) as resp:
+                    return resp.getcode(), resp.read(), None
+        except urllib_error.HTTPError as ex:
+            return ex.code, ex.read() or b"", None
+        except Exception as ex:
+            return 0, b"", str(ex)
+
+    def http_get_bytes(self, url, headers=None, timeout=30, use_auth=True):
+        status, body, _ = self.http_request_bytes(
+            "GET", url, headers=headers, timeout=timeout, use_auth=use_auth
+        )
+        return status, body
+
+    def http_get_json(self, url, headers=None, timeout=30, use_auth=True):
+        status, body = self.http_get_bytes(
+            url, headers=headers, timeout=timeout, use_auth=use_auth
+        )
+        if not body:
+            return status, None
+        try:
+            return status, json.loads(body.decode("utf-8", errors="replace"))
+        except Exception:
+            return status, None
+
+    def http_get_json_cached(
+        self, cache_key, url, headers=None, timeout=30, use_auth=True, ttl_seconds=8
+    ):
+        now = time.time()
+        with self._http_cache_lock:
+            cached = self._http_json_cache.get(cache_key)
+            if cached:
+                expires_at, status, data = cached
+                if now < expires_at:
+                    return status, data
+
+        status, data = self.http_get_json(
+            url, headers=headers, timeout=timeout, use_auth=use_auth
+        )
+        with self._http_cache_lock:
+            self._http_json_cache[cache_key] = (now + ttl_seconds, status, data)
+        return status, data
+
+    def syncGet(self, url, headers=None):
+        status, body = self.http_get_bytes(
+            url, headers=headers, timeout=30, use_auth=headers is None
+        )
+        if status != 200:
+            return None
+        return body
+
     async def asyncRequestWrapper(
         self, type, url, payload=None, files=None, emitErr=True
     ):
-        parsed_url = urllib.parse.urlparse(url)
-        host = parsed_url.netloc
-        port = 443
-        path = parsed_url.path + "?" + parsed_url.query
-        context = ssl.create_default_context()
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
-        headers = self.getAuthHeader(self.authCfg)
-        if type == "GET":
-            conn = http.client.HTTPSConnection(host, port, context=context)
-            if isinstance(headers, dict):
-                conn.request("GET", path, headers=headers)
-            else:
-                conn.request("GET", path)
-        elif type == "POST":
-            conn = http.client.HTTPSConnection(host, port, context=context)
-            if isinstance(headers, dict):
-                conn.request(
-                    "POST", path, body=payload, headers=self.getAuthHeader(self.authCfg)
-                )
-            else:
-                conn.request("POST", path, body=payload)
-        response = await asyncio.to_thread(conn.getresponse)
-        response_content = response.read()
-        if emitErr and response.status != 200:
-            content = response_content.decode("utf-8")
-            self.showErr.emit(
-                ["Požadavek nebyl úspěšný", "Request was not successful"],
-                f"code: {response.status}",
-                content,
-                Qgis.Warning,
-                url,
+        if self._is_shutting_down:
+            return b""
+        with _TLS_LOCK:
+            response = requests.request(
+                type,
+                url=url,
+                headers=self.getAuthHeader(self.authCfg),
+                data=payload,
+                files=files,
+                timeout=30,
+                verify=False,
             )
-        conn.close()
-        return response_content
+            response_content = response.content
+            if emitErr and response.status_code != 200:
+                content = response_content.decode("utf-8", errors="replace")
+                self.showErr.emit(
+                    ["Požadavek nebyl úspěšný", "Request was not successful"],
+                    f"code: {response.status_code}",
+                    content,
+                    Qgis.Warning,
+                    url,
+                )
+            return response_content
 
     def recalculateDPI(self):
         self.DPI = self.getDPI()
@@ -186,7 +338,7 @@ class LaymanUtils(QObject):
     def showMessageError(self, text, info, err, typ, url):
         widget = QWidget()
         layout = QHBoxLayout()
-        layout.setAlignment(Qt.AlignCenter)
+        layout.setAlignment(_AlignCenter)
         button = QPushButton("Více informací" if self.locale == "cs" else "More info")
         label2 = self.iface.messageBar().createMessage(
             "Layman:", text[0] if self.locale == "cs" else text[1]
@@ -271,30 +423,52 @@ class LaymanUtils(QObject):
         )
 
     def appendIniItem(self, key, item):
-        file = os.getenv("HOME") + os.sep + ".layman" + os.sep + "layman_user.INI"
-        config = configparser.RawConfigParser()
-        config.read(file)
-        config.set("DEFAULT", key, item)
-        cfgfile = open(file, "w")
-        config.write(
-            cfgfile, space_around_delimiters=False
-        )  # use flag in case case you need to avoid white space.
-        cfgfile.close()
+        data = self._read_layman_ini_default()
+        data[str(key).lower()] = "" if item is None else str(item)
+        self._write_layman_ini_default(data)
+
+    def setIniItems(self, items):
+        data = self._read_layman_ini_default()
+        for key, value in items.items():
+            data[str(key).lower()] = "" if value is None else str(value)
+        self._write_layman_ini_default(data)
 
     def getVersion(self):
-        config = configparser.ConfigParser()
-        config.read(os.path.join(self.plugin_dir, "metadata.txt"))
-        version = config.get("general", "version")
-        return version
+        metadata_path = os.path.join(self.plugin_dir, "metadata.txt")
+        try:
+            with open(metadata_path, "r", encoding="utf-8") as f:
+                text = f.read()
+            return self._extract_metadata_version(text)
+        except Exception:
+            return "0.0.0"
+
+    def _extract_metadata_version(self, metadata_text):
+        in_general = False
+        for raw_line in metadata_text.splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or line.startswith(";"):
+                continue
+            if line.startswith("[") and line.endswith("]"):
+                in_general = line.lower() == "[general]"
+                continue
+            if in_general and "=" in line:
+                key, value = line.split("=", 1)
+                if key.strip().lower() == "version":
+                    return value.strip()
+        return "0.0.0"
 
     def checkVersion(self):
-        r = requests.get(
-            "https://raw.githubusercontent.com/LESPROJEKT/qgis-layman-plugin/master/metadata.txt"
-        )
-        buf = io.StringIO(r.text)
-        config = configparser.ConfigParser()
-        config.read_file(buf)
-        version = config.get("general", "version")
+        url = "https://raw.githubusercontent.com/LESPROJEKT/qgis-layman-plugin/master/metadata.txt"
+        try:
+            req = urllib_request.Request(
+                url, headers={"User-Agent": "QGIS-Layman-Plugin"}
+            )
+            with urllib_request.urlopen(req, timeout=10) as resp:
+                text = resp.read().decode("utf-8", errors="replace")
+            version = self._extract_metadata_version(text)
+        except Exception:
+            version = self.getVersion()
+
         installedVersion = self.getVersion()
         if installedVersion == version:
             return [True, version]
@@ -787,14 +961,52 @@ class LaymanUtils(QObject):
 
     def getUserName(self):
         userEndpoint = self.layman_api.get_current_user_url()
-        r = self.requestWrapper("GET", userEndpoint, payload=None, files=None)
-        res = self.fromByteToJson(r.content)
+        headers = self.getAuthHeader(self.authCfg)
+        req = urllib_request.Request(userEndpoint, headers=headers or {})
+        # Avoid Windows cert-store loading in embedded runtime.
+        context = ssl._create_unverified_context()
+        try:
+            with _TLS_LOCK:
+                with urllib_request.urlopen(
+                    req, timeout=30, context=context
+                ) as response:
+                    body = response.read()
+        except Exception as ex:
+            raise LaymanRequestError(f"Request failed: {ex}") from ex
+        res = self.fromByteToJson(body)
         return res["claims"]["preferred_username"]
+
+    def getCurrentUserUsername(self):
+        userEndpoint = self.layman_api.get_current_user_url()
+        headers = self.getAuthHeader(self.authCfg)
+        req = urllib_request.Request(userEndpoint, headers=headers or {})
+        context = ssl._create_unverified_context()
+        try:
+            with _TLS_LOCK:
+                with urllib_request.urlopen(
+                    req, timeout=30, context=context
+                ) as response:
+                    body = response.read()
+        except Exception as ex:
+            raise LaymanRequestError(f"Request failed: {ex}") from ex
+        res = self.fromByteToJson(body)
+        return res.get("username", "") if res else ""
 
     def getUserFullName(self):
         userEndpoint = self.layman_api.get_current_user_url()
-        r = self.requestWrapper("GET", userEndpoint, payload=None, files=None)
-        res = self.fromByteToJson(r.content)
+        headers = self.getAuthHeader(self.authCfg)
+        req = urllib_request.Request(userEndpoint, headers=headers or {})
+        # Avoid Windows cert-store loading in embedded runtime.
+        context = ssl._create_unverified_context()
+        try:
+            with _TLS_LOCK:
+                with urllib_request.urlopen(
+                    req, timeout=30, context=context
+                ) as response:
+                    body = response.read()
+        except Exception as ex:
+            raise LaymanRequestError(f"Request failed: {ex}") from ex
+        res = self.fromByteToJson(body)
         print(res)
         return res["claims"]["name"]
 
@@ -1017,10 +1229,7 @@ QPushButton::indicator {
         return results
 
     def loadIni(self):
-        file = os.getenv("HOME") + os.sep + ".layman" + os.sep + "layman_user.INI"
-        config = configparser.ConfigParser()
-        config.read(file)
-        return config
+        return {"DEFAULT": self._read_layman_ini_default()}
 
     def checkWgsExtent(self, layer):
         WgsXmax = 180
@@ -1550,7 +1759,7 @@ QPushButton::indicator {
 class ProxyStyle(QtWidgets.QProxyStyle):
     def drawControl(self, element, option, painter, widget=None):
         icon = None
-        if element == QtWidgets.QStyle.CE_PushButtonLabel:
+        if element == _CE_PushButtonLabel:
             try:
                 icon = QtGui.QIcon(option.icon) if option.icon else QtGui.QIcon()
                 option.icon = QtGui.QIcon()
@@ -1563,87 +1772,72 @@ class ProxyStyle(QtWidgets.QProxyStyle):
             return
 
         if (
-            element == QtWidgets.QStyle.CE_PushButtonLabel
-            and icon
-            and not icon.isNull()
+            element != _CE_PushButtonLabel
+            or not icon
+            or icon.isNull()
+            or not option.rect.isValid()
         ):
-            try:
-                iconSpacing = 4
-                mode = (
-                    QtGui.QIcon.Normal
-                    if option.state & QtWidgets.QStyle.State_Enabled
-                    else QtGui.QIcon.Disabled
-                )
-                if (
-                    mode == QtGui.QIcon.Normal
-                    and option.state & QtWidgets.QStyle.State_HasFocus
-                ):
-                    mode = QtGui.QIcon.Active
-                state = (
-                    QtGui.QIcon.On
-                    if option.state & QtWidgets.QStyle.State_On
-                    else QtGui.QIcon.Off
-                )
+            return
 
-                window = None
-                if widget and hasattr(widget, "window") and widget.window():
-                    windowHandle = widget.window().windowHandle()
-                    if windowHandle:
-                        window = windowHandle
-
-                size = QtCore.QSize(15, 15)
-                pixmap = icon.pixmap(window, size, mode, state)
-                if pixmap.isNull():
-                    return
-
-                dpr = pixmap.devicePixelRatio() or 1.0
-                pixmapWidth = pixmap.width() / dpr
-                pixmapHeight = pixmap.height() / dpr
-
-                iconRect = QtCore.QRect(
-                    QtCore.QPoint(), QtCore.QSize(int(pixmapWidth), int(pixmapHeight))
-                )
-                iconRect.moveCenter(option.rect.center())
-                iconRect.moveLeft(option.rect.left() + iconSpacing)
-                iconRect = self.visualRect(option.direction, option.rect, iconRect)
-
-                dx = (
-                    self.proxy().pixelMetric(
-                        QtWidgets.QStyle.PM_ButtonShiftHorizontal, option, widget
-                    )
-                    if self.proxy()
-                    else 0
-                )
-                dy = (
-                    self.proxy().pixelMetric(
-                        QtWidgets.QStyle.PM_ButtonShiftVertical, option, widget
-                    )
-                    if self.proxy()
-                    else 0
-                )
-                iconRect.translate(dx, dy)
-
-                painter.drawPixmap(iconRect, pixmap)
-
-            except Exception:
+        try:
+            iconSpacing = 4
+            mode = (
+                QtGui.QIcon.Normal
+                if option.state & _State_Enabled
+                else QtGui.QIcon.Disabled
+            )
+            if mode == QtGui.QIcon.Normal and option.state & _State_HasFocus:
+                mode = QtGui.QIcon.Active
+            state = QtGui.QIcon.On if option.state & _State_On else QtGui.QIcon.Off
+            size = QtCore.QSize(15, 15)
+            pixmap = icon.pixmap(size, mode, state)
+            if pixmap.isNull():
                 return
+
+            dpr = pixmap.devicePixelRatio() or 1.0
+            pixmapWidth = pixmap.width() / dpr
+            pixmapHeight = pixmap.height() / dpr
+
+            iconRect = QtCore.QRect(
+                QtCore.QPoint(), QtCore.QSize(int(pixmapWidth), int(pixmapHeight))
+            )
+            iconRect.moveCenter(option.rect.center())
+            iconRect.moveLeft(option.rect.left() + iconSpacing)
+            iconRect = self.visualRect(option.direction, option.rect, iconRect)
+
+            base = self.proxy()
+            dx = (
+                base.pixelMetric(_PM_ButtonShiftHorizontal, option, widget)
+                if base
+                else 0
+            )
+            dy = (
+                base.pixelMetric(_PM_ButtonShiftVertical, option, widget) if base else 0
+            )
+            iconRect.translate(dx, dy)
+
+            painter.drawPixmap(iconRect, pixmap)
+        except Exception:
+            pass
 
 
 class IconQfieldDelegate(QtWidgets.QStyledItemDelegate):
     def paint(self, painter, option, index):
-        if option.state & QtWidgets.QStyle.State_Selected:
+        if option.state & _State_Selected:
             painter.fillRect(option.rect, option.palette.highlight())
-        text = index.model().data(index, QtCore.Qt.DisplayRole)
-        icon = index.model().data(index, QtCore.Qt.DecorationRole)
+        text = index.model().data(index, _DisplayRole)
+        icon = index.model().data(index, _DecorationRole)
         if text:
             painter.save()
-            painter.drawText(
-                option.rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, text
-            )
+            painter.drawText(option.rect, _AlignLeft | _AlignVCenter, text)
             painter.restore()
         if icon and index.column() == 0:
             space = 5
-            text_width_with_space = option.fontMetrics.width(text) + space
+            text_width_with_space = (
+                option.fontMetrics.horizontalAdvance(text) + space
+                if hasattr(option.fontMetrics, "horizontalAdvance")
+                else option.fontMetrics.width(text) + space
+            )
             icon_size = QtCore.QSize(14, 14)
             icon_x = int(option.rect.left() + text_width_with_space)
             icon_y = int(option.rect.center().y() - icon_size.height() / 2)
@@ -1652,21 +1846,19 @@ class IconQfieldDelegate(QtWidgets.QStyledItemDelegate):
             )
             painter.save()
             painter.setClipRect(option.rect)
-            icon.paint(painter, icon_rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+            icon.paint(painter, icon_rect, _AlignLeft | _AlignVCenter)
             painter.restore()
 
 
 class IconQfieldRightDelegate(QtWidgets.QStyledItemDelegate):
     def paint(self, painter, option, index):
-        if option.state & QtWidgets.QStyle.State_Selected:
+        if option.state & _State_Selected:
             painter.fillRect(option.rect, option.palette.highlight())
-        text = index.model().data(index, QtCore.Qt.DisplayRole)
-        icon = index.model().data(index, QtCore.Qt.DecorationRole)
+        text = index.model().data(index, _DisplayRole)
+        icon = index.model().data(index, _DecorationRole)
         if text:
             painter.save()
-            painter.drawText(
-                option.rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, text
-            )
+            painter.drawText(option.rect, _AlignLeft | _AlignVCenter, text)
             painter.restore()
         if icon and index.column() == 0:
             icon_size = QtCore.QSize(14, 14)
@@ -1676,13 +1868,13 @@ class IconQfieldRightDelegate(QtWidgets.QStyledItemDelegate):
                 icon_x, icon_y, icon_size.width(), icon_size.height()
             )
             painter.save()
-            icon.paint(painter, icon_rect, QtCore.Qt.AlignCenter)
+            icon.paint(painter, icon_rect, _AlignCenter)
             painter.restore()
 
 
 class CenterIconDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
-        icon = index.data(Qt.DecorationRole)
+        icon = index.data(_DecorationRole)
         if icon:
             iconSize = QSize(14, 14)
             iconX = round(
@@ -1692,7 +1884,7 @@ class CenterIconDelegate(QStyledItemDelegate):
                 option.rect.top() + (option.rect.height() - iconSize.height()) / 2
             )
             iconRect = QRect(iconX, iconY, iconSize.width(), iconSize.height())
-            icon.paint(painter, iconRect, Qt.AlignCenter)
+            icon.paint(painter, iconRect, _AlignCenter)
         else:
             super().paint(painter, option, index)
 

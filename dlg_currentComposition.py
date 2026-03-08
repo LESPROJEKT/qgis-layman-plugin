@@ -31,7 +31,6 @@ from qgis.PyQt.QtWidgets import (
     QTreeWidgetItem,
     QComboBox,
     QPushButton,
-    QDesktopWidget,
     QCheckBox,
     QTableWidgetItem,
     QTableWidget,
@@ -41,8 +40,30 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QFileDialog,
 )
+
+try:
+    from qgis.PyQt.QtWidgets import QDesktopWidget
+except ImportError:
+    QDesktopWidget = None
 from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRegularExpression
 from qgis.PyQt.QtCore import QPoint
+
+try:
+    _CheckStateUnchecked = Qt.CheckState.Unchecked
+    _CheckStateChecked = Qt.CheckState.Checked
+except AttributeError:
+    _CheckStateUnchecked = Qt.Unchecked
+    _CheckStateChecked = Qt.Checked
+try:
+    _UserRole = Qt.ItemDataRole.UserRole
+    _CheckStateRole = Qt.ItemDataRole.CheckStateRole
+except AttributeError:
+    _UserRole = Qt.UserRole
+    _CheckStateRole = Qt.CheckStateRole
+try:
+    _AlignCenter = Qt.AlignmentFlag.AlignCenter
+except AttributeError:
+    _AlignCenter = Qt.AlignCenter
 import threading
 import requests
 import xml.etree.ElementTree as ET
@@ -94,8 +115,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layerServices = {}
         self.project_link_checked = False
         main_window = self.layman.iface.mainWindow()
-        desktop = QDesktopWidget()
-        screen_rect = desktop.screenGeometry(main_window)
+        if QDesktopWidget is not None:
+            desktop = QDesktopWidget()
+            screen_rect = desktop.screenGeometry(main_window)
+        else:
+            screen = (
+                main_window.screen()
+                if main_window
+                else QtWidgets.QApplication.primaryScreen()
+            )
+            screen_rect = screen.geometry() if screen else self.frameGeometry()
         dialog_rect = self.frameGeometry()
         x = (screen_rect.width() - dialog_rect.width()) // 2
         y = (screen_rect.height() - dialog_rect.height()) // 2
@@ -158,11 +187,6 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             "props": self.page5,
         }
         if option not in page_map:
-            QgsMessageLog.logMessage(
-                f"setStackWidget: neznámá volba '{option}'",
-                "Layman-plugin",
-                Qgis.Warning,
-            )
             return
         self.stackedWidget.setCurrentWidget(page_map[option])
         if option == "new":
@@ -722,7 +746,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     item.setText(1, "WMS")
                 if serviceList[i] == "XYZ":
                     item.setText(1, "XYZ")
-                item.setCheckState(0, 2)
+                item.setCheckState(0, _CheckStateChecked)
                 item.setToolTip(
                     0,
                     self.tr(
@@ -730,7 +754,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     ),
                 )
             else:
-                item.setCheckState(0, 0)
+                item.setCheckState(0, _CheckStateUnchecked)
                 item.setToolTip(
                     0, self.tr("This layer is not part of the composition.")
                 )
@@ -764,16 +788,16 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if self.layman.locale == "cs":
                 item.setText(0, layer + " (Smazána z projektu)")
                 item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
-                item.setData(0, QtCore.Qt.CheckStateRole, None)
+                item.setData(0, _CheckStateRole, None)
             else:
                 item.setText(0, layer + " (Removed from canvas)")
                 item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
-                item.setData(0, QtCore.Qt.CheckStateRole, None)
+                item.setData(0, _CheckStateRole, None)
 
             brush = QBrush()
             brush.setColor(QColor(255, 17, 0))
             item.setForeground(0, brush)
-            item.setCheckState(0, 0)
+            item.setCheckState(0, _CheckStateUnchecked)
             item.setToolTip(
                 0,
                 self.tr(
@@ -796,7 +820,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             )
             while iterator.value():
                 item = iterator.value()
-                item.setCheckState(0, 2)
+                item.setCheckState(0, _CheckStateChecked)
                 self.layerServices[self.utils.removeUnacceptableChars(item.text(0))] = (
                     self.layman.rasterService
                 )
@@ -813,7 +837,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             )
             while iterator.value():
                 item = iterator.value()
-                item.setCheckState(0, 0)
+                item.setCheckState(0, _CheckStateUnchecked)
                 self.layerServices = {}
                 iterator += 1
 
@@ -961,7 +985,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     == "Přidat a přepsat"
                     or self.treeWidget_layers.itemWidget(item, 2).currentText() == "Add"
                 ):
-                    item.setCheckState(0, 2)
+                    item.setCheckState(0, _CheckStateChecked)
                 iterator += 1
         except:
             print("neni v canvasu")
@@ -1092,7 +1116,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
         duplicityCheck = self.saveMapLayers()
         if not duplicityCheck:
-            QgsMessageLog.logMessage("layersLoaded")
+            self.progressDone.emit()
             return
         self.modified = False
         if len(self.layman.stylesToUpdate) > 0:
@@ -1247,7 +1271,6 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     )
             return True
         else:
-            QgsMessageLog.logMessage("uniqLayers")
             return False
 
     def checkUniqueName(self, layers):
@@ -1856,7 +1879,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
                 checkbox_item = QTableWidgetItem()
                 checkbox_item.setFlags(Qt.ItemIsEnabled)
-                checkbox_item.setTextAlignment(Qt.AlignCenter)
+                checkbox_item.setTextAlignment(_AlignCenter)
                 table_widget.setCellWidget(row, col, checkbox)
                 table_widget.setItem(row, col, checkbox_item)
 
@@ -1914,8 +1937,18 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             return False
 
         try:
-            mapName = self.utils.removeUnacceptableChars(self.layman.current)
-            uri = self.layman_api.get_map_url(self.layman.laymanUsername, mapName)
+            composition = self.layman.instance.getComposition()
+            map_name = (
+                composition.get("name")
+                if isinstance(composition, dict) and composition.get("name")
+                else self.layman.current
+            )
+            workspace = (
+                self.layman.instance.getWorkspace() or self.layman.laymanUsername
+            )
+            map_name = self.utils.removeUnacceptableChars(map_name)
+
+            uri = self.layman_api.get_map_url(workspace, map_name)
 
             headers = self.utils.getAuthHeader(self.utils.authCfg)
             r = requests.get(uri, headers=headers, timeout=10)
@@ -2056,13 +2089,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         itemsTextListRead = []
         for i in range(self.listWidget_read.count()):
             current_item = self.listWidget_read.item(i)
-            hidden_item = current_item.data(Qt.UserRole)
+            hidden_item = current_item.data(_UserRole)
             if hidden_item is not None:
                 itemsTextListRead.append(hidden_item.text())
         itemsTextListWrite = []
         for i in range(self.listWidget_write.count()):
             current_item = self.listWidget_write.item(i)
-            hidden_item = current_item.data(Qt.UserRole)
+            hidden_item = current_item.data(_UserRole)
             if hidden_item is not None:
                 itemsTextListWrite.append(hidden_item.text())
         allItems = [
@@ -2101,7 +2134,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def setHiddenItem(self, item, hidden_text):
         hidden_item = QtWidgets.QListWidgetItem(hidden_text)
         hidden_item.setHidden(True)
-        item.setData(Qt.UserRole, hidden_item)
+        item.setData(_UserRole, hidden_item)
 
     def showInfoDialogOnTop(self, text):
         msgbox = QMessageBox()
@@ -2669,24 +2702,26 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         for layer in composition["layers"]:
             if layer["title"] == layerName:
                 (
-                    self.checkBox_singleTile.setCheckState(2)
+                    self.checkBox_singleTile.setCheckState(_CheckStateChecked)
                     if layer["singleTile"] == True
-                    else self.checkBox_singleTile.setCheckState(0)
+                    else self.checkBox_singleTile.setCheckState(_CheckStateUnchecked)
                 )
                 if "base" in layer:
                     (
-                        self.checkBox_baseLayer.setCheckState(2)
+                        self.checkBox_baseLayer.setCheckState(_CheckStateChecked)
                         if layer["base"] == True
-                        else self.checkBox_singleTile.setCheckState(0)
+                        else self.checkBox_singleTile.setCheckState(
+                            _CheckStateUnchecked
+                        )
                     )
                 if "greyscale" in layer:
                     (
-                        self.checkBox_greyScale.setCheckState(2)
+                        self.checkBox_greyScale.setCheckState(_CheckStateChecked)
                         if layer["greyscale"] == True
-                        else self.checkBox_greyScale.setCheckState(0)
+                        else self.checkBox_greyScale.setCheckState(_CheckStateUnchecked)
                     )
                 else:
-                    self.checkBox_greyScale.setCheckState(0)
+                    self.checkBox_greyScale.setCheckState(_CheckStateUnchecked)
                 self.label_opacity.setText(str(layer["opacity"] * 100) + " %")
                 self.label_max.setText(
                     "None"
@@ -2706,15 +2741,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
     def setGrayScaleForLayer(self, layer):
         if isinstance(layer, QgsRasterLayer):
             pipe = layer.pipe()
-            if self.checkBox_greyScale.checkState() == 2:
+            if self.checkBox_greyScale.checkState() == _CheckStateChecked:
                 pipe.hueSaturationFilter().setGrayscaleMode(1)
-            if self.checkBox_greyScale.checkState() == 0:
+            if self.checkBox_greyScale.checkState() == _CheckStateUnchecked:
                 pipe.hueSaturationFilter().setGrayscaleMode(0)
             layer.triggerRepaint()
 
     def saveCompositionLayerChanges(self, name):
         composition = self.layman.instance.getComposition()
-        if self.checkBox_singleTile.checkState() == 2:
+        if self.checkBox_singleTile.checkState() == _CheckStateChecked:
             composition["layers"][self.layman.instance.getLayerOrderByTitle(name)][
                 "singleTile"
             ] = True
@@ -2722,7 +2757,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             composition["layers"][self.layman.instance.getLayerOrderByTitle(name)][
                 "singleTile"
             ] = False
-        if self.checkBox_baseLayer.checkState() == 2:
+        if self.checkBox_baseLayer.checkState() == _CheckStateChecked:
             composition["layers"][self.layman.instance.getLayerOrderByTitle(name)][
                 "base"
             ] = True
@@ -2730,7 +2765,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             composition["layers"][self.layman.instance.getLayerOrderByTitle(name)][
                 "base"
             ] = False
-        if self.checkBox_greyScale.checkState() == 2:
+        if self.checkBox_greyScale.checkState() == _CheckStateChecked:
             composition["layers"][self.layman.instance.getLayerOrderByTitle(name)][
                 "greyscale"
             ] = True
@@ -2814,7 +2849,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 itemsTextListRead = []
                 for i in range(self.listWidget_read.count()):
                     current_item = self.listWidget_read.item(i)
-                    hidden_item = current_item.data(Qt.UserRole)
+                    hidden_item = current_item.data(_UserRole)
                     if hidden_item is not None:
                         itemsTextListRead.append(hidden_item.text())
                 if (
@@ -3339,11 +3374,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             if className == "OpenLayers.Layer.Vector" or className == "Vector":
                 try:
                     layerName = data["layers"][x]["name"]
-                except:
+                except Exception:
                     try:
                         layerName = data["layers"][x]["protocol"]["LAYERS"]
-                    except:
-                        QgsMessageLog.logMessage("compositionSchemaError")
+                    except Exception:
+                        self.layman.showExportInfo.emit("compositionSchemaError")
                         self.layman.instance = None
                         self.layman.current = None
                         return

@@ -24,6 +24,37 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRect, QTimer
+
+try:
+    _CheckStateUnchecked = Qt.CheckState.Unchecked
+    _CheckStateChecked = Qt.CheckState.Checked
+except AttributeError:
+    _CheckStateUnchecked = Qt.Unchecked
+    _CheckStateChecked = Qt.Checked
+try:
+    _HeaderStretch = QtWidgets.QHeaderView.ResizeMode.Stretch
+    _HeaderInteractive = QtWidgets.QHeaderView.ResizeMode.Interactive
+except AttributeError:
+    _HeaderStretch = QtWidgets.QHeaderView.Stretch
+    _HeaderInteractive = QtWidgets.QHeaderView.Interactive
+try:
+    _AscendingOrder = Qt.SortOrder.AscendingOrder
+except AttributeError:
+    _AscendingOrder = Qt.AscendingOrder
+try:
+    _UserRole = Qt.ItemDataRole.UserRole
+except AttributeError:
+    _UserRole = Qt.UserRole
+try:
+    _AlignCenter = Qt.AlignmentFlag.AlignCenter
+except AttributeError:
+    _AlignCenter = Qt.AlignCenter
+try:
+    _KeepAspectRatio = Qt.AspectRatioMode.KeepAspectRatio
+    _FastTransformation = Qt.TransformationMode.FastTransformation
+except AttributeError:
+    _KeepAspectRatio = Qt.KeepAspectRatio
+    _FastTransformation = Qt.FastTransformation
 from qgis.PyQt.QtWidgets import (
     QTreeWidgetItem,
     QTreeWidgetItemIterator,
@@ -40,12 +71,12 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtGui import QPixmap, QIcon
 from qgis.core import *
 import threading
-import requests
 
 # QPushButton already imported above
 # uic already imported above
 import tempfile
 import asyncio
+import json
 from .layman_utils import CenterIconDelegate
 
 try:
@@ -69,6 +100,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     permissionInfo = pyqtSignal(bool, list, int)
     progressDone = pyqtSignal()
     statusesUpdated = pyqtSignal(dict)
+    thumbnailLayerDone = pyqtSignal(object)
+    layersDataReady = pyqtSignal(list)
 
     def __init__(self, utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
@@ -84,11 +117,27 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.globalWrite = {}
         self.layman_api = LaymanAPI(URI)
         self.selectedLayerNames = []
+        self._status_timer = None
+        self._status_refresh_running = False
+        self._status_refresh_lock = threading.Lock()
+        self._status_refresh_enabled = True
         self.setUi()
 
     def connectEvents(self):
         self.enableWfsButton.connect(self.onWfsButton)
-        self.getLayers.connect(lambda state: asyncio.run(self.loadLayersThread(state)))
+        self.layersDataReady.connect(self._onLayersDataReady)
+
+        def startLoadLayersInThread(onlyOwn):
+            def run():
+                try:
+                    rows = asyncio.run(self.loadLayersDataAsync(onlyOwn))
+                    self.layersDataReady.emit(rows)
+                except Exception:
+                    self.layersDataReady.emit([])
+
+            threading.Thread(target=run, daemon=True).start()
+
+        self.getLayers.connect(lambda state: startLoadLayersInThread(state))
         self.postgisFound.connect(self.on_postgis_found)
         QgsApplication.messageLog().messageReceived.connect(self.write_log_message)
         self.layerDeletedSuccessfully.connect(self._onLayerDeletedSuccessfully)
@@ -131,10 +180,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         except:
             checked = False
         if checked == "0":
-            self.checkBox_own.setCheckState(0)
+            self.checkBox_own.setCheckState(_CheckStateUnchecked)
             checked = False
         if checked == "1":
-            self.checkBox_own.setCheckState(2)
+            self.checkBox_own.setCheckState(_CheckStateChecked)
             checked = True
 
         self.pushButton_delete.clicked.connect(
@@ -173,11 +222,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         )
         self.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
         self.treeWidget.itemClicked.connect(self.setButtons)
-        self.treeWidget.itemClicked.connect(
-            lambda: threading.Thread(
-                target=lambda: self.showThumbnail2(self.treeWidget.selectedItems()[0])
-            ).start()
-        )
+        self.treeWidget.itemClicked.connect(self._onLayerItemClickedForThumbnail)
         self.treeWidget.itemClicked.connect(
             lambda: threading.Thread(
                 target=lambda: self.checkIfPostgis(self.treeWidget.selectedItems()[0])
@@ -196,51 +241,108 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             False
         )  # Don't stretch last section
         self.treeWidget.header().setSectionResizeMode(
-            0, QtWidgets.QHeaderView.Stretch
+            0, _HeaderStretch
         )  # Layer column stretches to fill space
         self.treeWidget.header().setSectionResizeMode(
-            1, QtWidgets.QHeaderView.Interactive
+            1, _HeaderInteractive
         )  # User can resize
         self.treeWidget.header().setSectionResizeMode(
-            2, QtWidgets.QHeaderView.Interactive
+            2, _HeaderInteractive
         )  # User can resize
         self.treeWidget.header().setSectionResizeMode(
-            3, QtWidgets.QHeaderView.Interactive
+            3, _HeaderInteractive
         )  # User can resize
         self.treeWidget.header().setSectionResizeMode(
-            4, QtWidgets.QHeaderView.Interactive
+            4, _HeaderInteractive
         )  # User can resize
 
         # Enable sorting by clicking on column headers
         self.treeWidget.setSortingEnabled(True)
         self.treeWidget.sortByColumn(
-            0, Qt.AscendingOrder
+            0, _AscendingOrder
         )  # Default sort by Layer name (column 0)
 
         self.pushButton_close.clicked.connect(lambda: self.close())
         self.checkBox_own.stateChanged.connect(self.rememberValueLayer)
         self.setStyleSheet("#DialogBase {background: #f0f0f0 ;}")
         self.progressBar_loader.show()
-        asyncio.run(self.loadLayersThread(checked))
+
+        def startLoadLayersInThread(onlyOwn):
+            def run():
+                try:
+                    rows = asyncio.run(self.loadLayersDataAsync(onlyOwn))
+                    self.layersDataReady.emit(rows)
+                except Exception:
+                    self.layersDataReady.emit([])
+
+            threading.Thread(target=run, daemon=True).start()
+
+        startLoadLayersInThread(checked)
         self._startStatusRefreshTimer()
         self.checkBox_own.stateChanged.connect(
-            lambda state: asyncio.run(self.loadLayersThread(state))
+            lambda state: startLoadLayersInThread(state == _CheckStateChecked)
         )
         self.checkBox_own.stateChanged.connect(
             lambda: self.filterResults(self.filter.text())
         )
 
         # Initialize thumbnail label based on checkbox state
-        if self.checkBox_thumbnail.checkState() == 2:  # Checked
+        if self.checkBox_thumbnail.checkState() == _CheckStateChecked:  # Checked
             self.label_thumbnail.setText("")  # Clear placeholder when enabled
         else:  # Unchecked
             self.label_thumbnail.setText("Disabled")  # Show placeholder when disabled
+
+        self.thumbnailLayerDone.connect(self._onThumbnailLayerDone)
+
         if self.isAuthorized:
             self.checkBox_own.setEnabled(True)
         else:
             self.checkBox_own.setEnabled(False)
         self.show()
         result = self.exec()
+
+    def _onLayerItemClickedForThumbnail(self):
+        sel = self.treeWidget.selectedItems()
+        if not sel:
+            return
+        item = sel[0]
+        layer_title = item.text(0)
+        workspace = item.text(1)
+        layer_name = self.layerNamesDict.get(layer_title)
+        show = self.checkBox_thumbnail.checkState() == _CheckStateChecked
+        threading.Thread(
+            target=self._fetchThumbnailLayer,
+            args=(workspace, layer_name, show),
+            daemon=True,
+        ).start()
+
+    def _onThumbnailLayerDone(self, result):
+        data, error = result
+        if data:
+            pixmap = QPixmap()
+            if pixmap.loadFromData(data):
+                smaller = pixmap.scaled(200, 200, _KeepAspectRatio, _FastTransformation)
+                self.label_thumbnail.setPixmap(smaller)
+                self.label_thumbnail.setText("")
+            else:
+                self.label_thumbnail.clear()
+                self.label_thumbnail.setText("Invalid image")
+            self.label_thumbnail.setAlignment(_AlignCenter)
+        else:
+            self.label_thumbnail.clear()
+            self.label_thumbnail.setText(error or "Error")
+            self.label_thumbnail.setAlignment(_AlignCenter)
+
+    def _fetchThumbnailLayer(self, workspace, layer_name, show_thumbnail):
+        if not show_thumbnail or not layer_name:
+            self.thumbnailLayerDone.emit((None, "Disabled"))
+            return
+        url = self.layman_api.get_layer_thumbnail_url(workspace, layer_name)
+        status, content = self.utils.http_get_bytes(url, timeout=15)
+        if status == 200 and content:
+            self.thumbnailLayerDone.emit((content, None))
+        else:
+            self.thumbnailLayerDone.emit((None, f"Error {status}"))
 
     def collectPermissionsAndSave(self, tab_widget, layerNames):
         self.failed = []
@@ -603,7 +705,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
                 checkbox_item = QTableWidgetItem()
                 checkbox_item.setFlags(Qt.ItemIsEnabled)
-                checkbox_item.setTextAlignment(Qt.AlignCenter)
+                checkbox_item.setTextAlignment(_AlignCenter)
                 table_widget.setCellWidget(row, col, checkbox)
                 table_widget.setItem(row, col, checkbox_item)
 
@@ -857,30 +959,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 Qgis.Warning,
             )
 
-    def showThumbnail2(self, it):
-        layer = it.text(0)
-        workspace = it.text(1)
-        if self.checkBox_thumbnail.checkState() == 2:
-            layer = self.layerNamesDict[layer]
-            url = self.layman_api.get_layer_thumbnail_url(workspace, layer)
-            r = requests.get(url, headers=self.utils.getAuthHeader(self.utils.authCfg))
-            data = r.content
-            pixmap = QPixmap(200, 200)
-            pixmap.loadFromData(data)
-            smaller_pixmap = pixmap.scaled(
-                200, 200, Qt.KeepAspectRatio, Qt.FastTransformation
-            )
-            self.label_thumbnail.setPixmap(smaller_pixmap)
-            self.label_thumbnail.setAlignment(Qt.AlignCenter)
-            self.label_thumbnail.setText("")
-        else:
-            self.label_thumbnail.clear()
-            self.label_thumbnail.setText("Disabled")
-            self.label_thumbnail.setAlignment(Qt.AlignCenter)
-
     def _startStatusRefreshTimer(self):
         try:
-            self._status_timer.stop()
+            if self._status_timer is not None:
+                self._status_timer.stop()
         except Exception:
             pass
         self._status_timer = QTimer(self)
@@ -889,10 +971,18 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self._status_timer.start()
 
     def _refreshStatusesAsync(self):
+        if not self._status_refresh_enabled:
+            return
+        with self._status_refresh_lock:
+            if self._status_refresh_running:
+                return
+            self._status_refresh_running = True
         threading.Thread(target=self._refreshStatusesThread, daemon=True).start()
 
     def _refreshStatusesThread(self):
         try:
+            if not self._status_refresh_enabled:
+                return
             if self.laymanUsername and self.isAuthorized:
                 url = self.layman_api.get_get_all_layers_url()
             else:
@@ -912,6 +1002,18 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.statusesUpdated.emit(status_map)
         except Exception:
             pass
+        finally:
+            with self._status_refresh_lock:
+                self._status_refresh_running = False
+
+    def closeEvent(self, event):
+        self._status_refresh_enabled = False
+        try:
+            if self._status_timer is not None:
+                self._status_timer.stop()
+        except Exception:
+            pass
+        super().closeEvent(event)
 
     def _applyStatusIcons(self, status_map):
         iterator = QTreeWidgetItemIterator(
@@ -942,9 +1044,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         layer = self.utils.removeUnacceptableChars(it.text(0))
         workspace = it.text(1)
         url = self.layman_api.get_layer_url(workspace, str(layer).lower())
-        r = requests.get(url, headers=self.utils.getAuthHeader(self.utils.authCfg))
-        if "db" in r.json():
-            if "external_uri" in r.json()["db"]:
+        status, data = self.utils.http_get_json(url)
+        if status == 200 and isinstance(data, dict) and "db" in data:
+            if "external_uri" in data["db"]:
                 self.postgisFound.emit(True)
             else:
                 self.postgisFound.emit(False)
@@ -1006,6 +1108,138 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         icon_path = os.path.join(self.layman.plugin_dir, "icons", icon_filename)
         return QIcon(icon_path)
 
+    def _parse_json(self, raw):
+        if not raw:
+            return None
+        try:
+            return json.loads(raw.decode("utf-8"))
+        except Exception:
+            return None
+
+    async def loadLayersDataAsync(self, onlyOwn=False):
+        rows = []
+
+        if not (self.laymanUsername and self.isAuthorized):
+            url = self.layman_api.get_get_all_layers_url()
+            r = await self.utils.asyncRequestWrapper("GET", url)
+            data = self._parse_json(r)
+            if not data or not isinstance(data, list):
+                return rows
+            for row in data:
+                perm = ""
+                if "EVERYONE" in row.get("access_rights", {}).get("read", []):
+                    perm = "read"
+                if "EVERYONE" in row.get("access_rights", {}).get("write", []):
+                    perm = "write"
+                if perm:
+                    status = self._getStatusFromLayerData(row)
+                    rows.append(
+                        {
+                            "title": row.get("title", ""),
+                            "workspace": row.get("workspace", ""),
+                            "perm": perm,
+                            "native_crs": row.get("native_crs", ""),
+                            "status": status,
+                            "name": row.get("name", ""),
+                            "uuid": row.get("uuid", ""),
+                        }
+                    )
+            return rows
+
+        url = self.layman_api.get_layers_url(self.laymanUsername)
+        r = await self.utils.asyncRequestWrapper("GET", url)
+        data = self._parse_json(r)
+        if not data or not isinstance(data, list):
+            return rows
+
+        if onlyOwn and self.isAuthorized:
+            for row in data:
+                status = self._getStatusFromLayerData(row)
+                rows.append(
+                    {
+                        "title": row.get("title", ""),
+                        "workspace": row.get("workspace", ""),
+                        "perm": "own",
+                        "native_crs": row.get("native_crs", ""),
+                        "status": status,
+                        "name": row.get("name", ""),
+                        "uuid": row.get("uuid", ""),
+                    }
+                )
+            return rows
+
+        url_all = self.layman_api.get_get_all_layers_url()
+        r_all = await self.utils.asyncRequestWrapper("GET", url_all)
+        data_all = self._parse_json(r_all)
+        if not data_all or not isinstance(data_all, list):
+            return rows
+
+        for row in data_all:
+            perm = ""
+            if self.laymanUsername in row.get("access_rights", {}).get(
+                "read", []
+            ) or "EVERYONE" in row.get("access_rights", {}).get("read", []):
+                perm = "read"
+            if self.laymanUsername in row.get("access_rights", {}).get(
+                "write", []
+            ) or "EVERYONE" in row.get("access_rights", {}).get("write", []):
+                perm = "write"
+            if row in data:
+                perm = "own"
+            if perm:
+                status = self._getStatusFromLayerData(row)
+                rows.append(
+                    {
+                        "title": row.get("title", ""),
+                        "workspace": row.get("workspace", ""),
+                        "perm": perm,
+                        "native_crs": row.get("native_crs", ""),
+                        "status": status,
+                        "name": row.get("name", ""),
+                        "uuid": row.get("uuid", ""),
+                    }
+                )
+        return rows
+
+    def _onLayersDataReady(self, rows):
+        self.layerNamesDict = {}
+        self.layer_uuid = {}
+        self.treeWidget.clear()
+        for r in rows:
+            if r.get("native_crs") and r.get("status"):
+                item = QTreeWidgetItem(
+                    [
+                        r["title"],
+                        r["workspace"],
+                        r["perm"],
+                        r["native_crs"],
+                    ]
+                )
+                icon = self.getStatusIcon(r["status"])
+                item.setIcon(4, icon)
+                item.setText(4, r["status"])
+            elif r.get("native_crs"):
+                item = QTreeWidgetItem(
+                    [
+                        r["title"],
+                        r["workspace"],
+                        r["perm"],
+                        r["native_crs"],
+                    ]
+                )
+            else:
+                item = QTreeWidgetItem(
+                    [
+                        r["title"],
+                        r["workspace"],
+                        r["perm"],
+                    ]
+                )
+            self.treeWidget.addTopLevelItem(item)
+            self.layerNamesDict[r["title"]] = r.get("name", "")
+            self.layer_uuid[r["title"]] = r.get("uuid", "")
+        self.progressDone.emit()
+
     async def loadLayersThread(self, onlyOwn=False):
         self.layerNamesDict = dict()
         self.layer_uuid = dict()
@@ -1045,7 +1279,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.treeWidget.addTopLevelItem(item)
                     self.layerNamesDict[data[row]["title"]] = data[row]["name"]
                     self.layer_uuid[data[row]["title"]] = data[row]["uuid"]
-                QgsMessageLog.logMessage("layersLoaded")
+                self.progressDone.emit()
             else:
                 url = self.layman_api.get_get_all_layers_url()
                 r = await self.utils.asyncRequestWrapper("GET", url)
@@ -1102,7 +1336,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         self.layer_uuid[dataAll[row]["title"]] = dataAll[row]["uuid"]
                         self.treeWidget.addTopLevelItem(item)
 
-                QgsMessageLog.logMessage("layersLoaded")
+                self.progressDone.emit()
         else:
             url = self.layman_api.get_get_all_layers_url()
             r = await self.utils.asyncRequestWrapper("GET", url)
@@ -1141,7 +1375,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.layerNamesDict[data[row]["title"]] = data[row]["name"]
                 self.layer_uuid[data[row]["title"]] = data[row]["uuid"]
                 self.treeWidget.addTopLevelItem(item)
-            QgsMessageLog.logMessage("layersLoaded")
+            self.progressDone.emit()
         self.progressBar_loader.hide()
 
     def enableButtons(self, item, col):
@@ -1182,7 +1416,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pushButton_setPermissions.setEnabled(True)
             self.pushButton_delete.setEnabled(True)
             self.pushButton.setEnabled(True)
-            self.checkBox_thumbnail.setCheckState(2)
+            self.checkBox_thumbnail.setCheckState(_CheckStateChecked)
         else:
             self.pushButton_setPermissions.setEnabled(False)
             self.pushButton_delete.setEnabled(False)
@@ -1203,9 +1437,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         url = self.layman_api.get_layer_url(
             workspace, self.utils.removeUnacceptableChars(name)
         )
-        response = self.utils.requestWrapper("GET", url, payload=None, files=None)
-        res = self.utils.fromByteToJson(response.content)
-        if "geodata_type" in res:
+        status, res = self.utils.http_get_json(url)
+        if status == 200 and isinstance(res, dict) and "geodata_type" in res:
             return res["geodata_type"]
         else:
             return ""
@@ -1222,24 +1455,23 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         for i in range(0, len(self.treeWidget.selectedItems())):
             name = self.treeWidget.selectedItems()[i].text(0)
             workspace = self.treeWidget.selectedItems()[i].text(1)
-            self.selectedWorkspace = workspace
             threading.Thread(
-                target=lambda: self.readLayerJsonThread(name, service, workspace)
+                target=self.readLayerJsonThread,
+                args=(name, service, workspace),
+                daemon=True,
             ).start()
 
     def readLayerJsonThread(self, layerName, service, workspace):
         layerNameTitle = layerName
         layerName = self.layerNamesDict[layerNameTitle]
         layer_uuid = f"l_{self.layer_uuid[layerNameTitle]}"
-        if self.utils.checkLayerOnLayman(
-            layerName, self.selectedWorkspace, self.laymanUsername
-        ):
+        if self.utils.checkLayerOnLayman(layerName, workspace, self.laymanUsername):
             layerName = self.utils.removeUnacceptableChars(layerName)
             url = self.layman_api.get_layer_url(workspace, layerName)
             r = self.utils.requestWrapper("GET", url, payload=None, files=None)
             try:
                 data = r.json()
-            except:
+            except Exception:
                 self.utils.showErr.emit(
                     ["Vrstva není k dispozici!", "Layer is not available!"],
                     "code: " + str(r.status_code),
@@ -1247,11 +1479,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     Qgis.Warning,
                     url,
                 )
+                self.progressDone.emit()
                 return
             if service == "WMS":
                 try:
                     wmsUrl = data["wms"]["url"]
-                except:
+                except Exception:
                     self.utils.showErr.emit(
                         ["Vrstva není k dispozici!", "Layer is not available!"],
                         "code: " + str(r.status_code),
@@ -1259,6 +1492,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         Qgis.Warning,
                         url,
                     )
+                    self.progressDone.emit()
                     return
                 format = "png"
                 epsg = "EPSG:5514"
@@ -1321,7 +1555,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         ]
                     )
 
-            QgsMessageLog.logMessage("layersLoaded")
+            self.progressDone.emit()
         else:
             self.utils.emitMessageBox.emit(
                 [
@@ -1329,14 +1563,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     "Something went wrong with layer: " + layerName,
                 ]
             )
-            QgsMessageLog.logMessage("layersLoaded")
+            self.progressDone.emit()
 
     def write_log_message(self, message, tag, level):
-        if message == "layersLoaded":
-            try:
-                self.progressBar_loader.hide()
-            except:
-                pass
+        pass
 
     def layerDeleteThread(self, name):
         name = self.utils.removeUnacceptableChars(name).lower()
@@ -1379,13 +1609,13 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         itemsTextListRead = []
         for i in range(self.listWidget_read.count()):
             current_item = self.listWidget_read.item(i)
-            hidden_item = current_item.data(Qt.UserRole)
+            hidden_item = current_item.data(_UserRole)
             if hidden_item is not None:
                 itemsTextListRead.append(hidden_item.text())
         itemsTextListWrite = []
         for i in range(self.listWidget_write.count()):
             current_item = self.listWidget_write.item(i)
-            hidden_item = current_item.data(Qt.UserRole)
+            hidden_item = current_item.data(_UserRole)
             if hidden_item is not None:
                 itemsTextListWrite.append(hidden_item.text())
         allItems = [
@@ -1438,7 +1668,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 itemsTextListRead = []
                 for i in range(self.listWidget_read.count()):
                     current_item = self.listWidget_read.item(i)
-                    hidden_item = current_item.data(Qt.UserRole)
+                    hidden_item = current_item.data(_UserRole)
                     if hidden_item is not None:
                         itemsTextListRead.append(hidden_item.text())
                 if (
@@ -1469,7 +1699,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def setHiddenItem(self, item, hidden_text):
         hidden_item = QtWidgets.QListWidgetItem(hidden_text)
         hidden_item.setHidden(True)
-        item.setData(Qt.UserRole, hidden_item)
+        item.setData(_UserRole, hidden_item)
 
     def afterPermissionDone(self, success, failed, info):
         if self.objectName() == "AddLayerDialog":
@@ -1538,8 +1768,13 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         layerName = self.utils.removeUnacceptableChars(it.text(0))
         workspace = it.text(1)
         url = self.layman_api.get_layer_url(workspace, str(layerName).lower())
-        r = requests.get(url, headers=self.utils.getAuthHeader(self.utils.authCfg))
-        data = r.json()
+        status, data = self.utils.http_get_json(url)
+        if status != 200 or not isinstance(data, dict) or "db" not in data:
+            self.utils.showQgisBar(
+                ["Vrstva PostGIS není dostupná.", "PostGIS layer is not available."],
+                Qgis.Warning,
+            )
+            return
         table = data["db"]["table"]
         schema = data["db"]["schema"]
         geo_column = data["db"]["geo_column"]
