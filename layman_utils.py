@@ -72,6 +72,10 @@ except AttributeError:
     _AlignCenter = Qt.AlignCenter
     _AlignLeft = Qt.AlignLeft
     _AlignVCenter = Qt.AlignVCenter
+try:
+    _WindowStaysOnTopHint = Qt.WindowType.WindowStaysOnTopHint
+except AttributeError:
+    _WindowStaysOnTopHint = getattr(Qt, "WindowStaysOnTopHint", None)
 
 
 class LaymanUtils(QObject):
@@ -349,9 +353,10 @@ class LaymanUtils(QObject):
 
         def showDlg():
             self.dlgErr = ErrMsgDialog()
-            self.dlgErr.setWindowFlags(
-                self.dlgErr.windowFlags() | Qt.WindowStaysOnTopHint
-            )
+            if _WindowStaysOnTopHint is not None:
+                self.dlgErr.setWindowFlags(
+                    self.dlgErr.windowFlags() | _WindowStaysOnTopHint
+                )
             self.dlgErr.pushButton_copyMsg.setStyleSheet(
                 "color: #fff !important; text-transform: uppercase;font-size:"
                 + self.fontSize

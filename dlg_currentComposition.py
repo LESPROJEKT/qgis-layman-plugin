@@ -64,6 +64,10 @@ try:
     _AlignCenter = Qt.AlignmentFlag.AlignCenter
 except AttributeError:
     _AlignCenter = Qt.AlignCenter
+try:
+    _WindowStaysOnTopHint = Qt.WindowType.WindowStaysOnTopHint
+except AttributeError:
+    _WindowStaysOnTopHint = getattr(Qt, "WindowStaysOnTopHint", None)
 import threading
 import requests
 import xml.etree.ElementTree as ET
@@ -2142,7 +2146,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         msgbox.setText(text)
         msgbox.setIcon(QMessageBox.Icon.Information)
         msgbox.addButton(QMessageBox.StandardButton.Ok)
-        msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
+        if _WindowStaysOnTopHint is not None:
+            msgbox.setWindowFlags(msgbox.windowFlags() | _WindowStaysOnTopHint)
         msgbox.exec()
 
     def removeWritePermissionList(self):
@@ -2803,7 +2808,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         msgbox.addButton(QMessageBox.StandardButton.Yes)
         msgbox.addButton(QMessageBox.StandardButton.No)
         msgbox.setDefaultButton(QMessageBox.StandardButton.No)
-        msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowStaysOnTopHint)
+        if _WindowStaysOnTopHint is not None:
+            msgbox.setWindowFlags(msgbox.windowFlags() | _WindowStaysOnTopHint)
         reply = msgbox.exec()
         if reply == QMessageBox.StandardButton.Yes:
             self.deleteQfieldProject(composition["name"])
