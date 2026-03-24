@@ -1,0 +1,16 @@
+{
+  "servers": [
+    {
+      "id": "focal-h4e",
+      "match": {
+        "hosts": ["h4e.focal.cesnet.cz"]
+      },
+      "mounts": [
+        {
+          "buckets": ["focal"],
+          "server_relative_mount": "s3_mount"
+        }
+      ]
+    }
+  ]
+}
