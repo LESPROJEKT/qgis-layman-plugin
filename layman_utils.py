@@ -99,6 +99,8 @@ class LaymanUtils(QObject):
         self._layman_api = None
         self._http_json_cache = {}
         self._http_cache_lock = threading.RLock()
+        self._auth_header_cache = None
+        self._auth_header_cache_lock = threading.RLock()
         self._is_shutting_down = False
         self.connectEvents()
 
@@ -171,31 +173,30 @@ class LaymanUtils(QObject):
         if self._is_shutting_down:
             raise LaymanRequestError("Layman plugin is shutting down.")
         try:
-            with _TLS_LOCK:
-                base_headers = self.getAuthHeader(self.authCfg) or {}
-                if not isinstance(base_headers, dict):
-                    base_headers = {}
-                base_headers["Connection"] = "close"
-                if additionalHeaders is None:
-                    response = requests.request(
-                        type,
-                        url=url,
-                        headers=base_headers,
-                        data=payload,
-                        files=files,
-                        timeout=30,
-                        verify=False,
-                    )
-                else:
-                    response = requests.request(
-                        type,
-                        url=url,
-                        headers={**base_headers, **additionalHeaders},
-                        data=payload,
-                        files=files,
-                        timeout=30,
-                        verify=False,
-                    )
+            base_headers = self.getAuthHeader(self.authCfg) or {}
+            if not isinstance(base_headers, dict):
+                base_headers = {}
+            base_headers["Connection"] = "close"
+            if additionalHeaders is None:
+                response = requests.request(
+                    type,
+                    url=url,
+                    headers=base_headers,
+                    data=payload,
+                    files=files,
+                    timeout=30,
+                    verify=False,
+                )
+            else:
+                response = requests.request(
+                    type,
+                    url=url,
+                    headers={**base_headers, **additionalHeaders},
+                    data=payload,
+                    files=files,
+                    timeout=30,
+                    verify=False,
+                )
         except Exception as ex:
             info = str(ex)
             if emitErr:
@@ -303,27 +304,26 @@ class LaymanUtils(QObject):
     ):
         if self._is_shutting_down:
             return b""
-        with _TLS_LOCK:
-            response = requests.request(
-                type,
-                url=url,
-                headers=self.getAuthHeader(self.authCfg),
-                data=payload,
-                files=files,
-                timeout=30,
-                verify=False,
+        response = requests.request(
+            type,
+            url=url,
+            headers=self.getAuthHeader(self.authCfg),
+            data=payload,
+            files=files,
+            timeout=30,
+            verify=False,
+        )
+        response_content = response.content
+        if emitErr and response.status_code != 200:
+            content = response_content.decode("utf-8", errors="replace")
+            self.showErr.emit(
+                ["Požadavek nebyl úspěšný", "Request was not successful"],
+                f"code: {response.status_code}",
+                content,
+                Qgis.Warning,
+                url,
             )
-            response_content = response.content
-            if emitErr and response.status_code != 200:
-                content = response_content.decode("utf-8", errors="replace")
-                self.showErr.emit(
-                    ["Požadavek nebyl úspěšný", "Request was not successful"],
-                    f"code: {response.status_code}",
-                    content,
-                    Qgis.Warning,
-                    url,
-                )
-            return response_content
+        return response_content
 
     def recalculateDPI(self):
         self.DPI = self.getDPI()
@@ -485,6 +485,11 @@ class LaymanUtils(QObject):
 
     def getAuthHeader(self, authCfg):
         if self.isAuthorized:
+            if threading.current_thread() is not threading.main_thread():
+                with self._auth_header_cache_lock:
+                    if isinstance(self._auth_header_cache, dict):
+                        return dict(self._auth_header_cache)
+                return ""
             url = QUrl(self.layman_api.get_current_user_url())
             req = QNetworkRequest(url)
             success = QgsApplication.authManager().updateNetworkRequest(req, authCfg)
@@ -494,6 +499,8 @@ class LaymanUtils(QObject):
                     "Authorization": str(header, "utf-8"),
                     "X-Client": "LAYMAN",
                 }
+                with self._auth_header_cache_lock:
+                    self._auth_header_cache = dict(authHeader)
                 return authHeader
             else:
                 if self.locale == "cs":
