@@ -139,6 +139,12 @@ from .layman_qfield import Qfield
 from functools import partial
 from .layman_api import LaymanAPI
 from .resources import *
+from .s3_mount_config import (
+    build_server_raster_path,
+    load_s3_mount_config,
+    parse_vsis3_source,
+    resolve_server_relative_mount,
+)
 
 
 def qgs_range_to_single_value(rng):
@@ -200,6 +206,32 @@ def apply_provider_user_nodata_to_gdal(layer: QgsRasterLayer, band: int = 1):
 
     layer.triggerRepaint()
     print("Done. NoData written to raster.")
+
+
+def local_temp_geotiff_from_vsis3(vsis3_path, name_hint):
+    tmp_dir = tempfile.gettempdir()
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", name_hint)[:80]
+    out_path = os.path.join(
+        tmp_dir,
+        "layman_vsis3_{}_{}.tif".format(safe, threading.current_thread().ident),
+    )
+    ds = gdal.Open(vsis3_path, gdal.GA_ReadOnly)
+    if ds is None:
+        raise RuntimeError(
+            "GDAL could not open /vsis3/ source (network, credentials, or path)."
+        )
+    try:
+        gdal.Translate(
+            out_path,
+            ds,
+            format="GTiff",
+            creationOptions=["COMPRESS=LZW"],
+        )
+    finally:
+        ds = None
+    if not os.path.isfile(out_path):
+        raise RuntimeError("GDAL Translate did not create an output file.")
+    return out_path
 
 
 class Layman(QObject):
@@ -436,6 +468,14 @@ class Layman(QObject):
         self.cleanTemp.connect(self._cleanTemp)
         self.enableMapButton.connect(self.enableMapMenu, type=_QueuedConnection)
         self.progressUpdated.connect(self.updateInfo, type=_QueuedConnection)
+
+    def _emit_raster_log(self, msg):
+        line = str(msg)
+        print(line, flush=True)
+        try:
+            QgsMessageLog.logMessage(line, "Layman raster", Qgis.Info)
+        except Exception:
+            pass
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
@@ -714,6 +754,27 @@ class Layman(QObject):
                 )
         except Exception:
             pass
+
+    def _hide_import_progress_widgets(self, reset_value=False):
+        for dlg_name in ("dlg", "old_dlg"):
+            dlg = getattr(self, dlg_name, None)
+            if dlg is None:
+                continue
+            for widget_name in ("progressBar_loader", "progressBar", "label_raster"):
+                widget = getattr(dlg, widget_name, None)
+                if widget is None:
+                    continue
+                try:
+                    widget.hide()
+                except Exception:
+                    pass
+            if reset_value:
+                pb = getattr(dlg, "progressBar", None)
+                if pb is not None:
+                    try:
+                        pb.setValue(0)
+                    except Exception:
+                        pass
 
     def duplicateLayers(self):
         layerList = set()
@@ -2546,17 +2607,9 @@ class Layman(QObject):
             except Exception:
                 pass
         if message == "resetProgressbar":
-            try:
-                self.dlg.progressBar.hide()
-                self.dlg.progressBar.setValue(0)
-            except Exception:
-                pass
+            self._hide_import_progress_widgets(reset_value=True)
         if message == "disableProgress":
-            try:
-                self.dlg.progressBar_loader.hide()
-                self.dlg.label_raster.hide()
-            except Exception:
-                pass
+            self._hide_import_progress_widgets(reset_value=True)
         if message == "enableProgress":
             try:
                 self.dlg.progressBar_loader.show()
@@ -2573,7 +2626,7 @@ class Layman(QObject):
 
         if message == "export":
             try:
-                self.dlg.progressBar.hide()
+                self._hide_import_progress_widgets(reset_value=False)
                 self.dlg.label_import.hide()
             except Exception:
                 pass
@@ -3707,10 +3760,26 @@ class Layman(QObject):
         if resamplingMethod == "No value" or resamplingMethod == "Není vybrán":
             resamplingMethod = ""
 
+        source_base = layer.source().split("|")[0]
+        bucket, s3_key = parse_vsis3_source(source_base)
+        s3_cfg = load_s3_mount_config(self.plugin_dir)
+        mount_prefix = (
+            resolve_server_relative_mount(s3_cfg, self.server, bucket)
+            if bucket
+            else None
+        )
+        use_geoserver_file_path = bool(mount_prefix and s3_key)
+
+        if bucket and use_geoserver_file_path:
+            self._emit_raster_log("[Layman raster] S3 detected: using server file_path")
+        elif bucket:
+            self._emit_raster_log("[Layman raster] S3 detected: fallback upload")
+
         self._raster_upload_semaphore.acquire()
+        vsis3_temp_to_remove = None
         try:
-            # Před nahráním zapíše případné uživatelsky nastavené NoData do rastrového souboru
-            apply_provider_user_nodata_to_gdal(layer, band=1)
+            if not use_geoserver_file_path and not source_base.startswith("/vsis3/"):
+                apply_provider_user_nodata_to_gdal(layer, band=1)
 
             data["crs"] = layer.crs().authid()
             stylePath = self.getTempPath(
@@ -3722,77 +3791,158 @@ class Layman(QObject):
             self.ensureColormapHasZeroEntry(stylePath)
             layer_name = layer.name()
             title = layer_name
-            path = layer.dataProvider().dataSourceUri()
-            basename = os.path.basename(path)
-            if basename == "OUTPUT.tif":
-                name = self.utils.removeUnacceptableChars(layer_name)
-                newPath = path.replace(basename, name + ".tif")
-                shutil.copy2(path, newPath)
-                path = newPath
 
-            ext = os.path.splitext(path)[1]
-
-            if r"/vsizip/" in layer.source():
-                path = (
-                    layer.source()
-                    .replace("/" + os.path.basename(layer.source()), "")
-                    .replace(r"/vsizip/", "")
-                )
-
-            externalFile = self.returnPathIfFileExists(path, ext)
-            if os.path.getsize(path) > self.CHUNK_SIZE:
+            if use_geoserver_file_path:
+                geoserver_rel_path = build_server_raster_path(mount_prefix, s3_key)
+                layers_url = self.layman_api.get_layers_url(self.laymanUsername)
                 if patch:
-                    url = self.layman_api.get_layer_url(
+                    del_url = self.layman_api.get_layer_url(
                         self.laymanUsername,
                         self.utils.removeUnacceptableChars(layer_name),
                     )
-                    response = requests.delete(
-                        url, headers=self.utils.getAuthHeader(self.authCfg)
+                    del_resp = self.utils.requestWrapper(
+                        "DELETE", del_url, payload=None, files=None
                     )
-                    if response.status_code != 200 and response.status_code != 404:
-                        print(
-                            f"Failed to delete existing layer: {response.status_code}, {response.text}"
-                        )
-                        return
-                url = self.layman_api.get_layers_url(self.laymanUsername)
-                name = self.utils.removeUnacceptableChars(layer_name)
-                if externalFile:
-                    payload = {
-                        "file": [
-                            name.lower() + ext,
-                            name.lower() + self.returnPathIfFileExists(path, ext, True),
+                post_data = dict(data)
+                post_data["title"] = title
+                post_data["crs"] = ""
+                post_data["file_path"] = geoserver_rel_path
+                if resamplingMethod:
+                    post_data["overview_resampling"] = resamplingMethod
+                style_file = open(stylePath, "rb")
+                try:
+                    response = self.utils.requestWrapper(
+                        "POST",
+                        layers_url,
+                        post_data,
+                        {"style": style_file},
+                    )
+                finally:
+                    style_file.close()
+                if response.status_code not in (200, 201):
+                    self.showExportInfo.emit("resetProgressbar")
+                    return
+                res = self.utils.fromByteToJson(response.content)
+                if res is None:
+                    self.showExportInfo.emit("resetProgressbar")
+                    return
+                if isinstance(res, dict) and res.get("code") == 4:
+                    self.utils.showQgisBar(
+                        [
+                            "Nepodporované CRS souboru",
+                            "Unsupported CRS of data file",
                         ],
-                        "title": title,
-                        "crs": str(layer.crs().authid()),
-                        "style": open(stylePath, "rb"),
-                        "overview_resampling": resamplingMethod,
-                    }
-                else:
-                    payload = {
-                        "file": name.lower() + ext,
-                        "title": title,
-                        "crs": str(layer.crs().authid()),
-                        "overview_resampling": resamplingMethod,
-                    }
-                with open(stylePath, "rb") as style_file:
-                    files = {"style": style_file}
-                    response = self.utils.requestWrapper("POST", url, payload, files)
-                    print(response.content)
-                    if response.status_code != 200:
-                        print(
-                            f"Failed to register layer: {response.status_code}, {response.text}"
+                        Qgis.Warning,
+                    )
+                    self.showExportInfo.emit("resetProgressbar")
+                    return
+            else:
+                uri = layer.dataProvider().dataSourceUri()
+                path = uri.split("|")[0].strip()
+                if path.startswith("/vsis3/"):
+                    try:
+                        vsis3_temp_to_remove = local_temp_geotiff_from_vsis3(
+                            path,
+                            self.utils.removeUnacceptableChars(layer_name),
                         )
+                        path = vsis3_temp_to_remove
+                    except Exception as ex:
+                        _msg = (
+                            "Raster from /vsis3/ must be copied locally for this server, "
+                            "but GDAL could not read it (network, S3 credentials, or path).\n"
+                            + str(ex)
+                        )
+                        self.utils.emitMessageBox.emit([_msg, _msg])
+                        self.showExportInfo.emit("resetProgressbar")
                         return
-                filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks")
-                prepaired_layer_name = self.utils.removeUnacceptableChars(layer_name)
-                if not os.path.exists(filePath):
-                    os.mkdir(filePath)
-                if externalFile:
-                    with open(externalFile, "rb") as f:
-                        externalExt = os.path.splitext(externalFile)[1]
+                basename = os.path.basename(path)
+                if basename == "OUTPUT.tif":
+                    name = self.utils.removeUnacceptableChars(layer_name)
+                    newPath = path.replace(basename, name + ".tif")
+                    shutil.copy2(path, newPath)
+                    path = newPath
+
+                ext = os.path.splitext(path)[1]
+
+                if r"/vsizip/" in layer.source():
+                    path = (
+                        layer.source()
+                        .replace("/" + os.path.basename(layer.source()), "")
+                        .replace(r"/vsizip/", "")
+                    )
+
+                externalFile = self.returnPathIfFileExists(path, ext)
+                upload_bytes = os.path.getsize(path)
+                if upload_bytes > self.CHUNK_SIZE:
+                    if patch:
+                        url = self.layman_api.get_layer_url(
+                            self.laymanUsername,
+                            self.utils.removeUnacceptableChars(layer_name),
+                        )
+                        response = requests.delete(
+                            url, headers=self.utils.getAuthHeader(self.authCfg)
+                        )
+                        if response.status_code != 200 and response.status_code != 404:
+                            self.showExportInfo.emit("resetProgressbar")
+                            return
+                    url = self.layman_api.get_layers_url(self.laymanUsername)
+                    name = self.utils.removeUnacceptableChars(layer_name)
+                    if externalFile:
+                        payload = {
+                            "file": [
+                                name.lower() + ext,
+                                name.lower()
+                                + self.returnPathIfFileExists(path, ext, True),
+                            ],
+                            "title": title,
+                            "crs": str(layer.crs().authid()),
+                            "style": open(stylePath, "rb"),
+                            "overview_resampling": resamplingMethod,
+                        }
+                    else:
+                        payload = {
+                            "file": name.lower() + ext,
+                            "title": title,
+                            "crs": str(layer.crs().authid()),
+                            "overview_resampling": resamplingMethod,
+                        }
+                    with open(stylePath, "rb") as style_file:
+                        files = {"style": style_file}
+                        response = self.utils.requestWrapper(
+                            "POST", url, payload, files
+                        )
+                    if response.status_code not in (200, 201):
+                        self.showExportInfo.emit("resetProgressbar")
+                        return
+                    filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks")
+                    prepaired_layer_name = self.utils.removeUnacceptableChars(
+                        layer_name
+                    )
+                    if not os.path.exists(filePath):
+                        os.mkdir(filePath)
+                    if externalFile:
+                        with open(externalFile, "rb") as f:
+                            externalExt = os.path.splitext(externalFile)[1]
+                            arr = [piece for piece in self.read_in_chunks(f)]
+
+                        resumableFilename = prepaired_layer_name + externalExt
+                        layman_original_parameter = "file"
+                        resumableTotalChunks = len(arr)
+                        self.processChunks(
+                            arr,
+                            resumableFilename,
+                            layman_original_parameter,
+                            resumableTotalChunks,
+                            layer_name,
+                            filePath,
+                            externalExt,
+                            True,
+                        )
+
+                    with open(path, "rb") as f:
                         arr = [piece for piece in self.read_in_chunks(f)]
 
-                    resumableFilename = prepaired_layer_name + externalExt
+                    resumableFilename = prepaired_layer_name + ext
                     layman_original_parameter = "file"
                     resumableTotalChunks = len(arr)
                     self.processChunks(
@@ -3802,59 +3952,54 @@ class Layman(QObject):
                         resumableTotalChunks,
                         layer_name,
                         filePath,
-                        externalExt,
-                        True,
+                        ext,
                     )
-
-                with open(path, "rb") as f:
-                    arr = [piece for piece in self.read_in_chunks(f)]
-
-                resumableFilename = prepaired_layer_name + ext
-                layman_original_parameter = "file"
-                resumableTotalChunks = len(arr)
-                self.processChunks(
-                    arr,
-                    resumableFilename,
-                    layman_original_parameter,
-                    resumableTotalChunks,
-                    layer_name,
-                    filePath,
-                    ext,
-                )
-            else:
-                if patch:
-                    url = self.layman_api.get_layer_url(
-                        self.laymanUsername,
-                        self.utils.removeUnacceptableChars(layer_name),
-                    )
-                    self.utils.requestWrapper("DELETE", url, payload=None, files=None)
-                if externalFile:
-                    zipPath = (
-                        os.path.join(tempfile.gettempdir(), "atlas_chunks")
-                        + os.sep
-                        + self.utils.removeUnacceptableChars(layer_name)
-                        + ".zip"
-                    )
-                    zipObj = ZipFile(zipPath, "w")
-                    zipObj.write(externalFile, os.path.basename(externalFile))
-                    zipObj.write(path, os.path.basename(path))
-                    zipObj.close()
-                    files = {
-                        "file": (zipPath, open(zipPath, "rb")),
-                        "style": open(stylePath, "rb"),
-                    }
                 else:
-                    files = {"file": open(path, "rb"), "style": open(stylePath, "rb")}
-                data["crs"] = str(layer.crs().authid())
-                response = self.utils.requestWrapper(
-                    "POST",
-                    self.layman_api.get_layers_url(self.laymanUsername),
-                    data,
-                    files,
-                )
-                res = self.utils.fromByteToJson(response.content)
-                try:
-                    if res["code"] == 4:
+                    if patch:
+                        url = self.layman_api.get_layer_url(
+                            self.laymanUsername,
+                            self.utils.removeUnacceptableChars(layer_name),
+                        )
+                        del_resp = self.utils.requestWrapper(
+                            "DELETE", url, payload=None, files=None
+                        )
+                    data["crs"] = str(layer.crs().authid())
+                    layers_post_url = self.layman_api.get_layers_url(
+                        self.laymanUsername
+                    )
+                    if externalFile:
+                        zipPath = (
+                            os.path.join(tempfile.gettempdir(), "atlas_chunks")
+                            + os.sep
+                            + self.utils.removeUnacceptableChars(layer_name)
+                            + ".zip"
+                        )
+                        zipObj = ZipFile(zipPath, "w")
+                        zipObj.write(externalFile, os.path.basename(externalFile))
+                        zipObj.write(path, os.path.basename(path))
+                        zipObj.close()
+                        with open(zipPath, "rb") as zf, open(stylePath, "rb") as sf:
+                            files = {
+                                "file": (os.path.basename(zipPath), zf),
+                                "style": sf,
+                            }
+                            response = self.utils.requestWrapper(
+                                "POST", layers_post_url, data, files
+                            )
+                    else:
+                        with open(path, "rb") as raster_f, open(stylePath, "rb") as sf:
+                            files = {"file": raster_f, "style": sf}
+                            response = self.utils.requestWrapper(
+                                "POST", layers_post_url, data, files
+                            )
+                    if response.status_code not in (200, 201):
+                        self.showExportInfo.emit("resetProgressbar")
+                        return
+                    res = self.utils.fromByteToJson(response.content)
+                    if res is None:
+                        self.showExportInfo.emit("resetProgressbar")
+                        return
+                    if isinstance(res, dict) and res.get("code") == 4:
                         self.utils.showQgisBar(
                             [
                                 "Nepodporované CRS souboru",
@@ -3864,22 +4009,25 @@ class Layman(QObject):
                         )
                         self.showExportInfo.emit("resetProgressbar")
                         return
-                except Exception:
-                    print("uuid")
-            if self.batchLength <= 1:
-                self.showExportInfo.emit("resetProgressbar")
-                self.dlg.label_progress.setText(
-                    self.tr("Sucessfully exported: ") + str(1) + " / " + str(1)
-                )
-            else:
-                try:
-                    self.uploaded = self.uploaded + 1
-                except Exception:
-                    pass
-                self.exportLayerSuccessful.emit(layer_name)
+            self.importedLayer = layer_name
+            try:
+                self.processingList[q][2] = 1
+            except Exception:
+                pass
+            try:
+                self.uploaded = self.uploaded + 1
+            except Exception:
+                pass
+            self.exportLayerSuccessful.emit(layer_name)
             self.showExportInfo.emit("export")
-            self.showExportInfo.emit("disableProgress")
+            self.cleanTemp.emit(self.utils.removeUnacceptableChars(layer_name))
         finally:
+            self.showExportInfo.emit("disableProgress")
+            if vsis3_temp_to_remove and os.path.isfile(vsis3_temp_to_remove):
+                try:
+                    os.remove(vsis3_temp_to_remove)
+                except OSError:
+                    pass
             self._raster_upload_semaphore.release()
 
     def processChunks(
