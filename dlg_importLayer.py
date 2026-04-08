@@ -412,6 +412,9 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
             if layer.type() == QgsMapLayer.LayerType.RasterLayer:
                 raster_layer = layer
+                source_base = raster_layer.source().split("|")[0]
+                if source_base.startswith("/vsis3/"):
+                    return False
                 if raster_layer.providerType() != "wms":
                     path = raster_layer.source()
                     print("File raster layer:", path)
