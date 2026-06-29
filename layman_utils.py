@@ -79,6 +79,10 @@ except AttributeError:
 
 
 class LaymanUtils(QObject):
+    FEATURE_MIN_SERVER_VERSION = {
+        "raster_mosaic_without_time": "2.4.0",
+    }
+
     showErr = pyqtSignal(list, str, str, Qgis.MessageLevel, str)
     setVisibility = pyqtSignal(QgsMapLayer)
     loadStyle = pyqtSignal(QgsMapLayer)
@@ -99,6 +103,8 @@ class LaymanUtils(QObject):
         self._layman_api = None
         self._http_json_cache = {}
         self._http_cache_lock = threading.RLock()
+        self._feature_support_cache = {}
+        self._feature_support_cache_lock = threading.RLock()
         self._auth_header_cache = None
         self._auth_header_cache_lock = threading.RLock()
         self._is_shutting_down = False
@@ -106,6 +112,14 @@ class LaymanUtils(QObject):
 
     def setShuttingDown(self, value):
         self._is_shutting_down = bool(value)
+
+    def setServerUri(self, uri):
+        self.URI = LaymanAPI.normalize_base_url(uri)
+        self._layman_api = None
+        with self._http_cache_lock:
+            self._http_json_cache.clear()
+        with self._feature_support_cache_lock:
+            self._feature_support_cache.clear()
 
     @property
     def layman_api(self):
@@ -461,6 +475,65 @@ class LaymanUtils(QObject):
                 if key.strip().lower() == "version":
                     return value.strip()
         return "0.0.0"
+
+    def _parse_version(self, version_str):
+        if not version_str:
+            return []
+        parts = []
+        for token in str(version_str).split("."):
+            m = re.match(r"^\s*(\d+)", token)
+            parts.append(int(m.group(1)) if m else 0)
+        while parts and parts[-1] == 0:
+            parts.pop()
+        return parts
+
+    def compare_versions(self, version1, version2):
+        v1_parts = self._parse_version(version1)
+        v2_parts = self._parse_version(version2)
+        max_len = max(len(v1_parts), len(v2_parts), 1)
+        v1_parts.extend([0] * (max_len - len(v1_parts)))
+        v2_parts.extend([0] * (max_len - len(v2_parts)))
+        return v1_parts >= v2_parts
+
+    def get_layman_server_version(self, ttl_seconds=30):
+        if not self.URI:
+            return None
+        cache_key = f"layman_about_version::{self.URI.rstrip('/')}"
+        version_url = self.layman_api.get_about_version_url()
+        status, data = self.http_get_json_cached(
+            cache_key,
+            version_url,
+            timeout=5,
+            use_auth=False,
+            ttl_seconds=ttl_seconds,
+        )
+        if status != 200 or not isinstance(data, dict):
+            return None
+        return (
+            data.get("about", {})
+            .get("applications", {})
+            .get("layman", {})
+            .get("version")
+        )
+
+    def supports_layman_feature(
+        self, feature_name, default_if_unknown=True, min_version=None
+    ):
+        required = min_version or self.FEATURE_MIN_SERVER_VERSION.get(feature_name)
+        if not required:
+            return True
+        cache_key = (self.URI, feature_name, required, default_if_unknown)
+        with self._feature_support_cache_lock:
+            if cache_key in self._feature_support_cache:
+                return self._feature_support_cache[cache_key]
+        current = self.get_layman_server_version()
+        if not current:
+            supported = bool(default_if_unknown)
+        else:
+            supported = self.compare_versions(current, required)
+        with self._feature_support_cache_lock:
+            self._feature_support_cache[cache_key] = supported
+        return supported
 
     def checkVersion(self):
         url = "https://raw.githubusercontent.com/LESPROJEKT/qgis-layman-plugin/master/metadata.txt"

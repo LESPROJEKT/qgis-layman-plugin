@@ -1510,6 +1510,104 @@
         <source>Layer:</source>
         <translation>Vrstva:</translation>
     </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="340"/>
+        <source>Multiple raster layers are selected. Symbology will be taken from the first raster.
+How do you want to export the layers?</source>
+        <translation>Je vybráno více rastrových vrstev. Symbologie bude přebrána z prvního rastru.
+Jak chcete vrstvy exportovat?</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="345"/>
+        <source>Time series</source>
+        <translation>Časová řada</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="348"/>
+        <source>Mosaic</source>
+        <translation>Mozaika</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="351"/>
+        <source>Separate layers</source>
+        <translation>Samostatné vrstvy</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="575"/>
+        <source>extension</source>
+        <translation>přípona</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="576"/>
+        <source>band count</source>
+        <translation>počet pásem</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="577"/>
+        <source>color interpretation</source>
+        <translation>interpretace barev</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="578"/>
+        <source>data type</source>
+        <translation>datový typ</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="579"/>
+        <source>pixel size X</source>
+        <translation>velikost pixelu X</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="580"/>
+        <source>pixel size Y</source>
+        <translation>velikost pixelu Y</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="581"/>
+        <source>nodata</source>
+        <translation>nodata</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="603"/>
+        <source>Raster layers are not compatible for mosaic upload.
+First layer: %1
+Incompatible layer: %2
+Difference: %3.</source>
+        <translation>Rastrové vrstvy nejsou kompatibilní pro mozaiku.
+První vrstva: %1
+Nekompatibilní vrstva: %2
+Rozdíl: %3.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="645"/>
+        <source>Layer name:</source>
+        <translation>Název vrstvy:</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="653"/>
+        <source>Export mosaic</source>
+        <translation>Export mozaiky</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="657"/>
+        <source>Export time series layer</source>
+        <translation>Exportovat časovou řadu</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="686"/>
+        <source>Name cannot be empty.</source>
+        <translation>Název nemůže být prázdný.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="360"/>
+        <source>Requires Layman 2.4.0 or newer.</source>
+        <translation>Vyžaduje Layman 2.4.0 nebo novější.</translation>
+    </message>
+    <message>
+        <location filename="../dlg_importLayer.py" line="694"/>
+        <source>Mosaic export requires Layman 2.4.0 or newer.</source>
+        <translation>Export mozaiky vyžaduje Layman 2.4.0 nebo novější.</translation>
+    </message>
 </context>
 <context>
     <name>Layman</name>
