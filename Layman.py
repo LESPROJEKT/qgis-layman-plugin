@@ -208,18 +208,43 @@ def apply_provider_user_nodata_to_gdal(layer: QgsRasterLayer, band: int = 1):
     print("Done. NoData written to raster.")
 
 
-def local_temp_geotiff_from_vsis3(vsis3_path, name_hint):
+LAYMAN_RASTER_UPLOAD_EXTENSIONS = {
+    ".geojson",
+    ".shp",
+    ".tiff",
+    ".tif",
+    ".jp2",
+    ".png",
+    ".jpg",
+    ".jpeg",
+}
+
+
+def resumable_type_for_extension(ext):
+    ext = (ext or "").lower()
+    if ext == ".zip":
+        return "application/zip"
+    if ext in (".tif", ".tiff"):
+        return "image/tiff"
+    if ext in (".jpg", ".jpeg"):
+        return "image/jpeg"
+    if ext == ".png":
+        return "image/png"
+    if ext == ".jp2":
+        return "image/jp2"
+    return "application/octet-stream"
+
+
+def local_temp_geotiff_from_gdal_source(gdal_path, name_hint):
     tmp_dir = tempfile.gettempdir()
     safe = re.sub(r"[^A-Za-z0-9._-]+", "_", name_hint)[:80]
     out_path = os.path.join(
         tmp_dir,
-        "layman_vsis3_{}_{}.tif".format(safe, threading.current_thread().ident),
+        "layman_raster_{}_{}.tif".format(safe, threading.current_thread().ident),
     )
-    ds = gdal.Open(vsis3_path, gdal.GA_ReadOnly)
+    ds = gdal.Open(gdal_path, gdal.GA_ReadOnly)
     if ds is None:
-        raise RuntimeError(
-            "GDAL could not open /vsis3/ source (network, credentials, or path)."
-        )
+        raise RuntimeError("GDAL could not open raster source: {}".format(gdal_path))
     try:
         gdal.Translate(
             out_path,
@@ -232,6 +257,10 @@ def local_temp_geotiff_from_vsis3(vsis3_path, name_hint):
     if not os.path.isfile(out_path):
         raise RuntimeError("GDAL Translate did not create an output file.")
     return out_path
+
+
+def local_temp_geotiff_from_vsis3(vsis3_path, name_hint):
+    return local_temp_geotiff_from_gdal_source(vsis3_path, name_hint)
 
 
 class Layman(QObject):
@@ -1125,75 +1154,286 @@ class Layman(QObject):
                 tempfile.gettempdir() + os.sep + "atlas" + os.sep + "state.txt", "w"
             ).close
 
-    def timeSeries(self, items, regex, title, resamplingMethod="Není vybrán"):
+    def resolve_raster_upload_path(self, layer, name_hint):
+        uri = layer.dataProvider().dataSourceUri()
+        path = uri.split("|")[0].strip()
+        if not path:
+            path = layer.source().split("|")[0].strip()
+
+        temp_files = []
+
+        if r"/vsizip/" in layer.source():
+            path = (
+                layer.source()
+                .split("|")[0]
+                .replace("/" + os.path.basename(layer.source().split("|")[0]), "")
+                .replace(r"/vsizip/", "")
+            )
+            return path, temp_files
+
+        if path.startswith("/vsis3/"):
+            path = local_temp_geotiff_from_vsis3(path, name_hint)
+            temp_files.append(path)
+            return path, temp_files
+
+        ext = os.path.splitext(path)[1].lower()
+        if ext == ".vrt" or (ext and ext not in LAYMAN_RASTER_UPLOAD_EXTENSIONS):
+            path = local_temp_geotiff_from_gdal_source(path, name_hint)
+            temp_files.append(path)
+
+        basename = os.path.basename(path)
+        if basename == "OUTPUT.tif":
+            safe_name = self.utils.removeUnacceptableChars(name_hint)
+            new_path = path.replace(basename, safe_name + ".tif")
+            shutil.copy2(path, new_path)
+            path = new_path
+            temp_files.append(new_path)
+
+        return path, temp_files
+
+    def _cleanup_temp_raster_files(self, temp_files):
+        for temp_path in temp_files:
+            if temp_path and os.path.isfile(temp_path):
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
+
+    def _delete_layer_if_exists(self, layer_name):
+        layer_name = self.utils.removeUnacceptableChars(layer_name)
+        url = self.layman_api.get_layer_url(self.laymanUsername, layer_name)
+        try:
+            response = requests.delete(
+                url, headers=self.utils.getAuthHeader(self.authCfg)
+            )
+            return response.status_code in (200, 404)
+        except Exception:
+            return False
+
+    def _format_layman_error_message(self, response):
+        try:
+            res = self.utils.fromByteToJson(response.content)
+        except Exception:
+            res = None
+        if not isinstance(res, dict):
+            return (
+                "Vytvoření vrstvy selhalo (HTTP {}).".format(response.status_code),
+                "Layer creation failed (HTTP {}).".format(response.status_code),
+            )
+        code = res.get("code")
+        detail = res.get("detail")
+        if code == 17:
+            layer_name = ""
+            if isinstance(detail, dict):
+                layer_name = detail.get("layername") or detail.get("name") or ""
+            layer_name = layer_name or "?"
+            return (
+                "Vrstva '{}' již na serveru existuje.".format(layer_name),
+                "Layer '{}' already exists on the server.".format(layer_name),
+            )
+        if isinstance(detail, dict):
+            detail_text = detail.get("message") or detail.get("detail") or str(detail)
+        else:
+            detail_text = str(detail) if detail is not None else ""
+        if detail_text:
+            return (
+                "Chyba serveru (kód {}): {}".format(code, detail_text),
+                "Server error (code {}): {}".format(code, detail_text),
+            )
+        return (
+            "Chyba serveru (kód {}).".format(code),
+            "Server error (code {}).".format(code),
+        )
+
+    def _post_raster_mosaic_layer(
+        self, url, payload, style_path, files=None, overwrite=False
+    ):
+        layer_name = payload.get("name") or ""
+        if overwrite and layer_name:
+            self._delete_layer_if_exists(layer_name)
+
+        def do_post():
+            if files:
+                return self.utils.requestWrapper(
+                    "POST", url, payload, files, emitErr=False
+                )
+            with open(style_path, "rb") as style_file:
+                return self.utils.requestWrapper(
+                    "POST", url, payload, {"style": style_file}, emitErr=False
+                )
+
+        response = do_post()
+        if response.status_code in (200, 201):
+            return response
+
+        try:
+            res = self.utils.fromByteToJson(response.content)
+        except Exception:
+            res = None
+
+        if isinstance(res, dict) and res.get("code") == 17 and overwrite and not files:
+            existing_name = ""
+            if isinstance(res.get("detail"), dict):
+                existing_name = (
+                    res["detail"].get("layername") or res["detail"].get("name") or ""
+                )
+            target_name = existing_name or layer_name
+            if target_name:
+                self._delete_layer_if_exists(target_name)
+                response = do_post()
+                if response.status_code in (200, 201):
+                    return response
+
+        cs_msg, en_msg = self._format_layman_error_message(response)
+        self.utils.emitMessageBox.emit([cs_msg, en_msg])
+        return response
+
+    def uploadRasterMosaic(
+        self,
+        items,
+        title,
+        time_regex=None,
+        resamplingMethod="Není vybrán",
+        overwrite=False,
+    ):
         if self.locale == "cs":
             resamplingMethod = self.resamplingMethods[resamplingMethod]
         if resamplingMethod == "No value" or resamplingMethod == "Není vybrán":
             resamplingMethod = ""
-        print("time series")
+        print("time series" if time_regex else "raster mosaic")
         name = self.utils.removeUnacceptableChars(title)
         rasters = list()
-        path = None
+        temp_raster_files = list()
+        zip_path = None
         stylePath = None
-        for item in items:
-            layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
-            if stylePath is None:
-                stylePath = self.getTempPath(
-                    self.utils.removeUnacceptableChars(layer.name())
-                ).replace(".geojson", ".sld")
-                layer.saveSldStyle(stylePath)
-                self.ensureColormapHasZeroEntry(stylePath)
-            if (r"/vsizip/") in layer.source():
-                path = (
-                    layer.source()
-                    .replace("/" + os.path.basename(layer.source()), "")
-                    .replace(r"/vsizip/", "")
+        layer = None
+        try:
+            for index, item in enumerate(items):
+                layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+                if stylePath is None:
+                    stylePath = self.getTempPath(
+                        self.utils.removeUnacceptableChars(layer.name())
+                    ).replace(".geojson", ".sld")
+                    layer.saveSldStyle(stylePath)
+                    self.ensureColormapHasZeroEntry(stylePath)
+                raster_path, temp_paths = self.resolve_raster_upload_path(
+                    layer,
+                    "{}_{}".format(
+                        self.utils.removeUnacceptableChars(layer.name()), index
+                    ),
                 )
-                break
-            rasters.append(layer.source())
-        crs = layer.crs().authid()
-        url = self.layman_api.get_layer_url(self.laymanUsername, name)
-        r = requests.delete(url, headers=self.utils.getAuthHeader(self.authCfg))
-        name = self.utils.removeUnacceptableChars(title)
-        if path is None:
-            path = tempfile.gettempdir() + os.sep + name + ".zip"
-            with zipfile.ZipFile(path, "w") as zip:
-                for raster in rasters:
-                    zip.write(raster, os.path.basename(raster))
-        payload = {
-            "file": [name + ".zip"],
-            "title": title,
-            "crs": crs,
-            "time_regex": regex,
-            "style": open(stylePath, "rb"),
-            "overview_resampling": resamplingMethod,
-        }
-        url = self.layman_api.get_layers_url(self.laymanUsername)
-        files = {"file": ("", open(path, "rb"))}
-        files = {"style": open(stylePath, "rb")}
-        response = self.utils.requestWrapper("POST", url, payload, files)
-        f = open(path, "rb")
-        arr = []
-        for piece in self.read_in_chunks(f):
-            arr.append(piece)
-        resumableFilename = name + ".zip"
-        layman_original_parameter = "file"
-        resumableTotalChunks = len(arr)
-        print(resumableTotalChunks)
-        filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks")
-        os.makedirs(filePath, exist_ok=True)
-        self.layersToUpload = 1
-        self.processChunks(
-            arr,
-            resumableFilename,
-            layman_original_parameter,
-            resumableTotalChunks,
-            name,
-            filePath,
-            ".zip",
-            True,
-        )
+                temp_raster_files.extend(temp_paths)
+                if r"/vsizip/" in layer.source():
+                    zip_path = raster_path
+                    break
+                rasters.append(raster_path)
+            crs = layer.crs().authid()
+
+            payload = {
+                "name": name,
+                "title": title,
+                "crs": crs,
+                "overview_resampling": resamplingMethod,
+            }
+            if time_regex:
+                payload["time_regex"] = time_regex
+
+            url = self.layman_api.get_layers_url(self.laymanUsername)
+            filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks")
+            os.makedirs(filePath, exist_ok=True)
+            self.layersToUpload = 1
+
+            if time_regex or zip_path is not None:
+                if zip_path is None:
+                    zip_path = tempfile.gettempdir() + os.sep + name + ".zip"
+                    with zipfile.ZipFile(zip_path, "w") as zip_file:
+                        for raster in rasters:
+                            zip_file.write(raster, os.path.basename(raster))
+                payload["file"] = [name + ".zip"]
+                response = self._post_raster_mosaic_layer(
+                    url, payload, stylePath, overwrite=overwrite
+                )
+                if response.status_code not in (200, 201):
+                    return
+                with open(zip_path, "rb") as f:
+                    arr = [piece for piece in self.read_in_chunks(f)]
+                if not self.processChunks(
+                    arr,
+                    name + ".zip",
+                    "file",
+                    len(arr),
+                    name,
+                    filePath,
+                    ".zip",
+                ):
+                    return
+            else:
+                raster_names = [os.path.basename(raster) for raster in rasters]
+                payload["file"] = raster_names
+                needs_chunks = any(
+                    os.path.getsize(raster_path) > self.CHUNK_SIZE
+                    for raster_path in rasters
+                )
+                if needs_chunks:
+                    response = self._post_raster_mosaic_layer(
+                        url, payload, stylePath, overwrite=overwrite
+                    )
+                    if response.status_code not in (200, 201):
+                        return
+                    for raster_path, raster_name in zip(rasters, raster_names):
+                        ext = os.path.splitext(raster_name)[1] or ".tif"
+                        with open(raster_path, "rb") as f:
+                            arr = [piece for piece in self.read_in_chunks(f)]
+                        if not self.processChunks(
+                            arr,
+                            raster_name,
+                            "file",
+                            len(arr),
+                            name,
+                            filePath,
+                            ext,
+                        ):
+                            return
+                else:
+                    open_handles = []
+                    files = []
+                    for raster_path, raster_name in zip(rasters, raster_names):
+                        handle = open(raster_path, "rb")
+                        open_handles.append(handle)
+                        files.append(("file", (raster_name, handle)))
+                    style_handle = open(stylePath, "rb")
+                    open_handles.append(style_handle)
+                    files.append(("style", (os.path.basename(stylePath), style_handle)))
+                    try:
+                        response = self._post_raster_mosaic_layer(
+                            url,
+                            payload,
+                            stylePath,
+                            files=files,
+                            overwrite=overwrite,
+                        )
+                    finally:
+                        for handle in open_handles:
+                            handle.close()
+                    if response.status_code not in (200, 201):
+                        return
+        except Exception as ex:
+            self.utils.emitMessageBox.emit(
+                [
+                    "Raster se nepodařilo připravit pro upload: {}".format(ex),
+                    "Failed to prepare raster for upload: {}".format(ex),
+                ]
+            )
+            return
+        finally:
+            self._cleanup_temp_raster_files(temp_raster_files)
+
         self.tsSuccess.emit()
+
+    def timeSeries(self, items, regex, title, resamplingMethod="Není vybrán"):
+        self.uploadRasterMosaic(
+            items, title, time_regex=regex, resamplingMethod=resamplingMethod
+        )
 
     def run_ImportLayerDialog(self):
         self.dlg = ImportLayerDialog(
@@ -1996,7 +2236,7 @@ class Layman(QObject):
 
     def setServers(self, servers, i):
         self.URI = servers[i][1]
-        self.utils.URI = servers[i][1]
+        self.utils.setServerUri(servers[i][1])
         self.server = servers[i][0]
         self.serverURI = self.server
         if len(servers[i]) > 6 and (servers[i][6] or "").strip():
@@ -3930,7 +4170,7 @@ class Layman(QObject):
                             externalExt = os.path.splitext(externalFile)[1]
                             arr = [piece for piece in self.read_in_chunks(f)]
 
-                        resumableFilename = prepaired_layer_name + externalExt
+                        resumableFilename = (prepaired_layer_name + externalExt).lower()
                         layman_original_parameter = "file"
                         resumableTotalChunks = len(arr)
                         self.processChunks(
@@ -3947,7 +4187,7 @@ class Layman(QObject):
                     with open(path, "rb") as f:
                         arr = [piece for piece in self.read_in_chunks(f)]
 
-                    resumableFilename = prepaired_layer_name + ext
+                    resumableFilename = (prepaired_layer_name + ext).lower()
                     layman_original_parameter = "file"
                     resumableTotalChunks = len(arr)
                     self.processChunks(
@@ -4046,6 +4286,7 @@ class Layman(QObject):
         ext,
         skip=False,
     ):
+        resumable_type = resumable_type_for_extension(ext)
         for i in range(1, len(arr) + 1):
             max_retries = 3
             attempt = 0
@@ -4060,12 +4301,12 @@ class Layman(QObject):
 
             payload = {
                 "file": chunk_filename,
-                "resumableFilename": resumableFilename.lower(),
+                "resumableFilename": resumableFilename,
                 "layman_original_parameter": layman_original_parameter,
                 "resumableChunkNumber": i,
                 "resumableTotalChunks": resumableTotalChunks,
                 "resumableChunkSize": self.CHUNK_SIZE,
-                "resumableType": "application/zip",
+                "resumableType": resumable_type,
             }
             url = self.layman_api.get_layer_chunk_url(
                 self.laymanUsername, self.utils.removeUnacceptableChars(layer_name)
@@ -4104,13 +4345,14 @@ class Layman(QObject):
                             "Raster layer upload failed.",
                         ]
                     )
-                return
+                return False
             if not skip and self.batchLength <= 1:
                 progress = int((i / resumableTotalChunks) * 100)
                 self.progressUpdated.emit(progress)
         if not skip:
             print("All chunks processed successfully.")
             self.showExportInfo.emit("export")
+        return True
 
     def postThread(self, layer_name, data, q, progress):
         if layer_name in self.mixedLayers:

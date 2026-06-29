@@ -24,6 +24,7 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import Qt, QCoreApplication
+import math
 
 try:
     _ApplicationModal = Qt.WindowModality.ApplicationModal
@@ -81,10 +82,16 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.postgis_login = None
         self.postgis_pass = None
         self.layman_api = LaymanAPI(URI)
+        self.multi_raster_mode = "timeseries"
+        self._ts_button_connected = False
         self.setUi()
 
     def tr(self, message):
-        return QCoreApplication.translate("Layman", message)
+        return QCoreApplication.translate("ImportLayerDialog", message)
+
+    def showMessage(self, message):
+        translated = self.tr(message)
+        self.utils.emitMessageBox.emit([translated, translated])
 
     def get_raster_info(self, layer):
         provider = layer.dataProvider()
@@ -143,8 +150,9 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def connectEvents(self):
         pass
 
-    def setStackWidget(self, option):
+    def setStackWidget(self, option, mode="timeseries"):
         if option == "time":
+            self.multi_raster_mode = mode
             self.stackedWidget.setCurrentWidget(self.page_time)
         elif option == "main":
             self.stackedWidget.setCurrentWidget(self.page_main)
@@ -332,24 +340,37 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.uploaded = 0
         self.layman.batchLength = len(layers)
         if self.checkIfAllLayerAreRaster(layers):
-            if self.layman.locale == "cs":
-                msgbox = QMessageBox(
-                    QMessageBox.Icon.Question,
-                    "Layman",
-                    "Je vybráno více rastrových vrstev. Chcete je exportovat jako časové? Symbologie bude přebrána z prvního rastru.",
+            supports_mosaic_without_time = self.utils.supports_layman_feature(
+                "raster_mosaic_without_time",
+                default_if_unknown=True,
+            )
+            msgbox = QMessageBox(QMessageBox.Icon.Question, "Layman", "")
+            msgbox.setText(
+                self.tr(
+                    "Multiple raster layers are selected. Symbology will be taken from the first raster.\n"
+                    "How do you want to export the layers?"
                 )
-            else:
-                msgbox = QMessageBox(
-                    QMessageBox.Icon.Question,
-                    "Layman",
-                    "Multiple raster layers are selected. Do you want to export them as time series? The symbology will be taken from the first raster.",
-                )
-            msgbox.addButton(QMessageBox.StandardButton.Yes)
-            msgbox.addButton(QMessageBox.StandardButton.No)
-            msgbox.setDefaultButton(QMessageBox.StandardButton.No)
-            reply = msgbox.exec()
-            if reply == QMessageBox.StandardButton.Yes:
-                self.setStackWidget("time")
+            )
+            btn_timeseries = msgbox.addButton(
+                self.tr("Time series"), QMessageBox.ButtonRole.AcceptRole
+            )
+            btn_mosaic = msgbox.addButton(
+                self.tr("Mosaic"), QMessageBox.ButtonRole.AcceptRole
+            )
+            btn_separate = msgbox.addButton(
+                self.tr("Separate layers"), QMessageBox.ButtonRole.RejectRole
+            )
+            if not supports_mosaic_without_time:
+                btn_mosaic.setEnabled(False)
+                btn_mosaic.setToolTip(self.tr("Requires Layman 2.4.0 or newer."))
+            msgbox.setDefaultButton(btn_separate)
+            msgbox.exec()
+            clicked = msgbox.clickedButton()
+            if clicked == btn_timeseries:
+                self.setStackWidget("time", mode="timeseries")
+                return
+            if clicked == btn_mosaic:
+                self.setStackWidget("time", mode="mosaic")
                 return
         self.label_progress.show()
         self.label_progress.setText(
@@ -485,6 +506,105 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             for child in node.children():
                 self.get_layers_in_order(child, layers)
 
+    def get_raster_file_extension(self, source):
+        path = source.split("|")[0].split("?")[0]
+        while path:
+            base, ext = os.path.splitext(path)
+            if not ext:
+                return ""
+            if re.match(r"^\.[0-9]+$", ext) and base:
+                path = base
+                continue
+            return ext.lower()
+        return ""
+
+    def normalize_nodata(self, value):
+        if value is None:
+            return None
+        try:
+            numeric = float(value)
+            if math.isnan(numeric):
+                return None
+            return numeric
+        except (TypeError, ValueError):
+            return value
+
+    def pixel_size_equal(self, a, b, rtol=1e-5):
+        if a is None and b is None:
+            return True
+        if a is None or b is None:
+            return False
+        return abs(a - b) <= rtol * max(abs(a), abs(b), 1e-30)
+
+    def get_provider_nodata(self, provider, band=1):
+        if hasattr(provider, "useSourceNoDataValue"):
+            if not provider.useSourceNoDataValue(band):
+                return None
+        elif hasattr(provider, "sourceHasNoDataValue"):
+            if not provider.sourceHasNoDataValue(band):
+                return None
+        try:
+            return self.normalize_nodata(provider.sourceNoDataValue(band))
+        except Exception:
+            return None
+
+    def get_raster_mosaic_key(self, layer):
+        provider = layer.dataProvider()
+        info = self.get_raster_info(layer)
+        ext = self.get_raster_file_extension(layer.source())
+        extent = provider.extent()
+        x_res = extent.width() / provider.xSize() if provider.xSize() else None
+        y_res = extent.height() / provider.ySize() if provider.ySize() else None
+        nodata = self.get_provider_nodata(provider, 1)
+        colors = tuple(b["color_interpretation"] for b in info)
+        return {
+            "ext": ext,
+            "bands": len(info),
+            "colors": colors,
+            "dtype": info[0]["data_type"],
+            "x_res": x_res,
+            "y_res": y_res,
+            "nodata": nodata,
+        }
+
+    def _mosaic_key_diff(self, reference, other):
+        labels = {
+            "ext": self.tr("extension"),
+            "bands": self.tr("band count"),
+            "colors": self.tr("color interpretation"),
+            "dtype": self.tr("data type"),
+            "x_res": self.tr("pixel size X"),
+            "y_res": self.tr("pixel size Y"),
+            "nodata": self.tr("nodata"),
+        }
+        diffs = []
+        for field in ("ext", "bands", "colors", "dtype", "nodata"):
+            if reference[field] != other[field]:
+                diffs.append(labels[field])
+        if not self.pixel_size_equal(reference["x_res"], other["x_res"]):
+            diffs.append(labels["x_res"])
+        if not self.pixel_size_equal(reference["y_res"], other["y_res"]):
+            diffs.append(labels["y_res"])
+        return diffs
+
+    def validate_raster_compatibility(self, items):
+        keys = []
+        for item in items:
+            layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+            keys.append((item.text(0), self.get_raster_mosaic_key(layer)))
+        reference = keys[0][1]
+        for layer_name, key in keys[1:]:
+            diffs = self._mosaic_key_diff(reference, key)
+            if diffs:
+                diff_text = ", ".join(diffs)
+                return self.tr(
+                    "Raster layers are not compatible for mosaic upload.\n"
+                    "First layer: %1\n"
+                    "Incompatible layer: %2\n"
+                    "Difference: %3."
+                ) % (keys[0][0], layer_name, diff_text)
+        return None
+
     def checkRegex(self, items, regex):
         for item in items:
             if not re.search(regex, item.text(0)):
@@ -507,47 +627,69 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def showTSDialog(self):
         self.pushButton_timeSeries.show()
-        for item in self.treeWidget.selectedItems():
-            self.comboBox_layers.addItem(item.text(0))
-        self.pushButton_timeSeries.clicked.connect(
-            lambda: self.prepareTSUpdate(
-                self.treeWidget.selectedItems(),
-                self.lineEdit_regex.text(),
-                self.lineEdit_name.text(),
+        is_mosaic = self.multi_raster_mode == "mosaic"
+
+        self.label_layer.setVisible(not is_mosaic)
+        self.comboBox_layers.setVisible(not is_mosaic)
+        self.label_regex.setVisible(not is_mosaic)
+        self.lineEdit_regex.setVisible(not is_mosaic)
+
+        self.comboBox_layers.clear()
+        if not is_mosaic:
+            for item in self.treeWidget.selectedItems():
+                self.comboBox_layers.addItem(item.text(0))
+
+        if is_mosaic:
+            self.groupBox_2.setTitle(self.tr("Export mosaic"))
+            self.pushButton_timeSeries.setText(self.tr("Export mosaic"))
+            self.label_name.setText(self.tr("Layer name:"))
+            self.lineEdit_name.setPlaceholderText(self.tr("Layer name:"))
+        else:
+            self.groupBox_2.setTitle(self.tr("Export time series"))
+            self.pushButton_timeSeries.setText(self.tr("Export time series layer"))
+            self.label_name.setText(self.tr("Name:"))
+            self.lineEdit_name.setPlaceholderText(self.tr("Name:"))
+
+        if not self._ts_button_connected:
+            self.pushButton_timeSeries.clicked.connect(self._onMultiRasterExport)
+            self.pushButton_backTime.clicked.connect(
+                lambda: self.setStackWidget("main")
             )
+            self._ts_button_connected = True
+
+        if not is_mosaic and self.treeWidget.selectedItems():
+            self.getRegex(self.treeWidget.selectedItems()[0].text(0))
+
+    def _onMultiRasterExport(self):
+        self.prepareTSUpdate(
+            self.treeWidget.selectedItems(),
+            self.lineEdit_regex.text(),
+            self.lineEdit_name.text(),
         )
-        self.pushButton_backTime.clicked.connect(lambda: self.setStackWidget("main"))
-        self.getRegex(self.treeWidget.selectedItems()[0].text(0))
 
     def prepareTSUpdate(self, items, regex, title):
         resamplingMethod = self.comboBox_resampling.currentText()
 
         if not title or title.strip() == "":
-            if self.layman.locale == "cs":
-                self.utils.emitMessageBox.emit(
-                    [
-                        "Název nemůže být prázdný.",
-                        "Name cannot be empty.",
-                    ]
-                )
-            else:
-                self.utils.emitMessageBox.emit(
-                    [
-                        "Name cannot be empty.",
-                        "Name cannot be empty.",
-                    ]
-                )
+            self.showMessage("Name cannot be empty.")
             return
 
-        if not self.checkRegex(items, regex):
-            print("regex nesedí na názvy")
-            self.utils.emitMessageBox.emit(
-                [
-                    "Regulerní výraz nesedí na jeden nebo více názvů.",
-                    "The regular expression does not match one or more names.",
-                ]
-            )
+        is_mosaic = self.multi_raster_mode == "mosaic"
+        if is_mosaic and not self.utils.supports_layman_feature(
+            "raster_mosaic_without_time", default_if_unknown=True
+        ):
+            self.showMessage("Mosaic export requires Layman 2.4.0 or newer.")
             return
+        if not is_mosaic:
+            if not self.checkRegex(items, regex):
+                print("regex nesedí na názvy")
+                self.utils.emitMessageBox.emit(
+                    [
+                        "Regulerní výraz nesedí na jeden nebo více názvů.",
+                        "The regular expression does not match one or more names.",
+                    ]
+                )
+                return
 
         for item in items:
             layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
@@ -560,12 +702,49 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         ]
                     )
                     return
+
+        compatibility_error = self.validate_raster_compatibility(items)
+        if compatibility_error:
+            self.utils.emitMessageBox.emit([compatibility_error, compatibility_error])
+            return
+
+        overwrite = False
+        server_name = self.utils.removeUnacceptableChars(title)
+        if self.checkExistingLayer(server_name):
+            msgbox = QMessageBox(
+                QMessageBox.Icon.Question,
+                "Layman",
+                (
+                    "Vrstva '{}' již na serveru existuje. Chcete ji přepsat?".format(
+                        server_name
+                    )
+                    if self.layman.locale == "cs"
+                    else "Layer '{}' already exists on the server. Do you want to overwrite it?".format(
+                        server_name
+                    )
+                ),
+            )
+            msgbox.addButton(QMessageBox.StandardButton.Yes)
+            msgbox.addButton(QMessageBox.StandardButton.No)
+            msgbox.setDefaultButton(QMessageBox.StandardButton.No)
+            reply = msgbox.exec()
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+            overwrite = True
+
         self.progressBar.setMaximum(0)
         self.progressBar.show()
         self.label_progress.show()
         self.label_progress.setText(self.tr("Sucessfully exported: ") + "0 / 1")
+        time_regex = None if is_mosaic else regex
         threading.Thread(
-            target=lambda: self.layman.timeSeries(items, regex, title, resamplingMethod)
+            target=lambda: self.layman.uploadRasterMosaic(
+                items,
+                title,
+                time_regex=time_regex,
+                resamplingMethod=resamplingMethod,
+                overwrite=overwrite,
+            )
         ).start()
 
     def checkExistingLayer(self, layerName):

@@ -37,6 +37,7 @@ from qgis.PyQt.QtGui import QDesktopServices, QIcon
 import threading
 from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout
 from .dlg_server_form import ServerForm
+from .layman_api import LaymanAPI
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
@@ -285,15 +286,16 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layman.instance = None
 
         # Clear utils URI to prevent using old server URL in layman_api property
-        self.utils.URI = None
+        self.utils.setServerUri(None)
         # Clear the cached layman_api instance
         self.utils._layman_api = None
 
     def withoutLogin(self, servers, i):
         self.layman.menu_CurrentCompositionDialog.setEnabled(False)
         self.layman.isAuthorized = False
-        self.layman.URI = servers[i][1]
-        self.utils.URI = servers[i][1]
+        self.layman.URI = LaymanAPI.normalize_base_url(servers[i][1])
+        self.utils.setServerUri(self.layman.URI)
+        self.layman.layman_api.base_url = self.layman.URI
         self.layman.menu_AddLayerDialog.setEnabled(True)
         self.layman.laymanUsername = "browser"
         # Setup logout mode for browser user
@@ -327,72 +329,20 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
             if current_index >= len(servers):
                 return True
 
-            server_url = servers[current_index][1].rstrip("/")
+            server_url = LaymanAPI.normalize_base_url(servers[current_index][1])
             cache = getattr(self, "_version_compat_cache", {})
             if server_url in cache:
                 return cache[server_url]
-
-            req = QNetworkRequest(QUrl(f"{server_url}/rest/about/version"))
-            req.setRawHeader(b"User-Agent", b"QGIS-Layman-Plugin")
-            manager = QNetworkAccessManager(self)
-            reply = manager.get(req)
-
-            loop = QEventLoop()
-            timeout = {"expired": False}
-            timer = QTimer(self)
-            timer.setSingleShot(True)
-
-            def on_timeout():
-                timeout["expired"] = True
-                loop.quit()
-
-            timer.timeout.connect(on_timeout)
-            reply.finished.connect(loop.quit)
-            timer.start(5000)
-            loop.exec()
-            timer.stop()
-
-            if timeout["expired"]:
-                reply.abort()
-                reply.deleteLater()
-                return True
-
-            status = reply.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
-            if status != 200:
-                reply.deleteLater()
-                return True
-
-            payload = bytes(reply.readAll())
-            reply.deleteLater()
-            data = json.loads(payload.decode("utf-8", errors="replace"))
-            layman_version = (
-                data.get("about", {})
-                .get("applications", {})
-                .get("layman", {})
-                .get("version", "")
-            )
+            self.utils.setServerUri(server_url)
+            layman_version = self.utils.get_layman_server_version(ttl_seconds=5)
             compatible = (
-                self.compare_versions(layman_version, "2.0.0")
+                self.utils.compare_versions(layman_version, "2.0.0")
                 if layman_version
                 else True
             )
             self._version_compat_cache[server_url] = compatible
             return compatible
         except Exception:
-            return True
-
-    def compare_versions(self, version1, version2):
-        """Simple version comparison"""
-        try:
-            v1_parts = [int(x) for x in version1.split(".")]
-            v2_parts = [int(x) for x in version2.split(".")]
-
-            max_len = max(len(v1_parts), len(v2_parts))
-            v1_parts.extend([0] * (max_len - len(v1_parts)))
-            v2_parts.extend([0] * (max_len - len(v2_parts)))
-
-            return v1_parts >= v2_parts
-        except (ValueError, AttributeError):
             return True
 
     def ask_for_downgrade(self):

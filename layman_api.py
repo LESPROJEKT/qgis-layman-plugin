@@ -1,12 +1,16 @@
 class LaymanAPI:
+    @staticmethod
+    def normalize_base_url(base_url: str) -> str:
+        return (base_url or "").replace("/client", "").rstrip("/")
+
     def __init__(self, base_url: str, api_prefix: str = "rest"):
-        self.base_url = base_url.rstrip("/")
+        self.base_url = self.normalize_base_url(base_url)
         self.api_prefix = api_prefix.strip("/")
 
     def _build_url(
         self, *parts: str, use_prefix: bool = True, query_params: dict = None
     ) -> str:
-        url_parts = [self.base_url]
+        url_parts = [self.base_url.rstrip("/")]
         if use_prefix:
             url_parts.append(self.api_prefix)
         url_parts.extend([p.strip("/") for p in parts])
@@ -84,6 +88,9 @@ class LaymanAPI:
 
     def get_current_user_url(self) -> str:
         return self._build_url("current-user")
+
+    def get_about_version_url(self) -> str:
+        return self._build_url("about", "version")
 
     def get_layer_chunk_url(self, layman_workspace: str, layer_name: str) -> str:
         return self._build_url(
