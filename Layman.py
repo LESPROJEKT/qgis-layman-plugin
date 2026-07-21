@@ -366,7 +366,7 @@ class Layman(QObject):
             self.authFileTime = 0
         self.dlgGetLayers = GetLayersDialog()
         # initialize locale
-        locale = QSettings().value("locale/userLocale")[0:2]
+        locale = str(self.settings.value("locale/userLocale", "en_US"))[0:2]
 
         locale_path = os.path.join(
             self.plugin_dir, "i18n", "Layman_{}.qm".format(locale)
@@ -1999,6 +1999,10 @@ class Layman(QObject):
         self.utils.URI = servers[i][1]
         self.server = servers[i][0]
         self.serverURI = self.server
+        if len(servers[i]) > 6 and (servers[i][6] or "").strip():
+            self.oauth_server = servers[i][6].strip()
+        else:
+            self.oauth_server = self.server
         self.client_id = servers[i][2]
         self.URI = self.URI.replace(r"/client", "")
         self.layman_api.base_url = self.URI
@@ -2511,6 +2515,7 @@ class Layman(QObject):
                     return self.rasterService
 
     def setup_oauth(self, authcfg_id, authcfg_name):
+        oauth_server = (getattr(self, "oauth_server", None) or self.server).rstrip("/")
         cfgjson = {
             "accessMethod": 0,
             "apiKey": "",
@@ -2528,17 +2533,17 @@ class Layman(QObject):
             "redirectUrl": "qgis/oauthn2/callback",
             "refreshTokenUrl": "",
             "requestTimeout": 6,
-            "requestUrl": self.server + "/o/authorize",
+            "requestUrl": oauth_server + "/o/authorize",
             "scope": "",
-            "tokenUrl": self.server + "/o/token/",
+            "tokenUrl": oauth_server + "/o/token/",
             "username": "",
             "version": 1,
         }
-        if authcfg_id not in QgsApplication.authManager().availableAuthMethodConfigs():
+        if authcfg_id not in QgsApplication.authManager().configIds():
             authConfig = QgsAuthMethodConfig("OAuth2")
             authConfig.setId(authcfg_id)
             authConfig.setName(authcfg_name)
-            authConfig.setUri(self.server)
+            authConfig.setUri(oauth_server)
             authConfig.setConfig("oauth2config", json.dumps(cfgjson))
             if QgsApplication.authManager().storeAuthenticationConfig(authConfig):
                 return authcfg_id
@@ -2548,7 +2553,7 @@ class Layman(QObject):
                 authcfg_id, authConfig, True
             )
             authConfig.setName(authcfg_name)
-            authConfig.setUri(self.server)
+            authConfig.setUri(oauth_server)
             authConfig.setConfig("oauth2config", json.dumps(cfgjson))
             if QgsApplication.authManager().updateAuthenticationConfig(authConfig):
                 return authcfg_id
@@ -6196,7 +6201,6 @@ class Layman(QObject):
             self.firstLogin = False
         self.utils.setAuthCfg(self.authCfg)
         authHeader = self.utils.getAuthHeader(self.authCfg)
-        print(authHeader)
         if authHeader:
             if self.registerUserIfNotExists():
                 if not autoLog:

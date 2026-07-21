@@ -36,6 +36,7 @@ class ServerForm(QWidget):
         self.client_secret = QLineEdit()
         self.cfg_id = QLineEdit()
         self.alias = QLineEdit()
+        self.oauth_server = QLineEdit()
 
         layout.addWidget(QLabel(self.tr("Server")))
         layout.addWidget(self.server)
@@ -49,6 +50,8 @@ class ServerForm(QWidget):
         layout.addWidget(self.cfg_id)
         layout.addWidget(QLabel(self.tr("Alias")))
         layout.addWidget(self.alias)
+        layout.addWidget(QLabel(self.tr("OAuth2 Server (optional)")))
+        layout.addWidget(self.oauth_server)
 
         # Horizontal layout for buttons
         button_layout = QHBoxLayout()
@@ -76,9 +79,11 @@ class ServerForm(QWidget):
             with open(self.filename, "r") as f:
                 for line in f:
                     parts = line.strip().split(",")
-                    if len(parts) == 6:
-                        self.servers.append(parts)
-                        self.combo.addItem(parts[-1])  # alias
+                    if len(parts) >= 6:
+                        if len(parts) == 6:
+                            parts.append("")
+                        self.servers.append(parts[:7])
+                        self.combo.addItem(parts[5])  # alias
         except FileNotFoundError:
             pass
 
@@ -97,6 +102,7 @@ class ServerForm(QWidget):
             self.client_secret.setText(data[3])
             self.cfg_id.setText(data[4])
             self.alias.setText(data[5])
+            self.oauth_server.setText(data[6] if len(data) > 6 else "")
 
     def add_new(self):
         self.server.clear()
@@ -105,6 +111,7 @@ class ServerForm(QWidget):
         self.client_secret.clear()
         self.cfg_id.clear()
         self.alias.clear()
+        self.oauth_server.clear()
         self.combo.setCurrentIndex(-1)
         self.new_entry_mode = True
 
@@ -124,6 +131,7 @@ class ServerForm(QWidget):
             self.client_secret.text(),
             self.cfg_id.text(),
             self.alias.text(),
+            self.oauth_server.text(),
         ]
 
         if self.new_entry_mode or self.combo.currentIndex() == -1:
@@ -140,7 +148,11 @@ class ServerForm(QWidget):
         try:
             with open(self.filename, "w") as f:
                 for server in self.servers:
-                    f.write(",".join(server) + "\n")
+                    oauth_server = server[6].strip() if len(server) > 6 else ""
+                    if oauth_server:
+                        f.write(",".join(server[:7]) + "\n")
+                    else:
+                        f.write(",".join(server[:6]) + "\n")
             QMessageBox.information(
                 self, self.tr("Saved"), self.tr("Server list saved successfully.")
             )

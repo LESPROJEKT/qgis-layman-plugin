@@ -93,7 +93,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
                 ):  ## vyjimka pro alias na test server bude ostraneno
                     self.comboBox_server.addItem("test HUB")
                 else:
-                    if len(servers[i]) == 6:
+                    if len(servers[i]) >= 6:
                         self.comboBox_server.addItem(servers[i][5])
                     else:
                         self.comboBox_server.addItem(
@@ -120,7 +120,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
                         self.stored_name = name
                         break
                 else:
-                    if len(servers[i]) == 6:
+                    if len(servers[i]) >= 6:
                         self.comboBox_server.addItem(servers[i][5])
                     else:
                         self.comboBox_server.addItem(
@@ -144,14 +144,16 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
 
             for i in range(0, self.comboBox_server.count()):
                 if not self.server:
-                    if self.layman.authCfg == "a67e5fd":
+                    if (
+                        "server" in config["DEFAULT"]
+                        and "layman-dev.lesprojekt.cz" in config["DEFAULT"]["server"]
+                    ):
                         self.comboBox_server.setCurrentIndex(len(servers) - 1)
-                    else:
-                        if "server" in config["DEFAULT"]:
-                            if self.comboBox_server.itemText(i) == config["DEFAULT"][
-                                "server"
-                            ].replace("www.", "").replace("https://", ""):
-                                self.comboBox_server.setCurrentIndex(i)
+                    elif "server" in config["DEFAULT"]:
+                        if self.comboBox_server.itemText(i) == config["DEFAULT"][
+                            "server"
+                        ].replace("www.", "").replace("https://", ""):
+                            self.comboBox_server.setCurrentIndex(i)
         else:
             try:
                 os.makedirs(os.getenv("HOME") + os.sep + ".layman")
