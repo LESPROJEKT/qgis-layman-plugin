@@ -81,6 +81,7 @@ except AttributeError:
 class LaymanUtils(QObject):
     FEATURE_MIN_SERVER_VERSION = {
         "raster_mosaic_without_time": "2.4.0",
+        "timeseries_append": "2.4.0",
     }
 
     showErr = pyqtSignal(list, str, str, Qgis.MessageLevel, str)
@@ -286,6 +287,12 @@ class LaymanUtils(QObject):
             return status, json.loads(body.decode("utf-8", errors="replace"))
         except Exception:
             return status, None
+
+    def invalidate_layer_detail_cache(self, workspace, layer_name):
+        safe_name = self.removeUnacceptableChars(layer_name)
+        cache_key = f"layman_layer_detail::{workspace}::{safe_name}"
+        with self._http_cache_lock:
+            self._http_json_cache.pop(cache_key, None)
 
     def http_get_json_cached(
         self, cache_key, url, headers=None, timeout=30, use_auth=True, ttl_seconds=8
@@ -534,6 +541,174 @@ class LaymanUtils(QObject):
         with self._feature_support_cache_lock:
             self._feature_support_cache[cache_key] = supported
         return supported
+
+    def classify_server_layer(self, layer_detail):
+        if not isinstance(layer_detail, dict):
+            return None
+        geodata_type = layer_detail.get("geodata_type")
+        if geodata_type == "vector":
+            return "vector"
+        if layer_detail.get("image_mosaic"):
+            wms = layer_detail.get("wms") or {}
+            wms_time = wms.get("time") if isinstance(wms, dict) else None
+            if isinstance(wms_time, dict) and (
+                wms_time.get("values") or wms_time.get("regex")
+            ):
+                return "timeseries"
+            return "mosaic"
+        if geodata_type == "raster":
+            return "raster"
+        return geodata_type or "unknown"
+
+    def get_server_layer_info(
+        self, workspace, layer_name, ttl_seconds=5, force_refresh=False
+    ):
+        if not workspace or not layer_name:
+            return None
+        safe_name = self.removeUnacceptableChars(layer_name)
+        if force_refresh:
+            self.invalidate_layer_detail_cache(workspace, safe_name)
+        url = self.layman_api.get_layer_url(workspace, safe_name)
+        cache_key = f"layman_layer_detail::{workspace}::{safe_name}"
+        status, data = self.http_get_json_cached(
+            cache_key, url, timeout=10, ttl_seconds=ttl_seconds
+        )
+        if status != 200 or not isinstance(data, dict):
+            return None
+        kind = self.classify_server_layer(data)
+        wms = data.get("wms") or {}
+        wms_time = wms.get("time", {}) if isinstance(wms, dict) else {}
+        return {
+            "name": data.get("name") or safe_name,
+            "title": data.get("title") or "",
+            "kind": kind,
+            "wfs_wms_status": self.get_wfs_wms_status_from_layer_data(data),
+            "time_values": list(wms_time.get("values") or []),
+            "time_regex": wms_time.get("regex"),
+            "time_count": len(wms_time.get("values") or []),
+            "detail": data,
+        }
+
+    def get_wfs_wms_status_from_layer_data(self, layer_data):
+        if not isinstance(layer_data, dict):
+            return None
+        status = layer_data.get("wfs_wms_status")
+        if status:
+            return status
+        layman_metadata = layer_data.get("layman_metadata", {})
+        publication_status = layman_metadata.get("publication_status")
+        if publication_status:
+            status_map = {
+                "COMPLETE": "AVAILABLE",
+                "PENDING": "PENDING",
+                "PREPARING": "PENDING",
+                "UPDATING": "PENDING",
+                "FAILED": "FAILED",
+            }
+            return status_map.get(publication_status, publication_status)
+        return None
+
+    def find_server_layer_by_name(self, layer_name, workspace=None):
+        workspace = workspace or self.laymanUsername
+        safe_name = self.removeUnacceptableChars(layer_name)
+        url = self.layman_api.get_layers_url(workspace)
+        status, data = self.http_get_json(url, timeout=10)
+        if status != 200 or not isinstance(data, list):
+            return None
+        for row in data:
+            if row.get("name") == safe_name:
+                return self.get_server_layer_info(workspace, safe_name)
+        return None
+
+    def format_server_layer_status_text(self, info, locale="en"):
+        if not info:
+            if locale == "cs":
+                return "Vrstva na serveru neexistuje."
+            return "Layer does not exist on the server."
+        kind = info.get("kind")
+        status = info.get("wfs_wms_status") or "?"
+        if kind == "timeseries":
+            count = info.get("time_count", 0)
+            if locale == "cs":
+                return "Timeseries na serveru ({} snímků, stav: {}).".format(
+                    count, status
+                )
+            return "Timeseries on server ({} instants, status: {}).".format(
+                count, status
+            )
+        if kind == "mosaic":
+            if locale == "cs":
+                return "Mosaic na serveru (stav: {}).".format(status)
+            return "Mosaic on server (status: {}).".format(status)
+        if kind == "raster":
+            if locale == "cs":
+                return "Raster na serveru (stav: {}).".format(status)
+            return "Raster on server (status: {}).".format(status)
+        if kind == "vector":
+            if locale == "cs":
+                return "Vektorová vrstva na serveru (stav: {}).".format(status)
+            return "Vector layer on server (status: {}).".format(status)
+        if locale == "cs":
+            return "Vrstva na serveru existuje (stav: {}).".format(status)
+        return "Layer exists on server (status: {}).".format(status)
+
+    def filename_matches_time_regex(self, filename, time_regex):
+        if not time_regex or not filename:
+            return False
+        return bool(re.search(time_regex, os.path.basename(filename)))
+
+    def find_unmatched_timeseries_filenames(self, filenames, time_regex):
+        if not time_regex:
+            return []
+        return [
+            filename
+            for filename in filenames
+            if not self.filename_matches_time_regex(filename, time_regex)
+        ]
+
+    def resolve_timeseries_upload_regex(self, server_regex, filenames):
+        sentinel_regex = r"[0-9]{8}"
+        basenames = [os.path.basename(name) for name in filenames]
+        if server_regex and all(
+            self.filename_matches_time_regex(name, server_regex) for name in basenames
+        ):
+            return server_regex
+        if all(
+            self.filename_matches_time_regex(name, sentinel_regex) for name in basenames
+        ):
+            return sentinel_regex
+        return server_regex or sentinel_regex
+
+    def extract_date_from_filename(self, filename, time_regex):
+        if not time_regex or not filename:
+            return None
+        match = re.search(time_regex, os.path.basename(filename))
+        if not match:
+            return None
+        raw = match.group(0)
+        digits = re.sub(r"[^0-9]", "", raw)
+        if len(digits) >= 8:
+            digits = digits[:8]
+            return "{}-{}-{}".format(digits[0:4], digits[4:6], digits[6:8])
+        return None
+
+    def iso_time_to_date(self, iso_value):
+        if not iso_value:
+            return None
+        return str(iso_value)[:10]
+
+    def find_duplicate_timeseries_dates(
+        self, filenames, time_regex, existing_time_values
+    ):
+        existing_dates = {
+            self.iso_time_to_date(value) for value in (existing_time_values or [])
+        }
+        duplicates = []
+        for filename in filenames:
+            new_date = self.extract_date_from_filename(filename, time_regex)
+            if new_date and new_date in existing_dates:
+                duplicates.append((filename, new_date))
+        return duplicates
 
     def checkVersion(self):
         url = "https://raw.githubusercontent.com/LESPROJEKT/qgis-layman-plugin/master/metadata.txt"

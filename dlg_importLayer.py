@@ -711,10 +711,8 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         overwrite = False
         server_name = self.utils.removeUnacceptableChars(title)
         if self.checkExistingLayer(server_name):
-            msgbox = QMessageBox(
-                QMessageBox.Icon.Question,
-                "Layman",
-                (
+            if is_mosaic:
+                question = (
                     "Vrstva '{}' již na serveru existuje. Chcete ji přepsat?".format(
                         server_name
                     )
@@ -722,8 +720,20 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     else "Layer '{}' already exists on the server. Do you want to overwrite it?".format(
                         server_name
                     )
-                ),
-            )
+                )
+            else:
+                question = (
+                    (
+                        "Vrstva '{}' již na serveru existuje. Chcete přepsat celou timeseries?\n\n"
+                        "Pro doplnění nových snímků použijte Add Layer → Aktualizovat timeseries."
+                    ).format(server_name)
+                    if self.layman.locale == "cs"
+                    else (
+                        "Layer '{}' already exists on the server. Overwrite entire timeseries?\n\n"
+                        "To append new rasters, use Add Layer → Update timeseries."
+                    ).format(server_name)
+                )
+            msgbox = QMessageBox(QMessageBox.Icon.Question, "Layman", question)
             msgbox.addButton(QMessageBox.StandardButton.Yes)
             msgbox.addButton(QMessageBox.StandardButton.No)
             msgbox.setDefaultButton(QMessageBox.StandardButton.No)

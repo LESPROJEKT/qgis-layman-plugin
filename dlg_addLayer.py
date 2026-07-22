@@ -67,6 +67,12 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QLineEdit,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QDialog,
+    QDialogButtonBox,
+    QRadioButton,
 )
 from qgis.PyQt.QtGui import QPixmap, QIcon
 from qgis.core import *
@@ -91,6 +97,13 @@ FORM_CLASS, _ = uic.loadUiType(
     os.path.join(os.path.dirname(__file__), "dlg_addLayer.ui")
 )
 
+_COL_LAYER = 0
+_COL_OWNER = 1
+_COL_PERM = 2
+_COL_CRS = 3
+_COL_TYPE = 4
+_COL_STATUS = 5
+
 
 class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     enableWfsButton = pyqtSignal(bool, QPushButton)
@@ -102,6 +115,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     statusesUpdated = pyqtSignal(dict)
     thumbnailLayerDone = pyqtSignal(object)
     layersDataReady = pyqtSignal(list)
+    layerKindUpdated = pyqtSignal(str, str)
 
     def __init__(self, utils, isAuthorized, laymanUsername, URI, layman, parent=None):
         """Constructor."""
@@ -121,6 +135,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self._status_refresh_running = False
         self._status_refresh_lock = threading.Lock()
         self._status_refresh_enabled = True
+        self._timeseries_icon = None
         self.setUi()
 
     def connectEvents(self):
@@ -144,6 +159,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.permissionInfo.connect(self.afterPermissionDone)
         self.progressDone.connect(self._onProgressDone)
         self.statusesUpdated.connect(self._applyStatusIcons)
+        self.layerKindUpdated.connect(self._on_layer_kind_updated)
 
     def setPermissionsWidget(self, option):
         if option:
@@ -163,6 +179,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_back.clicked.connect(lambda: self.setPermissionsWidget(False))
         self.permissionsConnected = False
         self.connectEvents()
+        self.layman.tsUploadFinished.connect(self._on_timeseries_upload_finished)
         self.utils.recalculateDPI()
         self.pushButton_urlWfs.setEnabled(False)
         self.pushButton_urlWms.setEnabled(False)
@@ -185,6 +202,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if checked == "1":
             self.checkBox_own.setCheckState(_CheckStateChecked)
             checked = True
+
+        self._ensure_timeseries_update_widgets()
 
         self.pushButton_delete.clicked.connect(
             lambda: self.callDeleteLayer(
@@ -221,6 +240,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             ).start()
         )
         self.treeWidget.itemSelectionChanged.connect(self.checkSelectedCount)
+        self.treeWidget.itemSelectionChanged.connect(self._refresh_selected_layer_info)
         self.treeWidget.itemClicked.connect(self.setButtons)
         self.treeWidget.itemClicked.connect(self._onLayerItemClickedForThumbnail)
         self.treeWidget.itemClicked.connect(
@@ -230,11 +250,12 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         )
         self.filter.valueChanged.connect(self.filterResults)
         # Set column widths
-        self.treeWidget.setColumnWidth(0, 280)  # Layer - trochu zúžený
-        self.treeWidget.setColumnWidth(1, 140)  # Owner - ještě širší
+        self.treeWidget.setColumnWidth(0, 260)  # Layer
+        self.treeWidget.setColumnWidth(1, 130)  # Owner
         self.treeWidget.setColumnWidth(2, 80)  # Permissions
         self.treeWidget.setColumnWidth(3, 80)  # CRS
-        self.treeWidget.setColumnWidth(4, 30)  # Status - menší
+        self.treeWidget.setColumnWidth(4, 90)  # Type
+        self.treeWidget.setColumnWidth(5, 30)  # Status
 
         # Allow user to resize columns and maintain proportions when dialog is resized
         self.treeWidget.header().setStretchLastSection(
@@ -254,6 +275,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         )  # User can resize
         self.treeWidget.header().setSectionResizeMode(
             4, _HeaderInteractive
+        )  # User can resize
+        self.treeWidget.header().setSectionResizeMode(
+            5, _HeaderInteractive
         )  # User can resize
 
         # Enable sorting by clicking on column headers
@@ -1029,13 +1053,13 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 if status:
                     icon = self.getStatusIcon(status)
                     try:
-                        item.setIcon(4, icon)
-                        item.setText(4, status)
+                        item.setIcon(_COL_STATUS, icon)
+                        item.setText(_COL_STATUS, status)
                     except Exception:
                         pass
                 if native_crs:
                     try:
-                        item.setText(3, native_crs)
+                        item.setText(_COL_CRS, native_crs)
                     except Exception:
                         pass
             iterator += 1
@@ -1078,23 +1102,86 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         return status.upper() in pending_statuses
 
     def _getStatusFromLayerData(self, layer_data):
-        status = layer_data.get("wfs_wms_status")
+        return self.utils.get_wfs_wms_status_from_layer_data(layer_data)
+
+    def getTimeseriesIcon(self):
+        if self._timeseries_icon is None:
+            icon = QgsApplication.getThemeIcon("mIconTemporal.svg")
+            if icon.isNull():
+                icon = QgsApplication.getThemeIcon("mActionStopwatch.svg")
+            self._timeseries_icon = icon
+        return self._timeseries_icon
+
+    def _kind_from_geodata_type(self, geodata_type):
+        if geodata_type == "vector":
+            return "vector"
+        if geodata_type == "raster":
+            return "raster"
+        return geodata_type or "unknown"
+
+    def _format_layer_type_label(self, kind):
+        labels = {
+            "vector": self.tr("vector"),
+            "raster": self.tr("raster"),
+            "timeseries": self.tr("timeseries"),
+            "mosaic": self.tr("mosaic"),
+            "unknown": self.tr("unknown"),
+        }
+        return labels.get(kind, kind or "?")
+
+    def _set_tree_item_type(self, item, kind):
+        item.setText(_COL_TYPE, self._format_layer_type_label(kind))
+        item.setData(_COL_TYPE, _UserRole, kind or "")
+
+    def _build_layer_tree_item(self, row):
+        item = QTreeWidgetItem(
+            [
+                row.get("title", ""),
+                row.get("workspace", ""),
+                row.get("perm", ""),
+                row.get("native_crs", ""),
+                "",
+                "",
+            ]
+        )
+        kind = self._kind_from_geodata_type(row.get("geodata_type"))
+        self._set_tree_item_type(item, kind)
+        status = row.get("status")
         if status:
-            return status
+            item.setIcon(_COL_STATUS, self.getStatusIcon(status))
+            item.setText(_COL_STATUS, status)
+        return item
 
-        layman_metadata = layer_data.get("layman_metadata", {})
-        publication_status = layman_metadata.get("publication_status")
-        if publication_status:
-            status_map = {
-                "COMPLETE": "AVAILABLE",
-                "PENDING": "PENDING",
-                "PREPARING": "PENDING",
-                "UPDATING": "PENDING",
-                "FAILED": "FAILED",
-            }
-            return status_map.get(publication_status, publication_status)
+    def _start_layer_kind_enrichment(self, rows):
+        raster_rows = [
+            row
+            for row in rows
+            if row.get("geodata_type") == "raster" and row.get("name")
+        ]
+        if not raster_rows:
+            return
 
-        return None
+        def run():
+            for row in raster_rows:
+                info = self.utils.get_server_layer_info(
+                    row.get("workspace") or self.laymanUsername,
+                    row.get("name"),
+                    ttl_seconds=30,
+                )
+                kind = info.get("kind") if info else ""
+                if kind:
+                    self.layerKindUpdated.emit(row.get("title", ""), kind)
+
+        threading.Thread(target=run, daemon=True).start()
+
+    def _on_layer_kind_updated(self, title, kind):
+        if not kind:
+            return
+        for index in range(self.treeWidget.topLevelItemCount()):
+            item = self.treeWidget.topLevelItem(index)
+            if item.text(_COL_LAYER) == title:
+                self._set_tree_item_type(item, kind)
+                break
 
     def getStatusIcon(self, status):
         icon_paths = {
@@ -1142,6 +1229,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                             "status": status,
                             "name": row.get("name", ""),
                             "uuid": row.get("uuid", ""),
+                            "geodata_type": row.get("geodata_type", ""),
                         }
                     )
             return rows
@@ -1164,6 +1252,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         "status": status,
                         "name": row.get("name", ""),
                         "uuid": row.get("uuid", ""),
+                        "geodata_type": row.get("geodata_type", ""),
                     }
                 )
             return rows
@@ -1173,6 +1262,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         data_all = self._parse_json(r_all)
         if not data_all or not isinstance(data_all, list):
             return rows
+
+        own_layers = {(row.get("workspace"), row.get("name")) for row in data}
 
         for row in data_all:
             perm = ""
@@ -1184,7 +1275,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 "write", []
             ) or "EVERYONE" in row.get("access_rights", {}).get("write", []):
                 perm = "write"
-            if row in data:
+            if (row.get("workspace"), row.get("name")) in own_layers:
                 perm = "own"
             if perm:
                 status = self._getStatusFromLayerData(row)
@@ -1197,6 +1288,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         "status": status,
                         "name": row.get("name", ""),
                         "uuid": row.get("uuid", ""),
+                        "geodata_type": row.get("geodata_type", ""),
                     }
                 )
         return rows
@@ -1206,38 +1298,11 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.layer_uuid = {}
         self.treeWidget.clear()
         for r in rows:
-            if r.get("native_crs") and r.get("status"):
-                item = QTreeWidgetItem(
-                    [
-                        r["title"],
-                        r["workspace"],
-                        r["perm"],
-                        r["native_crs"],
-                    ]
-                )
-                icon = self.getStatusIcon(r["status"])
-                item.setIcon(4, icon)
-                item.setText(4, r["status"])
-            elif r.get("native_crs"):
-                item = QTreeWidgetItem(
-                    [
-                        r["title"],
-                        r["workspace"],
-                        r["perm"],
-                        r["native_crs"],
-                    ]
-                )
-            else:
-                item = QTreeWidgetItem(
-                    [
-                        r["title"],
-                        r["workspace"],
-                        r["perm"],
-                    ]
-                )
+            item = self._build_layer_tree_item(r)
             self.treeWidget.addTopLevelItem(item)
             self.layerNamesDict[r["title"]] = r.get("name", "")
             self.layer_uuid[r["title"]] = r.get("uuid", "")
+        self._start_layer_kind_enrichment(rows)
         self.progressDone.emit()
 
     async def loadLayersThread(self, onlyOwn=False):
@@ -1250,32 +1315,15 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             data = self.utils.fromByteToJson(r)
             if onlyOwn:
                 for row in range(0, len(data)):
-                    status = self._getStatusFromLayerData(data[row])
-                    if "native_crs" in data[row] and status:
-                        item = QTreeWidgetItem(
-                            [
-                                data[row]["title"],
-                                data[row]["workspace"],
-                                "own",
-                                data[row]["native_crs"],
-                            ]
-                        )
-                        icon = self.getStatusIcon(status)
-                        item.setIcon(4, icon)
-                        item.setText(4, status)
-                    elif "native_crs" in data[row]:
-                        item = QTreeWidgetItem(
-                            [
-                                data[row]["title"],
-                                data[row]["workspace"],
-                                "own",
-                                data[row]["native_crs"],
-                            ]
-                        )
-                    else:
-                        item = QTreeWidgetItem(
-                            [data[row]["title"], data[row]["workspace"], "own"]
-                        )
+                    layer_row = {
+                        "title": data[row]["title"],
+                        "workspace": data[row]["workspace"],
+                        "perm": "own",
+                        "native_crs": data[row].get("native_crs", ""),
+                        "status": self._getStatusFromLayerData(data[row]),
+                        "geodata_type": data[row].get("geodata_type", ""),
+                    }
+                    item = self._build_layer_tree_item(layer_row)
                     self.treeWidget.addTopLevelItem(item)
                     self.layerNamesDict[data[row]["title"]] = data[row]["name"]
                     self.layer_uuid[data[row]["title"]] = data[row]["uuid"]
@@ -1285,7 +1333,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 r = await self.utils.asyncRequestWrapper("GET", url)
                 dataAll = self.utils.fromByteToJson(r)
                 permissions = ""
+                own_layers = {(row.get("workspace"), row.get("name")) for row in data}
                 for row in range(0, len(dataAll)):
+                    permissions = ""
                     if (
                         self.laymanUsername in dataAll[row]["access_rights"]["read"]
                         or "EVERYONE" in dataAll[row]["access_rights"]["read"]
@@ -1296,40 +1346,22 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         or "EVERYONE" in dataAll[row]["access_rights"]["write"]
                     ):
                         permissions = "write"
-                    if dataAll[row] in data:
+                    layer_key = (
+                        dataAll[row].get("workspace"),
+                        dataAll[row].get("name"),
+                    )
+                    if layer_key in own_layers:
                         permissions = "own"
                     if permissions != "":
-                        status = self._getStatusFromLayerData(dataAll[row])
-                        if "native_crs" in dataAll[row] and status:
-                            item = QTreeWidgetItem(
-                                [
-                                    dataAll[row]["title"],
-                                    dataAll[row]["workspace"],
-                                    permissions,
-                                    dataAll[row]["native_crs"],
-                                ]
-                            )
-                            icon = self.getStatusIcon(status)
-                            item.setIcon(4, icon)
-                            item.setText(4, status)
-                        elif "native_crs" in dataAll[row]:
-                            item = QTreeWidgetItem(
-                                [
-                                    dataAll[row]["title"],
-                                    dataAll[row]["workspace"],
-                                    permissions,
-                                    dataAll[row]["native_crs"],
-                                ]
-                            )
-                        else:
-                            item = QTreeWidgetItem(
-                                [
-                                    dataAll[row]["title"],
-                                    dataAll[row]["workspace"],
-                                    permissions,
-                                ]
-                            )
-
+                        layer_row = {
+                            "title": dataAll[row]["title"],
+                            "workspace": dataAll[row]["workspace"],
+                            "perm": permissions,
+                            "native_crs": dataAll[row].get("native_crs", ""),
+                            "status": self._getStatusFromLayerData(dataAll[row]),
+                            "geodata_type": dataAll[row].get("geodata_type", ""),
+                        }
+                        item = self._build_layer_tree_item(layer_row)
                         self.layerNamesDict[dataAll[row]["title"]] = dataAll[row][
                             "name"
                         ]
@@ -1342,36 +1374,20 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             r = await self.utils.asyncRequestWrapper("GET", url)
             data = self.utils.fromByteToJson(r)
             for row in range(0, len(data)):
+                permissions = ""
                 if "EVERYONE" in data[row]["access_rights"]["read"]:
                     permissions = "read"
                 if "EVERYONE" in data[row]["access_rights"]["write"]:
                     permissions = "write"
-                status = self._getStatusFromLayerData(data[row])
-                if "native_crs" in data[row] and status:
-                    item = QTreeWidgetItem(
-                        [
-                            data[row]["title"],
-                            data[row]["workspace"],
-                            permissions,
-                            data[row]["native_crs"],
-                        ]
-                    )
-                    icon = self.getStatusIcon(status)
-                    item.setIcon(4, icon)
-                    item.setText(4, status)
-                elif "native_crs" in data[row]:
-                    item = QTreeWidgetItem(
-                        [
-                            data[row]["title"],
-                            data[row]["workspace"],
-                            permissions,
-                            data[row]["native_crs"],
-                        ]
-                    )
-                else:
-                    item = QTreeWidgetItem(
-                        [data[row]["title"], data[row]["workspace"], permissions]
-                    )
+                layer_row = {
+                    "title": data[row]["title"],
+                    "workspace": data[row]["workspace"],
+                    "perm": permissions,
+                    "native_crs": data[row].get("native_crs", ""),
+                    "status": self._getStatusFromLayerData(data[row]),
+                    "geodata_type": data[row].get("geodata_type", ""),
+                }
+                item = self._build_layer_tree_item(layer_row)
                 self.layerNamesDict[data[row]["title"]] = data[row]["name"]
                 self.layer_uuid[data[row]["title"]] = data[row]["uuid"]
                 self.treeWidget.addTopLevelItem(item)
@@ -1431,6 +1447,248 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
 
         # Set WMS button as default focus when layer is selected
         self.pushButton.setFocus()
+        self._refresh_selected_layer_info()
+
+    def _ensure_timeseries_update_widgets(self):
+        if hasattr(self, "_ts_update_ready"):
+            return
+        self.pushButton_updateTimeseries = QPushButton(
+            self.getTimeseriesIcon(), self.tr("Update timeseries")
+        )
+        self.pushButton_updateTimeseries.setToolTip(
+            self.tr(
+                "Overwrite or append rasters to the selected timeseries layer on the server."
+            )
+        )
+        self.pushButton_updateTimeseries.setEnabled(False)
+        self.horizontalLayout_bottom_buttons.insertWidget(
+            3, self.pushButton_updateTimeseries
+        )
+        self.pushButton_updateTimeseries.clicked.connect(
+            self._on_update_timeseries_clicked
+        )
+        self._selected_server_layer_info = None
+        self._ts_update_ready = True
+
+    def _on_timeseries_upload_finished(self, success):
+        try:
+            self.progressBar_loader.hide()
+        except Exception:
+            pass
+        if not success:
+            self._refresh_selected_layer_info()
+            self._start_status_refresh_once()
+
+    def _start_status_refresh_once(self):
+        self._refreshStatusesAsync()
+
+    def _can_update_timeseries(self, item, info):
+        if not info or info.get("kind") != "timeseries":
+            return False
+        if item.text(_COL_PERM) not in ("own", "write"):
+            return False
+        status = info.get("wfs_wms_status") or item.text(_COL_STATUS)
+        return status == "AVAILABLE"
+
+    def _refresh_selected_layer_info(self):
+        self._ensure_timeseries_update_widgets()
+        selected = self.treeWidget.selectedItems()
+        if len(selected) != 1:
+            self._selected_server_layer_info = None
+            self.pushButton_updateTimeseries.setEnabled(False)
+            return
+
+        item = selected[0]
+        title = item.text(_COL_LAYER)
+        workspace = item.text(_COL_OWNER)
+        server_name = self.layerNamesDict.get(title, title)
+        info = self.utils.get_server_layer_info(
+            workspace, server_name, force_refresh=True
+        )
+        self._selected_server_layer_info = info
+        if info and info.get("kind"):
+            self._set_tree_item_type(item, info.get("kind"))
+        append_supported = self.utils.supports_layman_feature(
+            "timeseries_append", default_if_unknown=False
+        )
+        if info and info.get("kind") == "timeseries":
+            count = info.get("time_count", 0)
+            tooltip = self.tr(
+                "Overwrite or append rasters ({n} instants on server)."
+            ).format(n=count)
+            if not append_supported:
+                tooltip += " " + self.tr("Append requires Layman 2.4.0 or newer.")
+            self.pushButton_updateTimeseries.setToolTip(tooltip)
+        else:
+            self.pushButton_updateTimeseries.setToolTip(
+                self.tr(
+                    "Overwrite or append rasters to the selected timeseries layer on the server."
+                )
+            )
+        enabled = self._can_update_timeseries(item, info)
+        self.pushButton_updateTimeseries.setEnabled(enabled)
+
+    def _on_update_timeseries_clicked(self):
+        selected = self.treeWidget.selectedItems()
+        if len(selected) != 1:
+            return
+        info = self._selected_server_layer_info
+        if not info or info.get("kind") != "timeseries":
+            return
+
+        title = selected[0].text(0)
+        server_name = info.get("name") or self.layerNamesDict.get(title, title)
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(self.tr("Update timeseries"))
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(
+            QLabel(self.tr("Select raster layers from the current QGIS project."))
+        )
+        list_widget = QListWidget()
+        list_widget.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.MultiSelection
+        )
+        for layer in QgsProject.instance().mapLayers().values():
+            if layer.type() == QgsMapLayerType.RasterLayer:
+                list_widget.addItem(QListWidgetItem(layer.name()))
+        layout.addWidget(list_widget)
+
+        radio_overwrite = QRadioButton(self.tr("Overwrite entire timeseries"))
+        radio_append = QRadioButton(self.tr("Append new rasters"))
+        append_supported = self.utils.supports_layman_feature(
+            "timeseries_append", default_if_unknown=False
+        )
+        radio_append.setEnabled(append_supported)
+        if append_supported:
+            radio_append.setChecked(True)
+        else:
+            radio_overwrite.setChecked(True)
+        mode_group = QButtonGroup(dialog)
+        mode_group.addButton(radio_overwrite)
+        mode_group.addButton(radio_append)
+        layout.addWidget(radio_overwrite)
+        layout.addWidget(radio_append)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        chosen = [item.text() for item in list_widget.selectedItems()]
+        if not chosen:
+            QMessageBox.warning(
+                self, self.tr("Layman"), self.tr("Select at least one raster layer.")
+            )
+            return
+
+        export_mode = "append" if radio_append.isChecked() else "overwrite"
+        tree_items = [QTreeWidgetItem([name]) for name in chosen]
+
+        filenames = []
+        for name in chosen:
+            layer = QgsProject.instance().mapLayersByName(name)[0]
+            uri = layer.dataProvider().dataSourceUri().split("|")[0].strip()
+            filenames.append(os.path.basename(uri))
+
+        if export_mode == "append":
+            if info.get("kind") == "mosaic":
+                QMessageBox.warning(
+                    self,
+                    self.tr("Layman"),
+                    self.tr(
+                        "The selected layer is a raster mosaic, not a timeseries. "
+                        "Use overwrite to upload all rasters as a new timeseries first."
+                    ),
+                )
+                return
+            time_regex = info.get("time_regex") or ""
+            if not time_regex:
+                QMessageBox.warning(
+                    self,
+                    self.tr("Layman"),
+                    self.tr(
+                        "Cannot read time_regex from the server layer. "
+                        "Use overwrite to rebuild the timeseries first."
+                    ),
+                )
+                return
+            unmatched = self.utils.find_unmatched_timeseries_filenames(
+                filenames, time_regex
+            )
+            if unmatched:
+                QMessageBox.warning(
+                    self,
+                    self.tr("Layman"),
+                    self.tr(
+                        "Selected raster filenames do not match the layer time_regex "
+                        "on the server ({regex}):\n{files}"
+                    ).format(regex=time_regex, files="\n".join(unmatched)),
+                )
+                return
+            duplicates = self.utils.find_duplicate_timeseries_dates(
+                filenames, time_regex, info.get("time_values")
+            )
+            if duplicates:
+                dup_text = ", ".join(
+                    ["{} ({})".format(name, date) for name, date in duplicates]
+                )
+                QMessageBox.warning(
+                    self,
+                    self.tr("Layman"),
+                    self.tr("The following instants already exist on the server: ")
+                    + dup_text,
+                )
+                return
+            time_count = info.get("time_count") or len(info.get("time_values") or [])
+            if time_count < 2:
+                reply = QMessageBox.question(
+                    self,
+                    self.tr("Layman"),
+                    self.tr(
+                        "The server layer currently has only {count} time instant(s). "
+                        "Append adds new rasters to an existing timeseries. "
+                        "If the layer was created by mistake with a single raster, "
+                        "use overwrite with all GeoTIFF files instead.\n\n"
+                        "Continue with append?"
+                    ).format(count=time_count),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
+                )
+                if reply != QMessageBox.StandardButton.Yes:
+                    return
+            regex = None
+        else:
+            regex = self.utils.resolve_timeseries_upload_regex(
+                info.get("time_regex"), filenames
+            )
+
+        resamplingMethod = ""
+        self.layman.dlg = self
+        self.progressBar_loader.show()
+        if export_mode == "append":
+            threading.Thread(
+                target=lambda: self.layman._run_timeseries_append_job(
+                    tree_items, server_name, resamplingMethod
+                ),
+                daemon=True,
+            ).start()
+        else:
+            threading.Thread(
+                target=lambda: self.layman.uploadRasterMosaic(
+                    tree_items,
+                    server_name,
+                    time_regex=regex,
+                    resamplingMethod=resamplingMethod,
+                    overwrite=True,
+                    export_mode="overwrite",
+                ),
+                daemon=True,
+            ).start()
 
     def checkFileType(self, name, workspace):
         name = self.layerNamesDict[name]

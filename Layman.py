@@ -269,7 +269,8 @@ class Layman(QObject):
     exportLayerSuccessful = pyqtSignal(str)
     afterLoadedComposition = pyqtSignal()
     reoderComposition = pyqtSignal(list, set, list)
-    tsSuccess = pyqtSignal()
+    tsSuccess = pyqtSignal(str)
+    tsUploadFinished = pyqtSignal(bool)
     processingRaster = pyqtSignal(int, int)
     setPluginLabel = pyqtSignal(str)
     enableWfsButton = pyqtSignal(bool, QPushButton)
@@ -485,6 +486,7 @@ class Layman(QObject):
         self.afterLoadedComposition.connect(self.afterCompositionLoaded)
         self.reoderComposition.connect(self.reorderGroups)
         self.tsSuccess.connect(self._onSuccessTs)
+        self.tsUploadFinished.connect(self._onTsUploadFinished)
         self.processingRaster.connect(self.onRasterUpload)
         self.setPluginLabel.connect(self.onSetPluginLabel, type=_QueuedConnection)
         self.successWrapper.connect(self.onSuccess)
@@ -1245,6 +1247,17 @@ class Layman(QObject):
             "Server error (code {}).".format(code),
         )
 
+    def _layer_name_from_post_response(self, response, fallback_name=""):
+        try:
+            res = self.utils.fromByteToJson(response.content)
+        except Exception:
+            res = None
+        if isinstance(res, list) and res:
+            res = res[0]
+        if isinstance(res, dict):
+            return res.get("name") or fallback_name
+        return fallback_name
+
     def _post_raster_mosaic_layer(
         self, url, payload, style_path, files=None, overwrite=False
     ):
@@ -1288,6 +1301,449 @@ class Layman(QObject):
         self.utils.emitMessageBox.emit([cs_msg, en_msg])
         return response
 
+    def _wait_for_layer_available(
+        self, layer_name, timeout_seconds=300, poll_seconds=2
+    ):
+        layer_name = self.utils.removeUnacceptableChars(layer_name)
+        url = self.layman_api.get_layer_url(self.laymanUsername, layer_name)
+        deadline = time.time() + timeout_seconds
+        while time.time() < deadline:
+            try:
+                response = requests.get(
+                    url,
+                    headers=self.utils.getAuthHeader(self.authCfg),
+                    timeout=15,
+                    verify=False,
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    status = self.utils.get_wfs_wms_status_from_layer_data(data)
+                    publication_status = data.get("layman_metadata", {}).get(
+                        "publication_status"
+                    )
+                    if status == "AVAILABLE" and publication_status in (
+                        None,
+                        "COMPLETE",
+                    ):
+                        return True
+                    if publication_status == "FAILED" or status == "FAILED":
+                        return False
+            except Exception:
+                pass
+            time.sleep(poll_seconds)
+        return False
+
+    def _is_appendable_timeseries(self, server_info):
+        if not server_info:
+            return False
+        if server_info.get("kind") == "timeseries":
+            return True
+        detail = server_info.get("detail") or {}
+        if not detail.get("image_mosaic"):
+            return False
+        wms = detail.get("wms") or {}
+        wms_time = wms.get("time") if isinstance(wms, dict) else {}
+        return isinstance(wms_time, dict) and (
+            wms_time.get("values") or wms_time.get("regex")
+        )
+
+    def _get_layer_detail(self, layer_name):
+        layer_name = self.utils.removeUnacceptableChars(layer_name)
+        url = self.layman_api.get_layer_url(self.laymanUsername, layer_name)
+        try:
+            response = requests.get(
+                url,
+                headers=self.utils.getAuthHeader(self.authCfg),
+                timeout=15,
+                verify=False,
+            )
+            if response.status_code == 200:
+                return response.json()
+        except Exception:
+            pass
+        return None
+
+    def _layer_time_value_count(self, layer_data):
+        if not isinstance(layer_data, dict):
+            return 0
+        wms = layer_data.get("wms") or {}
+        wms_time = wms.get("time") if isinstance(wms, dict) else {}
+        if isinstance(wms_time, dict):
+            return len(wms_time.get("values") or [])
+        return 0
+
+    def _extract_publication_error(self, layer_data):
+        if not isinstance(layer_data, dict):
+            return None, None
+        for key, value in layer_data.items():
+            if not isinstance(value, dict) or value.get("status") != "FAILURE":
+                continue
+            error = value.get("error") or {}
+            code = error.get("code")
+            detail = error.get("detail")
+            if isinstance(detail, dict):
+                detail_text = (
+                    detail.get("message") or detail.get("detail") or str(detail)
+                )
+            else:
+                detail_text = str(detail) if detail is not None else ""
+            if detail_text:
+                return (
+                    "Zpracování na serveru selhalo (kód {}): {}".format(
+                        code, detail_text
+                    ),
+                    "Processing on the server failed (code {}): {}".format(
+                        code, detail_text
+                    ),
+                )
+            if code is not None:
+                return (
+                    "Zpracování na serveru selhalo (kód {}).".format(code),
+                    "Processing on the server failed (code {}).".format(code),
+                )
+        publication_status = (layer_data.get("layman_metadata") or {}).get(
+            "publication_status"
+        )
+        if publication_status == "INCOMPLETE":
+            return (
+                "Zpracování vrstvy na serveru skončilo nedokončeně (INCOMPLETE).",
+                "Layer processing on the server finished incompletely (INCOMPLETE).",
+            )
+        return None, None
+
+    def _wait_for_layer_publication_complete(
+        self,
+        layer_name,
+        timeout_seconds=600,
+        poll_seconds=0.5,
+        baseline_time_count=None,
+        files_added=1,
+    ):
+        time.sleep(0.5)
+        layer_name = self.utils.removeUnacceptableChars(layer_name)
+        deadline = time.time() + timeout_seconds
+        initial_data = self._get_layer_detail(layer_name) or {}
+        initial_publication_status = (initial_data.get("layman_metadata") or {}).get(
+            "publication_status"
+        )
+        initial_file_status = (initial_data.get("file") or {}).get("status")
+        processing_seen = initial_publication_status == "UPDATING"
+
+        while time.time() < deadline:
+            data = self._get_layer_detail(layer_name)
+            if not isinstance(data, dict):
+                time.sleep(poll_seconds)
+                continue
+
+            publication_status = (data.get("layman_metadata") or {}).get(
+                "publication_status"
+            )
+            file_status = (data.get("file") or {}).get("status")
+            current_time_count = self._layer_time_value_count(data)
+
+            if publication_status == "UPDATING":
+                processing_seen = True
+
+            failed_status = (
+                publication_status in ("INCOMPLETE", "FAILED")
+                or file_status == "FAILURE"
+            )
+            if failed_status and (
+                processing_seen
+                or publication_status != initial_publication_status
+                or file_status != initial_file_status
+            ):
+                return False, self._extract_publication_error(data)
+
+            if publication_status == "COMPLETE":
+                wfs_status = self.utils.get_wfs_wms_status_from_layer_data(data)
+                if wfs_status not in (None, "AVAILABLE"):
+                    time.sleep(poll_seconds)
+                    continue
+                if baseline_time_count is not None:
+                    if current_time_count >= baseline_time_count + files_added:
+                        return True, (None, None)
+                    if processing_seen:
+                        time.sleep(poll_seconds)
+                        continue
+                elif processing_seen:
+                    return True, (None, None)
+
+            time.sleep(poll_seconds)
+
+        return False, (
+            "Zpracování na serveru nedoběhlo včas.",
+            "Processing on the server did not finish in time.",
+        )
+
+    OVERVIEW_RESAMPLING_METHODS = frozenset(
+        {
+            "nearest",
+            "average",
+            "rms",
+            "bilinear",
+            "gauss",
+            "cubic",
+            "cubicspline",
+            "lanczos",
+            "average_magphase",
+            "mode",
+        }
+    )
+
+    def _normalize_resampling_method(self, resampling_method):
+        if not resampling_method:
+            return ""
+        if resampling_method in getattr(self, "resamplingMethods", {}):
+            resampling_method = self.resamplingMethods[resampling_method]
+        resampling_method = str(resampling_method).strip()
+        if resampling_method in ("No value", "Není vybrán"):
+            return ""
+        if resampling_method not in self.OVERVIEW_RESAMPLING_METHODS:
+            return ""
+        return resampling_method
+
+    def _apply_overview_resampling(self, data, resampling_method):
+        resampling_method = self._normalize_resampling_method(resampling_method)
+        if resampling_method:
+            data["overview_resampling"] = resampling_method
+        else:
+            data.pop("overview_resampling", None)
+        return resampling_method
+
+    def _patch_timeseries_append_file(
+        self,
+        layer_name,
+        raster_path,
+        resampling_method="",
+        baseline_time_count=None,
+        files_added=1,
+    ):
+        """PATCH layer append=true, aligned with test_tools/process_client.py."""
+        layer_name = self.utils.removeUnacceptableChars(layer_name)
+        url = self.layman_api.get_layer_url(self.laymanUsername, layer_name)
+        raster_name = os.path.basename(raster_path)
+        ext = os.path.splitext(raster_name)[1] or ".tif"
+        data = {"append": "true"}
+        self._apply_overview_resampling(data, resampling_method)
+        print("[Layman append] PATCH fields:", sorted(data.keys()))
+
+        if os.path.getsize(raster_path) > self.CHUNK_SIZE:
+            data["file"] = [raster_name]
+            response = self.utils.requestWrapper(
+                "PATCH", url, data, files=None, emitErr=False
+            )
+            if response.status_code not in (200, 201):
+                cs_msg, en_msg = self._format_layman_error_message(response)
+                self.utils.emitMessageBox.emit([cs_msg, en_msg])
+                return False
+            filePath = os.path.join(tempfile.gettempdir(), "atlas_chunks")
+            os.makedirs(filePath, exist_ok=True)
+            with open(raster_path, "rb") as f:
+                arr = [piece for piece in self.read_in_chunks(f)]
+            if not self.processChunks(
+                arr,
+                raster_name,
+                "file",
+                len(arr),
+                layer_name,
+                filePath,
+                ext,
+                skip=True,
+            ):
+                self.utils.emitMessageBox.emit(
+                    [
+                        "Doplnění timeseries selhalo při nahrávání souboru {}.".format(
+                            raster_name
+                        ),
+                        "Timeseries append failed while uploading file {}.".format(
+                            raster_name
+                        ),
+                    ]
+                )
+                return False
+        else:
+            handle = open(raster_path, "rb")
+            files = [("file", (raster_name, handle))]
+            try:
+                response = self.utils.requestWrapper(
+                    "PATCH", url, data, files, emitErr=False
+                )
+            finally:
+                handle.close()
+            if response.status_code not in (200, 201):
+                cs_msg, en_msg = self._format_layman_error_message(response)
+                self.utils.emitMessageBox.emit([cs_msg, en_msg])
+                return False
+
+        ok, error_msgs = self._wait_for_layer_publication_complete(
+            layer_name,
+            baseline_time_count=baseline_time_count,
+            files_added=files_added,
+        )
+        if not ok:
+            cs_msg, en_msg = error_msgs or (None, None)
+            if not cs_msg:
+                cs_msg = "Zpracování snímku {} na serveru selhalo nebo nedoběhlo včas.".format(
+                    raster_name
+                )
+                en_msg = "Processing of raster {} on the server failed or did not finish in time.".format(
+                    raster_name
+                )
+            self.utils.emitMessageBox.emit([cs_msg, en_msg])
+            return False
+        return True
+
+    def appendTimeseriesRasters(self, layer_name, raster_paths, resampling_method=""):
+        if not self.utils.supports_layman_feature(
+            "timeseries_append", default_if_unknown=False
+        ):
+            self.utils.emitMessageBox.emit(
+                [
+                    "Doplnění timeseries vyžaduje Layman 2.4.0 nebo novější.",
+                    "Timeseries append requires Layman 2.4.0 or newer.",
+                ]
+            )
+            return False
+
+        safe_name = self.utils.removeUnacceptableChars(layer_name)
+        self.utils.invalidate_layer_detail_cache(self.laymanUsername, safe_name)
+        server_info = self.utils.get_server_layer_info(
+            self.laymanUsername, safe_name, force_refresh=True
+        )
+        if not self._is_appendable_timeseries(server_info):
+            self.utils.emitMessageBox.emit(
+                [
+                    "Cílová vrstva na serveru není timeseries.",
+                    "Target layer on the server is not a timeseries.",
+                ]
+            )
+            return False
+        layer_status = self.utils.get_wfs_wms_status_from_layer_data(
+            server_info.get("detail") or {}
+        ) or server_info.get("wfs_wms_status")
+        if layer_status not in (None, "AVAILABLE"):
+            self.utils.emitMessageBox.emit(
+                [
+                    "Timeseries vrstva není připravená (stav: {}).".format(
+                        layer_status
+                    ),
+                    "Timeseries layer is not ready (status: {}).".format(layer_status),
+                ]
+            )
+            return False
+
+        time_regex = server_info.get("time_regex") or ""
+        time_count = len(server_info.get("time_values") or [])
+        if time_count <= 1:
+            print(
+                "[Layman append] warning: layer has only {} time instants on server".format(
+                    time_count
+                )
+            )
+        filenames = [os.path.basename(path) for path in raster_paths]
+        unmatched = self.utils.find_unmatched_timeseries_filenames(
+            filenames, time_regex
+        )
+        if unmatched:
+            unmatched_text = "\n".join(unmatched)
+            self.utils.emitMessageBox.emit(
+                [
+                    "Názvy souborů nesedí na time_regex vrstvy na serveru ({}):\n{}".format(
+                        time_regex, unmatched_text
+                    ),
+                    "Filenames do not match the layer time_regex on the server ({}):\n{}".format(
+                        time_regex, unmatched_text
+                    ),
+                ]
+            )
+            return False
+        duplicates = self.utils.find_duplicate_timeseries_dates(
+            filenames, time_regex, server_info.get("time_values")
+        )
+        if duplicates:
+            lines = ["{} ({})".format(name, date) for name, date in duplicates]
+            self.utils.emitMessageBox.emit(
+                [
+                    "Následující snímky už na serveru existují:\n" + "\n".join(lines),
+                    "The following instants already exist on the server:\n"
+                    + "\n".join(lines),
+                ]
+            )
+            return False
+
+        baseline_time_count = len(server_info.get("time_values") or [])
+        for raster_path in raster_paths:
+            self.utils.invalidate_layer_detail_cache(self.laymanUsername, safe_name)
+            if not self._patch_timeseries_append_file(
+                safe_name,
+                raster_path,
+                resampling_method,
+                baseline_time_count=baseline_time_count,
+                files_added=1,
+            ):
+                return False
+            self.utils.invalidate_layer_detail_cache(self.laymanUsername, safe_name)
+            refreshed = self.utils.get_server_layer_info(
+                self.laymanUsername, safe_name, force_refresh=True
+            )
+            if refreshed:
+                baseline_time_count = len(refreshed.get("time_values") or [])
+        return True
+
+    def appendTimeseriesFromQgisLayers(self, items, layer_name, resampling_method=""):
+        rasters = []
+        temp_raster_files = []
+        try:
+            for index, item in enumerate(items):
+                layer = QgsProject.instance().mapLayersByName(item.text(0))[0]
+                raster_path, temp_paths = self.resolve_raster_upload_path(
+                    layer,
+                    "{}_{}".format(
+                        self.utils.removeUnacceptableChars(layer.name()), index
+                    ),
+                )
+                temp_raster_files.extend(temp_paths)
+                if r"/vsizip/" in layer.source():
+                    self.utils.emitMessageBox.emit(
+                        [
+                            "Append nepodporuje vrstvy z /vsizip/. Použijte jednotlivé GeoTIFF soubory.",
+                            "Append does not support /vsizip/ layers. Use individual GeoTIFF files.",
+                        ]
+                    )
+                    return False
+                rasters.append(raster_path)
+            if not rasters:
+                self.utils.emitMessageBox.emit(
+                    [
+                        "Nebyl vybrán žádný raster pro doplnění timeseries.",
+                        "No raster was selected to append to the timeseries.",
+                    ]
+                )
+                return False
+            return self.appendTimeseriesRasters(layer_name, rasters, resampling_method)
+        finally:
+            self._cleanup_temp_raster_files(temp_raster_files)
+
+    def _run_timeseries_append_job(self, items, layer_name, resampling_method=""):
+        try:
+            resampling_method = self._normalize_resampling_method(resampling_method)
+            if self.appendTimeseriesFromQgisLayers(
+                items, layer_name, resampling_method
+            ):
+                self.tsSuccess.emit("timeseries")
+                self.tsUploadFinished.emit(True)
+            else:
+                self.tsUploadFinished.emit(False)
+        except Exception as ex:
+            self.utils.emitMessageBox.emit(
+                [
+                    "Doplnění timeseries selhalo: {}".format(ex),
+                    "Timeseries append failed: {}".format(ex),
+                ]
+            )
+            self.tsUploadFinished.emit(False)
+
     def uploadRasterMosaic(
         self,
         items,
@@ -1295,11 +1751,9 @@ class Layman(QObject):
         time_regex=None,
         resamplingMethod="Není vybrán",
         overwrite=False,
+        export_mode="create",
     ):
-        if self.locale == "cs":
-            resamplingMethod = self.resamplingMethods[resamplingMethod]
-        if resamplingMethod == "No value" or resamplingMethod == "Není vybrán":
-            resamplingMethod = ""
+        resamplingMethod = self._normalize_resampling_method(resamplingMethod)
         print("time series" if time_regex else "raster mosaic")
         name = self.utils.removeUnacceptableChars(title)
         rasters = list()
@@ -1329,12 +1783,25 @@ class Layman(QObject):
                 rasters.append(raster_path)
             crs = layer.crs().authid()
 
+            if export_mode == "append":
+                self.utils.emitMessageBox.emit(
+                    [
+                        "Interní chyba: append musí volat _run_timeseries_append_job.",
+                        "Internal error: append must use _run_timeseries_append_job.",
+                    ]
+                )
+                self.tsUploadFinished.emit(False)
+                return
+
+            if export_mode == "overwrite":
+                overwrite = True
+
             payload = {
                 "name": name,
                 "title": title,
                 "crs": crs,
-                "overview_resampling": resamplingMethod,
             }
+            self._apply_overview_resampling(payload, resamplingMethod)
             if time_regex:
                 payload["time_regex"] = time_regex
 
@@ -1343,23 +1810,21 @@ class Layman(QObject):
             os.makedirs(filePath, exist_ok=True)
             self.layersToUpload = 1
 
-            if time_regex or zip_path is not None:
-                if zip_path is None:
-                    zip_path = tempfile.gettempdir() + os.sep + name + ".zip"
-                    with zipfile.ZipFile(zip_path, "w") as zip_file:
-                        for raster in rasters:
-                            zip_file.write(raster, os.path.basename(raster))
-                payload["file"] = [name + ".zip"]
+            print("[Layman mosaic] requested name={!r} title={!r}".format(name, title))
+            if zip_path is not None:
+                payload["file"] = [os.path.basename(zip_path)]
                 response = self._post_raster_mosaic_layer(
                     url, payload, stylePath, overwrite=overwrite
                 )
                 if response.status_code not in (200, 201):
                     return
+                name = self._layer_name_from_post_response(response, name)
+                print("[Layman mosaic] server layer name={!r}".format(name))
                 with open(zip_path, "rb") as f:
                     arr = [piece for piece in self.read_in_chunks(f)]
                 if not self.processChunks(
                     arr,
-                    name + ".zip",
+                    os.path.basename(zip_path),
                     "file",
                     len(arr),
                     name,
@@ -1370,52 +1835,32 @@ class Layman(QObject):
             else:
                 raster_names = [os.path.basename(raster) for raster in rasters]
                 payload["file"] = raster_names
-                needs_chunks = any(
-                    os.path.getsize(raster_path) > self.CHUNK_SIZE
-                    for raster_path in rasters
-                )
-                if needs_chunks:
-                    response = self._post_raster_mosaic_layer(
-                        url, payload, stylePath, overwrite=overwrite
+                print(
+                    "[Layman mosaic] uploading {} rasters via chunks{}".format(
+                        len(raster_names),
+                        " with time_regex" if time_regex else "",
                     )
-                    if response.status_code not in (200, 201):
-                        return
-                    for raster_path, raster_name in zip(rasters, raster_names):
-                        ext = os.path.splitext(raster_name)[1] or ".tif"
-                        with open(raster_path, "rb") as f:
-                            arr = [piece for piece in self.read_in_chunks(f)]
-                        if not self.processChunks(
-                            arr,
-                            raster_name,
-                            "file",
-                            len(arr),
-                            name,
-                            filePath,
-                            ext,
-                        ):
-                            return
-                else:
-                    open_handles = []
-                    files = []
-                    for raster_path, raster_name in zip(rasters, raster_names):
-                        handle = open(raster_path, "rb")
-                        open_handles.append(handle)
-                        files.append(("file", (raster_name, handle)))
-                    style_handle = open(stylePath, "rb")
-                    open_handles.append(style_handle)
-                    files.append(("style", (os.path.basename(stylePath), style_handle)))
-                    try:
-                        response = self._post_raster_mosaic_layer(
-                            url,
-                            payload,
-                            stylePath,
-                            files=files,
-                            overwrite=overwrite,
-                        )
-                    finally:
-                        for handle in open_handles:
-                            handle.close()
-                    if response.status_code not in (200, 201):
+                )
+                response = self._post_raster_mosaic_layer(
+                    url, payload, stylePath, overwrite=overwrite
+                )
+                if response.status_code not in (200, 201):
+                    return
+                name = self._layer_name_from_post_response(response, name)
+                print("[Layman mosaic] server layer name={!r}".format(name))
+                for raster_path, raster_name in zip(rasters, raster_names):
+                    ext = os.path.splitext(raster_name)[1] or ".tif"
+                    with open(raster_path, "rb") as f:
+                        arr = [piece for piece in self.read_in_chunks(f)]
+                    if not self.processChunks(
+                        arr,
+                        raster_name,
+                        "file",
+                        len(arr),
+                        name,
+                        filePath,
+                        ext,
+                    ):
                         return
         except Exception as ex:
             self.utils.emitMessageBox.emit(
@@ -1428,7 +1873,28 @@ class Layman(QObject):
         finally:
             self._cleanup_temp_raster_files(temp_raster_files)
 
-        self.tsSuccess.emit()
+        kind = "timeseries" if time_regex else "mosaic"
+        self._last_mosaic_export = {"name": name, "kind": kind, "title": title}
+        if not self._wait_for_layer_available(name):
+            if kind == "mosaic":
+                self.utils.emitMessageBox.emit(
+                    [
+                        "Zpracování mosaic vrstvy na serveru nedoběhlo včas.",
+                        "Mosaic layer processing on the server did not finish in time.",
+                    ]
+                )
+            else:
+                self.utils.emitMessageBox.emit(
+                    [
+                        "Zpracování timeseries na serveru nedoběhlo včas.",
+                        "Timeseries processing on the server did not finish in time.",
+                    ]
+                )
+            self.tsUploadFinished.emit(False)
+            return
+
+        self.tsSuccess.emit(kind)
+        self.tsUploadFinished.emit(True)
 
     def timeSeries(self, items, regex, title, resamplingMethod="Není vybrán"):
         self.uploadRasterMosaic(
@@ -2173,7 +2639,7 @@ class Layman(QObject):
             return ret
 
     def run_AddLayerDialog(self):
-        AddLayerDialog(
+        self.dlg = AddLayerDialog(
             self.utils, self.isAuthorized, self.laymanUsername, self.URI, self
         )
 
@@ -3993,7 +4459,7 @@ class Layman(QObject):
     def postRasterThread(
         self, layers, data, q, progress, patch, resamplingMethod="Není vybrán"
     ):
-        resamplingMethod = self.resamplingMethods.get(resamplingMethod, "")
+        resamplingMethod = self._normalize_resampling_method(resamplingMethod)
 
         for lay in layers:
             if lay.dataProvider().name() != "wms":
@@ -4001,9 +4467,6 @@ class Layman(QObject):
             elif "mbtiles" in lay.dataProvider().dataSourceUri():
                 # Layman nepodporuje mbtiles
                 return
-
-        if resamplingMethod == "No value" or resamplingMethod == "Není vybrán":
-            resamplingMethod = ""
 
         source_base = layer.source().split("|")[0]
         bucket, s3_key = parse_vsis3_source(source_base)
@@ -4052,8 +4515,7 @@ class Layman(QObject):
                 post_data["title"] = title
                 post_data["crs"] = ""
                 post_data["file_path"] = geoserver_rel_path
-                if resamplingMethod:
-                    post_data["overview_resampling"] = resamplingMethod
+                self._apply_overview_resampling(post_data, resamplingMethod)
                 style_file = open(stylePath, "rb")
                 try:
                     response = self.utils.requestWrapper(
@@ -4142,15 +4604,15 @@ class Layman(QObject):
                             "title": title,
                             "crs": str(layer.crs().authid()),
                             "style": open(stylePath, "rb"),
-                            "overview_resampling": resamplingMethod,
                         }
+                        self._apply_overview_resampling(payload, resamplingMethod)
                     else:
                         payload = {
                             "file": name.lower() + ext,
                             "title": title,
                             "crs": str(layer.crs().authid()),
-                            "overview_resampling": resamplingMethod,
                         }
+                        self._apply_overview_resampling(payload, resamplingMethod)
                     with open(stylePath, "rb") as style_file:
                         files = {"style": style_file}
                         response = self.utils.requestWrapper(
@@ -6579,16 +7041,69 @@ class Layman(QObject):
         else:
             return False
 
-    def _onSuccessTs(self):
-        self.utils.showQgisBar(
-            [
-                "Časová wms úspěšně exportována.",
-                "Time series WMS successfully exported.",
-            ],
-            Qgis.Success,
-        )
-        self.dlg.label_progress.setText(self.tr("Sucessfully exported:") + " 1 / 1")
-        self.dlg.progressBar.hide()
+    def _onTsUploadFinished(self, success):
+        if not success:
+            self._hide_upload_progress_widgets()
+            return
+        self._finish_timeseries_export_ui()
+
+    def _hide_upload_progress_widgets(self):
+        dlg = getattr(self, "dlg", None)
+        if dlg is None:
+            return
+        for widget_name in ("progressBar", "progressBar_loader", "label_progress"):
+            widget = getattr(dlg, widget_name, None)
+            if widget is not None:
+                try:
+                    widget.hide()
+                except Exception:
+                    pass
+
+    def _finish_timeseries_export_ui(self):
+        dlg = getattr(self, "dlg", None)
+        if dlg is None:
+            return
+        label = getattr(dlg, "label_progress", None)
+        if label is not None:
+            try:
+                label.setText(self.tr("Sucessfully exported:") + " 1 / 1")
+            except Exception:
+                pass
+        for widget_name in ("progressBar", "progressBar_loader"):
+            widget = getattr(dlg, widget_name, None)
+            if widget is not None:
+                try:
+                    widget.hide()
+                except Exception:
+                    pass
+
+    def _onSuccessTs(self, kind="timeseries"):
+        export_info = getattr(self, "_last_mosaic_export", None) or {}
+        layer_name = export_info.get("name") or ""
+        if kind == "mosaic":
+            if layer_name:
+                msgs = [
+                    "Mosaic vrstva '{}' úspěšně exportována.".format(layer_name),
+                    "Mosaic layer '{}' successfully exported.".format(layer_name),
+                ]
+            else:
+                msgs = [
+                    "Mosaic vrstva úspěšně exportována.",
+                    "Mosaic layer successfully exported.",
+                ]
+        else:
+            if layer_name:
+                msgs = [
+                    "Časová wms '{}' úspěšně exportována.".format(layer_name),
+                    "Time series WMS '{}' successfully exported.".format(layer_name),
+                ]
+            else:
+                msgs = [
+                    "Časová wms úspěšně exportována.",
+                    "Time series WMS successfully exported.",
+                ]
+        self.utils.showQgisBar(msgs, Qgis.Success)
+        self._finish_timeseries_export_ui()
 
     def _onEmitMessageBox(self, message):
         if self.locale == "cs":
