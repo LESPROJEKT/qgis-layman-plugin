@@ -27,7 +27,7 @@ import copy
 import json
 import os
 import os.path
-import random
+import uuid
 import re
 import shutil
 import tempfile
@@ -35,7 +35,7 @@ import threading
 import time
 import unicodedata
 import urllib.parse
-import xml.etree.ElementTree as ET
+from . import safe_xml as ET
 import zipfile
 from builtins import range, str
 from urllib.parse import urlparse
@@ -137,7 +137,7 @@ from .dlg_userInfo import UserInfoDialog
 from .layman_utils import LaymanUtils
 from .layman_qfield import Qfield
 from functools import partial
-from .layman_api import LaymanAPI
+from .layman_api import LaymanAPI, REQUEST_TIMEOUT, TRANSFER_TIMEOUT
 from .resources import *
 from .s3_mount_config import (
     build_server_raster_path,
@@ -145,6 +145,10 @@ from .s3_mount_config import (
     parse_vsis3_source,
     resolve_server_relative_mount,
 )
+
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 def qgs_range_to_single_value(rng):
@@ -388,7 +392,7 @@ class Layman(QObject):
             try:
                 app.aboutToQuit.connect(self._begin_shutdown_cleanup)
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in __init__", exc_info=True)
 
         if os.path.isfile(path):
             self.authFileTime = os.path.getmtime(path)
@@ -506,7 +510,7 @@ class Layman(QObject):
         try:
             QgsMessageLog.logMessage(line, "Layman raster", Qgis.Info)
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in _emit_raster_log", exc_info=True)
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
@@ -670,7 +674,11 @@ class Layman(QObject):
 
     def compositionExists(self, name):
         url = self.layman_api.get_map_file_url(self.laymanUsername, name)
-        r = requests.get(url=url, headers=self.utils.getAuthHeader(self.authCfg))
+        r = requests.get(
+            url=url,
+            headers=self.utils.getAuthHeader(self.authCfg),
+            timeout=REQUEST_TIMEOUT,
+        )
         if r.status_code == 200:
             return True
         elif self.utils.fromByteToJson(r.content)["code"] == 26:
@@ -784,7 +792,7 @@ class Layman(QObject):
                     self.tr("Sucessfully exported: ") + str(value) + "%"
                 )
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in updateInfo", exc_info=True)
 
     def _hide_import_progress_widgets(self, reset_value=False):
         for dlg_name in ("dlg", "old_dlg"):
@@ -798,14 +806,19 @@ class Layman(QObject):
                 try:
                     widget.hide()
                 except Exception:
-                    pass
+                    LOGGER.debug(
+                        "Ignored error in _hide_import_progress_widgets", exc_info=True
+                    )
             if reset_value:
                 pb = getattr(dlg, "progressBar", None)
                 if pb is not None:
                     try:
                         pb.setValue(0)
                     except Exception:
-                        pass
+                        LOGGER.debug(
+                            "Ignored error in _hide_import_progress_widgets",
+                            exc_info=True,
+                        )
 
     def duplicateLayers(self):
         layerList = set()
@@ -874,7 +887,10 @@ class Layman(QObject):
                             ):
                                 return
                     except Exception:
-                        pass
+                        LOGGER.debug(
+                            "Ignored error in addExistingLayerToComposition",
+                            exc_info=True,
+                        )
 
         layer_uuids = self.get_layer_uuids()
         uuid = layer_uuids.get(name)
@@ -898,7 +914,9 @@ class Layman(QObject):
                             return
 
             except Exception:
-                pass
+                LOGGER.debug(
+                    "Ignored error in addExistingLayerToComposition", exc_info=True
+                )
 
         if uuid is None:
             url = self.layman_api.get_layer_url(self.laymanUsername, name)
@@ -923,7 +941,9 @@ class Layman(QObject):
                         if matching_layer and matching_layer.get("workspace") == "root":
                             return
                 except Exception:
-                    pass
+                    LOGGER.debug(
+                        "Ignored error in addExistingLayerToComposition", exc_info=True
+                    )
 
         if uuid is None:
             raise ValueError(f"UUID not found for layer: {name}")
@@ -1206,7 +1226,9 @@ class Layman(QObject):
         url = self.layman_api.get_layer_url(self.laymanUsername, layer_name)
         try:
             response = requests.delete(
-                url, headers=self.utils.getAuthHeader(self.authCfg)
+                url,
+                headers=self.utils.getAuthHeader(self.authCfg),
+                timeout=REQUEST_TIMEOUT,
             )
             return response.status_code in (200, 404)
         except Exception:
@@ -1313,7 +1335,6 @@ class Layman(QObject):
                     url,
                     headers=self.utils.getAuthHeader(self.authCfg),
                     timeout=15,
-                    verify=False,
                 )
                 if response.status_code == 200:
                     data = response.json()
@@ -1329,7 +1350,9 @@ class Layman(QObject):
                     if publication_status == "FAILED" or status == "FAILED":
                         return False
             except Exception:
-                pass
+                LOGGER.debug(
+                    "Ignored error in _wait_for_layer_available", exc_info=True
+                )
             time.sleep(poll_seconds)
         return False
 
@@ -1355,12 +1378,11 @@ class Layman(QObject):
                 url,
                 headers=self.utils.getAuthHeader(self.authCfg),
                 timeout=15,
-                verify=False,
             )
             if response.status_code == 200:
                 return response.json()
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in _get_layer_detail", exc_info=True)
         return None
 
     def _layer_time_value_count(self, layer_data):
@@ -2201,6 +2223,7 @@ class Layman(QObject):
                 i = i + 1
 
             except Exception as e:
+                LOGGER.debug("Ignored error in loadLayerFromData", exc_info=True)
                 continue
 
     def readMapJsonThread(self, name, service, workspace=""):
@@ -2716,7 +2739,7 @@ class Layman(QObject):
             self.client_secret = servers[i][3]
             self.authCfg = servers[i][4]
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in setServers", exc_info=True)
 
     def listCompositeLayers(self, it):
         self.dlg.listWidget_listLayers2.clear()
@@ -2741,14 +2764,18 @@ class Layman(QObject):
                     if name == self.compositeList[x]["layers"][i]["params"]["LAYERS"]:
                         inComposite = True
                 except Exception:
-                    pass
+                    LOGGER.debug(
+                        "Ignored error in checkLayersInComopsitions", exc_info=True
+                    )
                 try:
                     if name == self.utils.removeUnacceptableChars(
                         self.compositeList[x]["layers"][i]["name"]
                     ):
                         inComposite = True
                 except Exception:
-                    pass
+                    LOGGER.debug(
+                        "Ignored error in checkLayersInComopsitions", exc_info=True
+                    )
         return inComposite
 
     def checkLayerInCurrentCompositon(self, name):
@@ -2760,12 +2787,16 @@ class Layman(QObject):
                 if name == composition["layers"][i]["params"]["LAYERS"]:
                     inComposite = True
             except Exception:
-                pass
+                LOGGER.debug(
+                    "Ignored error in checkLayerInCurrentCompositon", exc_info=True
+                )
             try:
                 if name == composition["layers"][i]["protocol"]["LAYERS"]:
                     inComposite = True
             except Exception:
-                pass
+                LOGGER.debug(
+                    "Ignored error in checkLayerInCurrentCompositon", exc_info=True
+                )
         return inComposite
 
     def getCompositionsByLayer(self, name):
@@ -3082,7 +3113,7 @@ class Layman(QObject):
                             if workspace_index + 1 < len(path_parts):
                                 layer_workspace = path_parts[workspace_index + 1]
                     except Exception:
-                        pass
+                        LOGGER.debug("Ignored error in wms_wfs3", exc_info=True)
 
                 if not layer_workspace:
                     layer_identifier = None
@@ -3112,7 +3143,7 @@ class Layman(QObject):
                                 if matching_layer:
                                     layer_workspace = matching_layer.get("workspace")
                         except Exception:
-                            pass
+                            LOGGER.debug("Ignored error in wms_wfs3", exc_info=True)
 
                 if not layer_workspace:
                     layer_workspace = self.laymanUsername
@@ -3145,7 +3176,7 @@ class Layman(QObject):
                                         layer_workspace or self.laymanUsername,
                                     )
                         except Exception:
-                            pass
+                            LOGGER.debug("Ignored error in wms_wfs3", exc_info=True)
 
                     url = self.layman_api.get_layer_url(
                         layer_workspace, layer_name_for_api
@@ -3232,7 +3263,6 @@ class Layman(QObject):
             "grantFlow": 0,
             "name": "auth",
             "objectName": "",
-            "password": "",
             "persistToken": False,
             "queryPairs": {},
             "redirectPort": int(self.port),
@@ -3282,7 +3312,7 @@ class Layman(QObject):
             try:
                 self.dlg.label_raster.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
         if message == "qfieldExport":
             try:
                 self.dlg2.progressBar.hide()
@@ -3306,17 +3336,17 @@ class Layman(QObject):
             try:
                 self.dlg.progressBar_loader.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
         if message == "disableProgressBar":
             try:
                 self.dlg.progressBar_loader.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
         if message == "enableProgressBar":
             try:
                 self.dlg.progressBar.show()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
         if message == "resetProgressbar":
             self._hide_import_progress_widgets(reset_value=True)
         if message == "disableProgress":
@@ -3326,7 +3356,7 @@ class Layman(QObject):
                 self.dlg.progressBar_loader.show()
                 self.dlg.label_raster.show()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
         if message == "errorConnection":
             self.utils.emitMessageBox.emit(
                 [
@@ -3340,7 +3370,7 @@ class Layman(QObject):
                 self._hide_import_progress_widgets(reset_value=False)
                 self.dlg.label_import.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
 
         if message == "exportPatch":
             try:
@@ -3352,7 +3382,7 @@ class Layman(QObject):
                     self.dlg.progressBar.hide()
                     self.dlg.label_import.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
             try:
                 self.dlg.pushButton.setEnabled(True)
                 self.dlg.pushButton_deleteMap.setEnabled(True)
@@ -3366,12 +3396,12 @@ class Layman(QObject):
                 self.dlg.progressBar.hide()
                 self.dlg.label_import.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
         if message[0:8] == "importl_":
             try:
                 self.progressColor(message[8:100], False)
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
             self.utils.showQgisBar(
                 [
                     "Vrstva: "
@@ -3397,12 +3427,12 @@ class Layman(QObject):
                     + str(self.batchLength)
                 )
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
             try:
                 if self.uploaded == self.batchLength:
                     self.dlg.progressBar.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
 
         if message == "wrongName":
             self.utils.emitMessageBox.emit(
@@ -3413,12 +3443,12 @@ class Layman(QObject):
             try:
                 self.dlg.progressBar.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
 
             try:
                 self.dlg.progressBar_loader.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
             self.utils.emitMessageBox.emit(
                 ["Vrstva není validní!", "Layer is invalid!"]
             )
@@ -3427,11 +3457,11 @@ class Layman(QObject):
             try:
                 self.dlg.progressBar.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
             try:
                 self.dlg.progressBar_loader.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
             self.utils.emitMessageBox.emit(
                 ["Nastavena naplatná projekce.", "Invalid projection."]
             )
@@ -3440,12 +3470,12 @@ class Layman(QObject):
             try:
                 self.dlg.progressBar.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
 
             try:
                 self.dlg.progressBar_loader.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
             self.utils.emitMessageBox.emit(
                 [
                     "Formát rastru BMP není podporován.",
@@ -3455,7 +3485,7 @@ class Layman(QObject):
             try:
                 self.dlg.progressBar.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
         if message == "addRaster":
             try:
                 self.dlg.progressBar.hide()
@@ -3465,12 +3495,12 @@ class Layman(QObject):
                 self.dlg.pushButton_deleteLayers.setEnabled(True)
                 self.dlg.label_raster.hide()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
 
             try:
                 self.dlg.label_thumbnail.setText(" ")
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in write_log_message", exc_info=True)
 
     def _loadStyle(self, layer):
         if isinstance(layer, QgsVectorLayer):
@@ -3548,12 +3578,12 @@ class Layman(QObject):
                 + str(self.batchLength)
             )
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in _onExportLayerSuccessful", exc_info=True)
         try:
             if self.uploaded == self.batchLength:
                 self.dlg.progressBar.hide()
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in _onExportLayerSuccessful", exc_info=True)
 
     def _onReadCompositionFailed(self):
         self.utils.showQgisBar(
@@ -3566,11 +3596,11 @@ class Layman(QObject):
         try:
             self.progressColor(layerName, False)
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in _onExportLayerFailed", exc_info=True)
         try:
             self.dlg.pushButton_errLog.show()
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in _onExportLayerFailed", exc_info=True)
         self.utils.showQgisBar(
             [
                 "Vrstva: " + layerName + " nebyla nahrána ",
@@ -3693,7 +3723,7 @@ class Layman(QObject):
         try:
             self.postRequest(layer.name(), True)
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in layerEditStopped", exc_info=True)
 
     def deleteLayerFromCanvas(self, name):
         lay = QgsProject.instance().mapLayersByName(name)[0]
@@ -3727,19 +3757,19 @@ class Layman(QObject):
             self.processingRequest = False
             self.isAuthorized = False
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in _begin_shutdown_cleanup", exc_info=True)
         try:
             if hasattr(self, "utils") and self.utils:
                 self.utils.setShuttingDown(True)
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in _begin_shutdown_cleanup", exc_info=True)
         # Best-effort close of open plugin dialogs/widgets.
         for _, obj in list(vars(self).items()):
             try:
                 if isinstance(obj, QWidget):
                     obj.close()
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in _begin_shutdown_cleanup", exc_info=True)
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -3759,6 +3789,7 @@ class Layman(QObject):
                 try:
                     shutil.copy(symbolPath, tempPath)
                 except Exception:
+                    LOGGER.debug("Ignored error in copySymbols", exc_info=True)
                     continue
                 print("Copying " + str(sl.path()))
                 fileNames.append(tempPath + os.sep + os.path.basename(symbolPath))
@@ -4322,12 +4353,16 @@ class Layman(QObject):
                         self.utils.removeUnacceptableChars(layer_name),
                     )
                     response = requests.get(
-                        url, headers=self.utils.getAuthHeader(self.authCfg)
+                        url,
+                        headers=self.utils.getAuthHeader(self.authCfg),
+                        timeout=REQUEST_TIMEOUT,
                     )
                     if response.status_code == 400:
                         time.sleep(3)
                         response = requests.get(
-                            url, headers=self.utils.getAuthHeader(self.authCfg)
+                            url,
+                            headers=self.utils.getAuthHeader(self.authCfg),
+                            timeout=REQUEST_TIMEOUT,
                         )
                 except Exception:
                     self.utils.showErr.emit(
@@ -4345,7 +4380,7 @@ class Layman(QObject):
                 try:
                     self.uploaded = self.uploaded + 1
                 except Exception:
-                    pass
+                    LOGGER.debug("Ignored error in patchThread", exc_info=True)
                 self.exportLayerSuccessful.emit(layer_name)
 
             else:
@@ -4358,7 +4393,7 @@ class Layman(QObject):
                 self.toUpload - 1
                 self.showExportInfo.emit("layersUploaded")
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in patchThread", exc_info=True)
         self.cleanTemp.emit(self.utils.removeUnacceptableChars(layer_name))
 
     def returnPathIfFileExists(self, path, ext, onlyExt=False):
@@ -4587,7 +4622,9 @@ class Layman(QObject):
                             self.utils.removeUnacceptableChars(layer_name),
                         )
                         response = requests.delete(
-                            url, headers=self.utils.getAuthHeader(self.authCfg)
+                            url,
+                            headers=self.utils.getAuthHeader(self.authCfg),
+                            timeout=REQUEST_TIMEOUT,
                         )
                         if response.status_code != 200 and response.status_code != 404:
                             self.showExportInfo.emit("resetProgressbar")
@@ -4720,11 +4757,11 @@ class Layman(QObject):
             try:
                 self.processingList[q][2] = 1
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in postRasterThread", exc_info=True)
             try:
                 self.uploaded = self.uploaded + 1
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in postRasterThread", exc_info=True)
             self.exportLayerSuccessful.emit(layer_name)
             self.showExportInfo.emit("export")
             self.cleanTemp.emit(self.utils.removeUnacceptableChars(layer_name))
@@ -4783,6 +4820,7 @@ class Layman(QObject):
                             data=payload,
                             files=files,
                             headers=self.utils.getAuthHeader(self.authCfg),
+                            timeout=TRANSFER_TIMEOUT,
                         )
 
                         if response.status_code == 200:
@@ -4893,7 +4931,7 @@ class Layman(QObject):
                 try:
                     self.uploaded = self.uploaded + 1
                 except Exception:
-                    pass
+                    LOGGER.debug("Ignored error in postThread", exc_info=True)
                 self.exportLayerSuccessful.emit(layer_name)
             elif response.status_code == 413:
                 # vrstva příliš velká – zalogujeme do souboru
@@ -4968,7 +5006,9 @@ class Layman(QObject):
         return True
 
     def readDimFromCapatibilites(self, url, name):
-        r = requests.get(url + "?service=wms&request=GetCapabilities")
+        r = requests.get(
+            url + "?service=wms&request=GetCapabilities", timeout=REQUEST_TIMEOUT
+        )
         dimension = ""
         e = ET.ElementTree(ET.fromstring(r.content))
         check = False
@@ -5251,7 +5291,10 @@ class Layman(QObject):
                 layer = item.replace("layers=", "").replace("'", "")
                 layers.append(layer)
 
-        r = requests.get(url + "?service=wms&version=1.1.1&request=GetCapabilities")
+        r = requests.get(
+            url + "?service=wms&version=1.1.1&request=GetCapabilities",
+            timeout=REQUEST_TIMEOUT,
+        )
 
         tree = ET.ElementTree(ET.fromstring(r.content))
         root = tree.getroot()
@@ -5494,6 +5537,7 @@ class Layman(QObject):
                     self.utils.removeUnacceptableChars(layer_name),
                 ),
                 headers=self.utils.getAuthHeader(self.authCfg),
+                timeout=REQUEST_TIMEOUT,
             )
         else:
             response = requests.get(
@@ -5501,6 +5545,7 @@ class Layman(QObject):
                     self.laymanUsername, self.utils.removeUnacceptableChars(layer_name)
                 ),
                 headers=self.utils.getAuthHeader(self.authCfg),
+                timeout=REQUEST_TIMEOUT,
             )
         res = response.content
         res = res.decode("utf-8")
@@ -5548,7 +5593,11 @@ class Layman(QObject):
             url = self.layman_api.get_layer_url(self.selectedWorkspace, layer_name)
         else:
             url = self.layman_api.get_layer_url(self.laymanUsername, layer_name)
-        r = requests.get(url=url, headers=self.utils.getAuthHeader(self.authCfg))
+        r = requests.get(
+            url=url,
+            headers=self.utils.getAuthHeader(self.authCfg),
+            timeout=REQUEST_TIMEOUT,
+        )
         try:
             data = r.json()
 
@@ -5569,7 +5618,7 @@ class Layman(QObject):
             else:
                 self.dlg.radioButton_wfs.setEnabled(True)
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in checkServiceAvailability", exc_info=True)
 
     def findParamForWfs(self, param, layer, delimiter):
         string = layer.dataProvider().uri().uri()
@@ -5654,7 +5703,9 @@ class Layman(QObject):
                                 if potential_workspace != "layman":
                                     wfs_workspace = potential_workspace
                     except Exception:
-                        pass
+                        LOGGER.debug(
+                            "Ignored error in addLayerToComposition", exc_info=True
+                        )
 
                 if not wfs_workspace:
                     wfs_workspace = self.instance.getWorkspace()
@@ -5916,7 +5967,11 @@ class Layman(QObject):
         }
         url = self.layman_api.get_maps_url(self.laymanUsername)
         response = requests.post(
-            url, files=files, data=data, headers=self.utils.getAuthHeader(self.authCfg)
+            url,
+            files=files,
+            data=data,
+            headers=self.utils.getAuthHeader(self.authCfg),
+            timeout=TRANSFER_TIMEOUT,
         )
         if response.status_code == 200:
             self.utils.showQgisBar(
@@ -6021,7 +6076,9 @@ class Layman(QObject):
         layer_name = layer_name.replace(" ", "_")
         layer_name = self.utils.removeUnacceptableChars(layer_name)
         url = self.layman_api.get_layer_url(self.laymanUsername, layer_name)
-        r = requests.get(url, headers=self.utils.getAuthHeader(self.authCfg))
+        r = requests.get(
+            url, headers=self.utils.getAuthHeader(self.authCfg), timeout=REQUEST_TIMEOUT
+        )
         res = r.json()
         read = res["access_rights"]["read"]
         write = res["access_rights"]["write"]
@@ -6197,7 +6254,7 @@ class Layman(QObject):
     ):
         urlwithoutjson = self.utils.decode_url(url)
         url = self.utils.decode_url(url + "?f=json")
-        r = requests.get(url)
+        r = requests.get(url, timeout=REQUEST_TIMEOUT)
         res = json.loads(r.content)
         id = 0
 
@@ -6224,8 +6281,7 @@ class Layman(QObject):
             else:
                 self.params = []
                 self.params.append(visibility)
-                rand = random.randint(0, 10000)
-                self.currentLayerDict[str(rand)] = rlayer
+                self.currentLayerDict[uuid.uuid4().hex] = rlayer
 
                 self.loadLayer(rlayer)
                 self.setVisibility.emit(rlayer)
@@ -6234,8 +6290,7 @@ class Layman(QObject):
                 rlayer.pipe().hueSaturationFilter().setGrayscaleMode(1)
             return True
         else:
-            rand = random.randint(0, 10000)
-            self.currentLayerDict[str(rand)] = rlayer
+            self.currentLayerDict[uuid.uuid4().hex] = rlayer
             self.loadLayer(rlayer)
             return False
 
@@ -6342,8 +6397,7 @@ class Layman(QObject):
             else:
                 self.params = []
                 self.params.append(visibility)
-                rand = random.randint(0, 10000)
-                self.currentLayerDict[str(rand)] = rlayer
+                self.currentLayerDict[uuid.uuid4().hex] = rlayer
                 self.loadLayer(rlayer)
                 self.setVisibility.emit(rlayer)
             if not visibility:
@@ -6484,8 +6538,7 @@ class Layman(QObject):
                         self.loadStyle.emit(vlayer)
                 else:
                     self.currentLayer.append(vlayer)
-                    rand = random.randint(0, 10000)
-                    self.currentLayerDict[str(rand)] = vlayer
+                    self.currentLayerDict[uuid.uuid4().hex] = vlayer
                     if workspace:
                         self.utils.loadLayer(vlayer, workspace)
                     else:
@@ -6748,7 +6801,7 @@ class Layman(QObject):
             self.dlg.pushButton_Continue.setEnabled(True)
             self.dlg.pushButton_Connect.setEnabled(False)
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in authOptained", exc_info=True)
 
         self.menu_Connection.setEnabled(True)
         self.menu_ImportLayerDialog.setEnabled(True)
@@ -6999,7 +7052,7 @@ class Layman(QObject):
         self.enableMapButton.emit()
 
     def download_url(self, url, save_path, chunk_size=128):
-        r = requests.get(url, stream=True)
+        r = requests.get(url, stream=True, timeout=TRANSFER_TIMEOUT)
         with open(save_path, "wb") as fd:
             for chunk in r.iter_content(chunk_size=chunk_size):
                 fd.write(chunk)
@@ -7057,7 +7110,9 @@ class Layman(QObject):
                 try:
                     widget.hide()
                 except Exception:
-                    pass
+                    LOGGER.debug(
+                        "Ignored error in _hide_upload_progress_widgets", exc_info=True
+                    )
 
     def _finish_timeseries_export_ui(self):
         dlg = getattr(self, "dlg", None)
@@ -7068,14 +7123,18 @@ class Layman(QObject):
             try:
                 label.setText(self.tr("Sucessfully exported:") + " 1 / 1")
             except Exception:
-                pass
+                LOGGER.debug(
+                    "Ignored error in _finish_timeseries_export_ui", exc_info=True
+                )
         for widget_name in ("progressBar", "progressBar_loader"):
             widget = getattr(dlg, widget_name, None)
             if widget is not None:
                 try:
                     widget.hide()
                 except Exception:
-                    pass
+                    LOGGER.debug(
+                        "Ignored error in _finish_timeseries_export_ui", exc_info=True
+                    )
 
     def _onSuccessTs(self, kind="timeseries"):
         export_info = getattr(self, "_last_mosaic_export", None) or {}
@@ -7261,7 +7320,9 @@ class Layman(QObject):
         layerName = self.utils.removeUnacceptableChars(it.text(0))
         workspace = it.text(1)
         url = self.layman_api.get_layer_url(workspace, str(layerName).lower())
-        r = requests.get(url, headers=self.utils.getAuthHeader(self.authCfg))
+        r = requests.get(
+            url, headers=self.utils.getAuthHeader(self.authCfg), timeout=REQUEST_TIMEOUT
+        )
         data = r.json()
         table = data["db"]["table"]
         schema = data["db"]["schema"]
@@ -7330,7 +7391,7 @@ class Layman(QObject):
             else:
                 self.dlg_current.label_log.hide()
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in showExportedCompositionInfo", exc_info=True)
 
     def refreshWfsLayers(self):
         project = QgsProject.instance()

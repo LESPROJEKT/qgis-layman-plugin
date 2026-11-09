@@ -82,7 +82,12 @@ try:
     from distutils.version import LooseVersion  # Python <= 3.11
 except ModuleNotFoundError:
     from packaging.version import Version as LooseVersion
-from .layman_api import LaymanAPI
+from .layman_api import LaymanAPI, REQUEST_TIMEOUT
+
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), "dlg_addMap.ui"))
 
@@ -308,7 +313,6 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 url,
                 headers=self.utils.getAuthHeader(self.utils.authCfg),
                 timeout=15,
-                verify=False,
             )
         except Exception as e:
             self.thumbnailMapDone.emit((None, str(e)))
@@ -474,7 +478,10 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         map = self.utils.removeUnacceptableChars(map)
         url = self.layman_api.get_map_url(self.layman.laymanUsername, map)
         response = requests.patch(
-            url, data=data, headers=self.utils.getAuthHeader(self.utils.authCfg)
+            url,
+            data=data,
+            headers=self.utils.getAuthHeader(self.utils.authCfg),
+            timeout=REQUEST_TIMEOUT,
         )
         print(response.content)
         if response.status_code != 200:
@@ -900,7 +907,11 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def fillCompositionDict(self):
         url = self.layman_api.get_get_all_maps_url()
-        r = requests.get(url=url, headers=self.utils.getAuthHeader(self.authCfg))
+        r = requests.get(
+            url=url,
+            headers=self.utils.getAuthHeader(self.authCfg),
+            timeout=REQUEST_TIMEOUT,
+        )
         dataAll = r.json()
         for row in range(0, len(dataAll)):
             self.compositionDict[dataAll[row]["name"]] = dataAll[row]["title"]
@@ -1157,7 +1168,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             threading.Thread(target=self.deleteQfieldProject, args=(name,)).start()
             url = self.layman_api.get_map_url(self.laymanUsername, name)
             response = requests.delete(
-                url, headers=self.utils.getAuthHeader(self.utils.authCfg)
+                url,
+                headers=self.utils.getAuthHeader(self.utils.authCfg),
+                timeout=REQUEST_TIMEOUT,
             )
             if response.status_code == 200:
                 self.utils.showQgisBar(
@@ -1436,7 +1449,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         everyone = False
                         try:
                             r = requests.get(
-                                url=url, headers=self.utils.getAuthHeader(self.authCfg)
+                                url=url,
+                                headers=self.utils.getAuthHeader(self.authCfg),
+                                timeout=REQUEST_TIMEOUT,
                             )
                             r = self.utils.requestWrapper(
                                 "GET", url, payload=None, files=None
@@ -1538,7 +1553,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                                             workspace_index + 1
                                         ]
                             except Exception:
-                                pass
+                                LOGGER.debug(
+                                    "Ignored error in loadLayer", exc_info=True
+                                )
 
                         if "path" in data["layers"][x]:
                             groupName = data["layers"][x]["path"]

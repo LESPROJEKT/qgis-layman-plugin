@@ -70,7 +70,7 @@ except AttributeError:
     _WindowStaysOnTopHint = getattr(Qt, "WindowStaysOnTopHint", None)
 import threading
 import requests
-import xml.etree.ElementTree as ET
+from . import safe_xml as ET
 import traceback
 import json
 from .currentComposition import CurrentComposition
@@ -82,9 +82,13 @@ except ModuleNotFoundError:
     from packaging.version import Version as LooseVersion
 from .layman_qfield import Qfield
 import tempfile
-from .layman_api import LaymanAPI
+from .layman_api import LaymanAPI, REQUEST_TIMEOUT
 import requests
 import json
+
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -329,8 +333,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                                 self.setWindowTitle(
                                     self.tr("Composition: ") + composition["title"]
                                 )
-                            except:
-                                pass
+                            except Exception:
+                                LOGGER.debug("Ignored error in setUi", exc_info=True)
                             self.refreshCurrentForm()
                             self.setVisibilityForCurrent(True)
                 else:
@@ -1339,7 +1343,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         headers = self.utils.getAuthHeader(self.utils.authCfg)
 
         try:
-            composition_response = requests.get(url, headers=headers)
+            composition_response = requests.get(
+                url, headers=headers, timeout=REQUEST_TIMEOUT
+            )
             composition_response.raise_for_status()
             composition = composition_response.json()
         except Exception as e:
@@ -1351,16 +1357,20 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         all_layers = []
         try:
             all_layers_url = self.layman_api.get_get_all_layers_url()
-            response = requests.get(all_layers_url, headers=headers)
+            response = requests.get(
+                all_layers_url, headers=headers, timeout=REQUEST_TIMEOUT
+            )
             if response.status_code == 200:
                 all_layers = response.json()
         except Exception as e:
-            pass
+            LOGGER.debug("Ignored error in collectPermissionsAndSave", exc_info=True)
 
         if not all_layers:
             layers_url = self.layman_api.get_layers_url(self.layman.laymanUsername)
             try:
-                response = requests.get(layers_url, headers=headers)
+                response = requests.get(
+                    layers_url, headers=headers, timeout=REQUEST_TIMEOUT
+                )
                 response.raise_for_status()
                 all_layers = response.json()
             except Exception as e:
@@ -1405,11 +1415,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     layer_url = self.layman_api.get_layer_url(
                         self.layman.laymanUsername, layer_name
                     )
-                    layer_response = requests.get(layer_url, headers=headers)
+                    layer_response = requests.get(
+                        layer_url, headers=headers, timeout=REQUEST_TIMEOUT
+                    )
                     if layer_response.status_code == 200:
                         matching_layer = layer_response.json()
                 except Exception:
-                    pass
+                    LOGGER.debug(
+                        "Ignored error in collectPermissionsAndSave", exc_info=True
+                    )
 
             if not matching_layer:
                 continue
@@ -1459,7 +1473,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     "access_rights.write": self.utils.listToString(write_access),
                 }
                 url = self.layman_api.get_map_url(self.layman.laymanUsername, map)
-                response = requests.patch(url, data=data, headers=headers)
+                response = requests.patch(
+                    url, data=data, headers=headers, timeout=REQUEST_TIMEOUT
+                )
                 if response.status_code != 200:
                     self.failed.append(map)
                 if len(self.failed) == 0:
@@ -1474,7 +1490,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         }
 
         url = self.layman_api.get_map_url(self.layman.laymanUsername, map)
-        response = requests.patch(url, data=data, headers=headers)
+        response = requests.patch(
+            url, data=data, headers=headers, timeout=REQUEST_TIMEOUT
+        )
         if response.status_code != 200:
             self.failed.append(map)
 
@@ -1511,11 +1529,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     layer_url = self.layman_api.get_layer_url(
                         self.layman.laymanUsername, layer_name
                     )
-                    layer_response = requests.get(layer_url, headers=headers)
+                    layer_response = requests.get(
+                        layer_url, headers=headers, timeout=REQUEST_TIMEOUT
+                    )
                     if layer_response.status_code == 200:
                         matching_layer = layer_response.json()
                 except Exception:
-                    pass
+                    LOGGER.debug(
+                        "Ignored error in collectPermissionsAndSave", exc_info=True
+                    )
 
             if not matching_layer:
                 continue
@@ -1527,7 +1549,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 continue
 
             layer_url = matching_layer.get("url")
-            layer_response = requests.patch(layer_url, data=data, headers=headers)
+            layer_response = requests.patch(
+                layer_url, data=data, headers=headers, timeout=REQUEST_TIMEOUT
+            )
             if layer_response.status_code != 200:
                 self.failed.append(layer_name)
 
@@ -2325,8 +2349,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.setWindowTitle("Kompozice: " + composition["title"])
             else:
                 self.setWindowTitle("Composition: " + composition["title"])
-        except:
-            pass
+        except Exception:
+            LOGGER.debug("Ignored error in modifyMeta", exc_info=True)
         self.progressDone.emit()
 
     def _onProgressDone(self):
@@ -2568,7 +2592,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             url = self.layman_api.get_map_file_url(
                 self.layman.laymanUsername, str(text)
             )
-            r = requests.get(url, headers=self.utils.getAuthHeader(self.layman.authCfg))
+            r = requests.get(
+                url,
+                headers=self.utils.getAuthHeader(self.layman.authCfg),
+                timeout=REQUEST_TIMEOUT,
+            )
             res = r.json()
             e = False
             try:
@@ -2948,7 +2976,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     with open(schema_file, "r", encoding="utf-8") as f:
                         return json.load(f)
             except Exception:
-                pass
+                LOGGER.debug("Ignored error in getCompositionSchema", exc_info=True)
 
         return None
 
@@ -3534,7 +3562,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                             if workspace_index + 1 < len(path_parts):
                                 layer_workspace = path_parts[workspace_index + 1]
                     except Exception:
-                        pass
+                        LOGGER.debug(
+                            "Ignored error in loadLayerFromData", exc_info=True
+                        )
 
                 print(f"DEBUG: Vector Layer connection details:")
                 print(f"  - Layer name: {layerName}")

@@ -29,6 +29,10 @@ from qgis.PyQt.QtWidgets import QTreeWidgetItem
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.core import Qgis
 
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(
@@ -146,5 +150,5 @@ class AddMickaDialog(QtWidgets.QDialog, FORM_CLASS):
     def _onProgressDone(self):
         try:
             self.progressBar_loader.hide()
-        except:
-            pass
+        except Exception:
+            LOGGER.debug("Ignored error in _onProgressDone", exc_info=True)

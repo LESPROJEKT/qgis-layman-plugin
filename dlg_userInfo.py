@@ -39,7 +39,7 @@ import shutil
 from qgis.PyQt.QtWidgets import QMessageBox
 from zipfile import ZipFile
 from qgis.core import Qgis
-from .layman_api import LaymanAPI
+from .layman_api import LaymanAPI, REQUEST_TIMEOUT, TRANSFER_TIMEOUT
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(
@@ -360,7 +360,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
         return True
 
     def download_url(self, url, save_path, chunk_size=128):
-        r = requests.get(url, stream=True)
+        r = requests.get(url, stream=True, timeout=TRANSFER_TIMEOUT)
         with open(save_path, "wb") as fd:
             for chunk in r.iter_content(chunk_size=chunk_size):
                 fd.write(chunk)
@@ -373,7 +373,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
             url = "https://raw.githubusercontent.com/LESPROJEKT/qgis-layman-plugin/master/metadata.txt"
 
         try:
-            r = requests.get(url)
+            r = requests.get(url, timeout=REQUEST_TIMEOUT)
             buf = io.StringIO(r.text)
             config = configparser.ConfigParser()
             config.read_file(buf)
@@ -409,7 +409,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
 
         if reply == QMessageBox.StandardButton.Yes:
             url = self.layman_api.get_user_delete_url(self.laymanUsername)
-            response = requests.delete(url)
+            response = requests.delete(url, timeout=REQUEST_TIMEOUT)
             if response.status_code == 200:
                 QMessageBox.information(
                     None,

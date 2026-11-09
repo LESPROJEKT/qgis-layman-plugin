@@ -1,6 +1,7 @@
 import requests
 import re
 from qgis.core import *
+from .layman_api import REQUEST_TIMEOUT
 
 
 class CurrentComposition(object):
@@ -138,7 +139,7 @@ class CurrentComposition(object):
             + self.name
             + "/file"
         )
-        r = requests.get(url=url, headers=self.header)
+        r = requests.get(url=url, headers=self.header, timeout=REQUEST_TIMEOUT)
         data = r.json()
         if "layers" not in data:
             data["layers"] = []
@@ -154,7 +155,7 @@ class CurrentComposition(object):
                 + self.name
                 + "/file"
             )
-            r = requests.get(url=url, headers=self.header)
+            r = requests.get(url=url, headers=self.header, timeout=REQUEST_TIMEOUT)
             data = r.json()
             if "access_rights" in data and "write" in data["access_rights"]:
                 if (
@@ -200,7 +201,7 @@ class CurrentComposition(object):
     def getAllPermissions(self):
         try:
             url = self.URI + "/rest/workspaces/" + self.workspace + "/maps/" + self.name
-            r = requests.get(url=url, headers=self.header)
+            r = requests.get(url=url, headers=self.header, timeout=REQUEST_TIMEOUT)
             data = r.json()
             return data["access_rights"]
         except Exception as e:
