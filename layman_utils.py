@@ -29,15 +29,42 @@ import io
 import hashlib
 import threading
 import ssl
+import sys
+import certifi
 import time
 from datetime import datetime, timedelta
 import math
 from qgis.PyQt.QtGui import QImage
 from qgis.PyQt.QtCore import QSize
 import processing
-from .layman_api import LaymanAPI
+from .layman_api import LaymanAPI, REQUEST_TIMEOUT, TRANSFER_TIMEOUT
+
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
 
 _TLS_LOCK = threading.RLock()
+_SSL_CONTEXT = None
+
+
+def get_ssl_context():
+    # Explicit CA bundle avoids Windows cert-store loading in embedded runtime.
+    global _SSL_CONTEXT
+    with _TLS_LOCK:
+        if _SSL_CONTEXT is None:
+            _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+        return _SSL_CONTEXT
+
+
+def urlopen_http(req, timeout):
+    scheme = urllib.parse.urlsplit(req.full_url).scheme.lower()
+    if scheme not in ("http", "https"):
+        raise ValueError(f"Unsupported URL scheme: {scheme!r}")
+    return urllib_request.urlopen(  # nosec B310 - scheme restricted above
+        req, timeout=timeout, context=get_ssl_context()
+    )
+
 
 _Style = QtWidgets.QStyle
 try:
@@ -200,7 +227,6 @@ class LaymanUtils(QObject):
                     data=payload,
                     files=files,
                     timeout=30,
-                    verify=False,
                 )
             else:
                 response = requests.request(
@@ -210,7 +236,6 @@ class LaymanUtils(QObject):
                     data=payload,
                     files=files,
                     timeout=30,
-                    verify=False,
                 )
         except Exception as ex:
             info = str(ex)
@@ -259,12 +284,9 @@ class LaymanUtils(QObject):
             headers=merged_headers,
             method=str(method).upper(),
         )
-        context = ssl._create_unverified_context()
         try:
             with _TLS_LOCK:
-                with urllib_request.urlopen(
-                    req, timeout=timeout, context=context
-                ) as resp:
+                with urlopen_http(req, timeout=timeout) as resp:
                     return resp.getcode(), resp.read(), None
         except urllib_error.HTTPError as ex:
             return ex.code, ex.read() or b"", None
@@ -332,7 +354,6 @@ class LaymanUtils(QObject):
             data=payload,
             files=files,
             timeout=30,
-            verify=False,
         )
         response_content = response.content
         if emitErr and response.status_code != 200:
@@ -716,7 +737,7 @@ class LaymanUtils(QObject):
             req = urllib_request.Request(
                 url, headers={"User-Agent": "QGIS-Layman-Plugin"}
             )
-            with urllib_request.urlopen(req, timeout=10) as resp:
+            with urlopen_http(req, timeout=10) as resp:
                 text = resp.read().decode("utf-8", errors="replace")
             version = self._extract_metadata_version(text)
         except Exception:
@@ -938,7 +959,9 @@ class LaymanUtils(QObject):
             url = self.layman_api.get_layer_url(workspace, layer_name)
         else:
             url = self.layman_api.get_layer_url(laymanUsername, layer_name)
-        r = requests.get(url=url, headers=self.getAuthHeader(self.authCfg))
+        r = requests.get(
+            url=url, headers=self.getAuthHeader(self.authCfg), timeout=REQUEST_TIMEOUT
+        )
         try:
             data = r.json()
 
@@ -1189,12 +1212,16 @@ class LaymanUtils(QObject):
             url = self.layman_api.get_layer_style_url(
                 self.selectedWorkspace, self.removeUnacceptableChars(layer_name)
             )
-            response = requests.get(url, headers=self.getAuthHeader(self.authCfg))
+            response = requests.get(
+                url, headers=self.getAuthHeader(self.authCfg), timeout=REQUEST_TIMEOUT
+            )
         else:
             url = self.layman_api.get_layer_style_url(
                 self.laymanUsername, self.removeUnacceptableChars(layer_name)
             )
-            response = requests.get(url, headers=self.getAuthHeader(self.authCfg))
+            response = requests.get(
+                url, headers=self.getAuthHeader(self.authCfg), timeout=REQUEST_TIMEOUT
+            )
         res = response.content
         res = res.decode("utf-8")
         if res[0:5] == "<qgis" and response.status_code == 200:
@@ -1223,13 +1250,9 @@ class LaymanUtils(QObject):
         userEndpoint = self.layman_api.get_current_user_url()
         headers = self.getAuthHeader(self.authCfg)
         req = urllib_request.Request(userEndpoint, headers=headers or {})
-        # Avoid Windows cert-store loading in embedded runtime.
-        context = ssl._create_unverified_context()
         try:
             with _TLS_LOCK:
-                with urllib_request.urlopen(
-                    req, timeout=30, context=context
-                ) as response:
+                with urlopen_http(req, timeout=30) as response:
                     body = response.read()
         except Exception as ex:
             raise LaymanRequestError(f"Request failed: {ex}") from ex
@@ -1240,12 +1263,9 @@ class LaymanUtils(QObject):
         userEndpoint = self.layman_api.get_current_user_url()
         headers = self.getAuthHeader(self.authCfg)
         req = urllib_request.Request(userEndpoint, headers=headers or {})
-        context = ssl._create_unverified_context()
         try:
             with _TLS_LOCK:
-                with urllib_request.urlopen(
-                    req, timeout=30, context=context
-                ) as response:
+                with urlopen_http(req, timeout=30) as response:
                     body = response.read()
         except Exception as ex:
             raise LaymanRequestError(f"Request failed: {ex}") from ex
@@ -1256,13 +1276,9 @@ class LaymanUtils(QObject):
         userEndpoint = self.layman_api.get_current_user_url()
         headers = self.getAuthHeader(self.authCfg)
         req = urllib_request.Request(userEndpoint, headers=headers or {})
-        # Avoid Windows cert-store loading in embedded runtime.
-        context = ssl._create_unverified_context()
         try:
             with _TLS_LOCK:
-                with urllib_request.urlopen(
-                    req, timeout=30, context=context
-                ) as response:
+                with urlopen_http(req, timeout=30) as response:
                     body = response.read()
         except Exception as ex:
             raise LaymanRequestError(f"Request failed: {ex}") from ex
@@ -1334,7 +1350,9 @@ class LaymanUtils(QObject):
     def fillCompositionDict(self):
         compositionDict = {}
         url = self.layman_api.get_get_all_maps_url()
-        r = requests.get(url=url, headers=self.getAuthHeader(self.authCfg))
+        r = requests.get(
+            url=url, headers=self.getAuthHeader(self.authCfg), timeout=REQUEST_TIMEOUT
+        )
         dataAll = r.json()
         for row in range(0, len(dataAll)):
             compositionDict[dataAll[row]["name"]] = dataAll[row]["title"]
@@ -1443,7 +1461,9 @@ class LaymanUtils(QObject):
 
     def checkPublicationStatus(self, layer):
         url = self.layman_api.get_layer_url(self.laymanUsername, layer)
-        r = requests.get(url, headers=self.getAuthHeader(self.authCfg))
+        r = requests.get(
+            url, headers=self.getAuthHeader(self.authCfg), timeout=REQUEST_TIMEOUT
+        )
         response = self.fromByteToJson(r.content)
         if not "layman_metadata" in response:
             return False
@@ -1618,7 +1638,11 @@ QPushButton::indicator {
         return mime_type
 
     def generate_md5(self, filename):
-        hash_md5 = hashlib.md5()
+        # Checksum for comparing files with QFieldCloud, not a security hash.
+        if sys.version_info >= (3, 9):
+            hash_md5 = hashlib.md5(usedforsecurity=False)
+        else:
+            hash_md5 = hashlib.md5()  # nosec B324 - no usedforsecurity before 3.9
         with open(filename, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
@@ -1726,7 +1750,9 @@ QPushButton::indicator {
 
     def filterTitlesByAccessRights(self, layers):
         url = self.layman_api.get_layers_url(self.laymanUsername)
-        response = requests.get(url, headers=self.getAuthHeader(self.authCfg))
+        response = requests.get(
+            url, headers=self.getAuthHeader(self.authCfg), timeout=REQUEST_TIMEOUT
+        )
         filtered_layers = []
         for layer in response.json():
             read_rights = layer.get("access_rights", {}).get("read", [])
@@ -1758,7 +1784,10 @@ QPushButton::indicator {
                 "access_rights.write": self.listToString(write_access),
             }
             response = requests.patch(
-                url, data=data, headers=self.getAuthHeader(self.authCfg)
+                url,
+                data=data,
+                headers=self.getAuthHeader(self.authCfg),
+                timeout=REQUEST_TIMEOUT,
             )
             print(
                 f"Update for layer '{name}': {response.status_code}, Response: {response.text}"
@@ -1851,7 +1880,9 @@ QPushButton::indicator {
 
     def downloadFile(self, url, local_filename):
         headers = self.getAuthHeader(self.authCfg)
-        with requests.get(url, headers=headers, stream=True) as r:
+        with requests.get(
+            url, headers=headers, stream=True, timeout=TRANSFER_TIMEOUT
+        ) as r:
             r.raise_for_status()
             with open(local_filename, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
@@ -2078,7 +2109,7 @@ class ProxyStyle(QtWidgets.QProxyStyle):
 
             painter.drawPixmap(iconRect, pixmap)
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in drawControl", exc_info=True)
 
 
 class IconQfieldDelegate(QtWidgets.QStyledItemDelegate):

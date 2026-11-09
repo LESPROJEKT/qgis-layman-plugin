@@ -1,0 +1,778 @@
+{
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/hslayers/map-compositions/3.0.0/schema.json",
+  "type": "object",
+  "title": "Schema of map compositions supported in Hslayers-ng",
+  "required": [
+    "describedBy",
+    "schema_version",
+    "abstract",
+    "title",
+    "extent",
+    "nativeExtent",
+    "projection",
+    "layers"
+  ],
+  "properties": {
+    "describedBy": {
+      "description": "The URL reference to the schema.",
+      "type": "string",
+      "pattern": "https://raw.githubusercontent.com/hslayers/map-compositions/(([0-9]{1,}.[0-9]{1,}.[0-9]{1,})|([a-zA-Z]*?))/schema.json"
+    },
+    "schema_version": {
+      "description": "The version number of the schema in model.revision.addition format.",
+      "type": "string",
+      "pattern": "^[0-9]{1,}.[0-9]{1,}.[0-9]{1,}$",
+      "example": "1.2.0"
+    },
+    "abstract": {
+      "$id": "#/properties/abstract",
+      "type": "string",
+      "title": "The Abstract Schema",
+      "default": "",
+      "examples": [
+        "Na mapě jsou zobrazené třídy ochrany půdy v Libereckém kraji"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "name": {
+      "$id": "#/properties/name",
+      "type": "string",
+      "title": "Same as #/properties/abstract for backwards compatibility",
+      "default": "",
+      "examples": [
+        "Na mapě jsou zobrazené třídy ochrany půdy v Libereckém kraji"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "title": {
+      "$id": "#/properties/title",
+      "type": "string",
+      "title": "The Title Schema",
+      "default": "",
+      "examples": [
+        "Třídy ochrany půdy"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "extent": {
+      "$id": "#/properties/extent",
+      "type": "array",
+      "title": "Composition extent in EPSG:4326 as list of four values: [min longitude, min latitude, max longitude, max latitude].",
+      "items": {
+        "$id": "#/properties/extent/items",
+        "type": "number",
+        "title": "The Items Schema",
+        "default": "",
+        "examples": [
+          14.62,
+          50.58,
+          15.42,
+          50.82
+        ],
+        "pattern": "^(.*)$"
+      }
+    },
+    "nativeExtent": {
+      "$id": "#/properties/extent",
+      "type": "array",
+      "title": "Map extent in the native (original) coordinate system of the composition",
+      "items": {
+        "$id": "#/properties/extent/items",
+        "type": "number",
+        "title": "The Items Schema",
+        "default": "",
+        "examples": [
+          1672068,
+          6568819,
+          1672168,
+          6568919
+        ],
+        "pattern": "^(.*)$"
+      }
+    },
+    "user": {
+      "$id": "#/properties/user",
+      "type": "object",
+      "title": "The User Schema",
+      "description": "Used in status manager but not in hslayers",
+      "required": [
+        "email",
+        "name"
+      ],
+      "properties": {
+        "email": {
+          "$id": "#/properties/user/properties/email",
+          "type": "string",
+          "title": "The Email Schema",
+          "default": "",
+          "examples": [
+            "dmitrii@seznam.cz"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "name": {
+          "$id": "#/properties/user/properties/name",
+          "type": "string",
+          "title": "The Name Schema",
+          "default": "",
+          "examples": [
+            "Dmitrij Kožuch"
+          ],
+          "pattern": "^(.*)$"
+        }
+      }
+    },
+    "contact": {
+      "$id": "#/properties/contact",
+      "type": "object",
+      "title": "Point of Contact",
+      "description": "Metadata contact of the organisation responsible for the creation and maintenance of the metadata",
+      "required": [
+        "organization"
+      ],
+      "properties": {
+        "person": {
+          "$id": "#/properties/contact/properties/person",
+          "type": "string",
+          "title": "Person name",
+          "default": "",
+          "examples": [
+            "John Olivander"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "organization": {
+          "$id": "#/properties/contact/properties/organization",
+          "type": "string",
+          "title": "Organization name",
+          "default": "",
+          "examples": [
+            "Metabusiness inc."
+          ],
+          "pattern": "^(.*)$"
+        },
+        "address": {
+          "$id": "#/properties/contact/properties/address",
+          "type": "string",
+          "title": "Road, no., PO Box, etc.",
+          "default": "",
+          "examples": [
+            "Sesame Street 145"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "city": {
+          "$id": "#/properties/contact/properties/city",
+          "type": "string",
+          "title": "City",
+          "default": "",
+          "examples": [
+            "Pilsen"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "postalCode": {
+          "$id": "#/properties/contact/properties/postalCode",
+          "type": "string",
+          "title": "Postal code",
+          "default": "",
+          "examples": [
+            "312 00"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "country": {
+          "$id": "#/properties/contact/properties/country",
+          "type": "string",
+          "title": "Country",
+          "default": "",
+          "examples": [
+            "Czech Republic"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "phone": {
+          "$id": "#/properties/contact/properties/phone",
+          "type": "string",
+          "title": "Phone no.",
+          "default": "",
+          "examples": [
+            "+420 987 654 321"
+          ],
+          "pattern": "^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\\s\\./0-9]*$"
+        },
+        "email": {
+          "$id": "#/properties/contact/properties/email",
+          "type": "string",
+          "title": "Contact email address",
+          "default": "",
+          "examples": [
+            "user@email.com"
+          ],
+          "pattern": "^\\w+([\\.-]?\\w+)*@\\w+([\\.-]?\\w+)*(\\.\\w{2,3})+$"
+        },
+        "www": {
+          "$id": "#/properties/contact/properties/www",
+          "type": "string",
+          "title": "Web pages",
+          "default": "",
+          "examples": [
+            "https://www.lesprojekt.cz"
+          ],
+          "pattern": "^(.*)$"
+        }
+      }
+    },
+    "organization": {
+      "$id": "#/properties/organization",
+      "type": "object",
+      "title": "Responsible organization",
+      "description": "The organisation responsible for the creation and maintenance of the metadata",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "$id": "#/properties/organization/properties/name",
+          "type": "string",
+          "title": "Organization name",
+          "default": "",
+          "examples": [
+            "Metabusiness inc."
+          ],
+          "pattern": "^(.*)$"
+        },
+        "person": {
+          "$id": "#/properties/organization/properties/person",
+          "type": "string",
+          "title": "Person name (responsible contact)",
+          "default": "",
+          "examples": [
+            "John Olivander"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "address": {
+          "$id": "#/properties/organization/properties/address",
+          "type": "string",
+          "title": "Road, no., PO Box, etc.",
+          "default": "",
+          "examples": [
+            "Sesame Street 145"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "city": {
+          "$id": "#/properties/organization/properties/city",
+          "type": "string",
+          "title": "City",
+          "default": "",
+          "examples": [
+            "Pilsen"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "postalCode": {
+          "$id": "#/properties/organization/properties/postalCode",
+          "type": "string",
+          "title": "Postal code",
+          "default": "",
+          "examples": [
+            "312 00"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "country": {
+          "$id": "#/properties/organization/properties/country",
+          "type": "string",
+          "title": "Country",
+          "default": "",
+          "examples": [
+            "Czech Republic"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "phone": {
+          "$id": "#/properties/organization/properties/phone",
+          "type": "string",
+          "title": "Phone no.",
+          "default": "",
+          "examples": [
+            "+420 987 654 321"
+          ],
+          "pattern": "^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\\s\\./0-9]*$"
+        },
+        "email": {
+          "$id": "#/properties/organization/properties/email",
+          "type": "string",
+          "title": "Contact email address",
+          "default": "",
+          "examples": [
+            "user@email.com"
+          ],
+          "pattern": "^\\w+([\\.-]?\\w+)*@\\w+([\\.-]?\\w+)*(\\.\\w{2,3})+$"
+        },
+        "www": {
+          "$id": "#/properties/organization/properties/www",
+          "type": "string",
+          "title": "Web pages",
+          "default": "",
+          "examples": [
+            "https://www.lesprojekt.cz"
+          ],
+          "pattern": "^(.*)$"
+        }
+      }
+    },
+    "scale": {
+      "$id": "#/properties/scale",
+      "type": "number",
+      "description": "Currently not supported in HsLayers",
+      "title": "The Scale Schema",
+      "default": 0,
+      "examples": [
+        1
+      ]
+    },
+    "projection": {
+      "$id": "#/properties/projection",
+      "type": "string",
+      "title": "The Projection Schema",
+      "default": "",
+      "examples": [
+        "epsg:3857",
+        "EPSG:4326"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "center": {
+      "$id": "#/properties/center",
+      "type": "array",
+      "title": "Map center in the native (original) coordinate system of the composition",
+      "items": {
+        "$id": "#/properties/center/items",
+        "type": "number",
+        "title": "The Items Schema",
+        "default": 0,
+        "examples": [
+          1672068,
+          6568819
+        ]
+      }
+    },
+    "units": {
+      "$id": "#/properties/units",
+      "type": "string",
+      "title": "The Units Schema",
+      "description": "Currently not supported in HsLayers",
+      "default": "",
+      "examples": [
+        "degrees",
+        "imperial",
+        "nautical",
+        "metric",
+        "us"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "layers": {
+      "$id": "#/properties/layers",
+      "type": "array",
+      "title": "The Layers Schema",
+      "items": {
+        "$id": "#/properties/layers/items",
+        "type": "object",
+        "title": "The Items Schema",
+        "required": [
+          "metadata",
+          "visibility",
+          "title",
+          "className"
+        ],
+        "properties": {
+          "metadata": {
+            "$id": "#/properties/layers/items/properties/metadata",
+            "type": "object",
+            "title": "The Metadata Schema"
+          },
+          "visibility": {
+            "$id": "#/properties/layers/items/properties/visibility",
+            "type": "boolean",
+            "title": "Visibility",
+            "default": false,
+            "examples": [
+              true
+            ]
+          },
+          "base": {
+            "$id": "#/properties/layers/items/properties/base",
+            "type": "boolean",
+            "title": "Base layer",
+            "description": "Is the layer one of the base layers",
+            "default": false,
+            "examples": [
+              true
+            ]
+          },
+          "opacity": {
+            "$id": "#/properties/layers/items/properties/opacity",
+            "type": [
+              "string",
+              "number"
+            ],
+            "title": "Opacity",
+            "default": "",
+            "examples": [
+              "1"
+            ],
+            "pattern": "^(.*)$"
+          },
+          "path": {
+            "$id": "#/properties/layers/items/properties/path",
+            "type": "string",
+            "title": "Path of folder structure to group the layer into",
+            "default": "",
+            "examples": [
+              "Climatic data/Time layers"
+            ],
+            "pattern": "^(.*)$"
+          },
+          "title": {
+            "$id": "#/properties/layers/items/properties/title",
+            "type": "string",
+            "title": "Title",
+            "default": "",
+            "examples": [
+              "Třídy ochrany půdy"
+            ],
+            "pattern": "^(.*)$"
+          },
+          "className": {
+            "$id": "#/properties/layers/items/properties/className",
+            "type": "string",
+            "title": "Classname",
+            "description": "Big type of layer. Currently all raster layers are wms layers and Vector layers are subdivided by protocol property",
+            "default": "",
+            "enum": [
+              "WMS",
+              "WMTS",
+              "Vector",
+              "XYZ",
+              "ArcGISRest",
+              "StaticImage"
+            ],
+            "examples": [
+              "WMS"
+            ],
+            "pattern": "^(.*)$"
+          },
+          "singleTile": {
+            "$id": "#/properties/layers/items/properties/singleTile",
+            "type": "boolean",
+            "title": "Single tile requests",
+            "description": "Use single request to WMS provider to get map for the whole screen",
+            "default": false,
+            "examples": [
+              true
+            ]
+          },
+          "greyscale": {
+            "$id": "#/properties/layers/items/properties/greyscale",
+            "type": "boolean",
+            "title": "Greyscale rendering",
+            "description": "Use to render the layer in greyscale on client",
+            "default": false,
+            "examples": [
+              true
+            ]
+          },
+          "displayInLayerSwitcher": {
+            "$id": "#/properties/layers/items/properties/displayInLayerSwitcher",
+            "type": "boolean",
+            "title": "Visibility of layer in layer switcher",
+            "default": true,
+            "examples": [
+              true
+            ]
+          },
+          "wmsMaxScale": {
+            "$id": "#/properties/layers/items/properties/wmsMaxScale",
+            "type": "number",
+            "title": "Wmsmaxscale",
+            "description": "Deprecated maxScale property used in old OpenLayers2. Is here just for historical reasons",
+            "default": 0,
+            "examples": [
+              0
+            ]
+          },
+          "legends": {
+            "$id": "#/properties/layers/items/properties/legends",
+            "type": "array",
+            "title": "The Legends Schema",
+            "items": {
+              "$id": "#/properties/layers/items/properties/legends/items",
+              "type": "string",
+              "title": "The Items Schema",
+              "default": "",
+              "examples": [
+                [
+                  "https://ags.cuzk.cz/arcgis/services/ZABAGED/MapServer/WmsServer?request=GetLegendGraphic%26version=1.3.0%26format=image/png%26layer=0"
+                ]
+              ],
+              "pattern": "^https?:\\/\\/.*$"
+            }
+          },
+          "protocol": {
+            "$id": "#/properties/layers/items/properties/protocol",
+            "type": "object",
+            "title": "The Protocol Schema",
+            "properties": {
+              "format": {
+                "$id": "#/properties/layers/items/properties/protocol/properties/format",
+                "type": "string",
+                "enum": [
+                  "KML",
+                  "GeoJSON",
+                  "GPX",
+                  "WFS",
+                  "externalWFS",
+                  "Sparql"
+                ],
+                "title": "Layer procol format"
+              },
+              "url": {
+                "$id": "#/properties/layers/items/properties/protocol/properties/url",
+                "type": "string",
+                "title": "URL to load geojson, kml and other data from",
+                "pattern": "^https?:\\/\\/.*$"
+              }
+            }
+          },
+          "attribution": {
+            "$id": "#/properties/layers/items/properties/attribution",
+            "type": "object",
+            "title": "Attribution",
+            "properties": {
+              "OnlineResource": {
+                "$id": "#/properties/layers/items/properties/attribution/properties/OnlineResource",
+                "type": "string",
+                "title": "URL of layer attribution",
+                "examples": [
+                  "https://www.openstreetmap.org/copyright"
+                ]
+              },
+              "Title": {
+                "$id": "#/properties/layers/items/properties/attribution/properties/Title",
+                "type": "string",
+                "title": "Human readable attribution",
+                "examples": [
+                  "OpenStreetMap"
+                ]
+              }
+            }
+          },
+          "features": {
+            "$id": "#/properties/layers/items/properties/features",
+            "type": "string",
+            "title": "GeoJSON serialized feature collection",
+            "default": null
+          },
+          "maxResolution": {
+            "$id": "#/properties/layers/items/properties/maxResolution",
+            "type": [
+              "number",
+              "null"
+            ],
+            "title": "The Maxresolution Schema",
+            "default": "Number.Infinity",
+            "examples": [
+              8000
+            ]
+          },
+          "minResolution": {
+            "$id": "#/properties/layers/items/properties/minResolution",
+            "type": [
+              "number",
+              "null"
+            ],
+            "title": "The Minresolution Schema",
+            "default": 0,
+            "examples": [
+              0
+            ]
+          },
+          "url": {
+            "$id": "#/properties/layers/items/properties/url",
+            "type": "string",
+            "title": "URL of map service",
+            "description": "Map service URL. Vector layers which are loaded from file, see #/properties/layers/items/properties/protocol/properties/url property",
+            "default": "",
+            "examples": [
+              "https://services.cuzk.cz/wms/wms.asp?",
+              "https://ags.cuzk.cz/arcgis/rest/services/RUIAN/Prohlizeci_sluzba_nad_daty_RUIAN/MapServer"
+            ],
+            "pattern": "^https?:\\/\\/.*$"
+          },
+          "params": {
+            "$id": "#/properties/layers/items/properties/params",
+            "type": "object",
+            "title": "The Params Schema",
+            "properties": {
+              "LAYERS": {
+                "$id": "#/properties/layers/items/properties/params/properties/LAYERS",
+                "type": "string",
+                "title": "WMS Layer. LAYERS parameter is mandatory for WMS services.",
+                "default": "",
+                "examples": [
+                  "tridyochrany"
+                ],
+                "pattern": "^(.*)$"
+              },
+              "FORMAT": {
+                "$id": "#/properties/layers/items/properties/params/properties/FORMAT",
+                "type": "string",
+                "title": "Image format for WMS",
+                "default": "",
+                "examples": [
+                  "image/png"
+                ],
+                "pattern": "^(.*)$"
+              },
+              "VERSION": {
+                "$id": "#/properties/layers/items/properties/params/properties/VERSION",
+                "type": "string",
+                "title": "The Version Schema",
+                "default": "1.3.0",
+                "examples": [
+                  "1.3.0"
+                ],
+                "pattern": "^(.*)$"
+              },
+              "STYLES": {
+                "$id": "#/properties/layers/items/properties/params/properties/STYLES",
+                "type": "string",
+                "title": "WMS Layer styles",
+                "default": "",
+                "examples": [
+                  "default"
+                ],
+                "pattern": "^(.*)$"
+              }
+            }
+          },
+          "ratio": {
+            "$id": "#/properties/layers/items/properties/ratio",
+            "type": "number",
+            "title": "Ratio of image requests",
+            "description": "Not used by HsLayers yet. Ratio. 1 means image requests are the size of the map viewport, 2 means twice the width and height of the map viewport, and so on. Must be 1 or higher.",
+            "default": 1.5,
+            "examples": [
+              1.5
+            ]
+          },
+          "projection": {
+            "$id": "#/properties/layers/items/properties/projection",
+            "type": "string",
+            "title": "Projection of layer if it is different from the map projection for the whole application",
+            "default": null,
+            "examples": [
+              "EPSG:4326"
+            ]
+          },
+          "style": {
+            "$id": "#/properties/layers/items/properties/style",
+            "type": [
+              "string",
+              "object"
+            ],
+            "title": "Style of vector layer features",
+            "description": "The style can be specified using a string in SLD format, URL to SLD file or JSON object (old way for hslayers-ng@<5.0.0) which specifies fill/stroke/image attributes of the style",
+            "examples": [
+              "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?> <StyledLayerDescriptor version=\"1.0.0\" xsi:schemaLocation=\"http://www.opengis.net/sld StyledLayerDescriptor.xsd\" xmlns=\"http://www.opengis.net/sld\" xmlns:ogc=\"http://www.opengis.net/ogc\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"> <NamedLayer> <Name>GeoServer SLD Cook Book: Simple point with stroke</Name> <UserStyle> <Name>GeoServer SLD Cook Book: Simple point with stroke</Name> <Title>GeoServer SLD Cook Book: Simple point with stroke</Title> <FeatureTypeStyle> <Rule> <Name/> <PointSymbolizer> <Graphic> <Mark> <WellKnownName>circle</WellKnownName> <Fill> <CssParameter name=\"fill\">#FF0000</CssParameter> </Fill> <Stroke> <CssParameter name=\"stroke\">#000000</CssParameter> <CssParameter name=\"stroke-width\">2</CssParameter> </Stroke> </Mark> <Size>18</Size> </Graphic> </PointSymbolizer> </Rule> </FeatureTypeStyle> </UserStyle> </NamedLayer> </StyledLayerDescriptor>",
+              "https://docs.geoserver.org/latest/en/user/_downloads/734cc880c145b4d96a3d17fc6eb9b0c8/point_simplepoint.sld",
+              {
+                "stroke": {
+                  "color": "rgba(238, 156, 150, 1)",
+                  "width": 23
+                },
+                "fill": {
+                  "color": "rgba(238, 156, 150, 1)"
+                }
+              },
+              {
+                "stroke": {
+                  "color": "rgba(238, 156, 150, 1)",
+                  "width": 23
+                },
+                "image": {
+                  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxuc==",
+                  "type": "icon"
+                }
+              }
+            ]
+          },
+          "dimensions": {
+            "$id": "#/properties/layers/items/properties/dimensions",
+            "type": "object",
+            "title": "Dimensions for layer like time, depth etc.",
+            "description": "dimensions for tile requests. This is an object with properties named like the advertised WMTS dimensions.",
+            "examples": [
+              {
+                "time": {
+                  "name": "time",
+                  "values": "2016-01-01T12:00:00.000Z/2018-01-01T12:00:00.000Z/PT24H"
+                },
+                "elevation": {
+                  "name": "elevation",
+                  "label": "depth",
+                  "values": [
+                    1,
+                    100,
+                    1000
+                  ]
+                }
+              }
+            ]
+          },
+          "workspace": {
+            "$id": "#/properties/layers/items/properties/workspace",
+            "type": "string",
+            "title": "Workspace name",
+            "description": "Layman workspace name",
+            "examples": [
+              "workspacename"
+            ]
+          }
+        }
+      }
+    },
+    "current_base_layer": {
+      "$id": "#/properties/current_base_layer",
+      "type": [
+        "object",
+        "null"
+      ],
+      "title": "Default base layer selected",
+      "default": null,
+      "properties": {
+        "title": {
+          "$id": "#/properties/current_base_layer/properties/title",
+          "type": "string",
+          "title": "Title",
+          "default": "",
+          "examples": [
+            "OpenStreetMap"
+          ],
+          "pattern": "^(.*)$"
+        }
+      },
+      "examples": [
+        {
+          "title": "OpenStreetMap"
+        }
+      ]
+    }
+  }
+}

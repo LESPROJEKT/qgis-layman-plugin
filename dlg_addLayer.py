@@ -89,7 +89,11 @@ try:
     from distutils.version import LooseVersion  # Python <= 3.11
 except ModuleNotFoundError:
     from packaging.version import Version as LooseVersion
-from .layman_api import LaymanAPI
+from .layman_api import LaymanAPI, REQUEST_TIMEOUT
+
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -419,7 +423,10 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             layer = self.utils.removeUnacceptableChars(layer)
             url = self.layman_api.get_layer_url(self.layman.laymanUsername, layer)
             response = requests.patch(
-                url, data=data, headers=self.utils.getAuthHeader(self.utils.authCfg)
+                url,
+                data=data,
+                headers=self.utils.getAuthHeader(self.utils.authCfg),
+                timeout=REQUEST_TIMEOUT,
             )
 
             if response.status_code != 200:
@@ -988,7 +995,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             if self._status_timer is not None:
                 self._status_timer.stop()
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in _startStatusRefreshTimer", exc_info=True)
         self._status_timer = QTimer(self)
         self._status_timer.setInterval(10000)
         self._status_timer.timeout.connect(self._refreshStatusesAsync)
@@ -1025,7 +1032,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 }
             self.statusesUpdated.emit(status_map)
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in _refreshStatusesThread", exc_info=True)
         finally:
             with self._status_refresh_lock:
                 self._status_refresh_running = False
@@ -1036,7 +1043,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             if self._status_timer is not None:
                 self._status_timer.stop()
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in closeEvent", exc_info=True)
         super().closeEvent(event)
 
     def _applyStatusIcons(self, status_map):
@@ -1056,12 +1063,16 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         item.setIcon(_COL_STATUS, icon)
                         item.setText(_COL_STATUS, status)
                     except Exception:
-                        pass
+                        LOGGER.debug(
+                            "Ignored error in _applyStatusIcons", exc_info=True
+                        )
                 if native_crs:
                     try:
                         item.setText(_COL_CRS, native_crs)
                     except Exception:
-                        pass
+                        LOGGER.debug(
+                            "Ignored error in _applyStatusIcons", exc_info=True
+                        )
             iterator += 1
 
     def checkIfPostgis(self, it):
@@ -1422,8 +1433,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def onWfsButton(self, enable, button):
         try:
             button.setEnabled(enable)
-        except:
-            pass
+        except Exception:
+            LOGGER.debug("Ignored error in onWfsButton", exc_info=True)
 
     def checkSelectedCount(self):
         selected_items = self.treeWidget.selectedItems()
@@ -1474,7 +1485,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         try:
             self.progressBar_loader.hide()
         except Exception:
-            pass
+            LOGGER.debug(
+                "Ignored error in _on_timeseries_upload_finished", exc_info=True
+            )
         if not success:
             self._refresh_selected_layer_info()
             self._start_status_refresh_once()

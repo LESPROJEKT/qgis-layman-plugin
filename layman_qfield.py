@@ -3,12 +3,12 @@ import tempfile
 import os
 from qgis.core import QgsProject
 from .qfield.cloud_converter import CloudConverter
+from .layman_utils import urlopen_http
 import json
 import requests
 import shutil
 from qgis.core import Qgis
 from enum import Enum
-import ssl
 from urllib import request as urllib_request
 from urllib import error as urllib_error
 
@@ -207,9 +207,8 @@ class Qfield:
         url = f"{self.URI}/api/v1/auth/user/"
         headers = self.utils.getAuthHeader(self.utils.authCfg) or {}
         req = urllib_request.Request(url, headers=headers, method="GET")
-        context = ssl._create_unverified_context()
         try:
-            with urllib_request.urlopen(req, timeout=15, context=context) as resp:
+            with urlopen_http(req, timeout=15) as resp:
                 response = SimpleHttpResponse(
                     status_code=resp.getcode(), content=resp.read()
                 )

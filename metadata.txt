@@ -11,7 +11,7 @@ name=Layman
 qgisMinimumVersion=3.26
 qgisMaximumVersion=4.99
 description=Layman
-version=3.5.0
+version=3.6.0
 author=jan vrobel
 email=vrobel.jan@seznam.cz
 
@@ -19,7 +19,7 @@ about=
 	This plugin is client for Layman server, that provides WFS, WMS services. There is possible create map compositions, store metadata, sigle layers and load back by WMS or WFS. Plugin support OAuth2 autorization and read/write permissions for every layer/composition.
 
 tracker=https://github.com/LESPROJEKT/qgis-layman-plugin/issues
-repository=https://github.com/LESPROJEKT/qgis-layman-plugin/tree/master
+repository=https://github.com/LESPROJEKT/qgis-layman-plugin/tree/3.x
 # End of mandatory metadata
 
 # Recommended items:
@@ -56,10 +56,36 @@ changelog=
 	2.7 - qfield cloud support
 	3.0 - Layman 2 support
 	3.1 - UI changes
+	3.1.1 - agrihub.sk and polirural servers removed
+	3.1.2 - layer name in composition fixed
+	3.1.3 - wfs url fixed
+	3.1.4 - switch for changing qml and sld style
+	3.1.5 - buttons UI, propagate permissions to layer, requests fixes
+	3.1.6 - refresh layer status
+	3.1.7 - geoserver colormap workaround
+	3.1.8 - multiselect setting rights for layers fixed
+	3.1.9 - path in composition fixed
+	3.2.0 - support for readers and writers, sync project moved to current composition
+	3.2.1 - import fix for python > 3.12
+	3.2.2 - UI update
+	3.2.3 - focal hub server added
+	3.2.4 - missing workspace key fixed
+	3.2.5 - overvoiced layer name fixed
+	3.2.6 - multi thread chunk upload fixed
+	3.2.7 - user no data value in raster
+	3.2.8 - pyqt6 support
+	3.2.9 - qt6 window stays on top fixed
+	3.2.10 - server aliases renamed
+	3.3.0 - s3 file path support, post lock fixed
+	3.3.1 - s3 multi upload fixed
+	3.3.2 - plus change server added
+	3.4.0 - raster image mosaic, optional oauth2 server
+	3.5.0 - append raster to time series
+	3.6.0 - request timeouts, TLS verification and safe XML parsing
 # Tags are comma separated with spaces allowed
 tags=python
 
-homepage=https://hub.plan4all.eu/qgis
+homepage=https://github.com/LESPROJEKT/qgis-layman-plugin/tree/3.x
 category=Plugins
 icon=icon.png
 # experimental flag

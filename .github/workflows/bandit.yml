@@ -1,0 +1,61 @@
+name: Bandit
+
+on:
+  pull_request:
+    branches:
+      - master
+      - 3.x
+
+jobs:
+  bandit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install bandit
+        run: pip install bandit==1.9.4
+
+      - name: Run Bandit with QGIS plugin repository rules
+        run: |
+          python - << 'PY'
+          import json
+          import subprocess
+          import sys
+          import urllib.request
+
+          url = (
+              "https://raw.githubusercontent.com/qgis/QGIS-Plugins-Website/"
+              "master/qgis-app/plugins/management/commands/data/bandit_rules.json"
+          )
+          with urllib.request.urlopen(url, timeout=30) as response:
+              catalog = json.load(response)
+          rules = catalog.get("rules")
+          if not isinstance(rules, list):
+              sys.exit("Bandit rule catalog has no rules list")
+          codes = sorted(
+              rule["check_code"]
+              for rule in rules
+              if rule.get("enabled") and rule.get("check_code")
+          )
+          if not codes:
+              sys.exit("No enabled Bandit rules in the QGIS catalog")
+          print(f"Running {len(codes)} enabled QGIS Bandit rules")
+          command = [
+              sys.executable,
+              "-m",
+              "bandit",
+              "-r",
+              ".",
+              "-x",
+              ".venv,venv,.idea",
+              "-t",
+              ",".join(codes),
+          ]
+          raise SystemExit(subprocess.call(command))
+          PY

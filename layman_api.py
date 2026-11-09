@@ -1,3 +1,8 @@
+REQUEST_TIMEOUT = 30
+# (connect, read) - file transfers may wait long for server-side processing.
+TRANSFER_TIMEOUT = (30, 300)
+
+
 class LaymanAPI:
     @staticmethod
     def normalize_base_url(base_url: str) -> str:

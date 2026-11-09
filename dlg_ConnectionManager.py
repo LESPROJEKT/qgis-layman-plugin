@@ -29,7 +29,7 @@ from urllib import request as urllib_request
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from .layman_utils import ProxyStyle
+from .layman_utils import ProxyStyle, urlopen_http
 from qgis.core import QgsSettings, QgsApplication, QgsProject
 from qgis.PyQt.QtWidgets import QPushButton, QMessageBox
 from qgis.PyQt.QtCore import QUrl, QEventLoop, QTimer
@@ -423,9 +423,7 @@ class ConnectionManagerDialog(QtWidgets.QDialog, FORM_CLASS):
     def download_url(self, url, save_path):
         """Download file from URL (copied from userInfo dialog)"""
         req = urllib_request.Request(url, headers={"User-Agent": "QGIS-Layman-Plugin"})
-        with urllib_request.urlopen(req, timeout=30) as response, open(
-            save_path, "wb"
-        ) as f:
+        with urlopen_http(req, timeout=30) as response, open(save_path, "wb") as f:
             while True:
                 chunk = response.read(8192)
                 if not chunk:

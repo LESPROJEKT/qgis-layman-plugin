@@ -39,6 +39,11 @@ from .layman_utils import ProxyStyle
 from qgis.PyQt import QtGui
 from .layman_api import LaymanAPI
 
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
+
 SUPPORTED_RASTER_TYPES = [
     {"bands": 1, "color": ["Gray"], "dtype": ["Byte", "UInt16", "Float32"]},
     {"bands": 3, "color": ["Red", "Green", "Blue"], "dtype": ["Byte", "UInt16"]},
@@ -275,7 +280,7 @@ class ImportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.setMinimumHeight(self._initial_fixed_height)
             self.setMaximumHeight(self._initial_fixed_height)
         except Exception:
-            pass
+            LOGGER.debug("Ignored error in setUi", exc_info=True)
 
     def rememberLoginPostgres(self, login, password):
         self.postgis_login = login
