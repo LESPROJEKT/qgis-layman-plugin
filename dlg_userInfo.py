@@ -213,7 +213,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
                 QMessageBox.Icon.Question,
                 self.tr("Plugin update"),
                 self.tr(
-                    "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?"
+                    "Plugin requires QGIS version 3.34 and higher. Do you still want to continue?"
                 ),
             )
             msgbox.addButton(QMessageBox.StandardButton.Yes)
@@ -258,7 +258,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
                 QMessageBox.Icon.Question,
                 self.tr("Plugin update"),
                 self.tr(
-                    "Plugin requires QGIS version 3.26 and higher. Do you still want to continue?"
+                    "Plugin requires QGIS version 3.34 and higher. Do you still want to continue?"
                 ),
             )
             msgbox.addButton(QMessageBox.StandardButton.Yes)
@@ -391,7 +391,7 @@ class UserInfoDialog(QtWidgets.QDialog, FORM_CLASS):
         version = Qgis.QGIS_VERSION_INT
         major = version // 10000
         minor = (version // 100) % 100
-        if major > 3 or (major == 3 and minor >= 26):
+        if major > 3 or (major == 3 and minor >= 34):
             return True
         else:
             return False

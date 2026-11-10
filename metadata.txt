@@ -8,7 +8,7 @@
 
 [general]
 name=Layman
-qgisMinimumVersion=3.26
+qgisMinimumVersion=3.34
 qgisMaximumVersion=4.99
 description=Layman
 version=3.6.0
@@ -81,7 +81,7 @@ changelog=
 	3.3.2 - plus change server added
 	3.4.0 - raster image mosaic, optional oauth2 server
 	3.5.0 - append raster to time series
-	3.6.0 - request timeouts, TLS verification and safe XML parsing
+	3.6.0 - request timeouts, TLS verification, safe XML parsing, QGIS 3.34 minimum
 # Tags are comma separated with spaces allowed
 tags=python
 
