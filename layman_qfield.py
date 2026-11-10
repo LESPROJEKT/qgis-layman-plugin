@@ -99,7 +99,8 @@ class Qfield:
         layers = QgsProject.instance().mapLayers().values()
         if len(layers) == 0:
             self.utils.showMessageSignal.emit(
-                [["Nejsou vrstvy k exportu!", "No layers to export!"]], Qgis.Warning
+                [["Nejsou vrstvy k exportu!", "No layers to export!"]],
+                Qgis.MessageLevel.Warning,
             )
             return
         path = self.convertQProject()

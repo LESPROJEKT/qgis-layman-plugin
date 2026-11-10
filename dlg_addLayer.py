@@ -25,36 +25,19 @@ from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRect, QTimer
 
-try:
-    _CheckStateUnchecked = Qt.CheckState.Unchecked
-    _CheckStateChecked = Qt.CheckState.Checked
-except AttributeError:
-    _CheckStateUnchecked = Qt.Unchecked
-    _CheckStateChecked = Qt.Checked
+_CheckStateUnchecked = Qt.CheckState.Unchecked
+_CheckStateChecked = Qt.CheckState.Checked
 try:
     _HeaderStretch = QtWidgets.QHeaderView.ResizeMode.Stretch
     _HeaderInteractive = QtWidgets.QHeaderView.ResizeMode.Interactive
 except AttributeError:
     _HeaderStretch = QtWidgets.QHeaderView.Stretch
     _HeaderInteractive = QtWidgets.QHeaderView.Interactive
-try:
-    _AscendingOrder = Qt.SortOrder.AscendingOrder
-except AttributeError:
-    _AscendingOrder = Qt.AscendingOrder
-try:
-    _UserRole = Qt.ItemDataRole.UserRole
-except AttributeError:
-    _UserRole = Qt.UserRole
-try:
-    _AlignCenter = Qt.AlignmentFlag.AlignCenter
-except AttributeError:
-    _AlignCenter = Qt.AlignCenter
-try:
-    _KeepAspectRatio = Qt.AspectRatioMode.KeepAspectRatio
-    _FastTransformation = Qt.TransformationMode.FastTransformation
-except AttributeError:
-    _KeepAspectRatio = Qt.KeepAspectRatio
-    _FastTransformation = Qt.FastTransformation
+_AscendingOrder = Qt.SortOrder.AscendingOrder
+_UserRole = Qt.ItemDataRole.UserRole
+_AlignCenter = Qt.AlignmentFlag.AlignCenter
+_KeepAspectRatio = Qt.AspectRatioMode.KeepAspectRatio
+_FastTransformation = Qt.TransformationMode.FastTransformation
 from qgis.PyQt.QtWidgets import (
     QTreeWidgetItem,
     QTreeWidgetItemIterator,
@@ -735,7 +718,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 checkbox = QCheckBox()
                 checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
                 checkbox_item = QTableWidgetItem()
-                checkbox_item.setFlags(Qt.ItemIsEnabled)
+                checkbox_item.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 checkbox_item.setTextAlignment(_AlignCenter)
                 table_widget.setCellWidget(row, col, checkbox)
                 table_widget.setItem(row, col, checkbox_item)
@@ -979,7 +962,8 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         try:
             self.utils.copyToClipboard(url)
             self.utils.showMessageBar(
-                [" URL uloženo do schránky.", " URL saved to clipboard."], Qgis.Success
+                [" URL uloženo do schránky.", " URL saved to clipboard."],
+                Qgis.MessageLevel.Success,
             )
         except:
             self.utils.showMessageBar(
@@ -987,7 +971,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     " URL nebylo uloženo do schránky.",
                     " URL was not saved to clipboard.",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
 
     def _startStatusRefreshTimer(self):
@@ -1747,7 +1731,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     ["Vrstva není k dispozici!", "Layer is not available!"],
                     "code: " + str(r.status_code),
                     str(r.content),
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                     url,
                 )
                 self.progressDone.emit()
@@ -1760,7 +1744,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         ["Vrstva není k dispozici!", "Layer is not available!"],
                         "code: " + str(r.status_code),
                         str(r.content),
-                        Qgis.Warning,
+                        Qgis.MessageLevel.Warning,
                         url,
                     )
                     self.progressDone.emit()
@@ -1808,7 +1792,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                         ["Vrstva není k dispozici!", "Layer is not available!"],
                         "code: " + str(r.status_code),
                         str(r.content),
-                        Qgis.Warning,
+                        Qgis.MessageLevel.Warning,
                         url,
                     )
                     return
@@ -1860,7 +1844,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                 ["Vrstva nebyla smazána!", "Layer was not deleted!"],
                 "code: " + str(response.status_code),
                 str(response.content),
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
                 url,
             )
 
@@ -2004,7 +1988,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     "Není možné odebrat aktuálního uživatele.",
                     "Unable to remove current user.",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return
         self.deleteItem(self.listWidget_read.currentItem().text())
@@ -2022,7 +2006,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     "Není možné odebrat aktuálního uživatele.",
                     "Unable to remove current user.",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return
         self.listWidget_write.removeItemWidget(
@@ -2030,7 +2014,9 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         )
 
     def deleteItem(self, itemName):
-        items_list = self.listWidget_write.findItems(itemName, Qt.MatchExactly)
+        items_list = self.listWidget_write.findItems(
+            itemName, Qt.MatchFlag.MatchExactly
+        )
         for item in items_list:
             r = self.listWidget_write.row(item)
             self.listWidget_write.takeItem(r)
@@ -2043,7 +2029,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
         if status != 200 or not isinstance(data, dict) or "db" not in data:
             self.utils.showQgisBar(
                 ["Vrstva PostGIS není dostupná.", "PostGIS layer is not available."],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return
         table = data["db"]["table"]
@@ -2080,7 +2066,7 @@ class AddLayerDialog(QtWidgets.QDialog, FORM_CLASS):
                     "Vrstva nebyla úspěšně načtena.",
                     "Layer was not successfully loaded.",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             print("Layer failed to load!")
         ## load style

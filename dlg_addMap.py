@@ -27,36 +27,19 @@ import threading
 import requests
 from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QTimer
 
-try:
-    _CheckStateUnchecked = Qt.CheckState.Unchecked
-    _CheckStateChecked = Qt.CheckState.Checked
-except AttributeError:
-    _CheckStateUnchecked = Qt.Unchecked
-    _CheckStateChecked = Qt.Checked
+_CheckStateUnchecked = Qt.CheckState.Unchecked
+_CheckStateChecked = Qt.CheckState.Checked
 try:
     _HeaderStretch = QtWidgets.QHeaderView.ResizeMode.Stretch
     _HeaderInteractive = QtWidgets.QHeaderView.ResizeMode.Interactive
 except AttributeError:
     _HeaderStretch = QtWidgets.QHeaderView.Stretch
     _HeaderInteractive = QtWidgets.QHeaderView.Interactive
-try:
-    _AscendingOrder = Qt.SortOrder.AscendingOrder
-except AttributeError:
-    _AscendingOrder = Qt.AscendingOrder
-try:
-    _UserRole = Qt.ItemDataRole.UserRole
-except AttributeError:
-    _UserRole = Qt.UserRole
-try:
-    _AlignCenter = Qt.AlignmentFlag.AlignCenter
-except AttributeError:
-    _AlignCenter = Qt.AlignCenter
-try:
-    _KeepAspectRatio = Qt.AspectRatioMode.KeepAspectRatio
-    _FastTransformation = Qt.TransformationMode.FastTransformation
-except AttributeError:
-    _KeepAspectRatio = Qt.KeepAspectRatio
-    _FastTransformation = Qt.FastTransformation
+_AscendingOrder = Qt.SortOrder.AscendingOrder
+_UserRole = Qt.ItemDataRole.UserRole
+_AlignCenter = Qt.AlignmentFlag.AlignCenter
+_KeepAspectRatio = Qt.AspectRatioMode.KeepAspectRatio
+_FastTransformation = Qt.TransformationMode.FastTransformation
 from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QTreeWidgetItemIterator,
@@ -325,7 +308,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
     def qfieldSync(self):
         self.layman.qfieldWorking = True
         self.utils.showMessageBar(
-            [" Načítám Qfield projekt", " Loading qfield project"], Qgis.Success
+            [" Načítám Qfield projekt", " Loading qfield project"],
+            Qgis.MessageLevel.Success,
         )
         name = self.treeWidget.selectedItems()[0].text(0)
         project_id = self.qfield.getProjectByName(
@@ -341,7 +325,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     " Nemáte práva k synchronizaci tohoho projektu",
                     " You do not have access right to sync this project",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return
         self.utils.openQgisProject(path)
@@ -785,7 +769,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 checkbox = QCheckBox()
                 checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
                 checkbox_item = QTableWidgetItem()
-                checkbox_item.setFlags(Qt.ItemIsEnabled)
+                checkbox_item.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 checkbox_item.setTextAlignment(_AlignCenter)
                 table_widget.setCellWidget(row, col, checkbox)
                 table_widget.setItem(row, col, checkbox_item)
@@ -1007,7 +991,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         except Exception as e:
             self.showQgisBar.emit(
                 ["Layman server neodpověděl", "Layman server was not responding"],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return
 
@@ -1041,7 +1025,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             except Exception as e:
                 self.showQgisBar.emit(
                     ["Layman server neodpověděl", "Layman server was not responding"],
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                 )
                 return
 
@@ -1078,7 +1062,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
             except Exception as e:
                 self.showQgisBar.emit(
                     ["Layman server neodpověděl", "Layman server was not responding"],
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                 )
                 return
 
@@ -1178,7 +1162,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         " Kompozice  " + name + " byla úspešně smazána.",
                         " Composition  " + name + " was sucessfully deleted.",
                     ],
-                    Qgis.Success,
+                    Qgis.MessageLevel.Success,
                 )
                 self.deleteSelectedItem(item)
             else:
@@ -1187,7 +1171,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                         " Kompozice  " + name + " nebyla smazána.",
                         " Composition  " + name + " was not sucessfully deleted.",
                     ],
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                 )
             self.mapDeletedSuccessfully.emit()
             if self.layman.current == name:
@@ -1232,7 +1216,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         try:
             self.utils.copyToClipboard(url)
             self.utils.showQgisBar(
-                [" URL uloženo do schránky.", " URL saved to clipboard."], Qgis.Success
+                [" URL uloženo do schránky.", " URL saved to clipboard."],
+                Qgis.MessageLevel.Success,
             )
         except Exception as e:
             info = str(e)
@@ -1254,7 +1239,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                 ],
                 info,
                 str(allInfo),
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
                 "",
             )
 
@@ -1311,7 +1296,7 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
                     "Mapová kompozice je načtena, ale neobsahuje žádné vrstvy.",
                     "Map composition is loaded but not contains layers.",
                 ],
-                Qgis.Success,
+                Qgis.MessageLevel.Success,
             )
             return
         if len(layers) > 0:
@@ -1736,7 +1721,9 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
         )
 
     def deleteItem(self, itemName):
-        items_list = self.listWidget_write.findItems(itemName, Qt.MatchExactly)
+        items_list = self.listWidget_write.findItems(
+            itemName, Qt.MatchFlag.MatchExactly
+        )
         for item in items_list:
             r = self.listWidget_write.row(item)
             self.listWidget_write.takeItem(r)
@@ -1807,7 +1794,8 @@ class AddMapDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def _onReadCompositionFailed(self):
         self.utils.showQgisBar(
-            ["Špatný formát kompozice.", "Wrong format of composition"], Qgis.Warning
+            ["Špatný formát kompozice.", "Wrong format of composition"],
+            Qgis.MessageLevel.Warning,
         )
         if self.objectName() == "AddMapDialog":
             self.progressBar.hide()

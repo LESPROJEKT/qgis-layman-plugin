@@ -84,21 +84,11 @@ except AttributeError:
     _PM_ButtonShiftHorizontal = _Style.PM_ButtonShiftHorizontal
     _PM_ButtonShiftVertical = _Style.PM_ButtonShiftVertical
 
-try:
-    _DisplayRole = Qt.ItemDataRole.DisplayRole
-    _DecorationRole = Qt.ItemDataRole.DecorationRole
-except AttributeError:
-    _DisplayRole = Qt.DisplayRole
-    _DecorationRole = Qt.DecorationRole
-
-try:
-    _AlignCenter = Qt.AlignmentFlag.AlignCenter
-    _AlignLeft = Qt.AlignmentFlag.AlignLeft
-    _AlignVCenter = Qt.AlignmentFlag.AlignVCenter
-except AttributeError:
-    _AlignCenter = Qt.AlignCenter
-    _AlignLeft = Qt.AlignLeft
-    _AlignVCenter = Qt.AlignVCenter
+_DisplayRole = Qt.ItemDataRole.DisplayRole
+_DecorationRole = Qt.ItemDataRole.DecorationRole
+_AlignCenter = Qt.AlignmentFlag.AlignCenter
+_AlignLeft = Qt.AlignmentFlag.AlignLeft
+_AlignVCenter = Qt.AlignmentFlag.AlignVCenter
 try:
     _WindowStaysOnTopHint = Qt.WindowType.WindowStaysOnTopHint
 except AttributeError:
@@ -244,7 +234,7 @@ class LaymanUtils(QObject):
                     ["Připojení není k dispozici", "Connection is not available"],
                     info,
                     str(info),
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                     "",
                 )
             raise LaymanRequestError(f"Request failed: {info}") from ex
@@ -255,7 +245,7 @@ class LaymanUtils(QObject):
                     ["Požadavek nebyl úspěšný", "Request was not successfull"],
                     "code: " + str(response.status_code),
                     str(response.content),
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                     url,
                 )
         return response
@@ -362,7 +352,7 @@ class LaymanUtils(QObject):
                 ["Požadavek nebyl úspěšný", "Request was not successful"],
                 f"code: {response.status_code}",
                 content,
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
                 url,
             )
         return response_content
@@ -436,7 +426,9 @@ class LaymanUtils(QObject):
             self.saveToIni("port", "7072")
             self.port = "7072"
         if index in (0, 1, 2) and self.port:
-            self.showQgisBar(["Port byl uložen.", "Port has been saved."], Qgis.Success)
+            self.showQgisBar(
+                ["Port byl uložen.", "Port has been saved."], Qgis.MessageLevel.Success
+            )
 
     def setStyleFormat(self, format_type):
         if format_type in ("qml", "sld"):
@@ -446,7 +438,7 @@ class LaymanUtils(QObject):
                     f"Formát stylu byl uložen: {format_type.upper()}.",
                     f"Style format has been saved: {format_type.upper()}.",
                 ],
-                Qgis.Success,
+                Qgis.MessageLevel.Success,
             )
 
     def saveToIni(self, key, value):
@@ -1455,7 +1447,7 @@ class LaymanUtils(QObject):
     def get_raster_min_max(self, raster_layer):
         extent = raster_layer.extent()
         provider = raster_layer.dataProvider()
-        stats = provider.bandStatistics(1, QgsRasterBandStats.All, extent, 0)
+        stats = provider.bandStatistics(1, QgsRasterBandStats.Stats.All, extent, 0)
         min_val, max_val = stats.minimumValue, stats.maximumValue
         return min_val, max_val
 

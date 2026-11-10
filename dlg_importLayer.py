@@ -26,10 +26,7 @@ from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import Qt, QCoreApplication
 import math
 
-try:
-    _ApplicationModal = Qt.WindowModality.ApplicationModal
-except AttributeError:
-    _ApplicationModal = Qt.ApplicationModal
+_ApplicationModal = Qt.WindowModality.ApplicationModal
 from qgis.core import *
 import tempfile
 from qgis.PyQt.QtWidgets import QMessageBox, QTreeWidgetItem, QTreeWidgetItemIterator
