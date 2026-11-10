@@ -48,22 +48,11 @@ except ImportError:
 from qgis.PyQt.QtCore import QObject, pyqtSignal, Qt, QRegularExpression
 from qgis.PyQt.QtCore import QPoint
 
-try:
-    _CheckStateUnchecked = Qt.CheckState.Unchecked
-    _CheckStateChecked = Qt.CheckState.Checked
-except AttributeError:
-    _CheckStateUnchecked = Qt.Unchecked
-    _CheckStateChecked = Qt.Checked
-try:
-    _UserRole = Qt.ItemDataRole.UserRole
-    _CheckStateRole = Qt.ItemDataRole.CheckStateRole
-except AttributeError:
-    _UserRole = Qt.UserRole
-    _CheckStateRole = Qt.CheckStateRole
-try:
-    _AlignCenter = Qt.AlignmentFlag.AlignCenter
-except AttributeError:
-    _AlignCenter = Qt.AlignCenter
+_CheckStateUnchecked = Qt.CheckState.Unchecked
+_CheckStateChecked = Qt.CheckState.Checked
+_UserRole = Qt.ItemDataRole.UserRole
+_CheckStateRole = Qt.ItemDataRole.CheckStateRole
+_AlignCenter = Qt.AlignmentFlag.AlignCenter
 try:
     _WindowStaysOnTopHint = Qt.WindowType.WindowStaysOnTopHint
 except AttributeError:
@@ -181,8 +170,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
             self,
             self.tr("Different layer permissions"),
             message,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.Yes,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
         )
         reply_result[0] = reply
 
@@ -412,12 +401,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if response.status_code == 201:
             self.utils.showQgisBar(
                 [" Projekt by úspěšně vytvořen.", " Project was successfully created."],
-                Qgis.Success,
+                Qgis.MessageLevel.Success,
             )
         elif "code" in res and res["code"] == "project_already_exists":
             convertedProjectPath = self.qfield.convertQProject()
             self.utils.showQgisBar(
-                [" Aktualizuji project QField.", " Update QField project"], Qgis.Success
+                [" Aktualizuji project QField.", " Update QField project"],
+                Qgis.MessageLevel.Success,
             )
             project_id = self.qfield.getProjectByName(name)
             qfieldFiles = self.qfield.getProjectFiles(project_id).json()
@@ -427,7 +417,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         " Není zachován původní poskytoval dat pro Qfield.",
                         " Different layer provider.",
                     ],
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                 )
                 self.progressDone.emit()
                 return
@@ -501,12 +491,13 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if response.status_code == 201:
             self.utils.showMessageSignal.emit(
                 [" Projekt by úspěšně vytvořen.", " Project was successfully created."],
-                Qgis.Success,
+                Qgis.MessageLevel.Success,
             )
         elif "code" in res and res["code"] == "project_already_exists":
             convertedProjectPath = self.qfield.convertQProject()
             self.utils.showMessageSignal.emit(
-                [" Aktualizuji project QField.", " Update QField project"], Qgis.Success
+                [" Aktualizuji project QField.", " Update QField project"],
+                Qgis.MessageLevel.Success,
             )
             project_id = self.qfield.getProjectByName(name)
             qfieldFiles = self.qfield.getProjectFiles(project_id).json()
@@ -795,11 +786,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
 
             if self.layman.locale == "cs":
                 item.setText(0, layer + " (Smazána z projektu)")
-                item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
                 item.setData(0, _CheckStateRole, None)
             else:
                 item.setText(0, layer + " (Removed from canvas)")
-                item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
                 item.setData(0, _CheckStateRole, None)
 
             brush = QBrush()
@@ -1463,11 +1454,11 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 time.sleep(0.1)
 
             if reply_result[0] is None:
-                reply_result[0] = QMessageBox.No
+                reply_result[0] = QMessageBox.StandardButton.No
 
             reply = reply_result[0]
 
-            if reply == QMessageBox.No:
+            if reply == QMessageBox.StandardButton.No:
                 data = {
                     "access_rights.read": self.utils.listToString(read_access),
                     "access_rights.write": self.utils.listToString(write_access),
@@ -1906,7 +1897,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 checkbox = QCheckBox()
                 checkbox.setStyleSheet("margin-left:50%; margin-right:50%;")
                 checkbox_item = QTableWidgetItem()
-                checkbox_item.setFlags(Qt.ItemIsEnabled)
+                checkbox_item.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 checkbox_item.setTextAlignment(_AlignCenter)
                 table_widget.setCellWidget(row, col, checkbox)
                 table_widget.setItem(row, col, checkbox_item)
@@ -2012,7 +2003,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     "Kompozice neexistuje na serveru nebo je načtena pouze lokálně. Nelze nastavit oprávnění.",
                     "Composition doesn't exist on server or is loaded locally. Cannot set permissions.",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return
 
@@ -2058,7 +2049,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     f"Chyba serveru (kód {r.status_code}): Kompozice neexistuje na serveru.",
                     f"Server error (code {r.status_code}): Composition doesn't exist on server.",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return
         res = r.json()
@@ -2066,7 +2057,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         if "code" in res and "message" in res:
             self.utils.showMessageBar(
                 [f"Chyba serveru: {res['message']}", f"Server error: {res['message']}"],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return
 
@@ -2076,7 +2067,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     "Kompozice neexistuje na serveru nebo je načtena pouze lokálně. Nelze nastavit oprávnění.",
                     "Composition doesn't exist on server or is loaded locally. Cannot set permissions.",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return
 
@@ -2181,7 +2172,9 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         )
 
     def deleteItem(self, itemName):
-        items_list = self.listWidget_write.findItems(itemName, Qt.MatchExactly)
+        items_list = self.listWidget_write.findItems(
+            itemName, Qt.MatchFlag.MatchExactly
+        )
         for item in items_list:
             r = self.listWidget_write.row(item)
             self.listWidget_write.takeItem(r)
@@ -2331,14 +2324,14 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     " Metadata byla úspěšně upravena.",
                     " Map metadata was saved successfully.",
                 ],
-                Qgis.Success,
+                Qgis.MessageLevel.Success,
             )
         else:
             self.utils.showErr.emit(
                 [" Metadata nebyla upravena.", " Map metadata was not saved."],
                 "code: " + str(response.status_code),
                 str(response.content),
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
                 "",
             )
 
@@ -2447,7 +2440,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     "Tato kompozice je načtena z lokálního souboru a nemá server URL.",
                     "This composition is loaded from local file and has no server URL.",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return
         try:
@@ -2471,7 +2464,8 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         try:
             self.utils.copyToClipboard(url)
             self.utils.showQgisBar(
-                [" URL uloženo do schránky.", " URL saved to clipboard."], Qgis.Success
+                [" URL uloženo do schránky.", " URL saved to clipboard."],
+                Qgis.MessageLevel.Success,
             )
         except Exception as e:
             info = str(e)
@@ -2493,7 +2487,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                 ],
                 info,
                 str(allInfo),
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
                 "",
             )
 
@@ -2616,7 +2610,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         " Kompozice s tímto jménem již existuje",
                         " Composition name already exists!",
                     ],
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                 )
 
     def checkForSpecialChars(self, s):
@@ -2809,14 +2803,15 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
         response = self.layman.patchMap2()
         if response.status_code == 200:
             self.utils.showQgisBar(
-                [" Změny byly uloženy.", " Changes was saved."], Qgis.Success
+                [" Změny byly uloženy.", " Changes was saved."],
+                Qgis.MessageLevel.Success,
             )
         else:
             self.utils.showErr.emit(
                 [" Změny nebyly uloženy.", " Changes was not saved."],
                 "code: " + str(response.status_code),
                 str(response.content),
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
                 "",
             )
         self.setGrayScaleForLayer(QgsProject.instance().mapLayersByName(name)[0])
@@ -2855,7 +2850,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         + composition["name"]
                         + " was sucessfully deleted.",
                     ],
-                    Qgis.Success,
+                    Qgis.MessageLevel.Success,
                 )
             else:
                 self.utils.showErr.emit(
@@ -2867,7 +2862,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                     ],
                     "code: " + str(response.status_code),
                     str(response.content),
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                 )
 
             self.layman.instance = None
@@ -3232,7 +3227,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                         "Chyba při načítání kompozice: " + str(e),
                         "Error loading composition: " + str(e),
                     ],
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                 )
             return True
 
@@ -3319,7 +3314,7 @@ class CurrentCompositionDialog(QtWidgets.QDialog, FORM_CLASS):
                             "Mapová kompozice je načtena, ale neobsahuje žádné vrstvy.",
                             "Map composition is loaded but not contains layers.",
                         ],
-                        Qgis.Success,
+                        Qgis.MessageLevel.Success,
                     )
                 return
 

@@ -62,20 +62,10 @@ from qgis.PyQt.QtCore import (
     qVersion,
 )
 
-try:
-    _CheckStateUnchecked = Qt.CheckState.Unchecked
-    _CheckStateChecked = Qt.CheckState.Checked
-except AttributeError:
-    _CheckStateUnchecked = Qt.Unchecked
-    _CheckStateChecked = Qt.Checked
-try:
-    _ForegroundRole = Qt.ItemDataRole.ForegroundRole
-except AttributeError:
-    _ForegroundRole = Qt.ForegroundRole
-try:
-    _QueuedConnection = Qt.ConnectionType.QueuedConnection
-except AttributeError:
-    _QueuedConnection = Qt.QueuedConnection
+_CheckStateUnchecked = Qt.CheckState.Unchecked
+_CheckStateChecked = Qt.CheckState.Checked
+_ForegroundRole = Qt.ItemDataRole.ForegroundRole
+_QueuedConnection = Qt.ConnectionType.QueuedConnection
 from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import (
     QAction,
@@ -508,7 +498,7 @@ class Layman(QObject):
         line = str(msg)
         print(line, flush=True)
         try:
-            QgsMessageLog.logMessage(line, "Layman raster", Qgis.Info)
+            QgsMessageLog.logMessage(line, "Layman raster", Qgis.MessageLevel.Info)
         except Exception:
             LOGGER.debug("Ignored error in _emit_raster_log", exc_info=True)
 
@@ -619,13 +609,13 @@ class Layman(QObject):
         if self.locale == "cs":
             iface.messageBar().pushWidget(
                 iface.messageBar().createMessage("Layman:", text[0]),
-                Qgis.Success,
+                Qgis.MessageLevel.Success,
                 duration=3,
             )
         else:
             iface.messageBar().pushWidget(
                 iface.messageBar().createMessage("Layman:", text[1]),
-                Qgis.Success,
+                Qgis.MessageLevel.Success,
                 duration=3,
             )
 
@@ -687,7 +677,7 @@ class Layman(QObject):
                     "Kompozice nebyla nastavena protože aktuální uživatel není vlastník.",
                     "Compositon was not set because user is not owner.",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
         else:
             return False
@@ -2270,7 +2260,7 @@ class Layman(QObject):
                     "Mapová kompozice je načtena, ale neobsahuje žádné vrstvy.",
                     "Map composition is loaded but not contains layers.",
                 ],
-                Qgis.Success,
+                Qgis.MessageLevel.Success,
             )
             return
 
@@ -3307,7 +3297,7 @@ class Layman(QObject):
                     " Změny v kompozici byly uloženy.",
                     " Changes in composition were saved.",
                 ],
-                Qgis.Success,
+                Qgis.MessageLevel.Success,
             )
             try:
                 self.dlg.label_raster.hide()
@@ -3411,7 +3401,7 @@ class Layman(QObject):
                     + message[8:100]
                     + " was not successfully exported because is too large",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             done = 0
             for i in range(0, len(self.processingList)):
@@ -3543,7 +3533,7 @@ class Layman(QObject):
                 "Vrstva: " + layerName + " má nastavenou špatnou projekci!",
                 "Layer: " + layerName + " has wrong projection!",
             ],
-            Qgis.Warning,
+            Qgis.MessageLevel.Warning,
         )
         done = 0
         for i in range(0, len(self.processingList)):
@@ -3561,7 +3551,7 @@ class Layman(QObject):
                 "Vrstva: " + layerName + " byla úspěšně nahrána ",
                 "Layer: " + layerName + " was successfully exported",
             ],
-            Qgis.Success,
+            Qgis.MessageLevel.Success,
         )
         done = 0
 
@@ -3587,7 +3577,8 @@ class Layman(QObject):
 
     def _onReadCompositionFailed(self):
         self.utils.showQgisBar(
-            ["Špatný formát kompozice.", "Wrong format of composition"], Qgis.Warning
+            ["Špatný formát kompozice.", "Wrong format of composition"],
+            Qgis.MessageLevel.Warning,
         )
         if self.dlg.objectName() == "AddMapDialog":
             self.dlg.progressBar_loader.hide()
@@ -3606,7 +3597,7 @@ class Layman(QObject):
                 "Vrstva: " + layerName + " nebyla nahrána ",
                 "Layer: " + layerName + " was not exported successfully",
             ],
-            Qgis.Warning,
+            Qgis.MessageLevel.Warning,
         )
         done = 0
         for i in range(0, len(self.processingList)):
@@ -4372,7 +4363,7 @@ class Layman(QObject):
                         ],
                         "code: " + str(response.status_code),
                         str(response.content),
-                        Qgis.Warning,
+                        Qgis.MessageLevel.Warning,
                         url,
                     )
                     return
@@ -4474,7 +4465,9 @@ class Layman(QObject):
 
     def removeUnsupportedLaymanTag(self, stylePath, layer):
         provider = layer.dataProvider()
-        stats = provider.bandStatistics(1, QgsRasterBandStats.All, layer.extent(), 0)
+        stats = provider.bandStatistics(
+            1, QgsRasterBandStats.Stats.All, layer.extent(), 0
+        )
         min_value = stats.minimumValue
         max_value = stats.maximumValue
         with open(stylePath, "r") as file:
@@ -4574,7 +4567,7 @@ class Layman(QObject):
                             "Nepodporované CRS souboru",
                             "Unsupported CRS of data file",
                         ],
-                        Qgis.Warning,
+                        Qgis.MessageLevel.Warning,
                     )
                     self.showExportInfo.emit("resetProgressbar")
                     return
@@ -4749,7 +4742,7 @@ class Layman(QObject):
                                 "Nepodporované CRS souboru",
                                 "Unsupported CRS of data file",
                             ],
-                            Qgis.Warning,
+                            Qgis.MessageLevel.Warning,
                         )
                         self.showExportInfo.emit("resetProgressbar")
                         return
@@ -5981,7 +5974,7 @@ class Layman(QObject):
                     + composition["name"]
                     + " was sucessfully created.",
                 ],
-                Qgis.Success,
+                Qgis.MessageLevel.Success,
             )
         else:
             self.utils.showErr.emit(
@@ -5993,7 +5986,7 @@ class Layman(QObject):
                 ],
                 "code: " + str(response.status_code),
                 str(response.content),
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
                 url,
             )
 
@@ -6732,7 +6725,7 @@ class Layman(QObject):
                 " Vrstva " + str(self.importedLayer) + " byla úspěšně exportována.",
                 " Layer " + str(self.importedLayer) + " was exported successfully.",
             ],
-            Qgis.Success,
+            Qgis.MessageLevel.Success,
         )
 
     def read_in_chunks(self, file_object):
@@ -6997,7 +6990,7 @@ class Layman(QObject):
                             "Nová verze pluginu Layman k dispozici.",
                             "New version of Layman plugin available.",
                         ],
-                        Qgis.Success,
+                        Qgis.MessageLevel.Success,
                     )
                 self.authHeader = authHeader
                 self.authOptained()
@@ -7161,7 +7154,7 @@ class Layman(QObject):
                     "Časová wms úspěšně exportována.",
                     "Time series WMS successfully exported.",
                 ]
-        self.utils.showQgisBar(msgs, Qgis.Success)
+        self.utils.showQgisBar(msgs, Qgis.MessageLevel.Success)
         self._finish_timeseries_export_ui()
 
     def _onEmitMessageBox(self, message):
@@ -7251,7 +7244,7 @@ class Layman(QObject):
                     "Vrsta " + layer_name + " již existuje!",
                     "Layer " + layer_name + " already exists!",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
         if status == 200:
             self.utils.showQBar.emit(
@@ -7259,7 +7252,7 @@ class Layman(QObject):
                     "Vrsta " + layer_name + " úspěšně uložena.",
                     "Layer " + layer_name + " was successfully saved.",
                 ],
-                Qgis.Success,
+                Qgis.MessageLevel.Success,
             )
             self.dlg.label_progress.setText("Úspěšně exportováno: 1 / 1")
         if status == 400:
@@ -7270,14 +7263,14 @@ class Layman(QObject):
                 ):
                     self.utils.showQBar.emit(
                         ["Špatné jméno nebo heslo", "Wrong login or password"],
-                        Qgis.Warning,
+                        Qgis.MessageLevel.Warning,
                     )
                 else:
                     self.utils.showErr.emit(
                         ["Požadavek nebyl úspěšný", "Request was not successfull"],
                         "code: " + str(response.status_code),
                         str(response.content),
-                        Qgis.Warning,
+                        Qgis.MessageLevel.Warning,
                         url,
                     )
             else:
@@ -7285,7 +7278,7 @@ class Layman(QObject):
                     ["Požadavek nebyl úspěšný", "Request was not successfull"],
                     "code: " + str(response.status_code),
                     str(response.content),
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                     url,
                 )
         layer.afterCommitChanges.connect(self.patchPostreLayer)
@@ -7359,7 +7352,7 @@ class Layman(QObject):
                     "Vrstva nebyla úspěšně načtena.",
                     "Layer was not successfully loaded.",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             print("Layer failed to load!")
         if style[0] == 200:
@@ -7428,5 +7421,7 @@ class Layman(QObject):
             )
             # show the dockwidget
             # TODO: fix to allow choice of dock location
-            self.iface.addDockWidget(Qt.TopDockWidgetArea, self.dockwidget)
+            self.iface.addDockWidget(
+                Qt.DockWidgetArea.TopDockWidgetArea, self.dockwidget
+            )
             self.dockwidget.show()

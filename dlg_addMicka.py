@@ -78,7 +78,7 @@ class AddMickaDialog(QtWidgets.QDialog, FORM_CLASS):
                     "Vyberte prosím mapu z katalogu",
                     "Please select a map from the catalogue",
                 ],
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return
 
@@ -137,7 +137,8 @@ class AddMickaDialog(QtWidgets.QDialog, FORM_CLASS):
             self.mickaRet = r.json()
         except Exception as e:
             self.utils.showQBar.emit(
-                ["Micka není k dispozici", "Micka is not available"], Qgis.Warning
+                ["Micka není k dispozici", "Micka is not available"],
+                Qgis.MessageLevel.Warning,
             )
             return
 
