@@ -7082,7 +7082,7 @@ class Layman(QObject):
         version = Qgis.QGIS_VERSION_INT
         major = version // 10000
         minor = (version // 100) % 100
-        if major > 3 or (major == 3 and minor >= 26):
+        if major > 3 or (major == 3 and minor >= 34):
             return True
         else:
             return False
