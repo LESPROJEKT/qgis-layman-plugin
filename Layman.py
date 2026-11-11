@@ -3924,15 +3924,34 @@ class Layman(QObject):
         for mapping in base64_mappings:
             for mime_type, base64_string in mapping.items():
                 old_base64_string = base64_string.split(":")[1]
-                new_string = f'source="{mime_type};" value="base64:{old_base64_string}"'
-                new_prop_string = (
-                    f'<prop source="{mime_type};" v="base64:{old_base64_string}"'
-                )
+                value_attr = f'value="base64:{old_base64_string}"'
+                source_attr = f'source="{mime_type};" '
+                rebuilt = []
+                cursor = 0
+                while True:
+                    found = content.find(value_attr, cursor)
+                    if found < 0:
+                        rebuilt.append(content[cursor:])
+                        break
+                    tag_start = content.rfind("<", 0, found)
+                    tag_head = content[tag_start:found] if tag_start >= 0 else ""
+                    # A second pass would insert source again and expat then
+                    # rejects the QML with "duplicate attribute".
+                    if (
+                        tag_start >= 0
+                        and ">" not in tag_head
+                        and "source=" not in tag_head
+                    ):
+                        rebuilt.append(content[cursor:found])
+                        rebuilt.append(source_attr)
+                        rebuilt.append(value_attr)
+                    else:
+                        rebuilt.append(content[cursor : found + len(value_attr)])
+                    cursor = found + len(value_attr)
+                content = "".join(rebuilt)
                 content = content.replace(
-                    f'value="base64:{old_base64_string}"', new_string
-                )
-                content = content.replace(
-                    f'<prop v="base64:{old_base64_string}"', new_prop_string
+                    f'<prop v="base64:{old_base64_string}"',
+                    f'<prop source="{mime_type};" v="base64:{old_base64_string}"',
                 )
         with open(file_path, "w", encoding="utf-8") as file:
             file.write(content)
